@@ -1471,6 +1471,11 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
 </div>
 
 <script>
+// DEBUG TEMPORAIRE — à retirer une fois le bug du journal de bord trouvé.
+window.addEventListener('error', function(e){
+  alert('ERREUR JS:\n' + e.message + '\nLigne: ' + (e.lineno||'?'));
+});
+
 /* ---------------- SUPABASE : client + auth ---------------- */
 const SUPABASE_URL = 'https://dkhmqkkmnexqixmkvzjo.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_I2FZIZG6pXqXRfKbHjKPkQ_VLNf9dGk';
