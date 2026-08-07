@@ -1004,6 +1004,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
         <option value="age" data-i18n="sortAge">Trier : Âge (plus jeune d'abord)</option>
         <option value="weight" data-i18n="sortWeight">Trier : Poids</option>
       </select>
+      <select id="mine-tag-filter" class="egg-select"></select>
     </div>
     <div id="saved-grid" class="saved-grid"></div>
   </div>
@@ -2255,6 +2256,20 @@ const I18N = {
     geneticsConfirmedTag: '✓ confirmée',
     quickActionsTitle: 'Actions rapides',
     identityTitle: 'Identité',
+    quarantineTitle: 'Quarantaine',
+    quarantineNotActive: 'Pas en quarantaine',
+    quarantineStartBtn: '🔒 Démarrer la quarantaine',
+    quarantineEndBtn: 'Terminer la quarantaine',
+    quarantineStartLabel: 'Début :',
+    quarantineDurationLabel: 'Durée :',
+    quarantineStatusLabel: 'Statut :',
+    quarantineComplete: 'Période complétée',
+    quarantineDaysLeft: 'Encore __N__ jour(s)',
+    customTagsTitle: 'Étiquettes',
+    customTagsEmpty: 'Aucune étiquette.',
+    customTagsPlaceholder: 'Ex. reproducteur prouvé…',
+    customTagsAddBtn: '+ Ajouter',
+    filterTagAll: 'Étiquette : Toutes',
     postHatchTitle: 'Suivi post-éclosion (estimé)',
     firstShedEst: '1ʳᵉ mue estimée (+12j)',
     firstMealEst: '1ᵉʳ repas estimé (+5j après mue)',
@@ -2567,6 +2582,20 @@ const I18N = {
     geneticsConfirmedTag: '✓ confirmed',
     quickActionsTitle: 'Quick actions',
     identityTitle: 'Identity',
+    quarantineTitle: 'Quarantine',
+    quarantineNotActive: 'Not in quarantine',
+    quarantineStartBtn: '🔒 Start quarantine',
+    quarantineEndBtn: 'End quarantine',
+    quarantineStartLabel: 'Started:',
+    quarantineDurationLabel: 'Duration:',
+    quarantineStatusLabel: 'Status:',
+    quarantineComplete: 'Period completed',
+    quarantineDaysLeft: '__N__ day(s) left',
+    customTagsTitle: 'Tags',
+    customTagsEmpty: 'No tags yet.',
+    customTagsPlaceholder: 'e.g. proven breeder…',
+    customTagsAddBtn: '+ Add',
+    filterTagAll: 'Tag: All',
     postHatchTitle: 'Post-hatch tracking (estimated)',
     firstShedEst: '1st shed estimated (+12d)',
     firstMealEst: '1st meal estimated (+5d after shed)',
@@ -2744,6 +2773,11 @@ function applyTranslations(){
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{
     el.placeholder = t(el.dataset.i18nPlaceholder);
   });
+  // Sections générées dynamiquement en JS (pas via data-i18n) : doivent être redessinées
+  // explicitement ici, sinon elles restent figées dans l'ancienne langue au changement.
+  try{ renderPreyChart(); }catch(e){}
+  try{ renderHusbandryFaq(); }catch(e){}
+  try{ renderSavedList(); }catch(e){}
 }
 
 /* ---- Configuration ---- */
@@ -2859,7 +2893,7 @@ function openPrivacyModal(){
       '<p><b style="color:var(--gold);">Minors</b><br/>For EU residents, the GDPR considers persons under 15 to be minors — consent from a legal representative is required to collect their data.</p>'+
       '<p><b style="color:var(--gold);">Your rights</b><br/>Access to your data, correction, objection to collection/use, and withdrawal of consent at any time, subject to applicable legal obligations.</p>'+
       '<p><b style="color:var(--gold);">Modify, delete, or contest your data</b><br/>Contact our personal data protection officer:<br/>Alexandre Young — Laval, QC, Canada<br/><a href="mailto:support@locusscales.com" style="color:var(--gold);">support@locusscales.com</a></p>'+
-      '<p><b style="color:var(--gold);">Cookie policy</b><br/>Once user-account authentication is enabled, session cookies will be used to keep you securely logged in, in addition to functional cookies to remember your preferences from one visit to the next. No advertising or third-party tracking cookies are used. These can be disabled in your browser settings (may affect your account login).</p>'+
+      '<p><b style="color:var(--gold);">Cookie policy</b><br/>Session cookies are used to keep you securely logged in once you have an account, in addition to functional cookies to remember your preferences from one visit to the next. No advertising or third-party tracking cookies are used. These can be disabled in your browser settings (may affect your account login).</p>'+
       '<p><b style="color:var(--gold);">Changes</b><br/>This policy may be updated to remain compliant with the law or to reflect a change in our data processing. Users will be notified by email as needed.</p>'+
       '<p><b style="color:var(--gold);">Contact</b><br/><a href="mailto:support@locusscales.com" style="color:var(--gold);">support@locusscales.com</a></p>'+
       '<p style="text-align:right;color:var(--ink-dim);font-size:10px;margin-bottom:0;">Effective date: August 4, 2026</p>'
@@ -2880,7 +2914,7 @@ function openPrivacyModal(){
       '<p><b style="color:var(--gold);">Mineurs</b><br/>Pour les résidents de l\'UE, le RGPD considère mineures les personnes de moins de 15 ans — le consentement d\'un représentant légal est requis pour la collecte de leurs données.</p>'+
       '<p><b style="color:var(--gold);">Vos droits</b><br/>Accès à vos données, correction, opposition à la collecte/utilisation, et retrait du consentement en tout temps, sous réserve des obligations légales applicables.</p>'+
       '<p><b style="color:var(--gold);">Modifier, supprimer ou contester vos données</b><br/>Contactez notre agent de protection des données personnelles :<br/>Alexandre Young — Laval, QC, Canada<br/><a href="mailto:support@locusscales.com" style="color:var(--gold);">support@locusscales.com</a></p>'+
-      '<p><b style="color:var(--gold);">Politique sur les témoins (cookies)</b><br/>Une fois l\'authentification par compte utilisateur activée, des témoins de session seront utilisés pour vous maintenir connecté de façon sécurisée, en plus de témoins fonctionnels pour mémoriser vos préférences d\'une visite à l\'autre. Aucun témoin publicitaire ni de suivi tiers n\'est utilisé. Désactivables dans les réglages de votre navigateur (peut affecter la connexion à votre compte).</p>'+
+      '<p><b style="color:var(--gold);">Politique sur les témoins (cookies)</b><br/>Des témoins de session sont utilisés pour vous maintenir connecté de façon sécurisée une fois que vous avez un compte, en plus de témoins fonctionnels pour mémoriser vos préférences d\'une visite à l\'autre. Aucun témoin publicitaire ni de suivi tiers n\'est utilisé. Désactivables dans les réglages de votre navigateur (peut affecter la connexion à votre compte).</p>'+
       '<p><b style="color:var(--gold);">Modifications</b><br/>Cette politique peut être mise à jour pour rester conforme à la loi ou refléter un changement dans notre traitement des données. Les utilisateurs seront avisés par courriel au besoin.</p>'+
       '<p><b style="color:var(--gold);">Contact</b><br/><a href="mailto:support@locusscales.com" style="color:var(--gold);">support@locusscales.com</a></p>'+
       '<p style="text-align:right;color:var(--ink-dim);font-size:10px;margin-bottom:0;">Date d\'entrée en vigueur : le 4 août 2026</p>'
@@ -3453,6 +3487,7 @@ let mineSearchTerm = '';
 let mineStatusFilter = 'all';
 let mineSexFilter = 'all';
 let mineVerifiedFilter = 'all';
+let mineTagFilter = 'all';
 let mineSortBy = 'created';
 
 function sortSnakes(list, sortBy){
@@ -3480,7 +3515,19 @@ function renderSavedList(){
   if(mineStatusFilter!=='all') visible = visible.filter(s=>s.status===mineStatusFilter);
   if(mineSexFilter!=='all') visible = visible.filter(s=> mineSexFilter==='unknown' ? !s.sex : s.sex===mineSexFilter);
   if(mineVerifiedFilter!=='all') visible = visible.filter(s=> mineVerifiedFilter==='unverified' ? !s.genesVerified : s.genesVerified);
+  if(mineTagFilter!=='all') visible = visible.filter(s=> (s.customTags||[]).includes(mineTagFilter));
   visible = sortSnakes(visible, mineSortBy);
+  // Remplit le filtre par étiquette avec l'union de toutes les étiquettes actuellement en usage
+  // (liste ouverte, pas prédéfinie — reflète ce que l'éleveur a réellement tapé).
+  const tagFilterEl = document.getElementById('mine-tag-filter');
+  if(tagFilterEl){
+    const allTags = [...new Set(savedSnakes.flatMap(s=>s.customTags||[]))].sort((a,b)=>a.localeCompare(b));
+    const prevValue = mineTagFilter;
+    tagFilterEl.innerHTML = '<option value="all">'+t('filterTagAll')+'</option>'+
+      allTags.map(tag=>'<option value="'+escapeHtml(tag)+'">'+escapeHtml(tag)+'</option>').join('');
+    tagFilterEl.value = allTags.includes(prevValue) ? prevValue : 'all';
+    mineTagFilter = tagFilterEl.value;
+  }
   if(savedSnakes.length===0){
     grid.innerHTML = '<div class="empty">'+t('mineEmptyState')+'</div>';
     return;
@@ -3502,12 +3549,15 @@ function renderSavedList(){
     const sexBadge = s.sex==='male' ? '<span class="sc-sex male">'+(isEn?'Male':'Mâle')+'</span>' : s.sex==='female' ? '<span class="sc-sex female">'+(isEn?'Female':'Femelle')+'</span>' : '<span class="sc-sex unknown">'+(isEn?'Unsexed':'Non sexé')+'</span>';
     const statusBadge = '<span class="sc-status '+s.status+'">'+saleStatusLabel(s.status)+'</span>';
     const unverifiedBadge = !s.genesVerified ? '<span class="sc-status unverified" title="'+(isEn?'Genetics from the statistical draw, not yet visually confirmed':'Génétique issue du tirage statistique, pas encore confirmée visuellement')+'">🧬 '+(isEn?'To verify':'À vérifier')+'</span>' : '';
+    const qs = quarantineStatus(s);
+    const quarantineBadge = (qs && !qs.complete) ? '<span class="sc-status" style="background:rgba(201,151,62,.18);color:var(--gold);border:1px solid rgba(201,151,62,.4);" title="'+(isEn?qs.daysRemaining+' day(s) left':'Encore '+qs.daysRemaining+' jour(s)')+'">🔒 '+(isEn?'Quarantine':'Quarantaine')+'</span>' : '';
+    const tagsBadges = (s.customTags||[]).map(tag=>'<span class="sc-status" style="background:var(--bg-panel-2);border:1px solid var(--line);">'+escapeHtml(tag)+'</span>').join('');
     const priceLine = s.status==='sold'
       ? '<div class="sc-genes" style="color:var(--ink-dim);">'+(isEn?'Sold to ':'Vendu à ')+escapeHtml(s.buyer||'?')+(s.soldDate?(isEn?' on ':' le ')+s.soldDate:'')+(s.soldPrice?' — '+s.soldPrice+' $':'')+'</div>'
       : (s.askingPrice ? '<div class="sc-genes" style="color:var(--gold);">'+s.askingPrice+(isEn?' $ asking':' $ demandé')+'</div>' : '');
     const thumb = (s.photos && s.photos.length) ? '<img src="'+s.photos[s.photos.length-1].dataUrl+'" style="width:36px;height:36px;object-fit:cover;border-radius:14px;border:1px solid var(--line);margin-right:8px;"/>' : '';
     card.innerHTML =
-      '<div class="sc-head"><span class="sc-name" style="display:flex;align-items:center;">'+thumb+escapeHtml(s.name)+'</span><span>'+sexBadge+statusBadge+unverifiedBadge+'</span></div>'+
+      '<div class="sc-head"><span class="sc-name" style="display:flex;align-items:center;">'+thumb+escapeHtml(s.name)+'</span><span>'+sexBadge+statusBadge+unverifiedBadge+quarantineBadge+tagsBadges+'</span></div>'+
       '<div class="sc-genes">'+summarizeGenes(s.genes)+'</div>'+
       '<div class="sc-genes" style="color:var(--sage);">📍 '+placeLabel+'</div>'+
       '<div class="sc-genes">'+weightLine+'</div>'+
@@ -3563,6 +3613,10 @@ document.querySelectorAll('#mine-verified-filters .filter-chip').forEach(btn=>{
 });
 document.getElementById('mine-sort-select').addEventListener('change', (e)=>{
   mineSortBy = e.target.value;
+  renderSavedList();
+});
+document.getElementById('mine-tag-filter').addEventListener('change', (e)=>{
+  mineTagFilter = e.target.value;
   renderSavedList();
 });
 
@@ -4099,6 +4153,33 @@ function openLogbook(id){
       mrow(t('birthLabel'), formatBirthLabel(s.birthDate)) +
       (s.birthDate ? mrow(t('ageLabel').replace(':',''), computeAgeLabel(s.birthDate)) : '')+
       (s.provenance ? mrow('Provenance', escapeHtml(s.provenance)) : '')+
+    '</div>'+
+    '<div class="modal-section"><h3>'+t('quarantineTitle')+'</h3>'+
+      (function(){
+        const qs = quarantineStatus(s);
+        const toggleBtn = '<button class="sc-btn'+(s.quarantine.active?' danger':' accent')+'" onclick="toggleQuarantine(\''+id+'\')">'+(s.quarantine.active?t('quarantineEndBtn'):t('quarantineStartBtn'))+'</button>';
+        if(!qs){
+          return '<div class="modal-row"><span>'+t('quarantineNotActive')+'</span><span>'+toggleBtn+'</span></div>';
+        }
+        const statusLine = qs.complete
+          ? '<span style="color:var(--sage);">✅ '+t('quarantineComplete')+'</span>'
+          : '<span style="color:var(--gold);">⏳ '+t('quarantineDaysLeft').replace('__N__', qs.daysRemaining)+'</span>';
+        return mrow(t('quarantineStartLabel'), s.quarantine.startDate) +
+          '<div class="modal-row"><span>'+t('quarantineDurationLabel')+'</span><span><input type="number" class="price-input" style="width:60px;" min="1" value="'+qs.durationDays+'" onchange="setQuarantineDuration(\''+id+'\', this.value)"/> '+t('daysWord')+'</span></div>'+
+          '<div class="modal-row"><span>'+t('quarantineStatusLabel')+'</span><span>'+statusLine+'</span></div>'+
+          '<div class="modal-row"><span></span><span>'+toggleBtn+'</span></div>';
+      })()+
+    '</div>'+
+    '<div class="modal-section"><h3>'+t('customTagsTitle')+'</h3>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">'+
+        (s.customTags.length ? s.customTags.map(tag=>
+          '<span class="sc-status" style="background:var(--bg-panel-2);border:1px solid var(--line);">'+escapeHtml(tag)+' <button onclick="removeCustomTag(\''+id+'\', \''+tag.replace(/'/g,"\\'")+'\')" style="background:none;border:none;color:var(--ink-dim);cursor:pointer;font-size:11px;padding:0 0 0 4px;">✕</button></span>'
+        ).join('') : '<span style="font-size:11px;color:var(--ink-dim);">'+t('customTagsEmpty')+'</span>')+
+      '</div>'+
+      '<div style="display:flex;gap:6px;">'+
+        '<input type="text" id="new-tag-input-'+id+'" placeholder="'+t('customTagsPlaceholder')+'" style="flex:1;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:6px;color:var(--ink);font-family:\'Courier New\',monospace;font-size:11.5px;padding:7px 9px;" onkeydown="if(event.key===\'Enter\'){ addCustomTag(\''+id+'\', this.value); this.value=\'\'; }"/>'+
+        '<button class="sc-btn accent" onclick="const el=document.getElementById(\'new-tag-input-'+id+'\'); addCustomTag(\''+id+'\', el.value); el.value=\'\';">'+t('customTagsAddBtn')+'</button>'+
+      '</div>'+
     '</div>'+
     (hatchTl ? '<div class="modal-section"><h3>'+t('postHatchTitle')+'</h3>'+
       mrow(t('firstShedEst'), hatchTl.shedEst) +
@@ -4702,8 +4783,69 @@ function ensureSnakeMeta(s){
   if(s.preySpecies===undefined) s.preySpecies = null; // 'mouse' | 'rat' | null (pas encore renseigné)
   if(s.preySize===undefined) s.preySize = null; // catégorie standard selon l'espèce (voir PREY_SIZES)
   if(s.createdAt===undefined) s.createdAt = Date.now(); // horodatage d'ajout dans LOCUS — sert au tri "plus récent d'abord"
+  if(s.quarantine===undefined) s.quarantine = { active:false, startDate:null, durationDays:60 }; // suivi de quarantaine — durée par défaut 60j (fourchette vétérinaire usuelle : 30-90j, jusqu'à 180j si origine inconnue)
+  if(s.customTags===undefined) s.customTags = []; // étiquettes libres définies par l'éleveur (ex: "reproducteur prouvé", "retraité", "pas à vendre")
 }
-// Rend un élément cliquable (div) activable aussi au clavier — Entrée/Espace déclenchent un clic,
+// Calcule l'état de quarantaine d'un reptile : jours écoulés, jours restants, et si la période
+// recommandée est atteinte. Ne force jamais la sortie de quarantaine — l'éleveur décide.
+function quarantineStatus(s){
+  ensureSnakeMeta(s);
+  const q = s.quarantine;
+  if(!q.active || !q.startDate) return null;
+  const daysElapsed = Math.floor((Date.now() - new Date(q.startDate+'T00:00:00').getTime()) / 86400000);
+  const daysRemaining = q.durationDays - daysElapsed;
+  return { daysElapsed, daysRemaining, complete: daysRemaining<=0, durationDays:q.durationDays };
+}
+function toggleQuarantine(id){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  if(s.quarantine.active){
+    s.quarantine.active = false;
+  } else {
+    s.quarantine.active = true;
+    s.quarantine.startDate = new Date().toISOString().slice(0,10);
+    if(!s.quarantine.durationDays) s.quarantine.durationDays = 60;
+  }
+  storage.save(savedSnakes);
+  openLogbook(id);
+  renderSavedList();
+  try{ renderDashboard(); }catch(e){}
+}
+function setQuarantineDuration(id, val){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  const n = parseInt(val, 10);
+  s.quarantine.durationDays = (n && n>0) ? n : 60;
+  storage.save(savedSnakes);
+  openLogbook(id);
+  try{ renderDashboard(); }catch(e){}
+}
+
+// Étiquettes libres (ex: "reproducteur prouvé", "retraité", "pas à vendre") — pas une liste fermée,
+// l'éleveur tape ce qu'il veut. Comparaison insensible à la casse pour éviter les doublons ("Retraité" vs "retraité").
+function addCustomTag(id, rawTag){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const tag = (rawTag||'').trim();
+  if(!tag) return;
+  const exists = s.customTags.some(x=>x.toLowerCase()===tag.toLowerCase());
+  if(!exists) s.customTags.push(tag);
+  storage.save(savedSnakes);
+  openLogbook(id);
+  renderSavedList();
+}
+function removeCustomTag(id, tag){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  s.customTags = s.customTags.filter(x=>x!==tag);
+  storage.save(savedSnakes);
+  openLogbook(id);
+  renderSavedList();
+}
+
 // tabindex+role le rendent repérable et annoncé par un lecteur d'écran. Utilisé pour les bacs de
 // rack (.tub), seuls éléments interactifs de l'app qui n'étaient pas des <button> natifs.
 function makeKeyboardClickable(el, label){
@@ -5501,12 +5643,19 @@ function renderHusbandryFaq(){
   const isEn = currentLang==='en';
   const container = document.getElementById('husbandry-faq-container');
   if(!container) return;
+  // Préserve l'état ouvert/fermé de chaque dossier s'il existe déjà (ex: changement de langue).
+  const openState = {};
+  HUSBANDRY_FAQ.forEach(cat=>{
+    const el = document.getElementById('folder-faq-'+cat.id);
+    if(el) openState[cat.id] = !el.classList.contains('collapsed');
+  });
   container.innerHTML = HUSBANDRY_FAQ.map(cat=>{
     const folderId = 'folder-faq-'+cat.id;
+    const isOpen = !!openState[cat.id];
     const itemsHtml = cat.items.map(it=>
       '<div class="husbandry-qa"><div class="q">'+(isEn?it.qEn:it.qFr)+'</div><div class="a">'+(isEn?it.aEn:it.aFr)+'</div></div>'
     ).join('');
-    return '<div class="community-folder collapsed" id="'+folderId+'">'+
+    return '<div class="community-folder'+(isOpen?'':' collapsed')+'" id="'+folderId+'">'+
       '<button class="community-folder-header" onclick="toggleCommunityFolder(\''+folderId+'\')">'+
         '<span class="folder-icon">▾</span><span>'+cat.icon+' '+(isEn?cat.titleEn:cat.titleFr)+'</span>'+
       '</button>'+
@@ -6211,11 +6360,15 @@ function renderDashboard(){
   // Alertes santé (même logique que renderHealthAlerts en Mode Tournée)
   const healthFlagged = savedSnakes.filter(s => s.health.consecutiveRefusals>=3 || weightDropping(s));
 
+  // Reptiles actuellement en quarantaine (période non complétée)
+  const inQuarantine = savedSnakes.filter(s=>{ const qs = quarantineStatus(s); return qs && !qs.complete; });
+
   const cards = [
     { icon:'🍽', count:feedingOverdue.length, label:isEn?'meal(s) overdue':'repas en retard', tone: feedingOverdue.length?'red':'ok', action:"showTab('elevage'); showSubtab('tour');" },
     { icon:'🥚', count: hatchDays!=null ? hatchDays : '—', label: upcoming ? (isEn?'day'+(hatchDays>1?'s':'')+' until hatch':'jour'+(hatchDays>1?'s':'')+' avant éclosion') : (isEn?'no clutch in progress':'aucune portée en cours'), tone: hatchDays!=null && hatchDays<=3 ? 'gold' : 'neutral', action:"showTab('incubation');" },
     { icon:'💰', count:staleListings.length, label:isEn?'listing(s) pending 14d+':'annonce(s) en attente 14j+', tone: staleListings.length?'amber':'ok', action:"showTab('ventes');" },
     { icon:'⚠', count:healthFlagged.length, label:isEn?'reptile(s) to watch':'reptile(s) à surveiller', tone: healthFlagged.length?'red':'ok', action:"showTab('elevage'); showSubtab('tour');" },
+    { icon:'🔒', count:inQuarantine.length, label:isEn?'in quarantine':'en quarantaine', tone: inQuarantine.length?'amber':'ok', action:"showTab('mine');" },
   ];
   document.getElementById('dash-alert-grid').innerHTML = cards.map(c=>
     '<div class="dash-card tone-'+c.tone+'" onclick="'+c.action+'">'+
