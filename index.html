@@ -4184,8 +4184,9 @@ function closeLogbook(){ document.getElementById('logbook-overlay').style.displa
 document.getElementById('logbook-overlay').addEventListener('click', (e)=>{ if(e.target.id==='logbook-overlay') closeLogbook(); });
 
 function openLogbook(id){
+  alert('DEBUG: openLogbook appelée avec id=' + id);
   const s = savedSnakes.find(x=>x.id===id);
-  if(!s) return;
+  if(!s){ alert('DEBUG: reptile introuvable pour id=' + id); return; }
   ensureSnakeMeta(s);
   document.getElementById('logbook-title').textContent = s.name;
   const placeLabel = s.placement.mode==='rack' ? t('rackLocationLabel').replace('__ROW__', s.placement.row).replace('__TUB__', s.placement.tub) : t('terrariumLocationLabel');
@@ -4318,7 +4319,9 @@ function openLogbook(id){
       '<button class="sc-btn accent" onclick="exportSnakeSheet(\''+id+'\')">'+t('exportSheetBtn')+'</button>'+
     '</div><div id="logbook-qr" style="display:none;margin-top:12px;"></div></div>';
 
+  alert('DEBUG: sur le point d\'afficher la modale');
   document.getElementById('logbook-overlay').style.display = 'flex';
+  alert('DEBUG: modale affichée');
 }
 
 function buildQrData(s){
