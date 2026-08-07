@@ -2369,6 +2369,7 @@ const I18N = {
     titleWord: 'Titre',
     descriptionWord: 'Description',
     copyFullTextBtn: '📄 Copier le texte complet',
+    generatePaymentLinkBtn: 'Générer un lien de paiement',
     listingCopiedAlert: 'Annonce copiée — colle-la directement dans MorphMarket.',
     copyFailedAlert: 'Copie automatique impossible sur cet appareil — sélectionne le texte affiché et copie-le manuellement.',
     statusPresentUnknown: 'Présent (génétique inconnue)',
@@ -2699,6 +2700,7 @@ const I18N = {
     titleWord: 'Title',
     descriptionWord: 'Description',
     copyFullTextBtn: '📄 Copy full text',
+    generatePaymentLinkBtn: 'Generate payment link',
     listingCopiedAlert: 'Listing copied — paste it directly into MorphMarket.',
     copyFailedAlert: 'Automatic copy is not available on this device — select the displayed text and copy it manually.',
     statusPresentUnknown: 'Present (unknown genetics)',
@@ -6188,7 +6190,45 @@ function showListingPreview(id){
     '<textarea readonly style="width:100%;margin-top:4px;background:var(--bg-panel-2);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:8px;font-family:Verdana,sans-serif;font-size:12.5px;" rows="2">'+title+'</textarea></div>'+
     '<div><span style="font-family:\'Courier New\',monospace;font-size:9.5px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);">'+t('descriptionWord')+'</span>'+
     '<textarea readonly style="width:100%;margin-top:4px;background:var(--bg-panel-2);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:8px;font-family:Verdana,sans-serif;font-size:12.5px;" rows="8">'+body+'</textarea></div>'+
-    '<button class="sc-btn" style="margin-top:8px;" onclick="copyListingText(\''+id+'\')">'+t('copyFullTextBtn')+'</button>';
+    '<button class="sc-btn" style="margin-top:8px;" onclick="copyListingText(\''+id+'\')">'+t('copyFullTextBtn')+'</button>'+
+    '<hr style="border:none;border-top:1px dashed var(--line);margin:14px 0;"/>'+
+    '<div id="stripe-payment-link-'+id+'">'+
+      '<button class="sc-btn accent" style="width:100%;" onclick="generateSalePaymentLink(\''+id+'\')">💳 '+t('generatePaymentLinkBtn')+'</button>'+
+    '</div>';
+}
+
+// Génère un lien de paiement Stripe pour la vente de ce reptile — l'argent va directement
+// à l'éleveur (compte Connect), LOCUS prélève automatiquement sa commission (~1%).
+async function generateSalePaymentLink(id){
+  if(!requireAuthOrPrompt()) return;
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  const wrap = document.getElementById('stripe-payment-link-'+id);
+  if(!s.askingPrice || s.askingPrice<=0){
+    showToast(isEn?'Set an asking price first.':'Fixe d\'abord un prix demandé.', 'error');
+    return;
+  }
+  if(wrap) wrap.innerHTML = '<p style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Generating link…':'Génération du lien…')+'</p>';
+  try{
+    const { data, error } = await sb.functions.invoke('stripe-create-payment', {
+      body: { snakeName: s.name, amountCad: s.askingPrice }
+    });
+    if(error) throw error;
+    if(data && data.url){
+      if(wrap) wrap.innerHTML =
+        '<label style="display:block;font-family:\'Courier New\',monospace;font-size:9.5px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);margin-bottom:4px;">'+(isEn?'Payment link — send it to the buyer':'Lien de paiement — envoie-le à l\'acheteur')+'</label>'+
+        '<input type="text" readonly value="'+escapeHtml(data.url)+'" style="width:100%;background:var(--bg-panel-2);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:8px;font-size:11px;margin-bottom:8px;" onclick="this.select()"/>'+
+        '<button class="sc-btn" style="width:100%;" onclick="navigator.clipboard.writeText(\''+data.url.replace(/'/g,"\\'")+'\'); showToast(\''+(isEn?'Link copied!':'Lien copié !')+'\', \'success\');">'+(isEn?'📋 Copy link':'📋 Copier le lien')+'</button>';
+    } else {
+      throw new Error(data && data.error ? data.error : 'No URL returned');
+    }
+  } catch(e){
+    console.error('generateSalePaymentLink error:', e);
+    const msg = (e && e.message) ? e.message : (isEn?'Could not generate the payment link.':'Impossible de générer le lien de paiement.');
+    showToast(msg, 'error');
+    if(wrap) wrap.innerHTML = '<button class="sc-btn accent" style="width:100%;" onclick="generateSalePaymentLink(\''+id+'\')">💳 '+t('generatePaymentLinkBtn')+'</button>';
+  }
 }
 
 function setListingLang(id, lang){
