@@ -195,6 +195,18 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
 .storage-banner.critical{background:rgba(163,77,44,.18);border:1px solid var(--rust);color:var(--ink);}
 
 .onboarding-banner{display:flex;align-items:flex-start;gap:12px;background:linear-gradient(135deg, rgba(124,131,99,.16), rgba(201,151,62,.10));border:1px solid var(--sage);border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:12.5px;line-height:1.6;}
+.community-folder{border:1px solid var(--line);border-radius:10px;margin-bottom:20px;overflow:hidden;background:var(--bg-panel);}
+.community-folder-header{width:100%;display:flex;align-items:center;gap:9px;padding:13px 16px;background:var(--bg-panel-2);border:none;cursor:pointer;font-family:'Courier New',monospace;font-size:12.5px;font-weight:600;color:var(--ink);text-align:left;}
+.community-folder-header:hover{filter:brightness(1.08);}
+.community-folder-header .folder-icon{transition:transform .15s;font-size:11px;color:var(--ink-dim);}
+.community-folder.collapsed .folder-icon{transform:rotate(-90deg);}
+.community-folder.collapsed .community-folder-body{display:none;}
+.community-folder-body{padding:18px 16px;}
+.husbandry-qa{margin-bottom:14px;}
+.husbandry-qa:last-child{margin-bottom:0;}
+.husbandry-qa .q{font-weight:600;color:var(--gold);font-size:12px;margin-bottom:4px;}
+.husbandry-qa .a{font-size:11.5px;color:var(--ink-dim);line-height:1.6;}
+.husbandry-health-note{background:rgba(201,151,62,.10);border:1px solid rgba(201,151,62,.35);border-radius:8px;padding:8px 10px;font-size:10.5px;color:var(--ink-dim);margin-top:4px;}
 .onboarding-banner .ob-icon{font-size:20px;flex-shrink:0;}
 .onboarding-banner .ob-body{flex:1;}
 .onboarding-banner .ob-title{font-weight:600;color:var(--sage);display:block;margin-bottom:3px;}
@@ -1151,6 +1163,13 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
       💬 <span data-i18n="communauteIntro">Le vrai forum communautaire arrive plus tard (une fois LOCUS branché sur son propre serveur). En attendant, voici une première fiche de référence utile — plus de contenu à venir ici avec le temps.</span>
     </div>
 
+    <div class="community-folder" id="folder-lexique-proies">
+      <button class="community-folder-header" onclick="toggleCommunityFolder('folder-lexique-proies')">
+        <span class="folder-icon">▾</span>
+        <span>📁 <span data-i18n="folderPreySizeTitle">Lexique de taille des proies</span></span>
+      </button>
+      <div class="community-folder-body">
+
     <div class="results-hdr"><h2 style="font-size:16px;" data-i18n="preyChartTitle">🐭🐀 Souris vs Rat — grosseur selon le poids du python</h2></div>
     <p style="font-size:11.5px;color:var(--ink-dim);line-height:1.6;margin:0 0 20px;" data-i18n="preyChartSubtitle">Règle générale : la proie devrait peser environ 10 à 15% du poids du python. En cas de doute, choisis toujours plus petit — un python peut facilement reprendre une proie plus grosse la fois suivante, alors qu'une proie trop grosse risque une régurgitation.</p>
 
@@ -1193,6 +1212,11 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
       <tbody id="python-weight-tbody"></tbody>
     </table>
     <p style="font-size:10.5px;color:var(--ink-dim);line-height:1.6;margin-top:14px;" data-i18n="preyChartDisclaimer">⚠ Charte donnée à titre indicatif seulement — l'appétit, l'âge, l'état de santé et le tempérament de chaque individu varient. Ne remplace pas ton propre jugement d'éleveur ni l'avis d'un vétérinaire reptile en cas de doute.</p>
+
+      </div>
+    </div>
+
+    <div id="husbandry-faq-container"></div>
     </div>
   </div>
 
@@ -1202,6 +1226,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
   </div>
 
 </div>
+
 
 <!-- ==================== CÔTÉ LÉGAL & ADMINISTRATIF ====================
      Séparé volontairement du côté Élevage (onglets horizontaux ci-dessus) : nav verticale
@@ -2065,6 +2090,7 @@ const I18N = {
     tabUtilitaire: '🛠️ Utilitaire',
     subCommunaute: '💬 Communauté',
     communauteIntro: 'Le vrai forum communautaire arrive plus tard (une fois LOCUS branché sur son propre serveur). En attendant, voici une première fiche de référence utile — plus de contenu à venir ici avec le temps.',
+    folderPreySizeTitle: 'Lexique de taille des proies',
     preyChartTitle: '🐭🐀 Souris vs Rat — grosseur selon le poids du python',
     preyChartSubtitle: 'Règle générale : la proie devrait peser environ 10 à 15% du poids du python. En cas de doute, choisis toujours plus petit — un python peut facilement reprendre une proie plus grosse la fois suivante, alors qu\'une proie trop grosse risque une régurgitation.',
     preyCalcLabel: 'Poids de ton python (g) :',
@@ -2376,6 +2402,7 @@ const I18N = {
     tabUtilitaire: '🛠️ Utility',
     subCommunaute: '💬 Community',
     communauteIntro: 'The real community forum is coming later (once LOCUS is connected to its own server). In the meantime, here\'s a first useful reference sheet — more content will be added here over time.',
+    folderPreySizeTitle: 'Prey Size Lexicon',
     preyChartTitle: '🐭🐀 Mouse vs Rat — size by python weight',
     preyChartSubtitle: 'General rule: prey should weigh about 10 to 15% of the python\'s body weight. When in doubt, always go smaller — a python can easily take a bigger meal next time, while prey that\'s too large risks regurgitation.',
     preyCalcLabel: 'Your python\'s weight (g):',
@@ -3229,7 +3256,7 @@ function showTab(tab){
   if(tab==='elevage'){ renderLayoutPrefs(); renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderTourLayoutPrefs(); renderPairingForm(); renderTimeline(); renderHealthLog(); }
   if(tab==='ventes'){ renderSalesView(); }
   if(tab==='incubation'){ renderClutchForm(); renderClutches(); }
-  if(tab==='utilitaire'){ try{ renderPreyChart(); }catch(e){ console.error('renderPreyChart error:', e); } }
+  if(tab==='utilitaire'){ try{ renderPreyChart(); }catch(e){ console.error('renderPreyChart error:', e); } try{ renderHusbandryFaq(); }catch(e){ console.error('renderHusbandryFaq error:', e); } }
   if(tab==='fiscal'){ renderFiscalView(); }
   if(tab==='valeur'){ renderValeurView(); }
   if(tab==='reglement'){ const el = document.getElementById('reg-check-date'); if(el) el.textContent = '4 août 2026'; }
@@ -4550,6 +4577,12 @@ document.getElementById('csv-file-input').addEventListener('change', (e)=>{
   reader.readAsText(file);
 });
 
+// Replie/déplie un "dossier" de l'onglet Communauté (Utilitaire) — pattern générique
+// réutilisable pour ajouter d'autres fiches de référence dans le futur.
+function toggleCommunityFolder(folderId){
+  document.getElementById(folderId).classList.toggle('collapsed');
+}
+
 // Génère les 3 petits contrôles discrets (replier, monter, descendre) pour une section.
 // isFirst désactive "monter", isLast désactive "descendre" — avec seulement 2 blocs
 // (Racks/Terrariums), monter l'un équivaut à faire descendre l'autre.
@@ -5354,6 +5387,137 @@ function renderPreyChart(){
       resultEl.textContent = '→ '+(isEn?'suggested prey: ':'proie suggérée : ')+lo+'–'+hi+'g';
     }
   }
+}
+
+// Fiches de référence husbandry générale (pas de l'app) — organisées par dossier repliable,
+// distinctes de la FAQ (openFaqModal) qui elle couvre l'usage de l'app LOCUS.
+// Contenu général reconnu par la communauté d'éleveurs — pas un avis vétérinaire.
+const HUSBANDRY_FAQ = [
+  { id:'entretien', icon:'🌡️', titleFr:'Entretien de base', titleEn:'Basic care', items:[
+    {qFr:'Quelle température idéale ?', qEn:'What\'s the ideal temperature?',
+     aFr:'Côté chaud : 88-92°F (31-33°C). Côté froid : 75-80°F (24-27°C). Un thermostat est indispensable — jamais de point chaud sans contrôle de température.',
+     aEn:'Warm side: 88-92°F (31-33°C). Cool side: 75-80°F (24-27°C). A thermostat is essential — never run a heat source without temperature control.'},
+    {qFr:'Quelle humidité viser ?', qEn:'What humidity level?',
+     aFr:'Environ 50-60% en général, en montant à 60-70% durant les périodes de mue pour faciliter le décollement de la peau.',
+     aEn:'Around 50-60% generally, rising to 60-70% during shed cycles to help the skin release cleanly.'},
+    {qFr:'Quelle grosseur de terrarium selon l\'âge ?', qEn:'What enclosure size by age?',
+     aFr:'Un bébé se sent plus en sécurité dans un espace modeste (ex. bac 6-10L) — agrandir progressivement plutôt que de partir avec un grand terrarium qui stresse un jeune individu.',
+     aEn:'A baby feels more secure in a modest space (e.g. a 6-10L tub) — size up gradually rather than starting in a large enclosure, which can stress a young snake.'},
+    {qFr:'Quel substrat utiliser ?', qEn:'What substrate should I use?',
+     aFr:'Fibre de coco, copeaux de cyprès, ou substrat spécialisé qui retient bien l\'humidité. À éviter : pin et cèdre, toxiques pour les reptiles.',
+     aEn:'Coconut fiber, cypress mulch, or a specialized humidity-retaining substrate. Avoid pine and cedar — both are toxic to reptiles.'},
+    {qFr:'À quelle fréquence nourrir ?', qEn:'How often should I feed?',
+     aFr:'Bébé : environ chaque 5-7 jours. Adulte : chaque 10-14 jours, parfois plus espacé. Ajuste selon le poids et la condition corporelle plutôt qu\'un horaire fixe.',
+     aEn:'Baby: roughly every 5-7 days. Adult: every 10-14 days, sometimes longer. Adjust based on weight and body condition rather than a fixed schedule.'},
+    {qFr:'Pourquoi mon python refuse de manger ?', qEn:'Why is my python refusing food?',
+     aFr:'Le jeûne est fréquent et souvent normal (changement de saison, mue à venir, stress, mâle adulte en période de reproduction). Surveille le poids ; consulte un vétérinaire reptile si la perte de poids se prolonge.',
+     aEn:'Fasting is common and often normal (season change, upcoming shed, stress, adult males during breeding season). Track weight, and consult an exotics vet if weight loss continues over time.'},
+    {qFr:'Proie vivante ou congelée-décongelée ?', qEn:'Live prey or frozen-thawed?',
+     aFr:'Congelée-décongelée est fortement recommandée : plus sécuritaire pour le serpent (aucun risque de morsure de la proie) et considérée plus éthique. Le vivant devrait rester l\'exception, toujours supervisé.',
+     aEn:'Frozen-thawed is strongly recommended: safer for the snake (no risk of being bitten by prey) and considered more ethical. Live feeding should stay the exception, always supervised.'},
+  ]},
+  { id:'comportement', icon:'🤝', titleFr:'Manipulation & comportement', titleEn:'Handling & behavior', items:[
+    {qFr:'Pourquoi il se roule en boule ?', qEn:'Why does it curl into a ball?',
+     aFr:'Comportement défensif naturel qui protège la tête — d\'où le nom « ball python ». Plus fréquent chez les individus jeunes ou stressés.',
+     aEn:'A natural defensive behavior that protects the head — hence the name "ball python." More common in young or stressed individuals.'},
+    {qFr:'Combien de temps attendre après un repas avant de le manipuler ?', qEn:'How long after feeding before handling?',
+     aFr:'24 à 48 heures, pour éviter le risque de régurgitation.',
+     aEn:'24 to 48 hours, to avoid the risk of regurgitation.'},
+    {qFr:'Est-ce normal qu\'il soit agressif ou qu\'il morde ?', qEn:'Is it normal for it to be aggressive or bite?',
+     aFr:'Le python royal est généralement docile ; les morsures sont rares et souvent liées à une odeur de nourriture sur les mains ou à du stress — ce n\'est pas typique de l\'espèce.',
+     aEn:'Ball pythons are generally docile; bites are rare and usually tied to food scent on hands or stress — not typical for the species.'},
+    {qFr:'Comment différencier un mâle d\'une femelle ?', qEn:'How do I tell males from females?',
+     aFr:'Les éperons (spurs) sont souvent plus visibles chez le mâle, qui est aussi généralement plus petit. Le sondage (probing) ou le poppage par un professionnel reste la méthode fiable pour confirmer.',
+     aEn:'Spurs are often more visible on males, which also tend to be smaller. Probing or popping by a professional remains the reliable method to confirm sex.'},
+    {qFr:'Combien de temps le laisser tranquille après l\'achat ?', qEn:'How long should I leave it alone after bringing it home?',
+     aFr:'1 à 2 semaines d\'acclimatation avant toute manipulation ; offrir le premier repas seulement après cette période.',
+     aEn:'1-2 weeks of acclimation before any handling; offer the first meal only after that period.'},
+  ]},
+  { id:'genetique', icon:'🧬', titleFr:'Génétique & morphs', titleEn:'Genetics & morphs', items:[
+    {qFr:'Différence entre dominant, codominant et récessif ?', qEn:'Difference between dominant, co-dominant, and recessive?',
+     aFr:'Dominant : un seul allèle suffit à exprimer le trait visuel. Codominant : un allèle donne un look distinct, deux allèles (forme « super ») donnent un look encore différent. Récessif : il faut deux copies (homozygote) pour voir le trait ; une seule copie rend porteur invisible (« het »).',
+     aEn:'Dominant: one allele is enough to show the visual trait. Co-dominant: one allele gives a distinct look, two alleles (the "super" form) give a further-different look. Recessive: two copies (homozygous) are needed to see the trait; one copy makes an invisible carrier ("het").'},
+    {qFr:'Comment prédire les bébés d\'un croisement ?', qEn:'How do I predict the babies from a pairing?',
+     aFr:'Ça dépend du mode de transmission de chaque gène combiné (calcul type Punnett) — c\'est exactement ce que fait le Calculateur de LOCUS, avec gestion des complexes alléliques.',
+     aEn:'It depends on the inheritance mode of each combined gene (Punnett-style calculation) — that\'s exactly what LOCUS\'s Calculator does, including allelic complex handling.'},
+    {qFr:'C\'est quoi un « het » ?', qEn:'What\'s a "het"?',
+     aFr:'Un hétérozygote — porteur invisible d\'un gène récessif, transmis en moyenne à 50% de la progéniture si le parent est accouplé.',
+     aEn:'A heterozygote — an invisible carrier of a recessive gene, passed on to an average of 50% of offspring when that parent is bred.'},
+    {qFr:'Le Spider/Woma causent le wobble — c\'est grave ?', qEn:'Do Spider/Woma cause wobble — is it serious?',
+     aFr:'Le wobble est un syndrome neurologique (tremblement de tête, difficulté d\'orientation) bien documenté surtout chez Spider, et fait débat éthique dans la communauté. LOCUS affiche un avertissement visible sur ces gènes individuellement.',
+     aEn:'Wobble is a neurological syndrome (head tremor, disorientation) well documented especially in Spider, and is an ongoing ethical debate in the community. LOCUS shows a visible warning on these genes individually.'},
+    {qFr:'Pourquoi certaines combinaisons sont dangereuses ?', qEn:'Why are some combinations dangerous?',
+     aFr:'Certaines formes homozygotes (« super ») causent des malformations ou de la microphtalmie (ex. Super Cinnamon, Super Black Pastel). LOCUS avertit visuellement ces combinaisons à risque.',
+     aEn:'Some homozygous ("super") forms cause malformations or microphthalmia (e.g. Super Cinnamon, Super Black Pastel). LOCUS visually flags these risky combinations.'},
+    {qFr:'Comment authentifier la génétique d\'un serpent acheté ?', qEn:'How do I verify the genetics of a snake I\'m buying?',
+     aFr:'Demande le pedigree/la lignée au vendeur, privilégie les éleveurs transparents et réputés, et méfie-toi d\'un gène « possible »/non confirmé présenté comme certain.',
+     aEn:'Ask the seller for pedigree/lineage, favor transparent and reputable breeders, and be wary of a "possible"/unconfirmed gene being presented as certain.'},
+  ]},
+  { id:'reproduction', icon:'🥚', titleFr:'Reproduction', titleEn:'Breeding', items:[
+    {qFr:'À quel âge/poids une femelle est-elle prête ?', qEn:'At what age/weight is a female ready?',
+     aFr:'Généralement un minimum de 1500-1800g et 2-3 ans — priorité au poids et à la santé plutôt qu\'à l\'âge seul.',
+     aEn:'Generally a minimum of 1500-1800g and 2-3 years old — prioritize weight and health over age alone.'},
+    {qFr:'C\'est quoi le cycle complet ?', qEn:'What\'s the full breeding cycle?',
+     aFr:'Accouplement → Ovulation → Mue pré-ponte → Ponte → Incubation → Éclosion. LOCUS suit ce calendrier automatiquement dans le module Élevage.',
+     aEn:'Pairing → Ovulation → Pre-lay shed → Laying → Incubation → Hatching. LOCUS tracks this timeline automatically in the Breeding module.'},
+    {qFr:'Combien d\'œufs en moyenne par ponte ?', qEn:'How many eggs per clutch on average?',
+     aFr:'Typiquement 4 à 10 œufs, variable selon la taille et la condition de la femelle.',
+     aEn:'Typically 4 to 10 eggs, varying with the female\'s size and condition.'},
+    {qFr:'Comment savoir si un œuf est fertile ?', qEn:'How do I know if an egg is fertile?',
+     aFr:'Le mirage (candling) permet de voir une différence de couleur/opacité, plus nette après quelques semaines d\'incubation qu\'immédiatement après la ponte.',
+     aEn:'Candling shows a difference in color/opacity, which becomes clearer after a few weeks of incubation rather than right after laying.'},
+    {qFr:'Faut-il refroidir (brumation) pour stimuler la reproduction ?', qEn:'Do I need to cool (brumate) to stimulate breeding?',
+     aFr:'Pratique débattue dans la communauté python royal — généralement moins nécessaire que chez d\'autres espèces. Certains éleveurs varient légèrement photopériode/température plutôt qu\'une vraie brumation. À faire seulement avec une bonne connaissance du sujet — mal exécutée, ça comporte un risque pour la santé de l\'animal.',
+     aEn:'A debated practice in the ball python community — generally less necessary than in other species. Some breeders slightly vary photoperiod/temperature rather than doing a true brumation. Only attempt this with solid knowledge of the subject — done poorly, it carries a real health risk.'},
+  ]},
+  { id:'sante', icon:'🩺', titleFr:'Santé', titleEn:'Health', items:[
+    {qFr:'Comment reconnaître une infection respiratoire ?', qEn:'How do I recognize a respiratory infection?',
+     aFr:'Respiration bruyante ou sifflante, bulles de mucus au nez/bouche, tête relevée pour respirer plus facilement. Consulte un vétérinaire reptile rapidement.',
+     aEn:'Noisy or wheezy breathing, mucus bubbles at the nose/mouth, head held up to breathe more easily. See an exotics vet promptly.'},
+    {qFr:'C\'est quoi le mite et comment s\'en débarrasser ?', qEn:'What are mites and how do I get rid of them?',
+     aFr:'Un acarien de serpent (petit point noir mobile sur la peau). Le traitement demande un nettoyage complet de l\'enclos et des produits spécialisés — mieux vaut consulter un vétérinaire ou une ressource spécialisée que d\'improviser.',
+     aEn:'A snake mite (small dark moving speck on the skin). Treatment requires a full enclosure clean-out and specialized products — better to consult a vet or a specialized resource than to improvise.'},
+    {qFr:'Perte de poids ou d\'appétit — quand s\'inquiéter ?', qEn:'Weight or appetite loss — when to worry?',
+     aFr:'Un jeûne occasionnel est normal. Une perte de poids progressive ou prolongée, ou de la léthargie, sont des signaux à surveiller — pèse régulièrement (LOCUS a un suivi de poids intégré par reptile).',
+     aEn:'Occasional fasting is normal. Progressive or prolonged weight loss, or lethargy, are signals worth watching — weigh regularly (LOCUS has built-in per-snake weight tracking).'},
+    {qFr:'Mue incomplète — pourquoi et quoi faire ?', qEn:'Incomplete shed — why, and what to do?',
+     aFr:'Souvent lié à une humidité insuffisante. Un bain tiède et une humidité accrue aident ; retire délicatement les résidus de peau au besoin. Si ça se répète souvent, consulte un vétérinaire.',
+     aEn:'Often linked to insufficient humidity. A warm soak and increased humidity help; gently remove leftover skin if needed. If it keeps happening, consult a vet.'},
+  ]},
+  { id:'achat', icon:'🛒', titleFr:'Achat & légal', titleEn:'Buying & legal', items:[
+    {qFr:'Faut-il un permis pour posséder un python royal au Québec ?', qEn:'Do I need a permit to own a ball python in Quebec?',
+     aFr:'À priori non, selon la réglementation provinciale actuelle (voir l\'onglet Permis de LOCUS pour les détails et sources). Le CITES est fédéral et s\'applique seulement aux transactions internationales — le python royal est en Annexe II.',
+     aEn:'Not a priori, under current provincial regulation (see LOCUS\'s Permits tab for details and sources). CITES is federal and applies only to international transactions — ball pythons are Appendix II.'},
+    {qFr:'Comment savoir si un éleveur est fiable ?', qEn:'How do I know if a breeder is trustworthy?',
+     aFr:'Transparence sur la génétique et la lignée, conditions d\'élevage visibles/documentées, réputation vérifiable dans la communauté.',
+     aEn:'Transparency about genetics and lineage, visible/documented husbandry conditions, verifiable reputation in the community.'},
+    {qFr:'Combien ça coûte réellement ?', qEn:'What\'s the real cost?',
+     aFr:'Variable selon le morph — d\'environ 50$ pour un normal à plusieurs milliers pour des combos rares — plus le setup initial (terrarium, chauffage, accessoires) et l\'entretien annuel (nourriture, électricité). Le module Fiscal/Valeur de LOCUS aide à suivre ces coûts.',
+     aEn:'Varies by morph — from around $50 for a normal to several thousand for rare combos — plus initial setup (enclosure, heating, accessories) and yearly upkeep (food, electricity). LOCUS\'s Fiscal/Value module helps track these costs.'},
+  ]},
+];
+
+function renderHusbandryFaq(){
+  const isEn = currentLang==='en';
+  const container = document.getElementById('husbandry-faq-container');
+  if(!container) return;
+  container.innerHTML = HUSBANDRY_FAQ.map(cat=>{
+    const folderId = 'folder-faq-'+cat.id;
+    const itemsHtml = cat.items.map(it=>
+      '<div class="husbandry-qa"><div class="q">'+(isEn?it.qEn:it.qFr)+'</div><div class="a">'+(isEn?it.aEn:it.aFr)+'</div></div>'
+    ).join('');
+    return '<div class="community-folder collapsed" id="'+folderId+'">'+
+      '<button class="community-folder-header" onclick="toggleCommunityFolder(\''+folderId+'\')">'+
+        '<span class="folder-icon">▾</span><span>'+cat.icon+' '+(isEn?cat.titleEn:cat.titleFr)+'</span>'+
+      '</button>'+
+      '<div class="community-folder-body">'+itemsHtml+
+        '<p class="husbandry-health-note">'+(isEn?
+          '⚠ General reference content, not veterinary or legal advice. When in doubt, consult an exotics vet or a qualified professional.':
+          '⚠ Contenu de référence général, ne remplace pas un avis vétérinaire ou juridique. En cas de doute, consulte un vétérinaire reptile ou un professionnel qualifié.')+
+        '</p>'+
+      '</div>'+
+    '</div>';
+  }).join('');
 }
 
 function renderClutchForm(){
