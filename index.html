@@ -942,6 +942,17 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
       </div>
       <input class="draft-name" id="draft-name" data-i18n-placeholder="namePlaceholder" placeholder="Nom (ex. Rex, Luna, #042)…" autocomplete="off"/>
       <div class="pedigree-row">
+        <label style="flex:1;display:flex;align-items:center;gap:8px;font-weight:400;cursor:pointer;">
+          <input type="checkbox" id="draft-is-ball-python" checked onchange="updateDraftSpeciesVisibility()" style="width:16px;height:16px;accent-color:var(--gold);"/>
+          <span data-i18n="speciesIsBallPython">Python royal (Ball Python)</span>
+        </label>
+      </div>
+      <div class="pedigree-row" id="draft-species-other-row" style="display:none;">
+        <label style="flex:1;"><span data-i18n="speciesOtherLabel">Espèce (texte libre)</span>
+          <input type="text" id="draft-species-other" class="pedigree-select" style="width:100%;margin-top:4px;" data-i18n-placeholder="speciesOtherPlaceholder" placeholder="Précise l'espèce…"/>
+        </label>
+      </div>
+      <div class="pedigree-row">
         <label><span data-i18n="fatherLabel">Père</span> <select id="draft-sire" class="pedigree-select"></select></label>
         <label><span data-i18n="motherLabel">Mère</span> <select id="draft-dam" class="pedigree-select"></select></label>
       </div>
@@ -968,6 +979,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
         <input class="combo-input" id="input-draft" data-i18n-placeholder="searchGenePlaceholder" placeholder="Rechercher un gène (ex. Pastel, Mojave, Piebald)…" autocomplete="off"/>
         <div class="combo-list" id="list-draft"></div>
       </div>
+      <p id="species-gene-note" style="display:none;font-size:10.5px;color:var(--ink-dim);margin:6px 18px 0;line-height:1.5;" data-i18n="speciesGeneNote">⚠ Le calculateur génétique de LOCUS couvre actuellement le python royal seulement. Tu peux quand même suivre cet animal (fiche, poids, nourriture, reproduction) sans gène associé.</p>
       <div class="tags" id="tags-draft"></div>
       <div class="save-bar">
         <button class="save-btn" id="save-btn" data-i18n="saveNewBtn" onclick="saveDraft()">Enregistrer ce reptile</button>
@@ -1913,9 +1925,59 @@ function openProfileModal(){
     '<input type="text" id="profile-email-input" class="draft-name" style="width:100%;margin:0 0 12px;" value="'+(p.email||'')+'" placeholder="you@example.com"/>'+
     '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Phone':'Téléphone')+'</label>'+
     '<input type="text" id="profile-phone-input" class="draft-name" style="width:100%;margin:0 0 14px;" value="'+(p.phone||'')+'" placeholder="(514) 000-0000"/>'+
-    '<button class="save-btn" style="width:100%;" onclick="saveProfileData()">'+(isEn?'Save':'Enregistrer')+'</button>'
+    '<button class="save-btn" style="width:100%;" onclick="saveProfileData()">'+(isEn?'Save':'Enregistrer')+'</button>'+
+    '<hr style="border:none;border-top:1px dashed var(--line);margin:18px 0;"/>'+
+    '<p style="margin:0 0 10px;"><b style="color:var(--sage);font-size:13px;">💳 '+(isEn?'Payments':'Paiements')+'</b></p>'+
+    '<div id="stripe-connect-status">'+(isEn?'Checking status…':'Vérification du statut…')+'</div>'
   );
+  refreshStripeConnectStatus();
 }
+
+// Vérifie si l'éleveur a déjà un compte Stripe Connect lié, et affiche le bon bouton.
+async function refreshStripeConnectStatus(){
+  const el = document.getElementById('stripe-connect-status');
+  if(!el) return;
+  const isEn = currentLang==='en';
+  if(!currentUser || !sb){
+    el.innerHTML = '<p style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Sign in to connect Stripe.':'Connecte-toi pour lier Stripe.')+'</p>';
+    return;
+  }
+  try{
+    const { data: profile } = await sb.from('profiles').select('stripe_account_id, stripe_onboarding_complete').eq('user_id', currentUser.id).maybeSingle();
+    if(profile && profile.stripe_account_id){
+      el.innerHTML = '<p style="font-size:11.5px;color:var(--sage);">✅ '+(isEn?'Stripe account linked.':'Compte Stripe lié.')+'</p>'+
+        '<button class="sc-btn" onclick="startStripeConnectOnboarding()">'+(isEn?'Update Stripe info':'Mettre à jour les infos Stripe')+'</button>';
+    } else {
+      el.innerHTML = '<p style="font-size:11px;color:var(--ink-dim);margin:0 0 10px;">'+(isEn?'Connect Stripe to receive payments directly from buyers on LOCUS.':'Connecte Stripe pour recevoir directement les paiements des acheteurs sur LOCUS.')+'</p>'+
+        '<button class="sc-btn accent" onclick="startStripeConnectOnboarding()">'+(isEn?'🔗 Connect Stripe':'🔗 Connecter Stripe')+'</button>';
+    }
+  } catch(e){
+    console.error('refreshStripeConnectStatus error:', e);
+    el.innerHTML = '<p style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Unable to check status right now.':'Impossible de vérifier le statut pour l\'instant.')+'</p>';
+  }
+}
+
+// Appelle la Edge Function stripe-connect-onboard et redirige vers le lien d'onboarding Stripe.
+async function startStripeConnectOnboarding(){
+  if(!requireAuthOrPrompt()) return;
+  const isEn = currentLang==='en';
+  const el = document.getElementById('stripe-connect-status');
+  if(el) el.innerHTML = '<p style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Redirecting to Stripe…':'Redirection vers Stripe…')+'</p>';
+  try{
+    const { data, error } = await sb.functions.invoke('stripe-connect-onboard');
+    if(error) throw error;
+    if(data && data.url){
+      window.location.href = data.url;
+    } else {
+      throw new Error(data && data.error ? data.error : 'No URL returned');
+    }
+  } catch(e){
+    console.error('startStripeConnectOnboarding error:', e);
+    showToast(isEn?'Could not start Stripe setup. Try again shortly.':'Impossible de démarrer la configuration Stripe. Réessaie sous peu.', 'error');
+    if(el) el.innerHTML = '<button class="sc-btn accent" onclick="startStripeConnectOnboarding()">'+(isEn?'🔗 Connect Stripe':'🔗 Connecter Stripe')+'</button>';
+  }
+}
+
 
 /* ---- Aide ---- */
 function openHelpModal(){
@@ -2256,6 +2318,10 @@ const I18N = {
     geneticsConfirmedTag: '✓ confirmée',
     quickActionsTitle: 'Actions rapides',
     identityTitle: 'Identité',
+    speciesIsBallPython: 'Python royal (Ball Python)',
+    speciesOtherLabel: 'Espèce (texte libre)',
+    speciesOtherPlaceholder: 'Précise l\'espèce…',
+    speciesGeneNote: '⚠ Le calculateur génétique de LOCUS couvre actuellement le python royal seulement. Tu peux quand même suivre cet animal (fiche, poids, nourriture, reproduction) sans gène associé.',
     quarantineTitle: 'Quarantaine',
     quarantineNotActive: 'Pas en quarantaine',
     quarantineStartBtn: '🔒 Démarrer la quarantaine',
@@ -2582,6 +2648,10 @@ const I18N = {
     geneticsConfirmedTag: '✓ confirmed',
     quickActionsTitle: 'Quick actions',
     identityTitle: 'Identity',
+    speciesIsBallPython: 'Ball Python',
+    speciesOtherLabel: 'Species (free text)',
+    speciesOtherPlaceholder: 'Specify the species…',
+    speciesGeneNote: '⚠ LOCUS\'s genetic calculator currently covers ball pythons only. You can still track this animal (sheet, weight, feeding, breeding) without an associated gene.',
     quarantineTitle: 'Quarantine',
     quarantineNotActive: 'Not in quarantine',
     quarantineStartBtn: '🔒 Start quarantine',
@@ -3392,11 +3462,20 @@ function computeAgeLabel(birthDate){
     : years+' an'+(years>1?'s':'')+(rem?' et '+rem+' mois':'');
 }
 
+function updateDraftSpeciesVisibility(){
+  const isBallPython = document.getElementById('draft-is-ball-python').checked;
+  document.getElementById('draft-species-other-row').style.display = isBallPython ? 'none' : 'block';
+  document.getElementById('species-gene-note').style.display = isBallPython ? 'none' : 'block';
+}
 function saveDraft(){
   if(!requireAuthOrPrompt()) return;
   const nameInput = document.getElementById('draft-name');
   const name = nameInput.value.trim() || 'Sans nom';
-  if(Object.keys(state.draft).length===0){
+  const isBallPython = document.getElementById('draft-is-ball-python').checked;
+  const species = isBallPython ? 'ball_python' : (document.getElementById('draft-species-other').value.trim() || 'other');
+  // La base de gènes de LOCUS couvre le python royal seulement — on n'exige un gène
+  // que pour cette espèce ; les autres espèces peuvent être suivies sans génétique.
+  if(species==='ball_python' && Object.keys(state.draft).length===0){
     alert('Ajoute au moins un gène avant d\'enregistrer ce reptile.');
     return;
   }
@@ -3406,14 +3485,17 @@ function saveDraft(){
   const provenance = document.getElementById('draft-provenance').value.trim() || null;
   if(editingId){
     const snake = savedSnakes.find(s=>s.id===editingId);
-    snake.name = name; snake.sex = draftSex; snake.genes = {...state.draft}; snake.sireId = sireId; snake.damId = damId; snake.birthDate = birthDate; snake.provenance = provenance;
+    snake.name = name; snake.sex = draftSex; snake.genes = {...state.draft}; snake.sireId = sireId; snake.damId = damId; snake.birthDate = birthDate; snake.provenance = provenance; snake.species = species;
     editingId = null;
   } else {
-    savedSnakes.push({ id: 'snk_'+Date.now(), name, sex: draftSex, genes: {...state.draft}, sireId, damId, birthDate, provenance });
+    savedSnakes.push({ id: 'snk_'+Date.now(), name, sex: draftSex, genes: {...state.draft}, sireId, damId, birthDate, provenance, species });
   }
   state.draft = {};
   nameInput.value = '';
   document.getElementById('draft-provenance').value = '';
+  document.getElementById('draft-is-ball-python').checked = true;
+  document.getElementById('draft-species-other').value = '';
+  updateDraftSpeciesVisibility();
   setDraftSex('male');
   renderTags('draft');
   fillBirthDateForm(null);
@@ -3428,6 +3510,11 @@ function editSnake(id){
   state.draft = {...snake.genes};
   document.getElementById('draft-name').value = snake.name;
   document.getElementById('draft-provenance').value = snake.provenance || '';
+  const species = snake.species || 'ball_python';
+  const isBallPython = species==='ball_python';
+  document.getElementById('draft-is-ball-python').checked = isBallPython;
+  document.getElementById('draft-species-other').value = isBallPython ? '' : species;
+  updateDraftSpeciesVisibility();
   setDraftSex(snake.sex);
   renderTags('draft');
   renderParentSelects();
@@ -3552,12 +3639,13 @@ function renderSavedList(){
     const qs = quarantineStatus(s);
     const quarantineBadge = (qs && !qs.complete) ? '<span class="sc-status" style="background:rgba(201,151,62,.18);color:var(--gold);border:1px solid rgba(201,151,62,.4);" title="'+(isEn?qs.daysRemaining+' day(s) left':'Encore '+qs.daysRemaining+' jour(s)')+'">🔒 '+(isEn?'Quarantine':'Quarantaine')+'</span>' : '';
     const tagsBadges = (s.customTags||[]).map(tag=>'<span class="sc-status" style="background:var(--bg-panel-2);border:1px solid var(--line);">'+escapeHtml(tag)+'</span>').join('');
+    const speciesBadge = (s.species && s.species!=='ball_python') ? '<span class="sc-status" style="background:rgba(124,131,99,.18);border:1px solid rgba(124,131,99,.4);color:var(--sage);">🦎 '+escapeHtml(s.species==='other' ? (isEn?'Other species':'Autre espèce') : s.species)+'</span>' : '';
     const priceLine = s.status==='sold'
       ? '<div class="sc-genes" style="color:var(--ink-dim);">'+(isEn?'Sold to ':'Vendu à ')+escapeHtml(s.buyer||'?')+(s.soldDate?(isEn?' on ':' le ')+s.soldDate:'')+(s.soldPrice?' — '+s.soldPrice+' $':'')+'</div>'
       : (s.askingPrice ? '<div class="sc-genes" style="color:var(--gold);">'+s.askingPrice+(isEn?' $ asking':' $ demandé')+'</div>' : '');
     const thumb = (s.photos && s.photos.length) ? '<img src="'+s.photos[s.photos.length-1].dataUrl+'" style="width:36px;height:36px;object-fit:cover;border-radius:14px;border:1px solid var(--line);margin-right:8px;"/>' : '';
     card.innerHTML =
-      '<div class="sc-head"><span class="sc-name" style="display:flex;align-items:center;">'+thumb+escapeHtml(s.name)+'</span><span>'+sexBadge+statusBadge+unverifiedBadge+quarantineBadge+tagsBadges+'</span></div>'+
+      '<div class="sc-head"><span class="sc-name" style="display:flex;align-items:center;">'+thumb+escapeHtml(s.name)+'</span><span>'+sexBadge+statusBadge+unverifiedBadge+quarantineBadge+speciesBadge+tagsBadges+'</span></div>'+
       '<div class="sc-genes">'+summarizeGenes(s.genes)+'</div>'+
       '<div class="sc-genes" style="color:var(--sage);">📍 '+placeLabel+'</div>'+
       '<div class="sc-genes">'+weightLine+'</div>'+
@@ -3586,6 +3674,21 @@ function renderSavedList(){
   });
 }
 renderSavedList();
+
+// Détecte un retour depuis l'onboarding Stripe Connect (voir startStripeConnectOnboarding).
+// Note : ceci confirme seulement que l'éleveur est revenu du flux Stripe, pas que
+// l'onboarding est réellement complété — cette confirmation viendra du webhook Stripe (à construire).
+(function checkStripeReturn(){
+  const params = new URLSearchParams(window.location.search);
+  if(params.get('stripe_connected')){
+    const isEn = currentLang==='en';
+    showToast(isEn?'Stripe setup received — this can take a moment to confirm.':'Configuration Stripe reçue — la confirmation peut prendre un instant.', 'success');
+    window.history.replaceState({}, '', window.location.pathname);
+  } else if(params.get('stripe_refresh')){
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+})();
+
 document.getElementById('mine-search-input').addEventListener('input', (e)=>{
   mineSearchTerm = e.target.value.trim();
   renderSavedList();
@@ -4498,7 +4601,8 @@ function snakeToRow(s){
     health: s.health||{}, placement: s.placement||{}, photos: s.photos||[],
     feeding_interval_days: s.feedingIntervalDays||null, prey_species: s.preySpecies||null,
     prey_size: s.preySize||null, asking_price: s.askingPrice||null, listed_date: s.listedDate||null,
-    listing_url: s.listingUrl||null, buyer: s.buyer||null, sold_date: s.soldDate||null, sold_price: s.soldPrice||null
+    listing_url: s.listingUrl||null, buyer: s.buyer||null, sold_date: s.soldDate||null, sold_price: s.soldPrice||null,
+    quarantine: s.quarantine||{active:false,startDate:null,durationDays:60}, custom_tags: s.customTags||[], species: s.species||'ball_python'
   };
 }
 function rowToSnake(r){
@@ -4508,7 +4612,8 @@ function rowToSnake(r){
     status: r.status, health: r.health||{}, placement: r.placement||{}, photos: r.photos||[],
     feedingIntervalDays: r.feeding_interval_days, preySpecies: r.prey_species, preySize: r.prey_size,
     askingPrice: r.asking_price, listedDate: r.listed_date, listingUrl: r.listing_url,
-    buyer: r.buyer, soldDate: r.sold_date, soldPrice: r.sold_price, createdAt: r.created_at ? Date.parse(r.created_at) : Date.now()
+    buyer: r.buyer, soldDate: r.sold_date, soldPrice: r.sold_price, createdAt: r.created_at ? Date.parse(r.created_at) : Date.now(),
+    quarantine: r.quarantine || {active:false,startDate:null,durationDays:60}, customTags: r.custom_tags || [], species: r.species || 'ball_python'
   };
 }
 
@@ -4785,6 +4890,7 @@ function ensureSnakeMeta(s){
   if(s.createdAt===undefined) s.createdAt = Date.now(); // horodatage d'ajout dans LOCUS — sert au tri "plus récent d'abord"
   if(s.quarantine===undefined) s.quarantine = { active:false, startDate:null, durationDays:60 }; // suivi de quarantaine — durée par défaut 60j (fourchette vétérinaire usuelle : 30-90j, jusqu'à 180j si origine inconnue)
   if(s.customTags===undefined) s.customTags = []; // étiquettes libres définies par l'éleveur (ex: "reproducteur prouvé", "retraité", "pas à vendre")
+  if(s.species===undefined) s.species = 'ball_python'; // tous les reptiles créés avant cette fonctionnalité étaient forcément des python royal
 }
 // Calcule l'état de quarantaine d'un reptile : jours écoulés, jours restants, et si la période
 // recommandée est atteinte. Ne force jamais la sortie de quarantaine — l'éleveur décide.
