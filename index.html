@@ -472,6 +472,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
 
 .saved-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-top:22px;}
 .saved-card{background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;}
+.saved-card.batch-selected{border-color:var(--gold);background:rgba(201,151,62,.08);}
+.sc-btn.active{background:var(--gold);border-color:var(--gold);color:#141c0c;font-weight:600;}
 .saved-card .sc-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
 .saved-card .sc-name{font-family:Georgia,'Times New Roman',serif;font-size:15px;font-weight:600;}
 .saved-card .sc-sex{font-family:'Courier New',monospace;font-size:9.5px;letter-spacing:1px;text-transform:uppercase;padding:2px 8px;border-radius:14px;}
@@ -1032,6 +1034,14 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
         <option value="weight" data-i18n="sortWeight">Trier : Poids</option>
       </select>
       <select id="mine-tag-filter" class="egg-select"></select>
+      <button class="sc-btn" id="batch-mode-toggle-btn" onclick="toggleBatchMode()">☑️ <span data-i18n="batchSelectBtn">Sélection multiple</span></button>
+    </div>
+    <div id="batch-action-bar" style="display:none;background:var(--bg-panel-2);border:1px solid var(--gold);border-radius:12px;padding:10px 14px;margin-bottom:14px;gap:8px;flex-wrap:wrap;align-items:center;">
+      <span id="batch-count-label" style="font-family:'Courier New',monospace;font-size:11px;color:var(--gold);font-weight:600;"></span>
+      <button class="sc-btn accent" onclick="batchMarkFed()">🍽 <span data-i18n="batchFeedBtn">Nourrir</span></button>
+      <button class="sc-btn" onclick="batchToggleTerrarium()">🏠 <span data-i18n="batchMoveBtn">Rack ↔ Terrarium</span></button>
+      <button class="sc-btn" onclick="batchSelectAll()"><span data-i18n="batchSelectAllBtn">Tout sélectionner</span></button>
+      <button class="sc-btn danger" onclick="toggleBatchMode()">✕ <span data-i18n="batchCancelBtn">Annuler</span></button>
     </div>
     <div id="genetic-health-container"></div>
     <div id="saved-grid" class="saved-grid"></div>
@@ -1112,6 +1122,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
         <button class="save-btn" data-i18n="recordPairingBtn" onclick="addPairing()">Enregistrer l'accouplement</button>
       </div>
       <div id="lastyear-reference"></div>
+      <div id="outcomes-view"></div>
       <div class="community-folder" id="folder-custom-events">
         <button class="community-folder-header" onclick="toggleCommunityFolder('folder-custom-events')">
           <span class="folder-icon">▾</span><span>📌 <span data-i18n="customEventsTitle">Rappels personnalisés</span></span>
@@ -1162,6 +1173,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
       <div class="value-box actual"><div class="vb-label" data-i18n="statSoldMonth">Vendu ce mois-ci</div><div class="vb-amount" id="sales-stat-month">0 $</div></div>
       <div class="value-box actual"><div class="vb-label" data-i18n="statSoldTotal">Vendu (total)</div><div class="vb-amount" id="sales-stat-total">0 $</div></div>
     </div>
+    <div id="mm-bulk-export" style="margin-top:18px;"></div>
     <div class="mine-filter-bar" style="margin-top:22px;">
       <div class="mine-filter-group" id="sales-status-filters">
         <button class="filter-chip active" data-status="forsale" data-i18n="filterForSale">À vendre</button>
@@ -1320,6 +1332,15 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
             <input type="number" id="feeding-interval-input" value="7" min="1" style="width:70px;font-size:16px;padding:8px 10px;" oninput="calcFeedingCountdown()"/>
           </div>
           <div id="feeding-countdown-result"></div>
+        </div>
+      </div>
+
+      <div class="community-folder" id="folder-prebuy-calc">
+        <button class="community-folder-header" onclick="toggleCommunityFolder('folder-prebuy-calc')">
+          <span class="folder-icon">▾</span><span>💰 <span data-i18n="toolPreBuyTitle">Calculateur de coût — avant l'achat</span></span>
+        </button>
+        <div class="community-folder-body">
+          <div id="prebuy-calc-container"></div>
         </div>
       </div>
     </div>
@@ -1501,6 +1522,15 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
   </div>
 
   <div class="reg-card">
+    <div class="reg-card-head"><span class="reg-flag">🔄</span><h3 data-i18n="mmImportTitle">Import depuis MorphMarket</h3></div>
+    <p data-i18n="mmImportDesc">Tu utilises déjà MorphMarket (Animal Manager) ? Exporte ta collection en CSV depuis là-bas, puis importe-la ici directement — pas besoin de tout ressaisir à la main. La génétique est extraite du titre/traits de chaque annonce et reste marquée « à vérifier » jusqu'à confirmation.</p>
+    <input type="file" id="mm-csv-file-input" accept=".csv,.tsv,text/csv,text/tab-separated-values" style="display:none;"/>
+    <div class="reg-links">
+      <button class="sc-btn accent" onclick="if(requireAuthOrPrompt()) document.getElementById('mm-csv-file-input').click()">🔄 <span data-i18n="mmImportBtn">Importer un export MorphMarket</span></button>
+    </div>
+  </div>
+
+  <div class="reg-card">
     <div class="reg-card-head"><span class="reg-flag">📅</span><h3 data-i18n="icsCardTitle">Export vers ton calendrier (.ics)</h3></div>
     <p data-i18n="icsCardDesc">Télécharge tes prochains repas, éclosions et rappels personnalisés dans un fichier que ton téléphone reconnaît directement — importe-le dans Calendrier (Apple) ou Google Agenda pour voir tes échéances LOCUS sans ouvrir l'app.</p>
     <div class="reg-links">
@@ -1524,6 +1554,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
       <button class="modal-close" onclick="closeAppMenu()" aria-label="Fermer le menu">×</button>
     </div>
     <button class="app-menu-item" onclick="closeAppMenu(); openProfileModal();"><span>👤</span> <span data-i18n="menuProfile">Mon profil</span></button>
+    <button class="app-menu-item" onclick="closeAppMenu(); openHelpSearchModal();"><span>🔍</span> <span data-i18n="menuHelpSearch">Recherche dans l'aide</span></button>
     <button class="app-menu-item" onclick="closeAppMenu(); openAnnouncementsModal();"><span>📢</span> <span data-i18n="menuAnnouncements">Annonces</span><span id="badge-announcements" class="menu-badge" style="display:none;">●</span></button>
     <button class="app-menu-item" onclick="closeAppMenu(); openChangelogModal();"><span>📋</span> <span data-i18n="menuChangelog">Notes de mise à jour</span><span id="badge-changelog" class="menu-badge" style="display:none;">●</span></button>
     <button class="app-menu-item" onclick="closeAppMenu(); openHelpModal();"><span>❓</span> <span data-i18n="menuHelp">Aide</span></button>
@@ -1654,6 +1685,7 @@ function updateAuthUI(){
     if(formEl) formEl.style.display = 'block';
     if(signoutBtn) signoutBtn.style.display = 'none';
   }
+  try{ renderPreBuyCalculator(); }catch(e){}
 }
 // Bloque une action tant que l'utilisateur n'est pas connecté (compte requis pour tout
 // ce qui touche à l'enregistrement d'un reptile, puisque le stockage est maintenant
@@ -2008,6 +2040,39 @@ document.addEventListener('keydown', (e)=>{
 });
 
 /* ---- Profil ---- */
+const SIMPLIFIED_MODE_KEY = 'locus_simplified_mode_v1';
+let simplifiedMode = false;
+try{ simplifiedMode = localStorage.getItem(SIMPLIFIED_MODE_KEY)==='true'; }catch(e){}
+function applySimplifiedModeUI(){
+  const elevageBtn = document.querySelector('.tab-btn[data-tab="elevage"]');
+  const incubationBtn = document.querySelector('.tab-btn[data-tab="incubation"]');
+  if(elevageBtn) elevageBtn.style.display = simplifiedMode ? 'none' : '';
+  if(incubationBtn) incubationBtn.style.display = simplifiedMode ? 'none' : '';
+  if(simplifiedMode){
+    const active = document.querySelector('.tab-btn.active');
+    if(active && (active.dataset.tab==='elevage' || active.dataset.tab==='incubation')) showTab('dash');
+  }
+}
+function toggleSimplifiedMode(){
+  simplifiedMode = !simplifiedMode;
+  try{ localStorage.setItem(SIMPLIFIED_MODE_KEY, simplifiedMode?'true':'false'); }catch(e){}
+  applySimplifiedModeUI();
+  const btn = document.getElementById('simplified-mode-toggle-btn');
+  if(btn) btn.textContent = simplifiedModeToggleLabel();
+  const hint = document.getElementById('simplified-mode-hint');
+  if(hint) hint.textContent = simplifiedModeHint();
+}
+function simplifiedModeToggleLabel(){
+  const isEn = currentLang==='en';
+  if(simplifiedMode) return isEn ? '✓ Simplified mode — ON' : '✓ Mode simplifié — Activé';
+  return isEn ? 'Turn on simplified mode' : 'Activer le mode simplifié';
+}
+function simplifiedModeHint(){
+  const isEn = currentLang==='en';
+  if(simplifiedMode) return isEn ? 'The "Breeding" and "Incubation" tabs are hidden. Turn this off anytime to get them back.' : 'Les onglets « Élevage » et « Incubation » sont cachés. Désactive en tout temps pour les retrouver.';
+  return isEn ? 'Hides the "Breeding" and "Incubation" tabs — useful if you just have a pet and don\'t need those tools yet.' : 'Cache les onglets « Élevage » et « Incubation » — utile si tu as juste un animal de compagnie et que tu n\'as pas encore besoin de ces outils.';
+}
+
 const PROFILE_KEY = 'locus_profile_v1';
 function loadProfile(){
   try{ const raw = localStorage.getItem(PROFILE_KEY); return raw ? JSON.parse(raw) : { breederName:'', email:'', phone:'' }; }
@@ -2035,6 +2100,10 @@ function openProfileModal(){
     '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Phone':'Téléphone')+'</label>'+
     '<input type="text" id="profile-phone-input" class="draft-name" style="width:100%;margin:0 0 14px;" value="'+(p.phone||'')+'" placeholder="(514) 000-0000"/>'+
     '<button class="save-btn" style="width:100%;" onclick="saveProfileData()">'+(isEn?'Save':'Enregistrer')+'</button>'+
+    '<hr style="border:none;border-top:1px dashed var(--line);margin:18px 0;"/>'+
+    '<p style="margin:0 0 10px;"><b style="color:var(--sage);font-size:13px;">🌱 '+(isEn?'Simplified mode':'Mode simplifié')+'</b></p>'+
+    '<p id="simplified-mode-hint" style="font-size:11px;color:var(--ink-dim);margin:0 0 10px;line-height:1.5;">'+simplifiedModeHint()+'</p>'+
+    '<button class="sc-btn" id="simplified-mode-toggle-btn" style="width:100%;margin-bottom:4px;" onclick="toggleSimplifiedMode()">'+simplifiedModeToggleLabel()+'</button>'+
     '<hr style="border:none;border-top:1px dashed var(--line);margin:18px 0;"/>'+
     '<p style="margin:0 0 10px;"><b style="color:var(--sage);font-size:13px;">💳 '+(isEn?'Payments':'Paiements')+'</b></p>'+
     '<div id="stripe-connect-status">'+(isEn?'Checking status…':'Vérification du statut…')+'</div>'
@@ -2089,6 +2158,93 @@ async function startStripeConnectOnboarding(){
 
 
 /* ---- Aide ---- */
+// Contenu structuré pour la recherche unifiée (voir searchAllHelp) — les modales
+// openHelpModal/openFaqModal gardent leur propre texte HTML pour l'affichage normal,
+// ces tableaux sont une version indexable des mêmes réponses de base.
+const AIDE_ITEMS = [
+  {qFr:'Comment démarrer avec LOCUS ?', qEn:'How do I get started with LOCUS?',
+   aFr:'Calculateur → sélectionne les gènes des deux parents → « Calculer la portée ». Enregistre tes reproducteurs dans « Mes reptiles » pour les recharger en un clic la prochaine fois.',
+   aEn:'Calculator → pick genes for both parents → "Calculate Clutch". Save your breeders in "My Reptiles" to reload them in one click next time.'},
+  {qFr:'Comment fonctionne le suivi quotidien ?', qEn:'How does daily tracking work?',
+   aFr:'Le Tableau de bord regroupe ce qui presse : repas dus, éclosions à venir, annonces en attente. Mode Tournée (dans Élevage) sert aux actions rapides en lot pendant ta tournée physique.',
+   aEn:'The Dashboard groups what\'s urgent: meals due, upcoming hatchings, pending listings. Tour Mode (in Husbandry) is for quick batch actions during your physical rounds.'},
+  {qFr:'Que se passe-t-il quand une portée éclot ?', qEn:'What happens when a clutch hatches?',
+   aFr:'Marquer une portée « éclos » crée automatiquement une fiche par bébé avec la génétique exacte du tirage. Elles restent marquées « à vérifier » jusqu\'à confirmation visuelle.',
+   aEn:'Marking a clutch "hatched" automatically creates one record per baby with the exact genetics from the draw. They stay marked "to verify" until visually confirmed.'},
+  {qFr:'Comment mes données sont-elles sauvegardées ?', qEn:'How is my data backed up?',
+   aFr:'Tes données se synchronisent automatiquement sur le cloud tant que tu es connecté, ce qui te protège en cas d\'appareil perdu ou effacé. Tu peux quand même exporter une copie JSON en tout temps (Menu ☰ → Configuration, ou onglet Export) pour tes propres archives.',
+   aEn:'Your data syncs automatically to the cloud while you\'re logged in, protecting you against a lost or wiped device. You can still export a JSON copy anytime (Menu ☰ → Settings, or the Export tab) for your own records.'},
+];
+const FAQ_APP_ITEMS = [
+  {qFr:'C\'est quoi le badge orange « Possible » ou « ? » sur un gène ?', qEn:'What\'s the orange "Possible" or "?" badge on a gene?',
+   aFr:'Le gène n\'est pas confirmé à 100% (hérité d\'un parent non prouvé, ou identité incertaine type Freeway). Il est volontairement exclu du calcul mendélien plutôt que de fausser un pourcentage.',
+   aEn:'The gene isn\'t confirmed 100% (inherited from an unproven parent, or an uncertain Freeway-type identity). It\'s deliberately excluded from the Mendelian calculation rather than skewing a percentage.'},
+  {qFr:'Pourquoi un gène que je connais n\'est pas dans la liste ?', qEn:'Why is a gene I know not on the list?',
+   aFr:'Chaque gène est vérifié individuellement avant ajout (mode de transmission confirmé par une source fiable). Demande-le en Configuration ou par courriel — on vérifie et on l\'ajoute.',
+   aEn:'Every gene is individually verified before being added (mode of inheritance confirmed by a reliable source). Request it in Settings or by email — we\'ll verify and add it.'},
+  {qFr:'Où sont mes données ?', qEn:'Where is my data?',
+   aFr:'Stockées localement sur cet appareil et synchronisées sur une base de données cloud sécurisée tant que tu es connecté — jamais vendues ni partagées. Une exception : générer un QR code d\'étiquette envoie le nom et la génétique du reptile concerné à un service externe (qrserver.com).',
+   aEn:'Stored locally on this device and synced to a secure cloud database while you\'re logged in — never sold or shared. One exception: generating a tub-label QR code sends that reptile\'s name and genetics to an external service (qrserver.com).'},
+  {qFr:'Le badge « 🧬 À vérifier » sur un bébé, ça veut dire quoi ?', qEn:'What does the "🧬 To verify" badge on a baby mean?',
+   aFr:'Sa génétique vient d\'un tirage statistique exact au moment de l\'éclosion, mais n\'a pas encore été confirmée visuellement par toi. Un bouton « Confirmer exacte » est sur sa fiche.',
+   aEn:'Its genetics come from an exact statistical draw at hatching time, but haven\'t been visually confirmed by you yet. A "Confirm exact" button is on its record.'},
+  {qFr:'Je peux avoir plusieurs racks de formes différentes ?', qEn:'Can I have several racks of different shapes?',
+   aFr:'Oui — chaque rack a son propre nom, et chaque rangée peut avoir un nombre de bacs différent, pour recréer exactement ta configuration physique.',
+   aEn:'Yes — each rack has its own name, and each row can have a different number of tubs, to recreate your exact physical setup.'},
+  {qFr:'LOCUS fonctionne sur plusieurs appareils en même temps ?', qEn:'Does LOCUS work across multiple devices at once?',
+   aFr:'Oui — dès que tu es connecté à un compte, tes données se synchronisent automatiquement sur tous tes appareils.',
+   aEn:'Yes — once you\'re logged into an account, your data syncs across every device automatically.'},
+];
+
+// Recherche unifiée : combine Aide + FAQ app + les 6 catégories de la FAQ husbandry
+// (Communauté) en une seule liste filtrable — plus besoin de deviner où chercher.
+function searchAllHelp(query){
+  const isEn = currentLang==='en';
+  const q = (query||'').toLowerCase().trim();
+  if(!q) return [];
+  const pools = [
+    ...AIDE_ITEMS.map(it=>({...it, source: isEn?'📖 Help':'📖 Aide'})),
+    ...FAQ_APP_ITEMS.map(it=>({...it, source:'❓ FAQ'})),
+    ...HUSBANDRY_FAQ.flatMap(cat=>cat.items.map(it=>({...it, source:(isEn?'💬 Community — ':'💬 Communauté — ')+(isEn?cat.titleEn:cat.titleFr)}))),
+  ];
+  return pools.filter(it=>{
+    const q1 = (isEn?it.qEn:it.qFr).toLowerCase();
+    const a1 = (isEn?it.aEn:it.aFr).toLowerCase();
+    return q1.includes(q) || a1.includes(q);
+  });
+}
+function renderHelpSearchResults(){
+  const isEn = currentLang==='en';
+  const input = document.getElementById('help-search-input');
+  const resultsEl = document.getElementById('help-search-results');
+  if(!input || !resultsEl) return;
+  const query = input.value;
+  if(!query.trim()){
+    resultsEl.innerHTML = '<p style="font-size:11px;color:var(--ink-dim);text-align:center;padding:20px 0;">'+(isEn?'Type a keyword above (e.g. "quarantine", "wobble", "cloud")…':'Tape un mot-clé ci-dessus (ex. « quarantaine », « wobble », « cloud »)…')+'</p>';
+    return;
+  }
+  const results = searchAllHelp(query);
+  if(results.length===0){
+    resultsEl.innerHTML = '<p style="font-size:11px;color:var(--ink-dim);text-align:center;padding:20px 0;">'+(isEn?'No results. Try a different word.':'Aucun résultat. Essaie un autre mot.')+'</p>';
+    return;
+  }
+  resultsEl.innerHTML = results.map(r=>
+    '<div class="husbandry-qa" style="border-bottom:1px dashed var(--line);padding-bottom:12px;margin-bottom:12px;">'+
+      '<div style="font-size:9.5px;color:var(--gold);font-family:\'Courier New\',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">'+r.source+'</div>'+
+      '<div class="q">'+(isEn?r.qEn:r.qFr)+'</div>'+
+      '<div class="a">'+(isEn?r.aEn:r.aFr)+'</div>'+
+    '</div>'
+  ).join('');
+}
+function openHelpSearchModal(){
+  const isEn = currentLang==='en';
+  showQuickModal(isEn?'🔍 Search all help':'🔍 Recherche dans toute l\'aide',
+    '<input type="text" id="help-search-input" placeholder="'+(isEn?'Search Help, FAQ, and Community…':'Cherche dans Aide, FAQ et Communauté…')+'" style="width:100%;font-size:16px;padding:10px 12px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-family:\'Courier New\',monospace;margin-bottom:14px;" oninput="renderHelpSearchResults()"/>'+
+    '<div id="help-search-results" style="max-height:55vh;overflow-y:auto;"></div>'
+  );
+  setTimeout(()=>{ const inp = document.getElementById('help-search-input'); if(inp){ inp.focus(); renderHelpSearchResults(); } }, 60);
+}
+
 function openHelpModal(){
   const isEn = currentLang==='en';
   showQuickModal(isEn ? '❓ Help' : '❓ Aide',
@@ -2259,6 +2415,9 @@ const I18N = {
     tabVentes: '🏷️ Ventes',
     tabIncubation: '🥚 Incubation',
     backToApp: 'Retour à l\'app',
+    mmImportTitle: 'Import depuis MorphMarket',
+    mmImportDesc: 'Tu utilises déjà MorphMarket (Animal Manager) ? Exporte ta collection en CSV depuis là-bas, puis importe-la ici directement — pas besoin de tout ressaisir à la main. La génétique est extraite du titre/traits de chaque annonce et reste marquée « à vérifier » jusqu\'à confirmation.',
+    mmImportBtn: 'Importer un export MorphMarket',
     icsCardTitle: 'Export vers ton calendrier (.ics)',
     icsCardDesc: 'Télécharge tes prochains repas, éclosions et rappels personnalisés dans un fichier que ton téléphone reconnaît directement — importe-le dans Calendrier (Apple) ou Google Agenda pour voir tes échéances LOCUS sans ouvrir l\'app.',
     icsExportBtn: 'Exporter le calendrier (.ics)',
@@ -2270,6 +2429,7 @@ const I18N = {
     toolDimTitle: 'Convertisseur de dimensions (terrarium)',
     toolFeedingTitle: 'Compte à rebours — prochain repas',
     toolFeedingHint: 'Outil rapide, sans compte requis — pour tes reptiles déjà enregistrés, le statut est déjà affiché automatiquement en Mode Tournée.',
+    toolPreBuyTitle: 'Calculateur de coût — avant l\'achat',
     toolFeedingLastLabel: 'Dernier repas :',
     toolFeedingIntervalLabel: 'Intervalle (jours) :',
     communauteIntro: 'Le vrai forum communautaire arrive plus tard (une fois LOCUS branché sur son propre serveur). En attendant, voici une première fiche de référence utile — plus de contenu à venir ici avec le temps.',
@@ -2289,6 +2449,7 @@ const I18N = {
     appTag: 'Gestion d\'élevage — Python royal (Ball Python)',
     calcBtn: 'Calculer la portée',
     menuProfile: 'Mon profil',
+    menuHelpSearch: 'Recherche dans l\'aide',
     menuAnnouncements: 'Annonces',
     menuChangelog: 'Notes de mise à jour',
     menuHelp: 'Aide',
@@ -2464,6 +2625,11 @@ const I18N = {
     customTagsPlaceholder: 'Ex. reproducteur prouvé…',
     customTagsAddBtn: '+ Ajouter',
     filterTagAll: 'Étiquette : Toutes',
+    batchSelectBtn: 'Sélection multiple',
+    batchFeedBtn: 'Nourrir',
+    batchMoveBtn: 'Rack ↔ Terrarium',
+    batchSelectAllBtn: 'Tout sélectionner',
+    batchCancelBtn: 'Annuler',
     postHatchTitle: 'Suivi post-éclosion (estimé)',
     firstShedEst: '1ʳᵉ mue estimée (+12j)',
     firstMealEst: '1ᵉʳ repas estimé (+5j après mue)',
@@ -2474,6 +2640,19 @@ const I18N = {
     registeredOffspring: 'Descendance enregistrée',
     noneWord: 'Aucune',
     weightHistoryTitle: 'Historique de poids',
+    lengthHistoryTitle: 'Historique de longueur',
+    noLengthRecorded: 'Aucune mesure enregistrée',
+    eventLength: 'Mesure',
+    vetJournalTitle: 'Journal vétérinaire',
+    vetReasonPlaceholder: 'Motif de la visite (ex. examen annuel)…',
+    vetFindingsPlaceholder: 'Observations, diagnostic, traitement…',
+    addVetVisitBtn: '+ Ajouter la visite',
+    cleaningJournalTitle: 'Nettoyage / Entretien',
+    cleaningNotePlaceholder: 'Note (ex. substrat changé, désinfection complète)…',
+    addCleaningBtn: '+ Ajouter le nettoyage',
+    defecationJournalTitle: 'Journal de défécation',
+    defecationNotePlaceholder: 'Note (ex. aspect normal, molle, présence de vers)…',
+    addDefecationBtn: '+ Ajouter l\'observation',
     careJournalTourTitle: 'Journal des soins (Mode Tournée)',
     reproductionTitle: 'Reproduction',
     ovulationEstLay: 'Ovulation __DATE__ → ponte estimée __EST__',
@@ -2535,7 +2714,6 @@ const I18N = {
     provenanceLabel: 'Provenance',
     // Phase 3 — Élevage : Racks & Terrariums
     addRackBtn: '➕ Ajouter un rack',
-    addRowBtn: '+ Rangée',
     deleteRackBtn: '🗑 Supprimer ce rack',
     terrariumsTitle: 'Terrariums (affichage individuel)',
     invertOrderBtn: '⇅ Inverser l\'ordre',
@@ -2562,6 +2740,9 @@ const I18N = {
     recordPairingBtn: 'Enregistrer l\'accouplement',
     pairingDateLabel: 'Date d\'accouplement',
     coolingDateLabel: '❄️ Début du cooling (optionnel)',
+    follicleTrackingTitle: 'Suivi folliculaire',
+    noFollicleRecorded: 'Aucune mesure folliculaire enregistrée',
+    addFollicleBtn: '+ Ajouter une mesure',
     customEventsTitle: 'Rappels personnalisés',
     customEventsHint: 'Ajoute n\'importe quelle date future (vermifuge, rendez-vous vétérinaire, renouvellement UVB…) — apparaît dans ton résumé quotidien le jour même si les notifications sont activées.',
     customEventPlaceholder: 'Ex. Vermifuge annuel',
@@ -2615,6 +2796,9 @@ const I18N = {
     tabVentes: '🏷️ Sales',
     tabIncubation: '🥚 Incubation',
     backToApp: 'Back to app',
+    mmImportTitle: 'Import from MorphMarket',
+    mmImportDesc: 'Already using MorphMarket (Animal Manager)? Export your collection as CSV from there, then import it directly here — no need to retype everything by hand. Genetics are extracted from each ad\'s title/traits and stay marked "to verify" until confirmed.',
+    mmImportBtn: 'Import a MorphMarket export',
     icsCardTitle: 'Export to your calendar (.ics)',
     icsCardDesc: 'Download your upcoming meals, hatchings, and custom reminders into a file your phone recognizes directly — import it into Calendar (Apple) or Google Calendar to see your LOCUS deadlines without opening the app.',
     icsExportBtn: 'Export calendar (.ics)',
@@ -2626,6 +2810,7 @@ const I18N = {
     toolDimTitle: 'Dimension converter (enclosure)',
     toolFeedingTitle: 'Countdown — next meal',
     toolFeedingHint: 'Quick tool, no account needed — for your saved reptiles, status is already shown automatically in Tour Mode.',
+    toolPreBuyTitle: 'Cost calculator — before you buy',
     toolFeedingLastLabel: 'Last meal:',
     toolFeedingIntervalLabel: 'Interval (days):',
     communauteIntro: 'The real community forum is coming later (once LOCUS is connected to its own server). In the meantime, here\'s a first useful reference sheet — more content will be added here over time.',
@@ -2645,6 +2830,7 @@ const I18N = {
     appTag: 'Ball Python breeding management',
     calcBtn: 'Calculate Clutch',
     menuProfile: 'My Profile',
+    menuHelpSearch: 'Search help',
     menuAnnouncements: 'Announcements',
     menuChangelog: 'Update Notes',
     menuHelp: 'Help',
@@ -2820,6 +3006,11 @@ const I18N = {
     customTagsPlaceholder: 'e.g. proven breeder…',
     customTagsAddBtn: '+ Add',
     filterTagAll: 'Tag: All',
+    batchSelectBtn: 'Batch select',
+    batchFeedBtn: 'Feed',
+    batchMoveBtn: 'Rack ↔ Enclosure',
+    batchSelectAllBtn: 'Select all',
+    batchCancelBtn: 'Cancel',
     postHatchTitle: 'Post-hatch tracking (estimated)',
     firstShedEst: '1st shed estimated (+12d)',
     firstMealEst: '1st meal estimated (+5d after shed)',
@@ -2830,6 +3021,19 @@ const I18N = {
     registeredOffspring: 'Registered offspring',
     noneWord: 'None',
     weightHistoryTitle: 'Weight history',
+    lengthHistoryTitle: 'Length history',
+    noLengthRecorded: 'No measurement recorded',
+    eventLength: 'Measurement',
+    vetJournalTitle: 'Vet journal',
+    vetReasonPlaceholder: 'Visit reason (e.g. annual checkup)…',
+    vetFindingsPlaceholder: 'Findings, diagnosis, treatment…',
+    addVetVisitBtn: '+ Add visit',
+    cleaningJournalTitle: 'Cleaning / Maintenance',
+    cleaningNotePlaceholder: 'Note (e.g. substrate changed, full disinfection)…',
+    addCleaningBtn: '+ Add cleaning',
+    defecationJournalTitle: 'Defecation journal',
+    defecationNotePlaceholder: 'Note (e.g. normal appearance, loose, worms visible)…',
+    addDefecationBtn: '+ Add observation',
     careJournalTourTitle: 'Care journal (Round Mode)',
     reproductionTitle: 'Reproduction',
     ovulationEstLay: 'Ovulation __DATE__ → estimated lay __EST__',
@@ -2891,7 +3095,6 @@ const I18N = {
     provenanceLabel: 'Provenance',
     // Phase 3 — Husbandry: Racks & Terrariums
     addRackBtn: '➕ Add a Rack',
-    addRowBtn: '+ Row',
     deleteRackBtn: '🗑 Delete This Rack',
     terrariumsTitle: 'Terrariums (individual display)',
     invertOrderBtn: '⇅ Reverse Order',
@@ -2918,6 +3121,9 @@ const I18N = {
     recordPairingBtn: 'Record Pairing',
     pairingDateLabel: 'Pairing date',
     coolingDateLabel: '❄️ Cooling start (optional)',
+    follicleTrackingTitle: 'Follicle tracking',
+    noFollicleRecorded: 'No follicle measurement recorded',
+    addFollicleBtn: '+ Add a measurement',
     customEventsTitle: 'Custom reminders',
     customEventsHint: 'Add any future date (deworming, vet appointment, UVB replacement…) — shows up in your daily summary that day if notifications are enabled.',
     customEventPlaceholder: 'e.g. Annual deworming',
@@ -3012,6 +3218,7 @@ function applyTranslations(){
   try{ renderChecklist(); }catch(e){}
   try{ renderLastYearReference(); }catch(e){}
   try{ renderCustomEvents(); }catch(e){}
+  try{ renderTimeline(); }catch(e){}
   try{ renderSavedList(); }catch(e){}
 }
 
@@ -3525,7 +3732,7 @@ function showTab(tab){
   if(tab==='elevage'){ renderLayoutPrefs(); renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderTourLayoutPrefs(); renderPairingForm(); renderTimeline(); renderHealthLog(); }
   if(tab==='ventes'){ renderSalesView(); }
   if(tab==='incubation'){ renderClutchForm(); renderClutches(); }
-  if(tab==='utilitaire'){ try{ renderPreyChart(); }catch(e){ console.error('renderPreyChart error:', e); } try{ renderHusbandryFaq(); }catch(e){ console.error('renderHusbandryFaq error:', e); } try{ renderMyths(); }catch(e){} try{ renderChecklist(); }catch(e){} }
+  if(tab==='utilitaire'){ try{ renderPreyChart(); }catch(e){ console.error('renderPreyChart error:', e); } try{ renderHusbandryFaq(); }catch(e){ console.error('renderHusbandryFaq error:', e); } try{ renderMyths(); }catch(e){} try{ renderChecklist(); }catch(e){} try{ renderPreBuyCalculator(); }catch(e){ console.error('renderPreBuyCalculator error:', e); } }
   if(tab==='fiscal'){ renderFiscalView(); }
   if(tab==='valeur'){ renderValeurView(); }
   if(tab==='reglement'){ const el = document.getElementById('reg-check-date'); if(el) el.textContent = '4 août 2026'; }
@@ -3740,6 +3947,8 @@ let mineStatusFilter = 'all';
 let mineSexFilter = 'all';
 let mineVerifiedFilter = 'all';
 let mineTagFilter = 'all';
+let batchSelectMode = false;
+let batchSelectedIds = new Set();
 let mineSortBy = 'created';
 
 function sortSnakes(list, sortBy){
@@ -3803,6 +4012,68 @@ function renderGeneticHealthReport(){
   '</div>';
 }
 
+// Actions en lot sur "Mes reptiles" — sélectionner plusieurs reptiles à la fois pour
+// les nourrir ou les déplacer d'un coup, plutôt qu'un par un. batchSelectedIds ne
+// garde que des IDs (pas d'objets) pour rester léger et éviter les références périmées.
+function toggleBatchMode(){
+  batchSelectMode = !batchSelectMode;
+  batchSelectedIds.clear();
+  const btn = document.getElementById('batch-mode-toggle-btn');
+  if(btn) btn.classList.toggle('active', batchSelectMode);
+  renderBatchActionBar();
+  renderSavedList();
+}
+function renderBatchActionBar(){
+  const isEn = currentLang==='en';
+  const bar = document.getElementById('batch-action-bar');
+  if(!bar) return;
+  if(!batchSelectMode || batchSelectedIds.size===0){ bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  const label = document.getElementById('batch-count-label');
+  if(label) label.textContent = batchSelectedIds.size+' '+(isEn?'selected':'sélectionné(s)');
+}
+function batchSelectAll(){
+  const grid = document.getElementById('saved-grid');
+  if(!grid) return;
+  grid.querySelectorAll('.batch-select-cb').forEach(cb=>{ cb.checked = true; batchSelectedIds.add(cb.dataset.batchId); });
+  grid.querySelectorAll('.saved-card').forEach(c=>c.classList.add('batch-selected'));
+  renderBatchActionBar();
+}
+function batchMarkFed(){
+  const isEn = currentLang==='en';
+  if(batchSelectedIds.size===0) return;
+  const today = new Date().toISOString().slice(0,10);
+  let count = 0;
+  batchSelectedIds.forEach(id=>{
+    const s = savedSnakes.find(x=>x.id===id);
+    if(!s) return;
+    ensureSnakeMeta(s);
+    s.health.consecutiveRefusals = 0;
+    s.health.events.push({date:today, type:'fed'});
+    count++;
+  });
+  storage.save(savedSnakes);
+  showToast('🍽 '+count+' '+(isEn?'reptile(s) marked fed.':'reptile(s) marqué(s) nourri(s).'), 'success');
+  toggleBatchMode();
+  renderRackGrid(); renderTerrariumList(); renderTourGrid();
+}
+function batchToggleTerrarium(){
+  const isEn = currentLang==='en';
+  if(batchSelectedIds.size===0) return;
+  let count = 0;
+  batchSelectedIds.forEach(id=>{
+    const s = savedSnakes.find(x=>x.id===id);
+    if(!s) return;
+    ensureSnakeMeta(s);
+    s.placement = s.placement.mode==='terrarium' ? {mode:'rack', rackId:null, row:null, tub:null} : {mode:'terrarium', rackId:null, row:null, tub:null};
+    count++;
+  });
+  storage.save(savedSnakes);
+  showToast('🏠 '+count+' '+(isEn?'reptile(s) moved.':'reptile(s) déplacé(s).'), 'success');
+  toggleBatchMode();
+  renderRackGrid(); renderTerrariumList();
+}
+
 function renderSavedList(){
   const isEn = currentLang==='en';
   savedSnakes.forEach(ensureSnakeMeta);
@@ -3857,8 +4128,10 @@ function renderSavedList(){
       ? '<div class="sc-genes" style="color:var(--ink-dim);">'+(isEn?'Sold to ':'Vendu à ')+escapeHtml(s.buyer||'?')+(s.soldDate?(isEn?' on ':' le ')+s.soldDate:'')+(s.soldPrice?' — '+s.soldPrice+' $':'')+'</div>'
       : (s.askingPrice ? '<div class="sc-genes" style="color:var(--gold);">'+s.askingPrice+(isEn?' $ asking':' $ demandé')+'</div>' : '');
     const thumb = (s.photos && s.photos.length) ? '<img src="'+s.photos[s.photos.length-1].dataUrl+'" style="width:36px;height:36px;object-fit:cover;border-radius:14px;border:1px solid var(--line);margin-right:8px;"/>' : '';
+    const batchCheckbox = batchSelectMode ? '<input type="checkbox" class="batch-select-cb" data-batch-id="'+s.id+'" '+(batchSelectedIds.has(s.id)?'checked':'')+' style="width:20px;height:20px;margin-right:8px;accent-color:var(--gold);flex-shrink:0;"/>' : '';
+    if(batchSelectMode) card.classList.toggle('batch-selected', batchSelectedIds.has(s.id));
     card.innerHTML =
-      '<div class="sc-head"><span class="sc-name" style="display:flex;align-items:center;">'+thumb+escapeHtml(s.name)+'</span><span>'+sexBadge+statusBadge+unverifiedBadge+quarantineBadge+speciesBadge+tagsBadges+'</span></div>'+
+      '<div class="sc-head"><span class="sc-name" style="display:flex;align-items:center;">'+batchCheckbox+thumb+escapeHtml(s.name)+'</span><span>'+sexBadge+statusBadge+unverifiedBadge+quarantineBadge+speciesBadge+tagsBadges+'</span></div>'+
       '<div class="sc-genes">'+summarizeGenes(s.genes)+'</div>'+
       '<div class="sc-genes" style="color:var(--sage);">📍 '+placeLabel+'</div>'+
       '<div class="sc-genes">'+weightLine+'</div>'+
@@ -3883,6 +4156,14 @@ function renderSavedList(){
       else if(act==='terrarium'){ toggleTerrarium(id); renderSavedList(); }
       else if(act==='logbook') openLogbook(id);
       else { loadSnake(id, act); showTab('calc'); }
+    });
+  });
+  grid.querySelectorAll('.batch-select-cb').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      const sid = cb.dataset.batchId;
+      if(cb.checked) batchSelectedIds.add(sid); else batchSelectedIds.delete(sid);
+      renderBatchActionBar();
+      cb.closest('.saved-card').classList.toggle('batch-selected', cb.checked);
     });
   });
 }
@@ -4394,6 +4675,49 @@ function mrow(label, value){ return '<div class="modal-row"><span>'+label+'</spa
 function closeLogbook(){ document.getElementById('logbook-overlay').style.display = 'none'; }
 document.getElementById('logbook-overlay').addEventListener('click', (e)=>{ if(e.target.id==='logbook-overlay') closeLogbook(); });
 
+// Journal vétérinaire par reptile — visites, motif, observations. Vit dans health.vetVisits
+// (déjà synchronisé en JSON avec Supabase via le champ health existant, aucune migration requise).
+function renderVetVisitsHtml(s){
+  const isEn = currentLang==='en';
+  const visits = (s.health && s.health.vetVisits) || [];
+  if(visits.length===0) return '<p style="font-size:11px;color:var(--ink-dim);">'+(isEn?'No vet visits logged yet.':'Aucune visite vétérinaire enregistrée pour l\'instant.')+'</p>';
+  const sorted = [...visits].sort((a,b)=>b.date.localeCompare(a.date));
+  return sorted.map(v=>
+    '<div class="husbandry-qa" style="border-bottom:1px dashed var(--line);padding-bottom:8px;margin-bottom:8px;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;">'+
+        '<span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--gold);">🩺 '+v.date+(v.reason?' — '+escapeHtml(v.reason):'')+'</span>'+
+        '<button class="sc-btn danger" onclick="deleteVetVisit(\''+s.id+'\', \''+v.id+'\')">×</button>'+
+      '</div>'+
+      (v.findings ? '<div style="font-size:11px;color:var(--ink-dim);margin-top:4px;">'+escapeHtml(v.findings)+'</div>' : '')+
+    '</div>'
+  ).join('');
+}
+function addVetVisit(id){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const dateEl = document.getElementById('vet-date-'+id);
+  const reasonEl = document.getElementById('vet-reason-'+id);
+  const findingsEl = document.getElementById('vet-findings-'+id);
+  const date = dateEl.value;
+  if(!date){ alert(isEn?'Pick a visit date.':'Choisis une date de visite.'); return; }
+  s.health.vetVisits.push({ id:'vet_'+Date.now(), date, reason:reasonEl.value.trim(), findings:findingsEl.value.trim() });
+  storage.save(savedSnakes);
+  dateEl.value = ''; reasonEl.value = ''; findingsEl.value = '';
+  const listEl = document.getElementById('vet-visits-list-'+id);
+  if(listEl) listEl.innerHTML = renderVetVisitsHtml(s);
+}
+function deleteVetVisit(id, visitId){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  s.health.vetVisits = s.health.vetVisits.filter(v=>v.id!==visitId);
+  storage.save(savedSnakes);
+  const listEl = document.getElementById('vet-visits-list-'+id);
+  if(listEl) listEl.innerHTML = renderVetVisitsHtml(s);
+}
+
 function openLogbook(id){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
@@ -4423,9 +4747,17 @@ function openLogbook(id){
       }).join('')
     : '<div class="modal-row"><span>'+t('noWeighInRecorded')+'</span></div>';
 
+  const lengthsHtml = s.health.lengths.length
+    ? [...s.health.lengths].reverse().map((l,i,arr)=>{
+        const prevIdx = i+1;
+        const delta = prevIdx<arr.length ? ' ('+(l.value-arr[prevIdx].value>=0?'+':'')+(l.value-arr[prevIdx].value)+'cm)' : '';
+        return mrow(l.date, l.value+'cm'+delta);
+      }).join('')
+    : '<div class="modal-row"><span>'+t('noLengthRecorded')+'</span></div>';
+
   const eventsSorted = [...s.health.events].sort((a,b)=>b.date.localeCompare(a.date));
   const eventsHtml = eventsSorted.length
-    ? eventsSorted.map(e=>mrow(e.date, eventLabel(e.type)+(e.type==='weigh'?' ('+e.value+'g)':''))).join('')
+    ? eventsSorted.map(e=>mrow(e.date, eventLabel(e.type)+(e.type==='weigh'?' ('+e.value+'g)':'')+(e.type==='length'?' ('+e.value+'cm)':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(currentLang==='en'?'partial':'partiel'):''))).join('')
     : '<div class="modal-row"><span>'+t('noEventRecorded')+'</span></div>';
 
   const sire = s.sireId ? savedSnakes.find(x=>x.id===s.sireId) : null;
@@ -4452,6 +4784,7 @@ function openLogbook(id){
       '<button class="tour-action-btn shed" onclick="logAction(\''+id+'\',\'shed\')">'+t('eventShed')+'</button>'+
       '<button class="tour-action-btn refused" onclick="logAction(\''+id+'\',\'refused\')">'+t('eventRefused')+'</button>'+
       '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'weigh\')">'+t('eventWeigh')+'</button>'+
+      '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'length\')">'+t('eventLength')+'</button>'+
     '</div>'+
     '<div class="modal-row" style="margin-top:10px;"><span>'+t('nextMealLabel')+'</span><span>'+nextFeedingDate(s)+'</span></div>'+
     '<div class="modal-row"><span>'+t('feedingIntervalLabel')+'</span><span><input type="number" class="price-input" style="width:60px;" min="1" value="'+(s.feedingIntervalDays||'')+'" placeholder="'+DEFAULT_FEEDING_INTERVAL+'" onchange="setFeedingInterval(\''+id+'\', this.value)"/> '+t('daysWord')+'</span></div>'+
@@ -4523,6 +4856,32 @@ function openLogbook(id){
     '</div>'+
     '<div class="modal-section"><h3>'+t('genealogyTitle')+'</h3>'+pedigreeHtml+pedigreeTreeHtml+'</div>'+
     '<div class="modal-section"><h3>'+t('weightHistoryTitle')+'</h3>'+weightsHtml+'</div>'+
+    '<div class="modal-section"><h3>'+t('lengthHistoryTitle')+'</h3>'+lengthsHtml+'</div>'+
+    '<div class="modal-section"><h3>'+t('vetJournalTitle')+'</h3>'+
+      '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">'+
+        '<input type="date" id="vet-date-'+id+'" style="font-size:16px;padding:8px 10px;"/>'+
+        '<input type="text" id="vet-reason-'+id+'" data-i18n-placeholder="vetReasonPlaceholder" placeholder="'+t('vetReasonPlaceholder')+'" style="font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:\'Courier New\',monospace;"/>'+
+        '<textarea id="vet-findings-'+id+'" data-i18n-placeholder="vetFindingsPlaceholder" placeholder="'+t('vetFindingsPlaceholder')+'" rows="2" style="font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:\'Courier New\',monospace;resize:vertical;"></textarea>'+
+        '<button class="save-btn" onclick="addVetVisit(\''+id+'\')">'+t('addVetVisitBtn')+'</button>'+
+      '</div>'+
+      '<div id="vet-visits-list-'+id+'">'+renderVetVisitsHtml(s)+'</div>'+
+    '</div>'+
+    '<div class="modal-section"><h3>'+t('cleaningJournalTitle')+'</h3>'+
+      '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">'+
+        '<input type="date" id="cleaning-date-'+id+'" style="font-size:16px;padding:8px 10px;"/>'+
+        '<input type="text" id="cleaning-note-'+id+'" data-i18n-placeholder="cleaningNotePlaceholder" placeholder="'+t('cleaningNotePlaceholder')+'" style="font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:\'Courier New\',monospace;"/>'+
+        '<button class="save-btn" onclick="addCleaning(\''+id+'\')">'+t('addCleaningBtn')+'</button>'+
+      '</div>'+
+      '<div id="cleanings-list-'+id+'">'+renderCleaningsHtml(s)+'</div>'+
+    '</div>'+
+    '<div class="modal-section"><h3>'+t('defecationJournalTitle')+'</h3>'+
+      '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">'+
+        '<input type="date" id="defecation-date-'+id+'" style="font-size:16px;padding:8px 10px;"/>'+
+        '<input type="text" id="defecation-note-'+id+'" data-i18n-placeholder="defecationNotePlaceholder" placeholder="'+t('defecationNotePlaceholder')+'" style="font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:\'Courier New\',monospace;"/>'+
+        '<button class="save-btn" onclick="addDefecation(\''+id+'\')">'+t('addDefecationBtn')+'</button>'+
+      '</div>'+
+      '<div id="defecations-list-'+id+'">'+renderDefecationsHtml(s)+'</div>'+
+    '</div>'+
     '<div class="modal-section"><h3>'+t('careJournalTourTitle')+'</h3>'+eventsHtml+'</div>'+
     '<div class="modal-section"><h3>'+t('reproductionTitle')+'</h3>'+pairingsHtml+'</div>'+
     '<div class="modal-section"><h3>'+t('listingAutoTitle')+'</h3>'+
@@ -4637,12 +4996,41 @@ function logAction(id, type){
   ensureSnakeMeta(s);
   const isEn = currentLang==='en';
   const today = new Date().toISOString().slice(0,10);
-  if(type==='fed'){ s.health.consecutiveRefusals = 0; s.health.events.push({date:today, type:'fed'}); storage.save(savedSnakes); showToast('🍽 '+s.name+(isEn?' ate.':' a mangé.'), 'success'); }
+  if(type==='fed'){ openFedModal(id); return; }
   else if(type==='refused'){ s.health.consecutiveRefusals = (s.health.consecutiveRefusals||0)+1; s.health.events.push({date:today, type:'refused'}); storage.save(savedSnakes); showToast('⚠ '+(isEn?'Refusal noted for ':'Refus noté pour ')+s.name+'.'); }
-  else if(type==='shed'){ s.health.events.push({date:today, type:'shed'}); storage.save(savedSnakes); showToast('✨ '+s.name+(isEn?' shed.':' a mué.'), 'success'); }
+  else if(type==='shed'){ openShedModal(id); return; }
   else if(type==='weigh'){ openWeighModal(id); return; }
+  else if(type==='length'){ openLengthModal(id); return; }
   openLogbook(id);       // rafraîchit la modale ouverte
   renderRackGrid(); renderTerrariumList(); renderTourGrid();  // rafraîchit les vues sous-jacentes
+}
+
+// Quantité de repas — complet vs partiel, en plus du simple "a mangé" déjà suivi. Deux boutons
+// rapides plutôt qu'un formulaire, puisque nourrir est l'action la plus fréquente de l'app.
+function openFedModal(id){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  showQuickModal((isEn?'Feeding — ':'Repas — ')+s.name,
+    '<div style="display:flex;flex-direction:column;gap:8px;">'+
+      '<button class="save-btn" onclick="confirmFed(\''+id+'\', \'complete\')">'+(isEn?'✅ Ate completely':'✅ Mangé au complet')+'</button>'+
+      '<button class="sc-btn" onclick="confirmFed(\''+id+'\', \'partial\')">'+(isEn?'🍽 Partially eaten':'🍽 Mangé partiellement')+'</button>'+
+    '</div>'
+  );
+}
+function confirmFed(id, quantity){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const today = new Date().toISOString().slice(0,10);
+  s.health.consecutiveRefusals = 0;
+  s.health.events.push({date:today, type:'fed', quantity});
+  storage.save(savedSnakes);
+  closeQuickModal();
+  showToast('🍽 '+s.name+(isEn?' ate':' a mangé')+(quantity==='partial'?(isEn?' (partial).':' (partiellement).'):'.'), 'success');
+  if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
+  renderRackGrid(); renderTerrariumList(); renderTourGrid();
 }
 
 function openWeighModal(id){
@@ -4677,6 +5065,170 @@ function confirmWeigh(id){
   showToast('⚖ '+s.name+' pesé : '+val+'g', 'success');
   renderRackGrid(); renderTerrariumList(); renderTourGrid();
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
+}
+
+// Suivi de longueur — même pattern que la pesée (modale rapide, historique dans la fiche).
+function openLengthModal(id){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const l = s.health.lengths;
+  const lastLine = l.length ? '<div style="font-size:11.5px;color:var(--ink-dim);margin-bottom:10px;">'+(isEn?'Last measurement: ':'Dernière mesure : ')+l[l.length-1].value+(isEn?'cm on ':'cm le ')+l[l.length-1].date+'</div>' : '';
+  showQuickModal((isEn?'Measure ':'Mesurer ')+s.name,
+    lastLine+
+    '<div style="display:flex;gap:8px;align-items:center;">'+
+      '<input type="number" id="quick-length-input" class="price-input" style="width:110px;font-size:16px;padding:9px 10px;" placeholder="'+(isEn?'Length':'Longueur')+'" min="0" step="0.5"/>'+
+      '<span style="color:var(--ink-dim);font-family:\'Courier New\',monospace;">cm</span>'+
+    '</div>'+
+    '<button class="save-btn" style="margin-top:16px;width:100%;" onclick="confirmLength(\''+id+'\')">'+(isEn?'Save measurement':'Enregistrer la mesure')+'</button>'
+  );
+  setTimeout(()=>{ const inp = document.getElementById('quick-length-input'); if(inp){ inp.focus(); inp.addEventListener('keydown', e=>{ if(e.key==='Enter') confirmLength(id); }); } }, 60);
+}
+function confirmLength(id){
+  const isEn = currentLang==='en';
+  const inp = document.getElementById('quick-length-input');
+  const val = inp ? parseFloat(inp.value) : NaN;
+  if(isNaN(val) || val<=0){ showToast(isEn?'Enter a valid length in cm.':'Entre une longueur valide en cm.', 'error'); return; }
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const today = new Date().toISOString().slice(0,10);
+  s.health.lengths.push({date:today, value:val});
+  s.health.events.push({date:today, type:'length', value:val});
+  storage.save(savedSnakes);
+  closeQuickModal();
+  showToast('📏 '+s.name+(isEn?' measured: ':' mesuré : ')+val+'cm', 'success');
+  if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
+}
+
+// Journal de mue enrichi — capture la qualité (complète/incomplète/en morceaux) et une note
+// optionnelle, en plus de la date. Reste stocké dans health.events (type 'shed') pour ne pas
+// dupliquer la source de vérité utilisée par renderHealthLog() et le reste de l'app.
+const SHED_QUALITIES = ['complete','incomplete','pieces'];
+function shedQualityLabel(q){
+  const isEn = currentLang==='en';
+  const map = {
+    complete: isEn?'Complete':'Complète',
+    incomplete: isEn?'Incomplete':'Incomplète',
+    pieces: isEn?'In pieces':'En morceaux'
+  };
+  return map[q] || q;
+}
+function openShedModal(id){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  showQuickModal((isEn?'Shed — ':'Mue — ')+s.name,
+    '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:6px;">'+(isEn?'Quality':'Qualité')+'</label>'+
+    '<select id="shed-quality-input" style="width:100%;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:\'Courier New\',monospace;font-size:14px;padding:9px 10px;margin-bottom:12px;">'+
+      SHED_QUALITIES.map(q=>'<option value="'+q+'">'+shedQualityLabel(q)+'</option>').join('')+
+    '</select>'+
+    '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:6px;">'+(isEn?'Note (optional)':'Note (optionnelle)')+'</label>'+
+    '<input type="text" id="shed-note-input" placeholder="'+(isEn?'ex. left eye cap stuck':'ex. écaille oculaire gauche restée collée')+'" style="width:100%;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:\'Courier New\',monospace;font-size:14px;padding:9px 10px;"/>'+
+    '<button class="save-btn" style="margin-top:16px;width:100%;" onclick="confirmShed(\''+id+'\')">'+(isEn?'Save shed':'Enregistrer la mue')+'</button>'
+  );
+}
+function confirmShed(id){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const qualEl = document.getElementById('shed-quality-input');
+  const noteEl = document.getElementById('shed-note-input');
+  const quality = qualEl ? qualEl.value : 'complete';
+  const note = noteEl ? noteEl.value.trim() : '';
+  const today = new Date().toISOString().slice(0,10);
+  s.health.events.push({date:today, type:'shed', quality, note});
+  storage.save(savedSnakes);
+  closeQuickModal();
+  showToast('✨ '+s.name+(isEn?' shed — ':' a mué — ')+shedQualityLabel(quality), quality==='complete'?'success':undefined);
+  if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
+}
+
+// Journal de nettoyage/entretien du terrarium — par reptile, même pattern que le journal
+// vétérinaire (health.cleanings, aucune migration Supabase requise, champ health déjà synchronisé).
+function renderCleaningsHtml(s){
+  const isEn = currentLang==='en';
+  const cleanings = (s.health && s.health.cleanings) || [];
+  if(cleanings.length===0) return '<p style="font-size:11px;color:var(--ink-dim);">'+(isEn?'No cleaning logged yet.':'Aucun nettoyage enregistré pour l\'instant.')+'</p>';
+  const sorted = [...cleanings].sort((a,b)=>b.date.localeCompare(a.date));
+  return sorted.map(c=>
+    '<div class="husbandry-qa" style="border-bottom:1px dashed var(--line);padding-bottom:8px;margin-bottom:8px;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;">'+
+        '<span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--gold);">🧽 '+c.date+'</span>'+
+        '<button class="sc-btn danger" onclick="deleteCleaning(\''+s.id+'\', \''+c.id+'\')">×</button>'+
+      '</div>'+
+      (c.note ? '<div style="font-size:11px;color:var(--ink-dim);margin-top:4px;">'+escapeHtml(c.note)+'</div>' : '')+
+    '</div>'
+  ).join('');
+}
+function addCleaning(id){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const dateEl = document.getElementById('cleaning-date-'+id);
+  const noteEl = document.getElementById('cleaning-note-'+id);
+  const date = dateEl.value;
+  if(!date){ alert(isEn?'Pick a cleaning date.':'Choisis une date de nettoyage.'); return; }
+  s.health.cleanings.push({ id:'clean_'+Date.now(), date, note: noteEl.value.trim() });
+  storage.save(savedSnakes);
+  dateEl.value = ''; noteEl.value = '';
+  const listEl = document.getElementById('cleanings-list-'+id);
+  if(listEl) listEl.innerHTML = renderCleaningsHtml(s);
+}
+function deleteCleaning(id, cleaningId){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  s.health.cleanings = s.health.cleanings.filter(c=>c.id!==cleaningId);
+  storage.save(savedSnakes);
+  const listEl = document.getElementById('cleanings-list-'+id);
+  if(listEl) listEl.innerHTML = renderCleaningsHtml(s);
+}
+
+// Journal de défécation — par reptile, suivi santé (fréquence/aspect anormal peut signaler
+// parasites ou problème digestif). Même pattern que le journal de nettoyage.
+function renderDefecationsHtml(s){
+  const isEn = currentLang==='en';
+  const entries = (s.health && s.health.defecations) || [];
+  if(entries.length===0) return '<p style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Nothing logged yet.':'Aucune observation enregistrée pour l\'instant.')+'</p>';
+  const sorted = [...entries].sort((a,b)=>b.date.localeCompare(a.date));
+  return sorted.map(d=>
+    '<div class="husbandry-qa" style="border-bottom:1px dashed var(--line);padding-bottom:8px;margin-bottom:8px;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;">'+
+        '<span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--gold);">💩 '+d.date+'</span>'+
+        '<button class="sc-btn danger" onclick="deleteDefecation(\''+s.id+'\', \''+d.id+'\')">×</button>'+
+      '</div>'+
+      (d.note ? '<div style="font-size:11px;color:var(--ink-dim);margin-top:4px;">'+escapeHtml(d.note)+'</div>' : '')+
+    '</div>'
+  ).join('');
+}
+function addDefecation(id){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const dateEl = document.getElementById('defecation-date-'+id);
+  const noteEl = document.getElementById('defecation-note-'+id);
+  const date = dateEl.value;
+  if(!date){ alert(isEn?'Pick a date.':'Choisis une date.'); return; }
+  s.health.defecations.push({ id:'def_'+Date.now(), date, note: noteEl.value.trim() });
+  storage.save(savedSnakes);
+  dateEl.value = ''; noteEl.value = '';
+  const listEl = document.getElementById('defecations-list-'+id);
+  if(listEl) listEl.innerHTML = renderDefecationsHtml(s);
+}
+function deleteDefecation(id, defecationId){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  s.health.defecations = s.health.defecations.filter(d=>d.id!==defecationId);
+  storage.save(savedSnakes);
+  const listEl = document.getElementById('defecations-list-'+id);
+  if(listEl) listEl.innerHTML = renderDefecationsHtml(s);
 }
 
 // Pesée en lot (Mode Tournée) : enchaîne une mini-modale par reptile sélectionné au lieu
@@ -4756,6 +5308,7 @@ function saveElevage(){
 }
 let elevageData = loadElevage();
 let { pairings, layout, clutches, expenses, customers } = elevageData;
+(pairings||[]).forEach(p=>{ if(!p.follicleSizes) p.follicleSizes = []; }); // migration : suivi folliculaire ajouté après coup
 let customEvents = elevageData.customEvents || [];
 let racks = elevageData.racks;
 // Migration : anciennes sauvegardes qui n'avaient qu'un seul rack uniforme (rackDims) —
@@ -4772,6 +5325,7 @@ if(!customers) customers = [];
 currentLang = loadAppConfig().lang || 'fr';
 applyTranslations();
 updateHeaderBadge();
+applySimplifiedModeUI();
 renderDashboard();
 
 /* ==================== SUPABASE : synchronisation cloud (étape 3) ====================
@@ -4938,6 +5492,7 @@ document.getElementById('import-file-input').addEventListener('change', (e)=>{
     const el = data.elevage || {};
     racks = el.racks || (el.rackDims ? [{id:'rack_1', name:'Rack 1', rows:Array(el.rackDims.rows||4).fill(el.rackDims.tubsPerRow||8)}] : [{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}]);
     pairings = el.pairings || [];
+    pairings.forEach(p=>{ if(!p.follicleSizes) p.follicleSizes = []; });
     layout = el.layout || {...DEFAULT_LAYOUT};
     clutches = el.clutches || [];
     expenses = el.expenses || [];
@@ -4988,6 +5543,140 @@ document.getElementById('csv-file-input').addEventListener('change', (e)=>{
     renderSavedList();
     e.target.value = '';
     alert('Import CSV terminé : '+added+' reptile(s) ajouté(s).'+(skipped.length ? (' '+skipped.length+' ligne(s) ignorée(s) (format invalide — attendu : nom;sexe;gene1|gene2).') : ''));
+  };
+  reader.readAsText(file);
+});
+
+/* ==================== Import MorphMarket (Animal Manager export) ==================== */
+// MorphMarket exporte en CSV ou TSV avec en-tête (Category, Title, Sex, Weight, Price,
+// Animal_ID, Traits, Maturity, etc.). On ne connaît pas la liste exacte de toutes leurs
+// colonnes possibles, donc on reste tolérant : on cherche les colonnes utiles par nom
+// (insensible à la casse, quelques alias), et on ignore le reste sans planter.
+// La génétique est extraite du texte du titre/traits en comparant à notre banque GENES —
+// c'est une correspondance textuelle, jamais garantie, donc marquée "à vérifier" d'office.
+
+// Parseur CSV/TSV minimal mais robuste aux valeurs entre guillemets contenant le séparateur.
+function parseDelimitedLine(line, delim){
+  const result = [];
+  let cur = '';
+  let inQuotes = false;
+  for(let i=0; i<line.length; i++){
+    const ch = line[i];
+    if(inQuotes){
+      if(ch === '"'){
+        if(line[i+1] === '"'){ cur += '"'; i++; }
+        else inQuotes = false;
+      } else cur += ch;
+    } else {
+      if(ch === '"') inQuotes = true;
+      else if(ch === delim){ result.push(cur); cur = ''; }
+      else cur += ch;
+    }
+  }
+  result.push(cur);
+  return result.map(v=>v.trim());
+}
+function findColumn(headers, aliases){
+  const lower = headers.map(h=>h.toLowerCase().replace(/[^a-z0-9]/g,''));
+  for(const alias of aliases){
+    const idx = lower.indexOf(alias.toLowerCase().replace(/[^a-z0-9]/g,''));
+    if(idx!==-1) return idx;
+  }
+  return -1;
+}
+// Extrait tous les gènes LOCUS reconnus dans un texte libre (titre + traits combinés).
+function extractGenesFromText(text){
+  if(!text) return {};
+  const lower = ' '+text.toLowerCase().replace(/[^a-z0-9\s]/g,' ')+' ';
+  const genes = {};
+  GENES.forEach(g=>{
+    const needle = ' '+g.name.toLowerCase()+' ';
+    if(lower.includes(needle)) genes[g.id] = defaultStatus(g);
+  });
+  return genes;
+}
+
+document.getElementById('mm-csv-file-input').addEventListener('change', (e)=>{
+  const isEn = currentLang==='en';
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    const rawLines = reader.result.split(/\r?\n/).filter(l=>l.trim().length>0);
+    if(rawLines.length<2){
+      alert(isEn?'Empty file or header only.':'Fichier vide ou en-tête seulement.');
+      e.target.value = '';
+      return;
+    }
+    // Détecte le séparateur (MorphMarket supporte CSV ou TSV) en comparant les deux sur l'en-tête.
+    const delim = (rawLines[0].split('\t').length > rawLines[0].split(',').length) ? '\t' : ',';
+    const headers = parseDelimitedLine(rawLines[0], delim);
+
+    const idxTitle = findColumn(headers, ['Title','Name']);
+    const idxCategory = findColumn(headers, ['Category','Species']);
+    const idxSex = findColumn(headers, ['Sex']);
+    const idxWeight = findColumn(headers, ['Weight']);
+    const idxPrice = findColumn(headers, ['Price']);
+    const idxAnimalId = findColumn(headers, ['AnimalID','Animal_ID','ID']);
+    const idxTraits = findColumn(headers, ['Traits','Genetics','Genes']);
+    const idxNotes = findColumn(headers, ['Description','Notes']);
+
+    if(idxTitle===-1 && idxAnimalId===-1){
+      alert(isEn?'Column not recognized (need at least "Title" or "Animal ID"). Check that this is really a MorphMarket export.':'Colonnes non reconnues (besoin d\'au moins "Title" ou "Animal ID"). Vérifie que c\'est bien un export MorphMarket.');
+      e.target.value = '';
+      return;
+    }
+
+    let added = 0;
+    const skipped = [];
+    for(let i=1; i<rawLines.length; i++){
+      const cols = parseDelimitedLine(rawLines[i], delim);
+      const title = idxTitle!==-1 ? (cols[idxTitle]||'').trim() : '';
+      const animalId = idxAnimalId!==-1 ? (cols[idxAnimalId]||'').trim() : '';
+      const name = title || animalId;
+      if(!name){ skipped.push(rawLines[i]); continue; }
+
+      const category = idxCategory!==-1 ? (cols[idxCategory]||'').trim() : '';
+      const isBallPython = /ball\s*python|python\s*regius/i.test(category) || category==='';
+      const species = isBallPython ? 'ball_python' : category;
+
+      const sexRaw = idxSex!==-1 ? (cols[idxSex]||'').trim().toLowerCase() : '';
+      const sex = sexRaw.startsWith('m') ? 'male' : (sexRaw.startsWith('f') ? 'female' : null);
+
+      const weightRaw = idxWeight!==-1 ? (cols[idxWeight]||'').replace(/[^0-9.]/g,'') : '';
+      const weight = weightRaw ? parseFloat(weightRaw) : null;
+
+      const priceRaw = idxPrice!==-1 ? (cols[idxPrice]||'').replace(/[^0-9.]/g,'') : '';
+      const askingPrice = priceRaw ? parseFloat(priceRaw) : null;
+
+      const traitsText = idxTraits!==-1 ? (cols[idxTraits]||'') : '';
+      const combinedText = title+' '+traitsText;
+      const genes = species==='ball_python' ? extractGenesFromText(combinedText) : {};
+
+      const notes = idxNotes!==-1 ? (cols[idxNotes]||'').trim() : '';
+
+      const baseProvenance = animalId ? ((isEn?'Imported from MorphMarket — ID ':'Importé de MorphMarket — ID ')+animalId) : (isEn?'Imported from MorphMarket':'Importé de MorphMarket');
+      const newSnake = {
+        id:'snk_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
+        name, sex, genes, sireId:null, damId:null,
+        genesVerified:false, // toujours à vérifier — extraction textuelle, jamais garantie
+        species, askingPrice,
+        // La description MorphMarket est fusionnée ici plutôt que dans un champ "notes" séparé —
+        // l'app n'a pas de champ notes libre affiché ailleurs, provenance elle est bien visible/synchronisée.
+        provenance: notes ? (baseProvenance+' — '+notes) : baseProvenance,
+      };
+      if(weight!==null){ newSnake.health = { weights:[{date:new Date().toISOString().slice(0,10), grams:weight}], events:[], consecutiveRefusals:0 }; }
+
+      ensureSnakeMeta(newSnake);
+      savedSnakes.push(newSnake);
+      added++;
+    }
+
+    renderSavedList();
+    e.target.value = '';
+    alert((isEn?'MorphMarket import complete: ':'Import MorphMarket terminé : ')+added+(isEn?' reptile(s) added.':' reptile(s) ajouté(s).')+
+      (isEn?' Genetics extracted from titles are marked "to verify" — double-check each record.':' La génétique extraite des titres est marquée « à vérifier » — vérifie chaque fiche.')+
+      (skipped.length ? (' '+skipped.length+(isEn?' line(s) skipped (no name found).':' ligne(s) ignorée(s) (aucun nom trouvé).')) : ''));
   };
   reader.readAsText(file);
 });
@@ -5102,7 +5791,11 @@ function ensureSnakeMeta(s){
   if(!s.placement) s.placement = { mode:'terrarium', row:null, tub:null };
   if(s.placement.mode==='rack' && !s.placement.rackId) s.placement.rackId = racks[0] ? racks[0].id : 'rack_1'; // migration ancien format
   if(!s.health) s.health = { consecutiveRefusals:0, weights:[], events:[] };
+  if(!s.health.vetVisits) s.health.vetVisits = [];
   if(!s.health.events) s.health.events = [];
+  if(!s.health.lengths) s.health.lengths = []; // suivi de longueur — même pattern que weights, valeurs en cm
+  if(!s.health.cleanings) s.health.cleanings = []; // journal de nettoyage/entretien du terrarium — {id, date, note}
+  if(!s.health.defecations) s.health.defecations = []; // journal de défécation — {id, date, note} — suivi parasites/digestion
   if(!s.photos) s.photos = []; // photos ajoutées manuellement par l'éleveur — LOCUS n'en génère aucune
   if(s.status===undefined) s.status = 'kept'; // 'kept' | 'forsale' | 'reserved' | 'sold'
   if(s.askingPrice===undefined) s.askingPrice = null;
@@ -5809,7 +6502,7 @@ function addPairing(){
   if(fw===null || fw<MIN_BREEDING_WEIGHT.female) warnings.push((isEn?'Female ':'Femelle ')+female.name+(isEn?': weight ':' : poids ')+(fw===null?(isEn?'not recorded':'non enregistré'):fw+'g')+(isEn?' — recommended threshold ≥ ':' — seuil recommandé ≥ ')+MIN_BREEDING_WEIGHT.female+'g.');
   if(shareParent(maleId, femaleId)) warnings.push(isEn?'These two reptiles share a direct pedigree link (recorded) — inbreeding risk.':'Ces deux reptiles partagent un lien de parenté direct (pedigree enregistré) — risque de consanguinité.');
   if(warnings.length && !confirm((isEn?'⚠ Points to check before this pairing:\n\n':'⚠ Points à vérifier avant cet accouplement :\n\n')+warnings.join('\n')+(isEn?'\n\nPair anyway?':'\n\nAccoupler quand même ?'))) return;
-  pairings.push({ id:'pr_'+Date.now(), maleId, femaleId, pairedDate:date, coolingDate, ovulationConfirmed:false, ovulationDate:null });
+  pairings.push({ id:'pr_'+Date.now(), maleId, femaleId, pairedDate:date, coolingDate, ovulationConfirmed:false, ovulationDate:null, follicleSizes:[] });
   saveElevage();
   renderTimeline();
   document.getElementById('pairing-cooling-date').value = '';
@@ -6215,6 +6908,74 @@ function calcFeedingCountdown(){
   resultEl.innerHTML = '<div style="background:var(--bg-panel-2);border:1px solid '+color+';border-radius:10px;padding:12px 14px;font-family:\'Courier New\',monospace;font-size:13px;color:'+color+';font-weight:600;">'+label+'</div>';
 }
 
+// Calculateur de coût total avant achat — réservé aux comptes connectés (choix d'Alex,
+// distinct des autres outils de cette section qui sont accessibles sans compte).
+const PREBUY_SETUP_ITEMS = [
+  { id:'enclosure', fr:'Terrarium / enclos', en:'Enclosure / terrarium', def:150 },
+  { id:'substrate', fr:'Substrat', en:'Substrate', def:25 },
+  { id:'heating', fr:'Chauffage (tapis + thermostat)', en:'Heating (heat mat + thermostat)', def:80 },
+  { id:'hides', fr:'Cachettes + décor', en:'Hides + decor', def:30 },
+  { id:'water', fr:'Gamelle d\'eau + accessoires', en:'Water dish + accessories', def:15 },
+  { id:'thermo', fr:'Thermomètre / hygromètre', en:'Thermometer / hygrometer', def:20 },
+];
+const PREBUY_RECURRING_ITEMS = [
+  { id:'food', fr:'Nourriture (mensuel)', en:'Food (monthly)', def:15 },
+  { id:'electricity', fr:'Électricité — chauffage (mensuel)', en:'Electricity — heating (monthly)', def:10 },
+  { id:'misc', fr:'Divers — entretien/produits (mensuel)', en:'Misc — upkeep/supplies (monthly)', def:5 },
+];
+function renderPreBuyCalculator(){
+  const isEn = currentLang==='en';
+  const el = document.getElementById('prebuy-calc-container');
+  if(!el) return;
+  if(!currentUser){
+    el.innerHTML = '<p style="font-size:11.5px;color:var(--ink-dim);line-height:1.6;margin:0 0 14px;">'+
+      (isEn?'Estimate the real cost of a ball python before you buy one — enclosure, setup, and ongoing monthly costs. Reserved for signed-in accounts (free tier included).':
+      'Estime le coût réel d\'un python royal avant de l\'acheter — enclos, installation et coûts mensuels récurrents. Réservé aux comptes connectés (palier gratuit inclus).')+'</p>'+
+      '<button class="sc-btn accent" onclick="openAuthModal()">'+(isEn?'Sign in / sign up':'Se connecter / s\'inscrire')+'</button>';
+    return;
+  }
+  const setupRows = PREBUY_SETUP_ITEMS.map(it=>
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;">'+
+    '<label style="font-size:11.5px;color:var(--ink);flex:1;">'+(isEn?it.en:it.fr)+'</label>'+
+    '<input type="number" min="0" step="1" id="prebuy-'+it.id+'" value="'+it.def+'" style="width:90px;font-size:14px;padding:6px 8px;text-align:right;" oninput="calcPreBuyCost()"/>'+
+    '</div>').join('');
+  const recurringRows = PREBUY_RECURRING_ITEMS.map(it=>
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;">'+
+    '<label style="font-size:11.5px;color:var(--ink);flex:1;">'+(isEn?it.en:it.fr)+'</label>'+
+    '<input type="number" min="0" step="1" id="prebuy-'+it.id+'" value="'+it.def+'" style="width:90px;font-size:14px;padding:6px 8px;text-align:right;" oninput="calcPreBuyCost()"/>'+
+    '</div>').join('');
+  el.innerHTML =
+    '<p style="font-size:10.5px;color:var(--ink-dim);line-height:1.6;margin:0 0 14px;">'+(isEn?'All amounts are editable estimates in your own currency — adjust them to match real prices in your area.':'Tous les montants sont des estimés modifiables, dans ta propre devise — ajuste-les selon les vrais prix de ta région.')+'</p>'+
+    '<h3 style="font-size:12.5px;margin:0 0 4px;color:var(--gold);">'+(isEn?'Purchase price':'Prix d\'achat')+'</h3>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;margin-bottom:6px;">'+
+    '<label style="font-size:11.5px;color:var(--ink);flex:1;">'+(isEn?'Estimated animal price (by morph)':'Prix estimé de l\'animal (selon le morph)')+'</label>'+
+    '<input type="number" min="0" step="1" id="prebuy-purchase" value="0" style="width:90px;font-size:14px;padding:6px 8px;text-align:right;" oninput="calcPreBuyCost()"/>'+
+    '</div>'+
+    '<h3 style="font-size:12.5px;margin:14px 0 4px;color:var(--gold);">'+(isEn?'One-time setup':'Installation (une fois)')+'</h3>'+
+    setupRows+
+    '<h3 style="font-size:12.5px;margin:14px 0 4px;color:var(--gold);">'+(isEn?'Recurring monthly costs':'Coûts récurrents (mensuels)')+'</h3>'+
+    recurringRows+
+    '<div id="prebuy-calc-result" style="margin-top:16px;"></div>'+
+    '<p style="font-size:10px;color:var(--ink-dim);margin-top:10px;line-height:1.5;">'+(isEn?'Rough planning estimate only — real costs vary by region, morph, and setup choices. Does not replace your own research or a vet visit budget.':'Estimé de planification seulement — les coûts réels varient selon la région, le morph et les choix d\'installation. Ne remplace pas tes propres recherches ni un budget pour une visite vétérinaire.')+'</p>';
+  calcPreBuyCost();
+}
+function calcPreBuyCost(){
+  const isEn = currentLang==='en';
+  const resultEl = document.getElementById('prebuy-calc-result');
+  if(!resultEl) return;
+  const num = id => { const el = document.getElementById(id); return el ? (parseFloat(el.value)||0) : 0; };
+  const purchase = num('prebuy-purchase');
+  const setupTotal = PREBUY_SETUP_ITEMS.reduce((sum,it)=>sum+num('prebuy-'+it.id),0);
+  const recurringTotal = PREBUY_RECURRING_ITEMS.reduce((sum,it)=>sum+num('prebuy-'+it.id),0);
+  const initialTotal = purchase + setupTotal;
+  const yearTotal = initialTotal + (recurringTotal*12);
+  resultEl.innerHTML =
+    '<div style="background:var(--bg-panel-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;font-family:\'Courier New\',monospace;font-size:12.5px;">'+
+    '<div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="color:var(--ink-dim);">'+(isEn?'Initial total (purchase + setup)':'Total initial (achat + installation)')+'</span><b style="color:var(--gold);">'+initialTotal.toFixed(2)+' $</b></div>'+
+    '<div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="color:var(--ink-dim);">'+(isEn?'Recurring cost / month':'Coût récurrent / mois')+'</span><b>'+recurringTotal.toFixed(2)+' $</b></div>'+
+    '<div style="display:flex;justify-content:space-between;padding:8px 0 0;border-top:1px dashed var(--line);margin-top:6px;"><span style="color:var(--ink-dim);">'+(isEn?'Estimated total — first year':'Total estimé — première année')+'</span><b style="color:var(--sage);font-size:14px;">'+yearTotal.toFixed(2)+' $</b></div>'+
+    '</div>';
+}
 
 function renderClutchForm(){
   const isEn = currentLang==='en';
@@ -6575,14 +7336,36 @@ function addPhotoToSnake(id, file){
       canvas.height = Math.round(img.height*scale);
       canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
-      s.photos.push({ id:'ph_'+Date.now(), date:new Date().toISOString().slice(0,10), dataUrl });
+      const photo = { id:'ph_'+Date.now(), date:new Date().toISOString().slice(0,10), dataUrl };
+      s.photos.push(photo);
       storage.save(savedSnakes);
       openLogbook(id);
       renderSavedList();
+      // Upload en arrière-plan vers le bucket Supabase public (si connecté) pour obtenir une
+      // vraie URL utilisable dans l'export de masse MorphMarket — n'empêche pas l'usage hors-ligne.
+      if(currentUser) ensurePhotoPublicUrl(s, photo);
     };
     img.src = e.target.result;
   };
   reader.readAsDataURL(file);
+}
+
+// Garantit qu'une photo a une URL publique (bucket Supabase Storage 'reptile-photos', public,
+// un dossier par user_id). Upload paresseux : ne se déclenche que si la photo n'en a pas déjà une
+// (au moment de l'ajout ou juste avant un export de masse) — jamais pour les comptes non connectés.
+async function ensurePhotoPublicUrl(snake, photo){
+  if(photo.publicUrl) return photo.publicUrl;
+  if(!currentUser || !sb) return null;
+  try{
+    const path = currentUser.id+'/'+photo.id+'.jpg';
+    const blob = await (await fetch(photo.dataUrl)).blob();
+    const { error } = await sb.storage.from('reptile-photos').upload(path, blob, { contentType:'image/jpeg', upsert:true });
+    if(error){ console.error('LOCUS: échec upload photo', error); return null; }
+    const { data } = sb.storage.from('reptile-photos').getPublicUrl(path);
+    photo.publicUrl = data.publicUrl;
+    storage.save(savedSnakes);
+    return photo.publicUrl;
+  }catch(e){ console.error('LOCUS: ensurePhotoPublicUrl error', e); return null; }
 }
 
 function deletePhoto(snakeId, photoId){
@@ -6654,10 +7437,20 @@ function generateListingText(id, lang){
 
 function showListingPreview(id){
   if(!requireAuthOrPrompt()) return;
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
   const {title, body} = generateListingText(id, listingLang);
   const wrap = document.getElementById('listing-preview-'+id);
   if(!wrap) return;
+  const photos = (s && s.photos) || [];
+  const photoReminderHtml = photos.length
+    ? '<div style="margin-bottom:14px;">'+
+        '<div style="font-family:\'Courier New\',monospace;font-size:9.5px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);margin-bottom:6px;">'+(isEn?'Attach these photos on MorphMarket':'Attache ces photos sur MorphMarket')+'</div>'+
+        '<div class="photo-gallery">'+photos.map(p=>'<div class="photo-thumb"><img src="'+p.dataUrl+'" alt="Photo"/><div class="photo-date">'+p.date+'</div></div>').join('')+'</div>'+
+      '</div>'
+    : '<div style="margin-bottom:14px;font-size:11px;color:var(--gold);">📷 '+(isEn?'No photos on this record yet — add some above before listing, MorphMarket ads need them.':'Aucune photo sur cette fiche pour l\'instant — ajoutes-en plus haut avant de publier, une annonce MorphMarket en a besoin.')+'</div>';
   wrap.innerHTML =
+    photoReminderHtml+
     '<div style="display:flex;gap:6px;margin-bottom:10px;">'+
       '<button class="sc-btn'+(listingLang==='fr'?' accent':'')+'" onclick="setListingLang(\''+id+'\',\'fr\')" style="padding:5px 12px;font-size:10.5px;">FR</button>'+
       '<button class="sc-btn'+(listingLang==='en'?' accent':'')+'" onclick="setListingLang(\''+id+'\',\'en\')" style="padding:5px 12px;font-size:10.5px;">EN</button>'+
@@ -6721,6 +7514,105 @@ function copyListingText(id){
     .catch(()=>alert(t('copyFailedAlert')));
 }
 
+// Export de masse compatible Bulk Import 2.0 de MorphMarket (CSV). Champs devinés à partir de
+// leur documentation publique officielle (support.morphmarket.com) — Animal_ID/Category/Title/
+// Maturity/Price sont confirmés ; les valeurs exactes attendues pour Status peuvent varier selon
+// leur interface actuelle, à valider par Alex avec un vrai import test avant usage en production.
+// Photo URLs : MorphMarket ne supporte QU'UNE SEULE photo par annonce actuellement (limite de leur
+// côté, pas de LOCUS) — on envoie donc la plus récente. Nécessite une vraie URL publique, d'où le
+// bucket Supabase Storage (voir ensurePhotoPublicUrl) — le base64 local n'est pas utilisable ici.
+function maturityFromBirthDate(birthDate){
+  const prec = birthPrecision(birthDate);
+  if(!prec) return '';
+  const today = new Date();
+  let months;
+  if(prec==='year'){ months = (today.getFullYear()-parseInt(birthDate,10))*12; }
+  else if(prec==='month'){ const [y,m] = birthDate.split('-').map(Number); months = (today.getFullYear()-y)*12 + (today.getMonth()+1-m); }
+  else { const [y,m,d] = birthDate.split('-').map(Number); const birth = new Date(y,m-1,d); months = Math.floor((today-birth)/(30.44*86400000)); }
+  if(months<6) return 'Baby';
+  if(months<18) return 'Sub-Adult';
+  return 'Adult';
+}
+function csvEscape(val){
+  const s = String(val==null?'':val);
+  if(/[",\n]/.test(s)) return '"'+s.replace(/"/g,'""')+'"';
+  return s;
+}
+function renderMmBulkExportPanel(){
+  const isEn = currentLang==='en';
+  const wrap = document.getElementById('mm-bulk-export');
+  if(!wrap) return;
+  const eligible = savedSnakes.filter(s=>(s.species||'ball_python')==='ball_python' && (s.status==='forsale' || s.status==='reserved'));
+  if(eligible.length===0){
+    wrap.innerHTML = '<div class="community-folder" id="folder-mm-bulk">'+
+      '<button class="community-folder-header" onclick="toggleCommunityFolder(\'folder-mm-bulk\')"><span class="folder-icon">▾</span><span>📦 '+(isEn?'Bulk export — MorphMarket':'Export en masse — MorphMarket')+'</span></button>'+
+      '<div class="community-folder-body"><p style="font-size:11px;color:var(--ink-dim);">'+(isEn?'No reptile currently for sale or reserved.':'Aucun reptile actuellement à vendre ou réservé.')+'</p></div>'+
+    '</div>';
+    return;
+  }
+  const rows = eligible.map(s=>{
+    const hasPhoto = !!(s.photos && s.photos.length);
+    return '<div class="modal-row"><span><input type="checkbox" class="mm-bulk-check" data-id="'+s.id+'" checked style="margin-right:8px;"/>'+escapeHtml(s.name)+'</span><span>'+(hasPhoto?'📷':'<span style="color:var(--rust);">'+(isEn?'no photo':'aucune photo')+'</span>')+'</span></div>';
+  }).join('');
+  wrap.innerHTML = '<div class="community-folder" id="folder-mm-bulk">'+
+    '<button class="community-folder-header" onclick="toggleCommunityFolder(\'folder-mm-bulk\')">'+
+      '<span class="folder-icon">▾</span><span>📦 '+(isEn?'Bulk export — MorphMarket':'Export en masse — MorphMarket')+'</span>'+
+    '</button>'+
+    '<div class="community-folder-body">'+
+      '<p style="font-size:10.5px;color:var(--ink-dim);line-height:1.6;margin:0 0 12px;">'+(isEn
+        ?'Generates a CSV compatible with MorphMarket\'s Bulk Import 2.0 (Animal Manager → Import). Photos are auto-uploaded to a public link so MorphMarket can fetch them (one photo per ad — their current limit, not ours). Maturity is a rough guess from birth date, and exact accepted values for Category/Status may have changed on their end — double-check the preview MorphMarket shows before confirming the import.'
+        :'Génère un CSV compatible avec le Bulk Import 2.0 de MorphMarket (Animal Manager → Import). Les photos sont téléversées automatiquement vers un lien public pour que MorphMarket puisse les récupérer (une seule photo par annonce — leur limite actuelle, pas celle de LOCUS). La maturité est devinée approximativement selon la date de naissance, et les valeurs exactes acceptées pour Catégorie/Statut peuvent avoir changé de leur côté — vérifie l\'aperçu que MorphMarket affiche avant de confirmer l\'import.')+'</p>'+
+      rows+
+      '<button class="sc-btn accent" style="width:100%;margin-top:12px;" onclick="exportMorphMarketBulk()">📦 '+(isEn?'Generate MorphMarket CSV':'Générer le CSV MorphMarket')+'</button>'+
+      '<div id="mm-bulk-status" style="margin-top:8px;font-size:11px;color:var(--ink-dim);"></div>'+
+    '</div>'+
+  '</div>';
+}
+async function exportMorphMarketBulk(){
+  const isEn = currentLang==='en';
+  if(!requireAuthOrPrompt()) return;
+  const statusEl = document.getElementById('mm-bulk-status');
+  const checks = Array.from(document.querySelectorAll('.mm-bulk-check:checked'));
+  if(checks.length===0){ showToast(isEn?'Select at least one reptile.':'Sélectionne au moins un reptile.', 'error'); return; }
+  const ids = checks.map(c=>c.dataset.id);
+  if(statusEl) statusEl.textContent = isEn?'Uploading photos and building the file…':'Téléversement des photos et génération du fichier…';
+  const headers = ['Animal_ID','Category','Title','Maturity','Sex','Price','Status','Description','Photo URLs'];
+  const lines = [headers.join(',')];
+  let missingPhotoCount = 0;
+  for(const id of ids){
+    const s = savedSnakes.find(x=>x.id===id);
+    if(!s) continue;
+    ensureSnakeMeta(s);
+    const { title, body } = generateListingText(id, 'en'); // MorphMarket est anglophone — texte de l'export toujours en EN, indépendamment de la langue d'affichage de LOCUS
+    let photoUrl = '';
+    if(s.photos && s.photos.length){
+      photoUrl = await ensurePhotoPublicUrl(s, s.photos[s.photos.length-1]) || '';
+    }
+    if(!photoUrl) missingPhotoCount++;
+    const statusVal = s.status==='forsale' ? 'For Sale' : s.status==='reserved' ? 'Reserved' : s.status==='sold' ? 'Sold' : 'Not For Sale';
+    const row = [
+      s.id, 'Ball Python', title, maturityFromBirthDate(s.birthDate),
+      s.sex==='male'?'Male':s.sex==='female'?'Female':'',
+      s.askingPrice||'', statusVal, body, photoUrl
+    ].map(csvEscape).join(',');
+    lines.push(row);
+  }
+  const csvContent = lines.join('\n');
+  const blob = new Blob([csvContent], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'locus-morphmarket-export-'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  if(statusEl) statusEl.textContent = missingPhotoCount
+    ? (isEn?'Done — but ':'Terminé — mais ')+missingPhotoCount+(isEn?' reptile(s) had no photo (Photo URLs left blank).':' reptile(s) sans photo (colonne Photo URLs laissée vide).')
+    : (isEn?'Done — file downloaded.':'Terminé — fichier téléchargé.');
+  showToast('📦 '+(isEn?'MorphMarket CSV generated.':'CSV MorphMarket généré.'), 'success');
+}
+
 /* ==================== ONGLET VENTES ==================== */
 let salesStatusFilter = 'forsale';
 let salesSortBy = 'name';
@@ -6733,6 +7625,7 @@ function showUtilitaireSubtab(sub){
   document.getElementById('usub-communaute').style.display = sub==='communaute' ? '' : 'none';
   document.getElementById('usub-outils').style.display = sub==='outils' ? '' : 'none';
   document.querySelectorAll('#view-utilitaire .subtab-btn').forEach(b=>b.classList.toggle('active', b.dataset.usub===sub));
+  if(sub==='outils') renderPreBuyCalculator();
 }
 
 function showVentesSubtab(sub){
@@ -6828,6 +7721,7 @@ if(clientSearchInputEl) clientSearchInputEl.addEventListener('input', (e)=>{ cli
 
 function renderSalesView(){
   savedSnakes.forEach(ensureSnakeMeta);
+  renderMmBulkExportPanel();
   const forSale = savedSnakes.filter(s=>s.status==='forsale');
   const reserved = savedSnakes.filter(s=>s.status==='reserved');
   const sold = savedSnakes.filter(s=>s.status==='sold');
@@ -7504,6 +8398,30 @@ function toggleOvulation(pairingId){
   renderTimeline();
 }
 
+// Suivi de la taille des follicules — précurseur à l'ovulation, plus précis que le binaire
+// confirmé oui/non. Une lecture par date, en millimètres, sur chaque accouplement.
+function addFollicleSize(pairingId){
+  const isEn = currentLang==='en';
+  const p = pairings.find(x=>x.id===pairingId);
+  if(!p) return;
+  if(!p.follicleSizes) p.follicleSizes = [];
+  const dateEl = document.getElementById('follicle-date-'+pairingId);
+  const sizeEl = document.getElementById('follicle-size-'+pairingId);
+  const date = dateEl ? dateEl.value : '';
+  const size = sizeEl ? parseFloat(sizeEl.value) : NaN;
+  if(!date || isNaN(size) || size<=0){ alert(isEn?'Pick a date and enter a valid size in mm.':'Choisis une date et entre une taille valide en mm.'); return; }
+  p.follicleSizes.push({ id:'fol_'+Date.now(), date, sizeMm:size });
+  saveElevage();
+  renderTimeline();
+}
+function deleteFollicleSize(pairingId, follicleId){
+  const p = pairings.find(x=>x.id===pairingId);
+  if(!p) return;
+  p.follicleSizes = (p.follicleSizes||[]).filter(f=>f.id!==follicleId);
+  saveElevage();
+  renderTimeline();
+}
+
 // Rappels personnalisés — dates futures libres définies par l'éleveur (vermifuge, rendez-vous
 // vétérinaire, renouvellement UVB, etc.), indépendantes des accouplements/portées automatiques.
 function addCustomEvent(){
@@ -7574,8 +8492,71 @@ function renderLastYearReference(){
     '<div class="community-folder-body">'+pairingRows+clutchRows+'</div>'+
   '</div>';
 }
+
+// Vue "Outcomes" combinée — projection du nombre total de bébés attendus, par morph, à
+// travers TOUS les accouplements actifs ayant une prédiction génétique liée (linkPredictionToPairing).
+// Utilise le vrai nombre d'œufs d'une portée déjà enregistrée quand elle existe (appariée par
+// sireId/damId), sinon un estimé modifiable par accouplement (p.assumedClutchSize, défaut 6).
+function computeOutcomesData(){
+  return pairings.filter(p=>p.predictedResults && p.predictedResults.length).map(p=>{
+    const male = savedSnakes.find(s=>s.id===p.maleId);
+    const female = savedSnakes.find(s=>s.id===p.femaleId);
+    const linkedClutch = clutches.find(c=>!c.hatched && c.sireId===p.maleId && c.damId===p.femaleId);
+    const eggCount = linkedClutch ? linkedClutch.eggCount : (p.assumedClutchSize || 6);
+    return { pairing:p, male, female, eggCount, source: linkedClutch?'clutch':'assumed', linkedClutch };
+  });
+}
+function renderOutcomesView(){
+  const isEn = currentLang==='en';
+  const wrap = document.getElementById('outcomes-view');
+  if(!wrap) return;
+  const data = computeOutcomesData();
+  if(data.length===0){ wrap.innerHTML=''; return; }
+  const totals = Object.create(null);
+  data.forEach(d=>{
+    d.pairing.predictedResults.forEach(r=>{
+      totals[r.name] = (totals[r.name]||0) + d.eggCount*r.prob;
+    });
+  });
+  const totalsSorted = Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+  const totalEggs = data.reduce((sum,d)=>sum+d.eggCount,0);
+  const perPairingRows = data.map(d=>{
+    const names = (d.male?escapeHtml(d.male.name):'?')+' × '+(d.female?escapeHtml(d.female.name):'?');
+    const sourceTag = d.source==='clutch'
+      ? '<span style="color:var(--sage);font-size:10px;">('+(isEn?'from clutch ':'de la portée ')+d.linkedClutch.ref+')</span>'
+      : '<span style="color:var(--ink-dim);font-size:10px;">('+(isEn?'estimated':'estimé')+')</span>';
+    const editInput = d.source==='assumed'
+      ? '<input type="number" min="1" value="'+d.eggCount+'" style="width:55px;font-size:13px;padding:4px 6px;margin-left:6px;" onchange="setAssumedClutchSize(\''+d.pairing.id+'\', this.value)"/>'
+      : '';
+    return '<div class="modal-row"><span>🐍 '+names+'</span><span>'+d.eggCount+' '+(isEn?'egg(s)':'œuf(s)')+editInput+' '+sourceTag+'</span></div>';
+  }).join('');
+  const totalsRows = totalsSorted.map(([name,count])=>
+    '<div class="modal-row"><span>'+escapeHtml(name)+'</span><span style="color:var(--gold);font-weight:600;">'+count.toFixed(1)+'</span></div>'
+  ).join('');
+  wrap.innerHTML = '<div class="community-folder" id="folder-outcomes">'+
+    '<button class="community-folder-header" onclick="toggleCommunityFolder(\'folder-outcomes\')">'+
+      '<span class="folder-icon">▾</span><span>🧮 '+(isEn?'Outcomes — combined season projection':'Outcomes — projection combinée de la saison')+'</span>'+
+    '</button>'+
+    '<div class="community-folder-body">'+
+      '<p style="font-size:10.5px;color:var(--ink-dim);line-height:1.6;margin:0 0 14px;">'+(isEn?'Combines every pairing with a linked genetic prediction to estimate total expected babies by morph across the whole season. Uses the real egg count when a clutch is already recorded, otherwise an editable estimate.':'Combine tous les accouplements avec une prédiction génétique liée pour estimer le total de bébés attendus par morph pour la saison entière. Utilise le vrai nombre d\'œufs quand une portée est déjà enregistrée, sinon un estimé modifiable.')+'</p>'+
+      '<h3 style="font-size:12.5px;margin:0 0 6px;color:var(--gold);">'+(isEn?'Pairings included':'Accouplements inclus')+'</h3>'+
+      perPairingRows+
+      '<h3 style="font-size:12.5px;margin:16px 0 6px;color:var(--gold);">'+(isEn?'Expected total — ':'Total attendu — ')+totalEggs+' '+(isEn?'egg(s)':'œuf(s)')+'</h3>'+
+      totalsRows+
+    '</div>'+
+  '</div>';
+}
+function setAssumedClutchSize(pairingId, val){
+  const p = pairings.find(x=>x.id===pairingId);
+  if(!p) return;
+  const n = parseInt(val, 10);
+  p.assumedClutchSize = (n && n>0) ? n : 6;
+  saveElevage();
+  renderOutcomesView();
+}
 function renderTimeline(){
   renderLastYearReference();
+  renderOutcomesView();
   renderCustomEvents();
   const wrap = document.getElementById('timeline');
   if(pairings.length===0){ wrap.innerHTML = '<div class="empty">'+t('noPairingsEmpty')+'</div>'; return; }
@@ -7612,12 +8593,31 @@ function renderTimeline(){
       (waitlist.length ? waitlist.map(w=>'<div class="modal-row"><span>'+escapeHtml(w.client)+(w.morph?' — '+escapeHtml(w.morph):'')+'</span><span>'+(w.deposit?w.deposit+' '+t('depositLabel'):'—')+' <button class="sc-btn danger" data-wl="'+w.id+'" data-pair="'+p.id+'">×</button></span></div>').join('') : '<div style="font-size:11.5px;color:var(--ink-dim);">'+t('noReservations')+'</div>')+
       '<button class="sc-btn" style="margin-top:8px;" data-act="addwl" data-id="'+p.id+'">'+t('addReservationBtn')+'</button>'+
     '</div>';
+    const follicleSizes = p.follicleSizes || [];
+    const follicleHistoryHtml = follicleSizes.length
+      ? [...follicleSizes].sort((a,b)=>a.date.localeCompare(b.date)).map((f,i,arr)=>{
+          const delta = i>0 ? ' ('+(f.sizeMm-arr[i-1].sizeMm>=0?'+':'')+(f.sizeMm-arr[i-1].sizeMm)+'mm)' : '';
+          return '<div class="modal-row"><span>'+f.date+'</span><span>'+f.sizeMm+'mm'+delta+' <button class="sc-btn danger" data-act="delfoll" data-id="'+p.id+'" data-fid="'+f.id+'">×</button></span></div>';
+        }).join('')
+      : '<div style="font-size:11px;color:var(--ink-dim);">'+t('noFollicleRecorded')+'</div>';
+    const follicleAddHtml = !p.ovulationConfirmed
+      ? '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">'+
+          '<input type="date" id="follicle-date-'+p.id+'" style="font-size:14px;padding:6px 8px;"/>'+
+          '<input type="number" id="follicle-size-'+p.id+'" placeholder="mm" min="0" style="width:80px;font-size:14px;padding:6px 8px;"/>'+
+          '<button class="sc-btn accent" data-act="addfoll" data-id="'+p.id+'">'+t('addFollicleBtn')+'</button>'+
+        '</div>'
+      : '';
+    const follicleHtml = '<div style="margin-top:10px;border-top:1px dashed var(--line);padding-top:10px;">'+
+      '<div style="font-family:\'Courier New\',monospace;font-size:9.5px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);margin-bottom:6px;">'+t('follicleTrackingTitle')+'</div>'+
+      follicleHistoryHtml + follicleAddHtml +
+    '</div>';
     card.innerHTML =
       '<div class="timeline-head"><span class="timeline-title">'+(male?escapeHtml(male.name):'?')+' × '+(female?escapeHtml(female.name):'?')+'</span>'+
       '<span><button class="ovul-toggle'+(p.ovulationConfirmed?' active':'')+'" data-act="ovul" data-id="'+p.id+'">'+(p.ovulationConfirmed?t('ovulationConfirmedBtn'):t('confirmOvulationBtn'))+'</button> '+
       '<button class="sc-btn danger" data-act="del" data-id="'+p.id+'">'+t('deleteBtn')+'</button></span></div>'+
       (p.coolingDate ? '<div style="font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:6px;">❄️ '+t('coolingDateLabel')+' '+p.coolingDate+'</div>' : '')+
       '<div class="timeline-steps">'+steps+'</div>'+
+      follicleHtml+
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">'+
         '<button class="sc-btn" data-act="loadcalc" data-id="'+p.id+'">'+t('loadInCalcBtn')+'</button>'+
         '<button class="sc-btn" data-act="linkpred" data-id="'+p.id+'">'+t('linkPredictionBtn')+'</button>'+
@@ -7631,10 +8631,12 @@ function renderTimeline(){
   wrap.querySelectorAll('[data-act="linkpred"]').forEach(b=>b.addEventListener('click', ()=>linkPredictionToPairing(b.dataset.id)));
   wrap.querySelectorAll('[data-act="addwl"]').forEach(b=>b.addEventListener('click', ()=>addWaitlistEntry(b.dataset.id)));
   wrap.querySelectorAll('[data-wl]').forEach(b=>b.addEventListener('click', ()=>removeWaitlistEntry(b.dataset.pair, b.dataset.wl)));
+  wrap.querySelectorAll('[data-act="addfoll"]').forEach(b=>b.addEventListener('click', ()=>addFollicleSize(b.dataset.id)));
+  wrap.querySelectorAll('[data-act="delfoll"]').forEach(b=>b.addEventListener('click', ()=>deleteFollicleSize(b.dataset.id, b.dataset.fid)));
 }
 
 function eventLabel(type){
-  const map = { fed:'eventFed', shed:'eventShed', refused:'eventRefused', weigh:'eventWeigh' };
+  const map = { fed:'eventFed', shed:'eventShed', refused:'eventRefused', weigh:'eventWeigh', length:'eventLength' };
   return map[type] ? t(map[type]) : type;
 }
 function renderHealthLog(){
@@ -7646,7 +8648,7 @@ function renderHealthLog(){
   all.sort((a,b)=> b.date.localeCompare(a.date));
   const recent = all.slice(0,40);
   wrap.innerHTML = recent.length ? recent.map(e=>
-    '<div class="timeline-card" style="padding:9px 14px;"><span class="timeline-title" style="font-size:12.5px;">'+e.date+' — '+e.snake+' : '+eventLabel(e.type)+(e.type==='weigh'?' ('+e.value+'g)':'')+'</span></div>'
+    '<div class="timeline-card" style="padding:9px 14px;"><span class="timeline-title" style="font-size:12.5px;">'+e.date+' — '+e.snake+' : '+eventLabel(e.type)+(e.type==='weigh'?' ('+e.value+'g)':'')+(e.type==='length'?' ('+e.value+'cm)':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(currentLang==='en'?'partial':'partiel'):'')+'</span></div>'
   ).join('') : '<div class="empty">'+t('noHealthLogEmpty')+'</div>';
 }
 
