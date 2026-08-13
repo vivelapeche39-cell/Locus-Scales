@@ -5774,7 +5774,7 @@ document.getElementById('mm-csv-file-input').addEventListener('change', (e)=>{
         // l'app n'a pas de champ notes libre affiché ailleurs, provenance elle est bien visible/synchronisée.
         provenance: notes ? (baseProvenance+' — '+notes) : baseProvenance,
       };
-      if(weight!==null){ newSnake.health = { weights:[{date:new Date().toISOString().slice(0,10), grams:weight}], events:[], consecutiveRefusals:0 }; }
+      if(weight!==null){ newSnake.health = { weights:[{date:new Date().toISOString().slice(0,10), value:weight}], events:[], consecutiveRefusals:0 }; }
 
       ensureSnakeMeta(newSnake);
       savedSnakes.push(newSnake);
@@ -8418,7 +8418,7 @@ function renderFiscalView(){
     const row = document.createElement('div');
     row.className = 'sale-row';
     row.innerHTML =
-      '<div class="sale-name">'+s.name+'<small>'+s.soldDate+' '+t('soldToShort')+' '+(s.buyer||'?')+'</small></div>'+
+      '<div class="sale-name">'+escapeHtml(s.name)+'<small>'+s.soldDate+' '+t('soldToShort')+' '+escapeHtml(s.buyer||'?')+'</small></div>'+
       '<div class="sale-price">'+(s.soldPrice||0)+' $</div>';
     salesWrap.appendChild(row);
   });
@@ -8465,7 +8465,7 @@ function exportValueReport(){
   savedSnakes.forEach(ensureSnakeMeta);
   const total = savedSnakes.reduce((a,s)=>a+(s.askingPrice||0),0);
   const rows = [...savedSnakes].sort((a,b)=>(b.askingPrice||0)-(a.askingPrice||0)).map(s=>
-    '<tr><td>'+s.name+'</td><td>'+(s.sex==='male'?t('sexMale'):s.sex==='female'?t('sexFemale'):t('sexUnknown'))+'</td><td>'+summarizeGenes(s.genes)+'</td><td>'+(s.askingPrice?s.askingPrice+' $':'—')+'</td></tr>'
+    '<tr><td>'+escapeHtml(s.name)+'</td><td>'+(s.sex==='male'?t('sexMale'):s.sex==='female'?t('sexFemale'):t('sexUnknown'))+'</td><td>'+summarizeGenes(s.genes)+'</td><td>'+(s.askingPrice?s.askingPrice+' $':'—')+'</td></tr>'
   ).join('');
   const win = window.open('', '_blank');
   win.document.write(
@@ -8762,7 +8762,7 @@ function renderHealthLog(){
   all.sort((a,b)=> b.date.localeCompare(a.date));
   const recent = all.slice(0,40);
   wrap.innerHTML = recent.length ? recent.map(e=>
-    '<div class="timeline-card" style="padding:9px 14px;"><span class="timeline-title" style="font-size:12.5px;">'+e.date+' — '+e.snake+' : '+eventLabel(e.type)+(e.type==='weigh'?' ('+e.value+'g)':'')+(e.type==='length'?' ('+e.value+'cm)':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(currentLang==='en'?'partial':'partiel'):'')+'</span></div>'
+    '<div class="timeline-card" style="padding:9px 14px;"><span class="timeline-title" style="font-size:12.5px;">'+e.date+' — '+escapeHtml(e.snake)+' : '+eventLabel(e.type)+(e.type==='weigh'?' ('+e.value+'g)':'')+(e.type==='length'?' ('+e.value+'cm)':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(currentLang==='en'?'partial':'partiel'):'')+'</span></div>'
   ).join('') : '<div class="empty">'+t('noHealthLogEmpty')+'</div>';
 }
 
