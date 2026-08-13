@@ -64,6 +64,13 @@
 a:focus-visible, button:focus-visible{outline-offset:3px;}
 html{background:#000000 !important;color-scheme:dark only;}
 body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana,sans-serif;min-height:100vh;color-scheme:dark only;zoom:1.20;}
+/* Filet de sécurité pour les navigateurs qui ne comprennent pas `zoom` (ex. Firefox avant
+   mi-2024) : simule le même agrandissement de 20% avec transform, pour que l'app reste
+   lisible même là. Imparfait (transform ne recalcule pas la mise en page comme zoom le
+   fait), mais bien mieux que de retomber à 100% pour un navigateur trop vieux. */
+@supports not (zoom: 1){
+  body{ zoom:normal; width:83.3333%; transform:scale(1.2); transform-origin:top left; }
+}
 .wrap{max-width:1180px;margin:0 auto;padding:34px 22px 60px;background:#000000;}
 
 /* Header */
