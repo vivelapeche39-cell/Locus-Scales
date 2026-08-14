@@ -111,7 +111,7 @@ Philosophie : la ligne de démarcation est « élève-t-il ou pas », pas le nom
 
 - **Temporal dead zone JS** : une constante utilisée par une fonction de rendu appelée au chargement doit être déclarée **avant** cette fonction, tout en haut du script.
 - **Webhooks Stripe** : toujours vérifier que les destinations de webhook sont créées dans le **même bac à sable Stripe** que les clés API utilisées — sinon échec silencieux, aucune erreur visible.
-- **iOS Safari** : cache agressif après redéploiement (tester en navigation privée) ; champs de saisie sous 16px provoquent un zoom automatique intempestif.
+- **iOS Safari** : cache agressif après redéploiement — **réglé** via un mécanisme d'auto-détection de version (`APP_VERSION` dans `index.html` comparé à `version.txt` via `fetch({cache:'no-store'})`, rechargement forcé si différent). **Incrémenter `APP_VERSION` ET `version.txt` à chaque déploiement significatif**, sinon aucune détection. Champs de saisie sous 16px provoquent toujours un zoom automatique intempestif (non lié au cache).
 - **MorphMarket bulk import** : le champ Photo URLs exige une vraie URL publique — le base64 local ne fonctionne pas. Ils ne supportent qu'**une seule photo par annonce** actuellement.
 
 ## État actuel / backlog restant

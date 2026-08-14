@@ -43,6 +43,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"/>
 <meta name="theme-color" content="#000000"/>
 <meta name="color-scheme" content="dark only"/>
+<!-- Décourage la mise en cache agressive du document HTML lui-même (surtout iOS Safari) —
+     complète le mécanisme de vérification de version dans le script, ne le remplace pas. -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
 <style>
 
 :root{
@@ -1614,6 +1619,28 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
 </div>
 
 <script>
+/* ---------------- VERSION & ANTI-CACHE ----------------
+   Règle le cache agressif (surtout iOS Safari) qui sert une vieille copie de l'app après un
+   redéploiement : au chargement, on compare APP_VERSION à version.txt sur le serveur (fetch
+   no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
+   fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
+   de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
+const APP_VERSION = '2026.08.14.1';
+(function checkForNewVersion(){
+  try{
+    if(sessionStorage.getItem('locus_version_reloaded')){ sessionStorage.removeItem('locus_version_reloaded'); return; }
+    fetch('version.txt?_=' + Date.now(), { cache: 'no-store' })
+      .then(r => r.ok ? r.text() : null)
+      .then(remoteVersion => {
+        if(remoteVersion && remoteVersion.trim() && remoteVersion.trim() !== APP_VERSION){
+          sessionStorage.setItem('locus_version_reloaded', '1');
+          location.href = location.pathname + '?_v=' + Date.now();
+        }
+      })
+      .catch(()=>{});
+  }catch(e){}
+})();
+
 /* ---------------- SUPABASE : client + auth ---------------- */
 // Placée tout en haut du script à dessein : plusieurs fonctions appelées tôt (dashboard, etc.)
 // en dépendent. Une constante déclarée plus tard dans le fichier mais utilisée par du code
@@ -2126,6 +2153,7 @@ function saveProfileData(){
     phone: document.getElementById('profile-phone-input').value.trim(),
   };
   try{ localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); }catch(e){}
+  if(sb && currentUser) syncPushAll(); // pousse le profil au cloud sans attendre la prochaine sauvegarde d'un reptile
   closeQuickModal();
   showToast('Profil enregistré.', 'success');
 }
@@ -2133,7 +2161,7 @@ function openProfileModal(){
   const isEn = currentLang==='en';
   const p = loadProfile();
   showQuickModal(isEn?'👤 My profile':'👤 Mon profil',
-    '<p style="font-size:11.5px;color:var(--ink-dim);margin:0 0 14px;">'+(isEn?'Used to personalize exported reports (sheets, invoices) — stays local to this device.':'Utilisé pour personnaliser les rapports exportés (fiches, factures) — reste local à cet appareil.')+'</p>'+
+    '<p style="font-size:11.5px;color:var(--ink-dim);margin:0 0 14px;">'+(isEn?'Synced to your account — available on every device you sign in from.':'Synchronisé avec ton compte — disponible sur chaque appareil où tu te connectes.')+'</p>'+
     '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Breeder/collection name':'Nom de l\'élevage')+'</label>'+
     '<input type="text" id="profile-name-input" class="draft-name" style="width:100%;margin:0 0 12px;" value="'+(p.breederName||'')+'" placeholder="Ex. Python of the North"/>'+
     '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Email':'Courriel')+'</label>'+
@@ -3776,13 +3804,12 @@ function resetOnboarding(){
 }
 
 // Bannière "premier reptile" — mini-guide de soins de base affiché dès que le tout premier
-// reptile de l'éleveur est enregistré, jusqu'à ce qu'il la ferme manuellement.
-const FIRST_SNAKE_TIP_KEY = 'locus_first_snake_tip_dismissed_v1';
+// reptile de l'éleveur est enregistré, jusqu'à ce qu'il la ferme manuellement (voir
+// isBannerDismissed/dismissBanner, définis plus bas, pour le stockage synchronisé au cloud).
 function renderFirstSnakeTip(){
   const banner = document.getElementById('onboarding-banner-firstsnake');
   if(!banner) return;
-  let dismissed = false;
-  try{ dismissed = !!localStorage.getItem(FIRST_SNAKE_TIP_KEY); }catch(e){}
+  const dismissed = isBannerDismissed('first_snake_tip');
   if(savedSnakes.length===0 || dismissed){ banner.style.display = 'none'; return; }
   const isEn = currentLang==='en';
   const first = [...savedSnakes].sort((a,b)=>(a.createdAt||0)-(b.createdAt||0))[0];
@@ -3805,7 +3832,7 @@ function renderFirstSnakeTip(){
   banner.style.display = 'flex';
 }
 function dismissFirstSnakeTip(){
-  try{ localStorage.setItem(FIRST_SNAKE_TIP_KEY, '1'); }catch(e){}
+  dismissBanner('first_snake_tip');
   const banner = document.getElementById('onboarding-banner-firstsnake');
   if(banner) banner.style.display = 'none';
 }
@@ -5574,7 +5601,9 @@ async function syncPushAll(forceAll){
       const dirty = itemsToPush('customers', customers, forceAll);
       if(dirty.length) await sb.from('customers').upsert(dirty.map(cu=>({ id:cu.id, user_id:currentUser.id, data:cu })));
     }
-    await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents });
+    await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners() });
+    const profile = loadProfile();
+    await sb.from('profiles').upsert({ user_id:currentUser.id, breeder_name: profile.breederName||null, email: profile.email||null, phone: profile.phone||null });
     ['snakes','racks','pairings','clutches','expenses','customers'].forEach(kind=> dirtySyncIds[kind].clear());
   }catch(e){ console.warn('LOCUS: échec envoi vers le cloud', e); }
 }
@@ -5582,14 +5611,15 @@ async function syncPushAll(forceAll){
 async function syncPullAll(){
   if(!sb || !currentUser) return;
   try{
-    const [snakesRes, racksRes, pairingsRes, clutchesRes, expensesRes, customersRes, stateRes] = await Promise.all([
+    const [snakesRes, racksRes, pairingsRes, clutchesRes, expensesRes, customersRes, stateRes, profileRes] = await Promise.all([
       sb.from('snakes').select('*'),
       sb.from('racks').select('*'),
       sb.from('pairings').select('*'),
       sb.from('clutches').select('*'),
       sb.from('expenses').select('*'),
       sb.from('customers').select('*'),
-      sb.from('app_state').select('*').maybeSingle()
+      sb.from('app_state').select('*').maybeSingle(),
+      sb.from('profiles').select('breeder_name, email, phone').maybeSingle()
     ]);
     // markSynced() est appelé sur la version brute venant du cloud (pas sur le résultat fusionné) :
     // si le local avait une version plus récente non encore poussée, on veut qu'elle reste marquée
@@ -5627,6 +5657,21 @@ async function syncPullAll(){
     }
     if(stateRes.data && stateRes.data.layout) layout = stateRes.data.layout;
     if(stateRes.data && stateRes.data.custom_events) customEvents = mergeById(customEvents, stateRes.data.custom_events);
+    if(stateRes.data && stateRes.data.dismissed_banners){
+      const mergedBanners = [...new Set([...loadDismissedBanners(), ...stateRes.data.dismissed_banners])];
+      saveDismissedBanners(mergedBanners);
+    }
+    if(profileRes && profileRes.data && (profileRes.data.breeder_name || profileRes.data.email || profileRes.data.phone)){
+      // Le cloud gagne seulement si un profil y est déjà renseigné — sinon on garde ce qu'il y a en
+      // local (évite d'écraser une saisie locale pas encore poussée par un profil cloud vide).
+      const local = loadProfile();
+      const merged = {
+        breederName: profileRes.data.breeder_name || local.breederName,
+        email: profileRes.data.email || local.email,
+        phone: profileRes.data.phone || local.phone,
+      };
+      try{ localStorage.setItem(PROFILE_KEY, JSON.stringify(merged)); }catch(e){}
+    }
     saveElevage();
     renderSavedList();
     if(document.getElementById('racks-container')) renderRackGrid();
@@ -8013,10 +8058,33 @@ function showToast(message, type){
 // Badge vivant du header : priorité à la prochaine éclosion (excitant, actionnable),
 // sinon nombre de reptiles suivis — jamais un texte statique "jeu d'essai".
 /* ==================== TABLEAU DE BORD ==================== */
-const WELCOME_DISMISSED_KEY = 'locus_welcome_dismissed_v1';
-function isWelcomeDismissed(){ try{ return localStorage.getItem(WELCOME_DISMISSED_KEY)==='1'; }catch(e){ return false; } }
+// Bannières "vues/fermées une fois" (accueil, premier reptile...) — liste unifiée synchronisée
+// au cloud via app_state.dismissed_banners, contrairement aux anciennes clés dédiées par bannière
+// qui restaient locales à l'appareil (perdues au vidage de cache iOS Safari ou sur un 2e appareil).
+const DISMISSED_BANNERS_KEY = 'locus_dismissed_banners_v1';
+function loadDismissedBanners(){
+  let list = [];
+  try{ list = JSON.parse(localStorage.getItem(DISMISSED_BANNERS_KEY)||'[]'); }catch(e){}
+  // Migration depuis les anciennes clés dédiées (avant l'unification) — évite de faire
+  // réapparaître une bannière déjà fermée pour un éleveur qui utilisait la version précédente.
+  try{
+    if(localStorage.getItem('locus_welcome_dismissed_v1')==='1' && !list.includes('welcome')) list.push('welcome');
+    if(localStorage.getItem('locus_first_snake_tip_dismissed_v1') && !list.includes('first_snake_tip')) list.push('first_snake_tip');
+  }catch(e){}
+  return list;
+}
+function saveDismissedBanners(list){
+  try{ localStorage.setItem(DISMISSED_BANNERS_KEY, JSON.stringify(list)); }catch(e){}
+}
+function isBannerDismissed(name){ return loadDismissedBanners().includes(name); }
+function dismissBanner(name){
+  const list = loadDismissedBanners();
+  if(!list.includes(name)){ list.push(name); saveDismissedBanners(list); }
+  if(sb && currentUser) syncPushAll(); // pousse la fermeture au cloud sans attendre la prochaine sauvegarde d'un reptile
+}
+function isWelcomeDismissed(){ return isBannerDismissed('welcome'); }
 function dismissWelcome(){
-  try{ localStorage.setItem(WELCOME_DISMISSED_KEY, '1'); }catch(e){}
+  dismissBanner('welcome');
   document.getElementById('welcome-hero').style.display = 'none';
 }
 function renderWelcomeHero(){
