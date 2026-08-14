@@ -799,6 +799,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
+<div id="public-view-overlay" style="display:none;position:fixed;inset:0;z-index:99999;background:var(--bg);overflow-y:auto;"></div>
 <div class="wrap" id="main-wrap">
 
   <div class="hdr">
@@ -861,7 +862,10 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
   <div id="view-dash">
     <div id="welcome-hero" class="welcome-hero" style="display:none;"></div>
     <div class="dash-greeting" id="dash-greeting"></div>
+    <div id="dash-species-filter-wrap" style="display:none;margin-bottom:14px;"></div>
     <div class="dash-grid" id="dash-alert-grid"></div>
+    <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" id="dash-today-title">🌤️ <span data-i18n="todayWidgetTitle">Aujourd'hui — à surveiller</span></h2></div>
+    <div id="dash-today-widget"></div>
     <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;">📅 Calendrier de nourrissage — 7 prochains jours</h2></div>
     <div id="dash-feeding-list"></div>
     <div class="results-hdr" style="margin-top:22px;"><h2 style="font-size:16px;">🥚 Prochaines éclosions</h2></div>
@@ -1423,6 +1427,12 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
   <div class="results-hdr" style="margin-top:20px;"><h2 style="font-size:14.5px;">Détail chronologique</h2></div>
   <div id="expense-list" class="sale-list"></div>
 
+  <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;">🥚 ROI par accouplement</h2></div>
+  <div class="footnote" style="margin-top:0;margin-bottom:12px;">
+    Revenu = ventes déjà conclues des bébés de cet accouplement + prix demandé sur ceux encore à vendre. Le coût est une estimation que tu entres toi-même (nourriture, temps, électricité...) — LOCUS ne l'invente pas.
+  </div>
+  <div id="pairing-roi-list" class="sale-list"></div>
+
   <div class="footnote" style="margin-top:26px;">
     <b>Important :</b> LOCUS compile tes chiffres pour te faire gagner du temps, mais n'est pas un logiciel comptable ni un conseiller fiscal. Vérifie toujours avec ton comptable avant de produire une déclaration — les règles varient selon ta province/ton statut (particulier vs entreprise enregistrée).
   </div>
@@ -1625,7 +1635,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.14.1';
+const APP_VERSION = '2026.08.14.2';
 (function checkForNewVersion(){
   try{
     if(sessionStorage.getItem('locus_version_reloaded')){ sessionStorage.removeItem('locus_version_reloaded'); return; }
@@ -1660,6 +1670,68 @@ try{
   sbInitError = e.message;
   console.error('LOCUS: init Supabase échouée —', e);
 }
+
+// Lien public en lecture seule (?public=<jeton>) : page autonome pour un visiteur non connecté,
+// sans toucher au reste de l'app (le reste continue de s'initialiser en arrière-plan, caché sous
+// cet overlay plein écran — plus simple et plus sûr que de court-circuiter tout le bootstrap normal).
+// Les fonctions référencées dans le .then() (summarizeGenes, formatBirthLabel, GENES...) sont
+// déclarées plus loin dans le fichier, mais c'est sans risque : ce callback ne s'exécute qu'après
+// la réponse réseau, donc bien après que le script au complet ait fini de s'exécuter une première fois.
+(function initPublicSnakeView(){
+  const token = new URLSearchParams(location.search).get('public');
+  if(!token) return;
+  const overlay = document.getElementById('public-view-overlay');
+  if(!overlay) return;
+  const isEn = !(navigator.language||'').toLowerCase().startsWith('fr');
+  overlay.style.display = 'block';
+  overlay.innerHTML = '<div style="max-width:520px;margin:0 auto;padding:60px 20px;text-align:center;color:var(--ink-dim);font-family:Verdana,sans-serif;">'+(isEn?'Loading…':'Chargement…')+'</div>';
+  if(!sb){
+    overlay.innerHTML = '<div style="max-width:520px;margin:0 auto;padding:60px 20px;text-align:center;color:var(--ink-dim);font-family:Verdana,sans-serif;">'+(isEn?'Connection error.':'Erreur de connexion.')+'</div>';
+    return;
+  }
+  sb.rpc('get_public_snake', { p_token: token }).then(({data, error})=>{
+    if(error || !data || !data.length){
+      overlay.innerHTML = '<div style="max-width:520px;margin:0 auto;padding:60px 20px;text-align:center;font-family:Verdana,sans-serif;">'+
+        '<div style="font-size:40px;margin-bottom:10px;">🔒</div>'+
+        '<div style="color:var(--ink);font-size:15px;margin-bottom:6px;">'+(isEn?'This link is no longer valid.':'Ce lien n\'est plus valide.')+'</div>'+
+        '<div style="color:var(--ink-dim);font-size:12px;">'+(isEn?'The breeder may have disabled public sharing for this reptile.':'L\'éleveur a peut-être retiré le partage public de cette fiche.')+'</div>'+
+      '</div>';
+      return;
+    }
+    const r = data[0];
+    const photosHtml = (r.photos && r.photos.length)
+      ? '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:16px 0;">'+
+          r.photos.slice(0,6).map(p=>'<img src="'+p.dataUrl+'" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--line);" alt="'+escapeHtml(r.name)+'"/>').join('')+
+        '</div>'
+      : '';
+    const genes = r.genes || {};
+    const geneNames = Object.keys(genes).length ? Object.keys(genes).map(gid=>{
+      const g = (typeof GENES!=='undefined' ? GENES.find(x=>x.id===gid) : null);
+      return g ? g.name : gid;
+    }).join(', ') : (isEn?'No genetics recorded':'Aucune génétique enregistrée');
+    const sexLabel = r.sex==='male' ? (isEn?'Male':'Mâle') : r.sex==='female' ? (isEn?'Female':'Femelle') : (isEn?'Unsexed':'Non sexé');
+    const speciesLabel = (!r.species || r.species==='ball_python') ? 'Ball Python' : (r.species==='other' ? (isEn?'Other species':'Autre espèce') : r.species);
+    overlay.innerHTML =
+      '<div style="max-width:560px;margin:0 auto;padding:32px 20px 60px;font-family:Verdana,sans-serif;">'+
+        '<div style="text-align:center;margin-bottom:24px;">'+
+          '<div style="font-family:Georgia,serif;font-size:22px;color:var(--gold);letter-spacing:1px;">LOCUS<span style="color:var(--sage);">.</span>Scales</div>'+
+          '<div style="font-size:10px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px;">'+(isEn?'Public reptile profile':'Fiche reptile publique')+'</div>'+
+        '</div>'+
+        photosHtml+
+        '<h1 style="font-family:Georgia,serif;font-size:28px;color:var(--ink);margin:0 0 4px;text-align:center;">'+escapeHtml(r.name)+'</h1>'+
+        '<div style="text-align:center;color:var(--ink-dim);font-size:12px;margin-bottom:20px;">'+speciesLabel+' — '+sexLabel+'</div>'+
+        '<div style="background:var(--bg-panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;">'+
+          '<div class="modal-row"><span>'+(isEn?'Genetics':'Génétique')+'</span><span>'+escapeHtml(geneNames)+'</span></div>'+
+          (r.birth_date ? '<div class="modal-row"><span>'+(isEn?'Birth':'Naissance')+'</span><span>'+escapeHtml(r.birth_date)+'</span></div>' : '')+
+          (r.sire_name || r.dam_name ? '<div class="modal-row"><span>'+(isEn?'Parents':'Parents')+'</span><span>'+escapeHtml(r.sire_name||'?')+' × '+escapeHtml(r.dam_name||'?')+'</span></div>' : '')+
+          (r.provenance ? '<div class="modal-row"><span>Provenance</span><span>'+escapeHtml(r.provenance)+'</span></div>' : '')+
+        '</div>'+
+        '<div style="text-align:center;margin-top:24px;font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Shared read-only by the breeder via LOCUS Scales. Price, buyer, and location are never shown here.':'Partagé en lecture seule par l\'éleveur via LOCUS Scales. Le prix, l\'acheteur et l\'emplacement ne sont jamais affichés ici.')+'</div>'+
+      '</div>';
+  }).catch(()=>{
+    overlay.innerHTML = '<div style="max-width:520px;margin:0 auto;padding:60px 20px;text-align:center;color:var(--ink-dim);font-family:Verdana,sans-serif;">'+(isEn?'Connection error.':'Erreur de connexion.')+'</div>';
+  });
+})();
 
 let currentUser = null; // rempli par onAuthStateChange ; null = déconnecté (mode local uniquement)
 
@@ -2478,6 +2550,7 @@ function openFaqModal(){
 const I18N = {
   fr: {
     tabDash: '📋 Tableau de bord',
+    todayWidgetTitle: 'Aujourd\'hui — à surveiller',
     tabCalc: '🧬 Calculateur',
     tabMine: '🐍 Mes reptiles',
     tabElevage: '🏠 Élevage',
@@ -2863,6 +2936,7 @@ const I18N = {
   },
   en: {
     tabDash: '📋 Dashboard',
+    todayWidgetTitle: 'Today — worth a look',
     tabCalc: '🧬 Calculator',
     tabMine: '🐍 My Reptiles',
     tabElevage: '🏠 Husbandry',
@@ -3870,6 +3944,15 @@ function setDraftSex(v){
   document.querySelectorAll('.sex-btn').forEach(b=>b.classList.toggle('active', b.dataset.v===v));
 }
 
+// Le champ species est du texte libre (voir saveDraft) — 'ball_python' et 'other' sont les deux
+// seules valeurs à traduire, tout le reste s'affiche tel quel (ce que l'éleveur a tapé).
+function speciesDisplayLabel(species){
+  const isEn = currentLang==='en';
+  if(!species || species==='ball_python') return isEn?'Ball Python':'Python royal';
+  if(species==='other') return isEn?'Other species':'Autre espèce';
+  return species;
+}
+
 function summarizeGenes(genes){
   return Object.keys(genes).map(gid=>{
     if(isFreewayKey(gid)) return '⚠ '+freewayLabel(freewayLocusFromKey(gid));
@@ -4077,6 +4160,7 @@ let mineTagFilter = 'all';
 let batchSelectMode = false;
 let batchSelectedIds = new Set();
 let mineSortBy = 'created';
+let dashSpeciesFilter = 'all'; // filtre par espèce sur le dashboard — utile seulement si plusieurs espèces cohabitent
 
 function sortSnakes(list, sortBy){
   const arr = [...list];
@@ -4251,7 +4335,7 @@ function renderSavedList(){
     const qs = quarantineStatus(s);
     const quarantineBadge = (qs && !qs.complete) ? '<span class="sc-status" style="background:rgba(201,151,62,.18);color:var(--gold);border:1px solid rgba(201,151,62,.4);" title="'+(isEn?qs.daysRemaining+' day(s) left':'Encore '+qs.daysRemaining+' jour(s)')+'">🔒 '+(isEn?'Quarantine':'Quarantaine')+'</span>' : '';
     const tagsBadges = (s.customTags||[]).map(tag=>'<span class="sc-status" style="background:var(--bg-panel-2);border:1px solid var(--line);">'+escapeHtml(tag)+'</span>').join('');
-    const speciesBadge = (s.species && s.species!=='ball_python') ? '<span class="sc-status" style="background:rgba(124,131,99,.18);border:1px solid rgba(124,131,99,.4);color:var(--sage);">🦎 '+escapeHtml(s.species==='other' ? (isEn?'Other species':'Autre espèce') : s.species)+'</span>' : '';
+    const speciesBadge = (s.species && s.species!=='ball_python') ? '<span class="sc-status" style="background:rgba(124,131,99,.18);border:1px solid rgba(124,131,99,.4);color:var(--sage);">🦎 '+escapeHtml(speciesDisplayLabel(s.species))+'</span>' : '';
     const priceLine = s.status==='sold'
       ? '<div class="sc-genes" style="color:var(--ink-dim);">'+(isEn?'Sold to ':'Vendu à ')+escapeHtml(s.buyer||'?')+(s.soldDate?(isEn?' on ':' le ')+s.soldDate:'')+(s.soldPrice?' — '+s.soldPrice+' $':'')+'</div>'
       : (s.askingPrice ? '<div class="sc-genes" style="color:var(--gold);">'+s.askingPrice+(isEn?' $ asking':' $ demandé')+'</div>' : '');
@@ -4962,6 +5046,18 @@ function openLogbook(id){
       (s.birthDate ? mrow(t('ageLabel').replace(':',''), computeAgeLabel(s.birthDate)) : '')+
       (s.provenance ? mrow('Provenance', escapeHtml(s.provenance)) : '')+
     '</div>'+
+    '<div class="modal-section"><h3>🌡️ '+(currentLang==='en'?'Care parameters':'Paramètres d\'élevage')+'</h3>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">'+
+        '<label style="flex:1;min-width:110px;"><span style="font-size:10.5px;color:var(--ink-dim);display:block;margin-bottom:4px;">'+(currentLang==='en'?'Warm side (°C)':'Côté chaud (°C)')+'</span>'+
+          '<input type="number" step="0.5" style="width:100%;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" value="'+(s.careParams.tempWarm??'')+'" onchange="setCareParam(\''+id+'\',\'tempWarm\',this.value)"/></label>'+
+        '<label style="flex:1;min-width:110px;"><span style="font-size:10.5px;color:var(--ink-dim);display:block;margin-bottom:4px;">'+(currentLang==='en'?'Cool side (°C)':'Côté froid (°C)')+'</span>'+
+          '<input type="number" step="0.5" style="width:100%;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" value="'+(s.careParams.tempCool??'')+'" onchange="setCareParam(\''+id+'\',\'tempCool\',this.value)"/></label>'+
+        '<label style="flex:1;min-width:110px;"><span style="font-size:10.5px;color:var(--ink-dim);display:block;margin-bottom:4px;">'+(currentLang==='en'?'Humidity (%)':'Humidité (%)')+'</span>'+
+          '<input type="number" step="1" style="width:100%;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" value="'+(s.careParams.humidity??'')+'" onchange="setCareParam(\''+id+'\',\'humidity\',this.value)"/></label>'+
+      '</div>'+
+      '<label><span style="font-size:10.5px;color:var(--ink-dim);display:block;margin-bottom:4px;">'+(currentLang==='en'?'Cycle / notes (photoperiod, seasonal changes...)':'Cycle / notes (photopériode, variations saisonnières...)')+'</span>'+
+        '<textarea rows="2" style="width:100%;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:\'Courier New\',monospace;resize:vertical;" onchange="setCareParam(\''+id+'\',\'cycleNotes\',this.value)">'+escapeHtml(s.careParams.cycleNotes||'')+'</textarea></label>'+
+    '</div>'+
     '<div class="modal-section"><h3>'+t('quarantineTitle')+'</h3>'+
       (function(){
         const qs = quarantineStatus(s);
@@ -5032,6 +5128,23 @@ function openLogbook(id){
     '</div>'+
     '<div class="modal-section"><h3>'+t('careJournalTourTitle')+'</h3>'+eventsHtml+'</div>'+
     '<div class="modal-section"><h3>'+t('reproductionTitle')+'</h3>'+pairingsHtml+'</div>'+
+    (function(){
+      if(s.sex!=='female') return '';
+      const fert = computeFemaleFertility(id);
+      if(!fert) return '';
+      const seasonRows = Object.keys(fert.bySeason).sort().map(year=>{
+        const d = fert.bySeason[year];
+        return mrow(year, d.count+(currentLang==='en'?' clutch(es), avg ':' ponte(s), moy. ')+Math.round(d.eggs/d.count*10)/10+(currentLang==='en'?' eggs':' œufs'));
+      }).join('');
+      return '<div class="modal-section"><h3>🐣 '+(currentLang==='en'?'Fertility & track record':'Fertilité & reproductibilité')+'</h3>'+
+        mrow(currentLang==='en'?'Pairings logged':'Accouplements enregistrés', fert.totalPairings) +
+        mrow(currentLang==='en'?'Clutches obtained':'Pontes obtenues', fert.totalClutches) +
+        (fert.successRate!=null ? mrow(currentLang==='en'?'Success rate':'Taux de réussite', fert.successRate+'%') : '') +
+        (fert.avgEggCount!=null ? mrow(currentLang==='en'?'Average clutch size':'Taille moyenne de portée', fert.avgEggCount) : '') +
+        (seasonRows ? '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);">'+
+          '<div style="font-size:10.5px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">'+(currentLang==='en'?'By season':'Par saison')+'</div>'+seasonRows+'</div>' : '')+
+      '</div>';
+    })()+
     '<div class="modal-section"><h3>'+t('listingAutoTitle')+'</h3>'+
       '<button class="sc-btn accent" onclick="showListingPreview(\''+id+'\')">'+t('generateListingBtn')+'</button>'+
       '<div id="listing-preview-'+id+'" style="margin-top:10px;"></div>'+
@@ -5041,9 +5154,47 @@ function openLogbook(id){
       '<button class="sc-btn" onclick="printTubLabel(\''+id+'\')">'+t('printLabelBtn')+'</button>'+
       '<button class="sc-btn accent" onclick="exportSnakeSheet(\''+id+'\')">'+t('exportSheetBtn')+'</button>'+
       '<button class="sc-btn" onclick="exportSnakeSheet(\''+id+'\', true)">'+t('exportVetSheetBtn')+'</button>'+
-    '</div><div id="logbook-qr" style="display:none;margin-top:12px;"></div></div>';
+      '<button class="sc-btn'+(s.publicToken?' danger':'')+'" onclick="togglePublicShare(\''+id+'\')">'+(s.publicToken?(currentLang==='en'?'🚫 Disable public link':'🚫 Retirer le lien public'):(currentLang==='en'?'🔗 Enable public link':'🔗 Activer un lien public'))+'</button>'+
+    '</div>'+
+    (s.publicToken ? '<div style="margin-top:10px;padding:10px 12px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;">'+
+      '<div style="font-size:10.5px;color:var(--ink-dim);margin-bottom:6px;">'+(currentLang==='en'?'Anyone with this link can view name, sex, genetics, pedigree and photos — never price, buyer, or location.':'Quiconque a ce lien peut voir le nom, le sexe, la génétique, le pedigree et les photos — jamais le prix, l\'acheteur ou l\'emplacement.')+'</div>'+
+      '<div style="word-break:break-all;font-family:\'Courier New\',monospace;font-size:11px;color:var(--gold);">'+escapeHtml(publicShareUrl(s.publicToken))+'</div>'+
+      '<button class="sc-btn" style="margin-top:8px;" onclick="copyPublicShareUrl(\''+id+'\')">📋 '+(currentLang==='en'?'Copy link':'Copier le lien')+'</button>'+
+    '</div>' : '')+
+    '<div id="logbook-qr" style="display:none;margin-top:12px;"></div></div>';
 
   document.getElementById('logbook-overlay').style.display = 'flex';
+}
+
+// Lien public en lecture seule : un jeton aléatoire non devinable (pas l'ID interne du reptile,
+// qui suit un pattern prévisible) sert de clé pour la fonction Supabase get_public_snake, qui ne
+// retourne QUE les colonnes explicitement listées côté serveur (nom, sexe, génétique, pedigree,
+// photos) — jamais prix/acheteur/emplacement, peu importe ce qu'un client mal intentionné demande.
+function publicShareUrl(token){
+  return location.origin + location.pathname + '?public=' + token;
+}
+function togglePublicShare(id){
+  if(!requireAuthOrPrompt()) return;
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const isEn = currentLang==='en';
+  if(s.publicToken){
+    if(!confirm(isEn?'Disable the public link? Anyone who already has it will no longer be able to view this reptile.':'Retirer le lien public ? Quiconque l\'a déjà ne pourra plus consulter cette fiche.')) return;
+    s.publicToken = null;
+  } else {
+    s.publicToken = (typeof crypto!=='undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('pub_'+Date.now()+'_'+Math.random().toString(36).slice(2,10));
+  }
+  storage.save(savedSnakes);
+  openLogbook(id);
+}
+function copyPublicShareUrl(id){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s || !s.publicToken) return;
+  const url = publicShareUrl(s.publicToken);
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(()=>showToast('🔗 '+(currentLang==='en'?'Link copied.':'Lien copié.'), 'success')).catch(()=>{});
+  }
 }
 
 function buildQrData(s){
@@ -5549,7 +5700,7 @@ function snakeToRow(s){
     prey_size: s.preySize||null, prey_type: s.preyType||'frozen', asking_price: s.askingPrice||null, listed_date: s.listedDate||null,
     listing_url: s.listingUrl||null, buyer: s.buyer||null, sold_date: s.soldDate||null, sold_price: s.soldPrice||null,
     quarantine: s.quarantine||{active:false,startDate:null,durationDays:60}, custom_tags: s.customTags||[], species: s.species||'ball_python',
-    paid_via_stripe: !!s.paidViaStripe
+    paid_via_stripe: !!s.paidViaStripe, care_params: s.careParams||{}, public_token: s.publicToken||null
   };
 }
 function rowToSnake(r){
@@ -5561,7 +5712,7 @@ function rowToSnake(r){
     askingPrice: r.asking_price, listedDate: r.listed_date, listingUrl: r.listing_url,
     buyer: r.buyer, soldDate: r.sold_date, soldPrice: r.sold_price, createdAt: r.created_at ? Date.parse(r.created_at) : Date.now(),
     quarantine: r.quarantine || {active:false,startDate:null,durationDays:60}, customTags: r.custom_tags || [], species: r.species || 'ball_python',
-    paidViaStripe: !!r.paid_via_stripe, updatedAt: r.updated_at ? Date.parse(r.updated_at) : 0
+    paidViaStripe: !!r.paid_via_stripe, careParams: r.care_params || {}, publicToken: r.public_token || null, updatedAt: r.updated_at ? Date.parse(r.updated_at) : 0
   };
 }
 
@@ -5976,6 +6127,37 @@ function buildAncestorTree(snakeId, depth, maxDepth){
   return { snake:s, sire:buildAncestorTree(s.sireId, depth+1, maxDepth), dam:buildAncestorTree(s.damId, depth+1, maxDepth) };
 }
 
+// Coefficient de parenté (kinship) entre deux individus — méthode récursive standard, mathématiquement
+// équivalente à la méthode tabulaire de Wright, gère nativement les chemins multiples et toute la
+// profondeur de pedigree enregistrée (pas juste les 3 générations affichées dans l'arbre visuel).
+// Mémoïsé par paire ; base = 0 pour tout individu aux parents inconnus (fondateur supposé non apparenté).
+// Garde-fou de profondeur : protège d'un pedigree mal saisi qui créerait une boucle (A ancêtre de A).
+function kinshipCoefficient(idA, idB, memo, depth){
+  depth = depth || 0;
+  if(!idA || !idB || depth>40) return 0;
+  const key = idA<idB ? idA+'|'+idB : idB+'|'+idA;
+  if(memo.has(key)) return memo.get(key);
+  memo.set(key, 0); // valeur provisoire anti-boucle pendant le calcul
+  const a = savedSnakes.find(x=>x.id===idA);
+  const b = savedSnakes.find(x=>x.id===idB);
+  let result;
+  if(idA===idB){
+    // f(X,X) = 0.5 × (1 + F_X), où F_X = f(père_X, mère_X)
+    result = a ? 0.5*(1+kinshipCoefficient(a.sireId, a.damId, memo, depth+1)) : 0;
+  } else if(!b){
+    result = a ? 0.5*(kinshipCoefficient(a.sireId, idB, memo, depth+1) + kinshipCoefficient(a.damId, idB, memo, depth+1)) : 0;
+  } else {
+    result = 0.5*(kinshipCoefficient(idA, b.sireId, memo, depth+1) + kinshipCoefficient(idA, b.damId, memo, depth+1));
+  }
+  memo.set(key, result);
+  return result;
+}
+// Coefficient de consanguinité d'un individu à naître = coefficient de parenté entre ses deux parents.
+function inbreedingCoefficient(sireId, damId){
+  if(!sireId || !damId) return 0;
+  return kinshipCoefficient(sireId, damId, new Map());
+}
+
 // Compte les occurrences de chaque ancêtre dans l'arbre — un même individu apparaissant
 // plus d'une fois est un signal de consanguinité, peu importe par quelle branche.
 function countAncestorOccurrences(node, counts){
@@ -6005,9 +6187,20 @@ function renderPedigreeTree(snakeId){
   const ggSire1 = tree.sire ? tree.sire.sire : null, ggSire2 = tree.sire ? tree.sire.dam : null;
   const ggDam1 = tree.dam ? tree.dam.sire : null, ggDam2 = tree.dam ? tree.dam.dam : null;
 
-  const inbreedingWarning = repeatedIds.size
-    ? '<div class="warn" style="margin-top:10px;">⚠ '+(isEn?'Common ancestor detected in the 3 generations shown — check inbreeding risk before pairing with this line.':'Ancêtre commun détecté dans les 3 générations affichées — vérifie le risque de consanguinité avant tout accouplement avec cette lignée.')+'</div>'
-    : '';
+  // Coefficient chiffré (calculé sur tout le pedigree connu, pas juste les 3 générations affichées)
+  // plutôt que la simple détection binaire "ancêtre répété" — mais on garde le surlignage visuel
+  // des ancêtres répétés dans l'arbre, utile pour repérer PAR QUELLE branche vient la parenté.
+  const F = inbreedingCoefficient(tree.snake.sireId, tree.snake.damId);
+  const Fpct = Math.round(F*10000)/100;
+  let tone, toneLabel;
+  if(F===0){ tone='ok'; toneLabel = isEn?'No inbreeding detected in the recorded pedigree.':'Aucune consanguinité détectée dans le pedigree enregistré.'; }
+  else if(F<0.0625){ tone='amber'; toneLabel = isEn?'Slight — below the equivalent of first cousins (6.25%).':'Légère — sous l\'équivalent cousins germains (6,25 %).'; }
+  else if(F<0.25){ tone='amber'; toneLabel = isEn?'Moderate — check this pairing\'s risk before proceeding.':'Modérée — vérifie le risque de cet accouplement avant de procéder.'; }
+  else { tone='red'; toneLabel = isEn?'High — equivalent to full siblings or parent/offspring.':'Élevée — équivalent frère/sœur ou parent/enfant.'; }
+  const inbreedingWarning = '<div class="warn" style="margin-top:10px;border-color:'+(tone==='red'?'var(--rust)':tone==='amber'?'var(--gold)':'var(--sage)')+';">'+
+    (F===0?'✅ ':'⚠ ')+'<b>'+(isEn?'Inbreeding coefficient: ':'Coefficient de consanguinité : ')+Fpct+'%</b><br/>'+toneLabel+
+    (repeatedIds.size ? '<br/><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Repeated ancestor(s) highlighted below show which branch it comes from.':'Le(s) ancêtre(s) répété(s) surligné(s) ci-dessous montre(nt) de quelle branche ça vient.')+'</span>' : '')+
+  '</div>';
 
   return '<div class="pedigree-tree">'+
     '<div class="ped-col">'+pedigreeNodeHtml(ggSire1,repeatedIds)+pedigreeNodeHtml(ggSire2,repeatedIds)+pedigreeNodeHtml(ggDam1,repeatedIds)+pedigreeNodeHtml(ggDam2,repeatedIds)+'</div>'+
@@ -6044,6 +6237,8 @@ function ensureSnakeMeta(s){
   if(s.quarantine===undefined) s.quarantine = { active:false, startDate:null, durationDays:60 }; // suivi de quarantaine — durée par défaut 60j (fourchette vétérinaire usuelle : 30-90j, jusqu'à 180j si origine inconnue)
   if(s.customTags===undefined) s.customTags = []; // étiquettes libres définies par l'éleveur (ex: "reproducteur prouvé", "retraité", "pas à vendre")
   if(s.species===undefined) s.species = 'ball_python'; // tous les reptiles créés avant cette fonctionnalité étaient forcément des python royal
+  if(!s.careParams) s.careParams = { tempWarm:null, tempCool:null, humidity:null, cycleNotes:'' }; // paramètres d'élevage par espèce — surtout utile hors python royal, qui n'a pas de fiche husbandry intégrée
+  if(s.publicToken===undefined) s.publicToken = null; // jeton aléatoire pour le lien public en lecture seule — null = partage désactivé
 }
 // Calcule l'état de quarantaine d'un reptile : jours écoulés, jours restants, et si la période
 // recommandée est atteinte. Ne force jamais la sortie de quarantaine — l'éleveur décide.
@@ -6125,6 +6320,27 @@ function getRack(rackId){ return racks.find(r=>r.id===rackId); }
 function weightDropping(s){
   const w = s.health.weights;
   return w.length>=2 && w[w.length-1].value < w[w.length-2].value;
+}
+
+// Prédit la prochaine mue à partir de l'intervalle moyen entre les mues déjà enregistrées —
+// nécessite au moins 2 mues au journal pour établir une moyenne, sinon aucune prédiction (null).
+function nextShedEstimate(s){
+  const sheds = (s.health.events||[]).filter(e=>e.type==='shed').sort((a,b)=>a.date.localeCompare(b.date));
+  if(sheds.length<2) return null;
+  let totalDays = 0;
+  for(let i=1;i<sheds.length;i++){
+    totalDays += (new Date(sheds[i].date+'T00:00:00').getTime() - new Date(sheds[i-1].date+'T00:00:00').getTime()) / 86400000;
+  }
+  const avgInterval = Math.round(totalDays / (sheds.length-1));
+  return addDays(sheds[sheds.length-1].date, avgInterval);
+}
+
+// Nombre de jours depuis la dernière pesée — null si jamais pesé.
+const WEIGH_REMINDER_DAYS = 30;
+function daysSinceLastWeigh(s){
+  if(!s.health.weights.length) return null;
+  const last = [...s.health.weights].sort((a,b)=>b.date.localeCompare(a.date))[0];
+  return Math.floor((Date.now() - new Date(last.date+'T00:00:00').getTime()) / 86400000);
 }
 
 // Statut couleur du Mode Tournée, basé sur le dernier événement fed/refused du journal.
@@ -6317,6 +6533,21 @@ function setFeedingInterval(id, value){
   s.feedingIntervalDays = (!isNaN(n) && n>0) ? n : null;
   storage.save(savedSnakes);
   showToast('Intervalle de nourrissage mis à jour pour '+s.name+'.', 'success');
+}
+
+// Paramètres d'élevage par espèce (température/humidité/cycle) — surtout utile hors python royal,
+// qui n'a pas de fiche husbandry générale intégrée à LOCUS comme le python royal (voir Communauté > FAQ).
+function setCareParam(id, field, value){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  if(field==='cycleNotes'){
+    s.careParams.cycleNotes = value;
+  } else {
+    const n = parseFloat(value);
+    s.careParams[field] = (value==='' || isNaN(n)) ? null : n;
+  }
+  storage.save(savedSnakes);
 }
 
 function showSubtab(sub){
@@ -6708,14 +6939,6 @@ function renderPairingForm(){
 
 const MIN_BREEDING_WEIGHT = { male:500, female:1300 }; // grammes — seuils standards, à ajuster ici si besoin
 function lastWeight(s){ return s.health.weights.length ? s.health.weights[s.health.weights.length-1].value : null; }
-function shareParent(aId, bId){
-  const a = savedSnakes.find(s=>s.id===aId), b = savedSnakes.find(s=>s.id===bId);
-  if(!a || !b) return false;
-  if(a.sireId===b.id || a.damId===b.id || b.sireId===a.id || b.damId===a.id) return true; // parent/enfant
-  if(a.sireId && (a.sireId===b.sireId || a.sireId===b.damId)) return true; // demi/plein-frère
-  if(a.damId && (a.damId===b.sireId || a.damId===b.damId)) return true;
-  return false;
-}
 
 function addPairing(){
   const isEn = currentLang==='en';
@@ -6730,7 +6953,11 @@ function addPairing(){
   const mw = lastWeight(male), fw = lastWeight(female);
   if(mw===null || mw<MIN_BREEDING_WEIGHT.male) warnings.push((isEn?'Male ':'Mâle ')+male.name+(isEn?': weight ':' : poids ')+(mw===null?(isEn?'not recorded':'non enregistré'):mw+'g')+(isEn?' — recommended threshold ≥ ':' — seuil recommandé ≥ ')+MIN_BREEDING_WEIGHT.male+'g.');
   if(fw===null || fw<MIN_BREEDING_WEIGHT.female) warnings.push((isEn?'Female ':'Femelle ')+female.name+(isEn?': weight ':' : poids ')+(fw===null?(isEn?'not recorded':'non enregistré'):fw+'g')+(isEn?' — recommended threshold ≥ ':' — seuil recommandé ≥ ')+MIN_BREEDING_WEIGHT.female+'g.');
-  if(shareParent(maleId, femaleId)) warnings.push(isEn?'These two reptiles share a direct pedigree link (recorded) — inbreeding risk.':'Ces deux reptiles partagent un lien de parenté direct (pedigree enregistré) — risque de consanguinité.');
+  const pairF = inbreedingCoefficient(maleId, femaleId);
+  if(pairF>0){
+    const pairFpct = Math.round(pairF*10000)/100;
+    warnings.push((isEn?'Inbreeding coefficient for this pairing: ':'Coefficient de consanguinité pour cet accouplement : ')+pairFpct+'%'+(isEn?' (based on recorded pedigree).':' (basé sur le pedigree enregistré).'));
+  }
   if(warnings.length && !confirm((isEn?'⚠ Points to check before this pairing:\n\n':'⚠ Points à vérifier avant cet accouplement :\n\n')+warnings.join('\n')+(isEn?'\n\nPair anyway?':'\n\nAccoupler quand même ?'))) return;
   pairings.push({ id:'pr_'+Date.now(), maleId, femaleId, pairedDate:date, coolingDate, ovulationConfirmed:false, ovulationDate:null, follicleSizes:[] });
   saveElevage();
@@ -7219,6 +7446,67 @@ function renderClutchForm(){
   sireSel.innerHTML = males.length ? males.map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+'</option>').join('') : '<option value="">'+(isEn?'No male registered':'Aucun mâle enregistré')+'</option>';
   damSel.innerHTML = females.length ? females.map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+'</option>').join('') : '<option value="">'+(isEn?'No female registered':'Aucune femelle enregistrée')+'</option>';
   if(!document.getElementById('clutch-laydate').value) document.getElementById('clutch-laydate').valueAsDate = new Date();
+}
+
+// Fertilité/reproductibilité d'une femelle : les accouplements enregistrés (calendrier) sont le
+// dénominateur des tentatives, les pontes réellement enregistrées (matchées par damId, puisque
+// les pontes ne sont pas reliées à un accouplement précis — voir addClutch) le numérateur.
+function computeFemaleFertility(femaleId){
+  const myPairings = pairings.filter(p=>p.femaleId===femaleId);
+  const myClutches = clutches.filter(c=>c.damId===femaleId);
+  if(!myPairings.length && !myClutches.length) return null;
+  const successRate = myPairings.length ? Math.round((myClutches.length/myPairings.length)*100) : null;
+  const avgEggCount = myClutches.length ? Math.round(myClutches.reduce((a,c)=>a+c.eggCount,0)/myClutches.length*10)/10 : null;
+  const bySeason = {};
+  myClutches.forEach(c=>{
+    const year = (c.layDate||'').slice(0,4) || '?';
+    if(!bySeason[year]) bySeason[year] = { count:0, eggs:0 };
+    bySeason[year].count++;
+    bySeason[year].eggs += c.eggCount;
+  });
+  return { totalPairings: myPairings.length, totalClutches: myClutches.length, successRate, avgEggCount, bySeason };
+}
+
+// ROI par accouplement : revenu réel (bébés déjà vendus) + revenu potentiel (prix demandé sur
+// les bébés pas encore vendus) moins un coût saisi manuellement par l'éleveur (voir setPairingCost) —
+// LOCUS ne fournit jamais de prix automatique, cohérent avec le reste de l'app (Fiscal, Valeur).
+function computePairingROI(p){
+  const offspring = savedSnakes.filter(s=>s.sireId===p.maleId && s.damId===p.femaleId);
+  const realizedRevenue = offspring.filter(s=>s.status==='sold').reduce((a,s)=>a+(s.soldPrice||0),0);
+  const potentialRevenue = offspring.filter(s=>s.status!=='sold').reduce((a,s)=>a+(s.askingPrice||0),0);
+  const cost = p.estimatedCost || 0;
+  return { offspringCount: offspring.length, realizedRevenue, potentialRevenue, totalRevenue: realizedRevenue+potentialRevenue, cost, roi: realizedRevenue+potentialRevenue-cost };
+}
+function setPairingCost(pairingId, value){
+  const p = pairings.find(x=>x.id===pairingId);
+  if(!p) return;
+  const n = parseFloat(value);
+  p.estimatedCost = (value==='' || isNaN(n)) ? null : n;
+  saveElevage();
+  renderPairingROI();
+}
+function renderPairingROI(){
+  const isEn = currentLang==='en';
+  const wrap = document.getElementById('pairing-roi-list');
+  if(!wrap) return;
+  // Seuls les accouplements ayant déjà produit des bébés enregistrés sont pertinents ici.
+  const relevant = pairings.filter(p=>savedSnakes.some(s=>s.sireId===p.maleId && s.damId===p.femaleId));
+  wrap.innerHTML = relevant.length ? '' : '<div class="empty">'+(isEn?'No pairing with recorded offspring yet.':'Aucun accouplement avec des bébés enregistrés pour l\'instant.')+'</div>';
+  relevant.forEach(p=>{
+    const male = savedSnakes.find(s=>s.id===p.maleId);
+    const female = savedSnakes.find(s=>s.id===p.femaleId);
+    const names = (male?escapeHtml(male.name):'?')+' × '+(female?escapeHtml(female.name):'?');
+    const r = computePairingROI(p);
+    const row = document.createElement('div');
+    row.className = 'sale-row';
+    row.innerHTML =
+      '<div class="sale-name">'+names+'<small>'+r.offspringCount+(isEn?' offspring — revenue ':' bébé(s) — revenu ')+r.totalRevenue+' $ ('+r.realizedRevenue+(isEn?' realized + ':' réalisé + ')+r.potentialRevenue+(isEn?' potential)':' potentiel)')+'</small></div>'+
+      '<div class="sale-price" style="display:flex;align-items:center;gap:6px;">'+
+        '<input type="number" class="price-input" style="width:80px;" value="'+(p.estimatedCost||'')+'" placeholder="'+(isEn?'Cost $':'Coût $')+'" onchange="setPairingCost(\''+p.id+'\', this.value)"/>'+
+        '<span style="color:'+(r.roi>=0?'var(--sage)':'var(--rust)')+';font-weight:700;">'+(r.roi>=0?'+':'')+r.roi+' $</span>'+
+      '</div>';
+    wrap.appendChild(row);
+  });
 }
 
 function addClutch(){
@@ -8106,6 +8394,10 @@ function renderWelcomeHero(){
     '</div>';
 }
 
+function setDashSpeciesFilter(v){
+  dashSpeciesFilter = v;
+  renderDashboard();
+}
 function renderDashboard(){
   const isEn = currentLang==='en';
   savedSnakes.forEach(ensureSnakeMeta);
@@ -8118,27 +8410,45 @@ function renderDashboard(){
   const dateLabel = new Date().toLocaleDateString(isEn?'en-CA':'fr-CA', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
   document.getElementById('dash-greeting').innerHTML = '<h2>'+greeting+' 👋</h2><span>'+dateLabel+'</span>';
 
-  // Repas en retard/dus (réutilise feedingStatus déjà utilisé en Mode Tournée)
-  const feedingDue = savedSnakes.filter(s=>{ const st = feedingStatus(s); return st==='red' || st==='orange'; });
-  const feedingOverdue = savedSnakes.filter(s=>feedingStatus(s)==='red');
+  // Filtre par espèce — affiché seulement si l'élevage en compte vraiment plusieurs, pour ne pas
+  // encombrer le dashboard de la grande majorité des éleveurs qui n'ont que des pythons royaux.
+  const distinctSpecies = [...new Set(savedSnakes.map(s=>s.species||'ball_python'))];
+  const filterWrap = document.getElementById('dash-species-filter-wrap');
+  if(distinctSpecies.length>1){
+    if(!distinctSpecies.includes(dashSpeciesFilter)) dashSpeciesFilter = 'all';
+    filterWrap.style.display = 'block';
+    filterWrap.innerHTML = '<select onchange="setDashSpeciesFilter(this.value)" style="background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:\'Courier New\',monospace;font-size:12px;padding:8px 10px;">'+
+      '<option value="all"'+(dashSpeciesFilter==='all'?' selected':'')+'>🦎 '+(isEn?'All species':'Toutes les espèces')+'</option>'+
+      distinctSpecies.map(sp=>'<option value="'+escapeHtml(sp)+'"'+(dashSpeciesFilter===sp?' selected':'')+'>'+escapeHtml(speciesDisplayLabel(sp))+'</option>').join('')+
+      '</select>';
+  } else {
+    dashSpeciesFilter = 'all';
+    filterWrap.style.display = 'none';
+    filterWrap.innerHTML = '';
+  }
+  const dashSnakes = dashSpeciesFilter==='all' ? savedSnakes : savedSnakes.filter(s=>(s.species||'ball_python')===dashSpeciesFilter);
 
-  // Prochaine éclosion
+  // Repas en retard/dus (réutilise feedingStatus déjà utilisé en Mode Tournée)
+  const feedingDue = dashSnakes.filter(s=>{ const st = feedingStatus(s); return st==='red' || st==='orange'; });
+  const feedingOverdue = dashSnakes.filter(s=>feedingStatus(s)==='red');
+
+  // Prochaine éclosion — non filtrée par espèce : l'incubation/les pontes sont spécifiques au python royal
   const upcoming = clutches.filter(c=>!c.hatched).sort((a,b)=>a.hatchDate.localeCompare(b.hatchDate))[0];
   const hatchDays = upcoming ? Math.floor((new Date(upcoming.hatchDate+'T00:00:00').getTime() - Date.now()) / 86400000) : null;
 
   // Annonces "à vendre" qui traînent (+14 jours sans changement de statut)
   const staleThresholdDays = 14;
-  const staleListings = savedSnakes.filter(s=>{
+  const staleListings = dashSnakes.filter(s=>{
     if(s.status!=='forsale' || !s.listedDate) return false;
     const days = Math.floor((Date.now() - new Date(s.listedDate+'T00:00:00').getTime()) / 86400000);
     return days >= staleThresholdDays;
   });
 
   // Alertes santé (même logique que renderHealthAlerts en Mode Tournée)
-  const healthFlagged = savedSnakes.filter(s => s.health.consecutiveRefusals>=3 || weightDropping(s));
+  const healthFlagged = dashSnakes.filter(s => s.health.consecutiveRefusals>=3 || weightDropping(s));
 
   // Reptiles actuellement en quarantaine (période non complétée)
-  const inQuarantine = savedSnakes.filter(s=>{ const qs = quarantineStatus(s); return qs && !qs.complete; });
+  const inQuarantine = dashSnakes.filter(s=>{ const qs = quarantineStatus(s); return qs && !qs.complete; });
 
   const cards = [
     { icon:'🍽', count:feedingOverdue.length, label:isEn?'meal(s) overdue':'repas en retard', tone: feedingOverdue.length?'red':'ok', action:"showTab('elevage'); showSubtab('tour');" },
@@ -8155,12 +8465,39 @@ function renderDashboard(){
     '</div>'
   ).join('');
 
+  // Widget "Aujourd'hui" — mue prévue bientôt (7j, basé sur l'historique de mues) et pesée en
+  // retard (30j+ ou jamais pesé), en plus des pontes proches de l'éclosion (14j).
+  const todayStr0 = new Date().toISOString().slice(0,10);
+  const shedSoon = dashSnakes.map(s=>({snake:s, date:nextShedEstimate(s)})).filter(x=>x.date && x.date<=addDays(todayStr0,7)).sort((a,b)=>a.date.localeCompare(b.date));
+  const weighDue = dashSnakes.filter(s=>{ const d = daysSinceLastWeigh(s); return d===null || d>=WEIGH_REMINDER_DAYS; });
+  const clutchesToCheck = clutches.filter(c=>{
+    if(c.hatched || !c.hatchDate) return false;
+    const days = Math.floor((new Date(c.hatchDate+'T00:00:00').getTime() - Date.now()) / 86400000);
+    return days<=14;
+  });
+  const todayWrap = document.getElementById('dash-today-widget');
+  if(!shedSoon.length && !weighDue.length && !clutchesToCheck.length){
+    todayWrap.innerHTML = '<div class="empty">🎉 '+(isEn?'Nothing needs special attention right now.':'Rien de particulier à surveiller pour l\'instant.')+'</div>';
+  } else {
+    todayWrap.innerHTML =
+      (shedSoon.length ? '<div class="feed-day-group"><div class="feed-day-label">🐍 '+(isEn?'Shed expected soon':'Mue prévue bientôt')+' — '+shedSoon.length+'</div><div class="sale-list">'+
+        shedSoon.map(x=>'<div class="sale-row"><div class="sale-name">'+escapeHtml(x.snake.name)+'<small>~'+x.date+'</small></div><button class="sc-btn accent" onclick="openLogbook(\''+x.snake.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button></div>').join('')+
+      '</div></div>' : '')+
+      (weighDue.length ? '<div class="feed-day-group"><div class="feed-day-label">⚖ '+(isEn?'Weigh-in due':'Pesée à faire')+' — '+weighDue.length+'</div><div class="sale-list">'+
+        weighDue.slice(0,10).map(s=>{ const d = daysSinceLastWeigh(s); return '<div class="sale-row"><div class="sale-name">'+escapeHtml(s.name)+'<small>'+(d===null?(isEn?'never weighed':'jamais pesé'):(isEn?d+'d ago':'il y a '+d+'j'))+'</small></div><button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button></div>'; }).join('')+
+        (weighDue.length>10 ? '<div style="font-size:10.5px;color:var(--ink-dim);padding:6px 4px;">'+(isEn?'+'+(weighDue.length-10)+' more':'+'+(weighDue.length-10)+' de plus')+'</div>' : '')+
+      '</div></div>' : '')+
+      (clutchesToCheck.length ? '<div class="feed-day-group"><div class="feed-day-label">🥚 '+(isEn?'Clutches to watch closely':'Pontes à surveiller de près')+' — '+clutchesToCheck.length+'</div><div class="sale-list">'+
+        clutchesToCheck.map(c=>{ const d = Math.floor((new Date(c.hatchDate+'T00:00:00').getTime() - Date.now()) / 86400000); return '<div class="sale-row"><div class="sale-name">'+escapeHtml(c.ref)+'<small>'+(d>=0?(isEn?'hatch in '+d+'d':'éclosion dans '+d+'j'):(isEn?Math.abs(d)+'d overdue':'+'+Math.abs(d)+'j de retard'))+'</small></div><button class="sc-btn accent" onclick="showTab(\'incubation\')">🥚 '+(isEn?'View':'Voir')+'</button></div>'; }).join('')+
+      '</div></div>' : '');
+  }
+
   // Calendrier de nourrissage : projette la prochaine date de repas de CHAQUE reptile
   // (intervalle personnalisé ou générique) et groupe par jour sur les 7 prochains jours.
   const feedWrap = document.getElementById('dash-feeding-list');
   const todayStr = new Date().toISOString().slice(0,10);
   const horizon = addDays(todayStr, 7);
-  const dueList = savedSnakes.map(s=>({ snake:s, due:nextFeedingDate(s) })).filter(x=>x.due<=horizon).sort((a,b)=>a.due.localeCompare(b.due));
+  const dueList = dashSnakes.map(s=>({ snake:s, due:nextFeedingDate(s) })).filter(x=>x.due<=horizon).sort((a,b)=>a.due.localeCompare(b.due));
   if(dueList.length===0){
     feedWrap.innerHTML = '<div class="empty">🎉 '+(isEn?'Nothing scheduled for the next 7 days.':'Rien de prévu dans les 7 prochains jours.')+'</div>';
   } else {
@@ -8213,6 +8550,7 @@ function runGlobalSearch(term){
     if(s.name.toLowerCase().includes(t)) return true;
     if(s.provenance && s.provenance.toLowerCase().includes(t)) return true;
     if(s.buyer && s.buyer.toLowerCase().includes(t)) return true;
+    if(s.species && s.species!=='ball_python' && speciesDisplayLabel(s.species).toLowerCase().includes(t)) return true;
     return Object.keys(s.genes).some(gid=>{
       if(isFreewayKey(gid)) return freewayLabel(freewayLocusFromKey(gid)).toLowerCase().includes(t);
       const g = GENES.find(x=>x.id===gid);
@@ -8229,7 +8567,8 @@ function runGlobalSearch(term){
   if(snakeMatches.length){
     html += '<div class="gsr-group">'+(isEn?'Reptiles':'Reptiles')+'</div>';
     snakeMatches.forEach(s=>{
-      html += '<div class="gsr-item" onclick="closeGlobalSearch(); openLogbook(\''+s.id+'\');"><span class="gsr-icon">🐍</span><div><b>'+escapeHtml(s.name)+'</b><small>'+summarizeGenes(s.genes)+'</small></div></div>';
+      const speciesTag = (s.species && s.species!=='ball_python') ? ' — 🦎 '+escapeHtml(speciesDisplayLabel(s.species)) : '';
+      html += '<div class="gsr-item" onclick="closeGlobalSearch(); openLogbook(\''+s.id+'\');"><span class="gsr-icon">🐍</span><div><b>'+escapeHtml(s.name)+'</b><small>'+summarizeGenes(s.genes)+speciesTag+'</small></div></div>';
     });
   }
   if(clientMatches.length){
@@ -8533,6 +8872,7 @@ function exportBudgetExcel(){
 
 function renderFiscalView(){
   populateExpenseCategorySelect();
+  renderPairingROI();
   const yearSel = document.getElementById('fiscal-year-select');
   const years = fiscalYearsAvailable();
   yearSel.innerHTML = years.map(y=>'<option value="'+y+'"'+(y===fiscalYear?' selected':'')+'>'+y+'</option>').join('');
