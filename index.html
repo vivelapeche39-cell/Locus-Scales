@@ -1667,7 +1667,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.18.2';
+const APP_VERSION = '2026.08.18.3';
 (function checkForNewVersion(){
   try{
     if(sessionStorage.getItem('locus_version_reloaded')){ sessionStorage.removeItem('locus_version_reloaded'); return; }
@@ -2212,37 +2212,95 @@ document.addEventListener('keydown', (e)=>{
 });
 
 /* ---- Profil ---- */
-const SIMPLIFIED_MODE_KEY = 'locus_simplified_mode_v1';
-let simplifiedMode = false;
-try{ simplifiedMode = localStorage.getItem(SIMPLIFIED_MODE_KEY)==='true'; }catch(e){}
-function applySimplifiedModeUI(){
+// Mode personnalisé (ex-« mode simplifié ») — plutôt qu'un seul interrupteur qui cachait
+// Élevage/Incubation en bloc, l'éleveur choisit individuellement chaque section qu'il veut voir.
+// Sert aussi de base à la réflexion tarifaire "construis ton propre bundle" (voir mémoire du
+// projet) : peu importe le palier payé, la personnalisation d'affichage reste indépendante —
+// même avec accès à tout, on peut choisir de ne pas tout voir.
+const PERSONALIZATION_KEY = 'locus_personalization_v1';
+const PERSONALIZATION_FEATURES = [
+  { key:'racks', sub:'racks', fr:'Racks & Terrariums', en:'Racks & Enclosures' },
+  { key:'tour', sub:'tour', fr:'Mode Tournée', en:'Tour Mode' },
+  { key:'calendar', sub:'calendar', fr:'Calendrier de reproduction', en:'Breeding calendar' },
+  { key:'nourriture', sub:'nourriture', fr:'Nourriture', en:'Feeding' },
+  { key:'incubation', fr:'Incubation', en:'Incubation' },
+  { key:'listings', vsub:'listings', fr:'Annonces & MorphMarket', en:'Listings & MorphMarket' },
+  { key:'clients', vsub:'clients', fr:'Clients', en:'Clients' },
+  { key:'waitlist', vsub:'waitlist', fr:'Liste d\'attente', en:'Waitlist' },
+  { key:'fiscal', legal:'fiscal', fr:'Fiscal', en:'Taxes' },
+  { key:'valeur', legal:'valeur', fr:'Valeur & assurance', en:'Value & insurance' },
+];
+function loadPersonalization(){
+  try{
+    const raw = localStorage.getItem(PERSONALIZATION_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  // Migration depuis l'ancien mode simplifié (un seul interrupteur) — préserve le choix déjà
+  // fait par un éleveur qui l'avait activé, plutôt que de silencieusement tout remontrer.
+  let legacySimplified = false;
+  try{ legacySimplified = localStorage.getItem('locus_simplified_mode_v1')==='true'; }catch(e){}
+  const prefs = {};
+  PERSONALIZATION_FEATURES.forEach(f=>{ prefs[f.key] = !legacySimplified; });
+  return prefs;
+}
+let personalizationPrefs = loadPersonalization();
+function savePersonalization(){
+  try{ localStorage.setItem(PERSONALIZATION_KEY, JSON.stringify(personalizationPrefs)); }catch(e){}
+}
+function applyPersonalizationUI(){
+  PERSONALIZATION_FEATURES.forEach(f=>{
+    if(f.sub){ const btn = document.querySelector('.subtab-btn[data-sub="'+f.sub+'"]'); if(btn) btn.style.display = personalizationPrefs[f.key] ? '' : 'none'; }
+    if(f.vsub){ const btn = document.querySelector('.subtab-btn[data-vsub="'+f.vsub+'"]'); if(btn) btn.style.display = personalizationPrefs[f.key] ? '' : 'none'; }
+    if(f.legal){ const btn = document.querySelector('.legal-tab-btn[data-legal="'+f.legal+'"]'); if(btn) btn.style.display = personalizationPrefs[f.key] ? '' : 'none'; }
+  });
+  // Les onglets principaux Élevage/Ventes ne se cachent que si TOUTES leurs sous-sections le sont.
+  const elevageOn = ['racks','tour','calendar','nourriture'].some(k=>personalizationPrefs[k]);
+  const ventesOn = ['listings','clients','waitlist'].some(k=>personalizationPrefs[k]);
   const elevageBtn = document.querySelector('.tab-btn[data-tab="elevage"]');
+  const ventesBtn = document.querySelector('.tab-btn[data-tab="ventes"]');
   const incubationBtn = document.querySelector('.tab-btn[data-tab="incubation"]');
-  if(elevageBtn) elevageBtn.style.display = simplifiedMode ? 'none' : '';
-  if(incubationBtn) incubationBtn.style.display = simplifiedMode ? 'none' : '';
-  if(simplifiedMode){
-    const active = document.querySelector('.tab-btn.active');
-    if(active && (active.dataset.tab==='elevage' || active.dataset.tab==='incubation')) showTab('dash');
+  if(elevageBtn) elevageBtn.style.display = elevageOn ? '' : 'none';
+  if(ventesBtn) ventesBtn.style.display = ventesOn ? '' : 'none';
+  if(incubationBtn) incubationBtn.style.display = personalizationPrefs.incubation ? '' : 'none';
+  // Si l'onglet/sous-onglet actif vient d'être caché, retombe sur le dashboard plutôt que de
+  // laisser l'éleveur sur un écran devenu inaccessible depuis la barre de navigation.
+  const activeTab = document.querySelector('.tab-btn.active');
+  if(activeTab){
+    const t = activeTab.dataset.tab;
+    if((t==='elevage' && !elevageOn) || (t==='ventes' && !ventesOn) || (t==='incubation' && !personalizationPrefs.incubation)) showTab('dash');
+  }
+  const activeSub = document.querySelector('#view-elevage .subtab-btn.active');
+  if(activeSub && activeSub.dataset.sub && personalizationPrefs[activeSub.dataset.sub]===false && elevageOn){
+    const firstVisible = PERSONALIZATION_FEATURES.find(f=>f.sub && personalizationPrefs[f.key]);
+    if(firstVisible) showSubtab(firstVisible.sub);
+  }
+  const activeVsub = document.querySelector('#view-ventes .subtab-btn.active');
+  if(activeVsub && activeVsub.dataset.vsub && personalizationPrefs[activeVsub.dataset.vsub]===false && ventesOn){
+    const firstVisible = PERSONALIZATION_FEATURES.find(f=>f.vsub && personalizationPrefs[f.key]);
+    if(firstVisible) showVentesSubtab(firstVisible.vsub);
+  }
+  const activeLegal = document.querySelector('.legal-tab-btn.active');
+  if(activeLegal){
+    const l = activeLegal.dataset.legal;
+    if((l==='fiscal' && !personalizationPrefs.fiscal) || (l==='valeur' && !personalizationPrefs.valeur)) showTab('dash');
   }
 }
-function toggleSimplifiedMode(){
-  simplifiedMode = !simplifiedMode;
-  try{ localStorage.setItem(SIMPLIFIED_MODE_KEY, simplifiedMode?'true':'false'); }catch(e){}
-  applySimplifiedModeUI();
-  const btn = document.getElementById('simplified-mode-toggle-btn');
-  if(btn) btn.textContent = simplifiedModeToggleLabel();
-  const hint = document.getElementById('simplified-mode-hint');
-  if(hint) hint.textContent = simplifiedModeHint();
+function togglePersonalizationFeature(key){
+  personalizationPrefs[key] = !personalizationPrefs[key];
+  savePersonalization();
+  applyPersonalizationUI();
+  renderPersonalizationSettings();
 }
-function simplifiedModeToggleLabel(){
+function renderPersonalizationSettings(){
   const isEn = currentLang==='en';
-  if(simplifiedMode) return isEn ? '✓ Simplified mode — ON' : '✓ Mode simplifié — Activé';
-  return isEn ? 'Turn on simplified mode' : 'Activer le mode simplifié';
-}
-function simplifiedModeHint(){
-  const isEn = currentLang==='en';
-  if(simplifiedMode) return isEn ? 'The "Breeding" and "Incubation" tabs are hidden. Turn this off anytime to get them back.' : 'Les onglets « Élevage » et « Incubation » sont cachés. Désactive en tout temps pour les retrouver.';
-  return isEn ? 'Hides the "Breeding" and "Incubation" tabs — useful if you just have a pet and don\'t need those tools yet.' : 'Cache les onglets « Élevage » et « Incubation » — utile si tu as juste un animal de compagnie et que tu n\'as pas encore besoin de ces outils.';
+  const wrap = document.getElementById('personalization-settings');
+  if(!wrap) return;
+  wrap.innerHTML = PERSONALIZATION_FEATURES.map(f=>
+    '<label style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;">'+
+      '<input type="checkbox" '+(personalizationPrefs[f.key]?'checked':'')+' onchange="togglePersonalizationFeature(\''+f.key+'\')" style="width:18px;height:18px;flex-shrink:0;accent-color:var(--gold);"/>'+
+      '<span style="font-size:12px;">'+(isEn?f.en:f.fr)+'</span>'+
+    '</label>'
+  ).join('');
 }
 
 const PROFILE_KEY = 'locus_profile_v1';
@@ -2274,13 +2332,14 @@ function openProfileModal(){
     '<input type="text" id="profile-phone-input" class="draft-name" style="width:100%;margin:0 0 14px;" value="'+(p.phone||'')+'" placeholder="(514) 000-0000"/>'+
     '<button class="save-btn" style="width:100%;" onclick="saveProfileData()">'+(isEn?'Save':'Enregistrer')+'</button>'+
     '<hr style="border:none;border-top:1px dashed var(--line);margin:18px 0;"/>'+
-    '<p style="margin:0 0 10px;"><b style="color:var(--sage);font-size:13px;">🌱 '+(isEn?'Simplified mode':'Mode simplifié')+'</b></p>'+
-    '<p id="simplified-mode-hint" style="font-size:11px;color:var(--ink-dim);margin:0 0 10px;line-height:1.5;">'+simplifiedModeHint()+'</p>'+
-    '<button class="sc-btn" id="simplified-mode-toggle-btn" style="width:100%;margin-bottom:4px;" onclick="toggleSimplifiedMode()">'+simplifiedModeToggleLabel()+'</button>'+
+    '<p style="margin:0 0 6px;"><b style="color:var(--sage);font-size:13px;">🎛️ '+(isEn?'Personalized mode':'Mode personnalisé')+'</b></p>'+
+    '<p style="font-size:11px;color:var(--ink-dim);margin:0 0 10px;line-height:1.5;">'+(isEn?'Show only the sections you actually use — build your own view of the app. Turn anything back on anytime.':'Affiche seulement les sections que tu utilises vraiment — construis ta propre vue de l\'app. Réactive n\'importe quoi en tout temps.')+'</p>'+
+    '<div id="personalization-settings"></div>'+
     '<hr style="border:none;border-top:1px dashed var(--line);margin:18px 0;"/>'+
     '<p style="margin:0 0 10px;"><b style="color:var(--sage);font-size:13px;">💳 '+(isEn?'Payments':'Paiements')+'</b></p>'+
     '<div id="stripe-connect-status">'+(isEn?'Checking status…':'Vérification du statut…')+'</div>'
   );
+  renderPersonalizationSettings();
   refreshStripeConnectStatus();
 }
 
@@ -5792,7 +5851,7 @@ markSynced('customers', customers);
 currentLang = loadAppConfig().lang || 'fr';
 applyTranslations();
 updateHeaderBadge();
-applySimplifiedModeUI();
+applyPersonalizationUI();
 renderDashboard();
 
 /* ==================== SUPABASE : synchronisation cloud (étape 3) ====================
