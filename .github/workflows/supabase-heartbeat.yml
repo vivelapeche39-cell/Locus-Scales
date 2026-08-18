@@ -1,0 +1,25 @@
+name: Supabase heartbeat
+
+# Empêche la pause automatique du projet Supabase (plan Free) après 7 jours sans activité —
+# une requête toutes les 3 jours suffit, largement sous le seuil. Appelle la fonction
+# get_public_snake (déjà déployée pour le lien public en lecture seule) avec un jeton bidon :
+# la fonction s'exécute et touche vraiment la base, même si elle ne trouve rien à retourner.
+# La clé utilisée ici est la clé publique "anon" de Supabase — déjà visible par quiconque dans
+# le code source de index.html, donc aucune exposition supplémentaire à la coder ici en clair.
+on:
+  schedule:
+    - cron: '0 12 */3 * *'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase pour empêcher la pause automatique
+        run: |
+          curl -sS -o /dev/null -w "HTTP %{http_code}\n" -X POST \
+            "https://dkhmqkkmnexqixmkvzjo.supabase.co/rest/v1/rpc/get_public_snake" \
+            -H "apikey: sb_publishable_I2FZIZG6pXqXRfKbHjKPkQ_VLNf9dGk" \
+            -H "Authorization: Bearer sb_publishable_I2FZIZG6pXqXRfKbHjKPkQ_VLNf9dGk" \
+            -H "Content-Type: application/json" \
+            -d '{"p_token": "github-heartbeat"}'
