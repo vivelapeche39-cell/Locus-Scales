@@ -1057,6 +1057,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
       <span id="batch-count-label" style="font-family:'Courier New',monospace;font-size:11px;color:var(--gold);font-weight:600;"></span>
       <button class="sc-btn accent" onclick="batchMarkFed()">🍽 <span data-i18n="batchFeedBtn">Nourrir</span></button>
       <button class="sc-btn" onclick="batchToggleTerrarium()">🏠 <span data-i18n="batchMoveBtn">Rack ↔ Terrarium</span></button>
+      <input type="number" id="batch-price-input" class="price-input" style="width:80px;" placeholder="Prix $" min="0"/>
+      <button class="sc-btn" onclick="batchSetPrice()">💰 <span data-i18n="batchPriceBtn">Prix en masse</span></button>
       <button class="sc-btn" onclick="batchSelectAll()"><span data-i18n="batchSelectAllBtn">Tout sélectionner</span></button>
       <button class="sc-btn danger" onclick="toggleBatchMode()">✕ <span data-i18n="batchCancelBtn">Annuler</span></button>
     </div>
@@ -1136,10 +1138,29 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
           <span style="font-family:'Courier New',monospace;font-size:9.5px;color:var(--ink-dim);" data-i18n="coolingDateLabel">❄️ Début du cooling (optionnel)</span>
           <input type="date" id="pairing-cooling-date"/>
         </label>
+        <label style="display:flex;flex-direction:column;gap:3px;">
+          <span style="font-family:'Courier New',monospace;font-size:9.5px;color:var(--ink-dim);">🧬 <span data-i18n="pairingProjectLabel">Projet (optionnel)</span></span>
+          <select id="pairing-project"></select>
+        </label>
         <button class="save-btn" data-i18n="recordPairingBtn" onclick="addPairing()">Enregistrer l'accouplement</button>
       </div>
       <div id="lastyear-reference"></div>
       <div id="outcomes-view"></div>
+
+      <div class="community-folder" id="folder-projects">
+        <button class="community-folder-header" onclick="toggleCommunityFolder('folder-projects')">
+          <span class="folder-icon">▾</span><span>🧬 <span data-i18n="projectsTitle">Projets multi-générations</span></span>
+        </button>
+        <div class="community-folder-body">
+          <p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 12px;" data-i18n="projectsHint">Regroupe plusieurs accouplements sur plusieurs saisons vers un objectif génétique précis (ex. « Bumblebee project ») — relie une lignée de travail dans le temps, plutôt que chaque accouplement isolé.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+            <input type="text" id="project-name-input" data-i18n-placeholder="projectNamePlaceholder" placeholder="Ex. Bumblebee project" style="flex:1;min-width:140px;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:'Courier New',monospace;"/>
+            <input type="text" id="project-goal-input" data-i18n-placeholder="projectGoalPlaceholder" placeholder="Objectif (optionnel)" style="flex:1;min-width:140px;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:'Courier New',monospace;"/>
+            <button class="save-btn" onclick="addProject()" data-i18n="addBtn">+ Ajouter</button>
+          </div>
+          <div id="projects-list"></div>
+        </div>
+      </div>
       <div class="community-folder" id="folder-custom-events">
         <button class="community-folder-header" onclick="toggleCommunityFolder('folder-custom-events')">
           <span class="folder-icon">▾</span><span>📌 <span data-i18n="customEventsTitle">Rappels personnalisés</span></span>
@@ -1180,6 +1201,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
     <div class="subtabs">
       <button class="subtab-btn active" data-vsub="listings" data-i18n="subListings" onclick="showVentesSubtab('listings')">📢 Annonces</button>
       <button class="subtab-btn" data-vsub="clients" data-i18n="subClients" onclick="showVentesSubtab('clients')">👥 Clients</button>
+      <button class="subtab-btn" data-vsub="waitlist" data-i18n="subWaitlist" onclick="showVentesSubtab('waitlist')">📋 Liste d'attente</button>
     </div>
 
     <div id="vsub-listings">
@@ -1213,6 +1235,11 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
         <input type="text" id="client-search-input" data-i18n-placeholder="searchClientPlaceholder" placeholder="🔍 Rechercher un client…" autocomplete="off"/>
       </div>
       <div id="clients-list" class="sale-list"></div>
+    </div>
+
+    <div id="vsub-waitlist" style="display:none;">
+      <p class="footnote" style="margin-top:0;">Toutes les listes d'attente de tous les accouplements, regroupées en une seule vue pour trier/contacter d'un coup d'œil.</p>
+      <div id="waitlist-consolidated-list" class="sale-list"></div>
     </div>
   </div>
 
@@ -1302,6 +1329,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
     <div id="myths-container"></div>
     <div id="checklist-container"></div>
     <div id="suppliers-container"></div>
+    <div id="glossary-container"></div>
     </div>
 
     <div id="usub-outils" style="display:none;">
@@ -1433,6 +1461,9 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
     Revenu = ventes déjà conclues des bébés de cet accouplement + prix demandé sur ceux encore à vendre. Le coût est une estimation que tu entres toi-même (nourriture, temps, électricité...) — LOCUS ne l'invente pas.
   </div>
   <div id="pairing-roi-list" class="sale-list"></div>
+
+  <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;">📊 Comparaison saison contre saison</h2></div>
+  <div id="season-comparison-list" class="sale-list"></div>
 
   <div class="footnote" style="margin-top:26px;">
     <b>Important :</b> LOCUS compile tes chiffres pour te faire gagner du temps, mais n'est pas un logiciel comptable ni un conseiller fiscal. Vérifie toujours avec ton comptable avant de produire une déclaration — les règles varient selon ta province/ton statut (particulier vs entreprise enregistrée).
@@ -1636,7 +1667,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.18.1';
+const APP_VERSION = '2026.08.18.2';
 (function checkForNewVersion(){
   try{
     if(sessionStorage.getItem('locus_version_reloaded')){ sessionStorage.removeItem('locus_version_reloaded'); return; }
@@ -2774,6 +2805,7 @@ const I18N = {
     batchSelectBtn: 'Sélection multiple',
     batchFeedBtn: 'Nourrir',
     batchMoveBtn: 'Rack ↔ Terrarium',
+    batchPriceBtn: 'Prix en masse',
     batchSelectAllBtn: 'Tout sélectionner',
     batchCancelBtn: 'Annuler',
     postHatchTitle: 'Suivi post-éclosion (estimé)',
@@ -2887,6 +2919,12 @@ const I18N = {
     recordPairingBtn: 'Enregistrer l\'accouplement',
     pairingDateLabel: 'Date d\'accouplement',
     coolingDateLabel: '❄️ Début du cooling (optionnel)',
+    pairingProjectLabel: 'Projet (optionnel)',
+    projectsTitle: 'Projets multi-générations',
+    projectsHint: 'Regroupe plusieurs accouplements sur plusieurs saisons vers un objectif génétique précis (ex. « Bumblebee project ») — relie une lignée de travail dans le temps, plutôt que chaque accouplement isolé.',
+    projectNamePlaceholder: 'Ex. Bumblebee project',
+    projectGoalPlaceholder: 'Objectif (optionnel)',
+    noProjectOption: 'Aucun projet',
     follicleTrackingTitle: 'Suivi folliculaire',
     noFollicleRecorded: 'Aucune mesure folliculaire enregistrée',
     addFollicleBtn: '+ Ajouter une mesure',
@@ -2915,6 +2953,7 @@ const I18N = {
     // Phase 3 — Ventes : Annonces
     subListings: '📢 Annonces',
     subClients: '👥 Clients',
+    subWaitlist: '📋 Liste d\'attente',
     statForSale: 'À vendre (stock)',
     statReserved: 'Réservé',
     statSoldMonth: 'Vendu ce mois-ci',
@@ -3160,6 +3199,7 @@ const I18N = {
     batchSelectBtn: 'Batch select',
     batchFeedBtn: 'Feed',
     batchMoveBtn: 'Rack ↔ Enclosure',
+    batchPriceBtn: 'Bulk price',
     batchSelectAllBtn: 'Select all',
     batchCancelBtn: 'Cancel',
     postHatchTitle: 'Post-hatch tracking (estimated)',
@@ -3273,6 +3313,12 @@ const I18N = {
     recordPairingBtn: 'Record Pairing',
     pairingDateLabel: 'Pairing date',
     coolingDateLabel: '❄️ Cooling start (optional)',
+    pairingProjectLabel: 'Project (optional)',
+    projectsTitle: 'Multi-generation projects',
+    projectsHint: 'Group several pairings across multiple seasons toward a specific genetic goal (e.g. "Bumblebee project") — links a working line over time, instead of each pairing being isolated.',
+    projectNamePlaceholder: 'e.g. Bumblebee project',
+    projectGoalPlaceholder: 'Goal (optional)',
+    noProjectOption: 'No project',
     follicleTrackingTitle: 'Follicle tracking',
     noFollicleRecorded: 'No follicle measurement recorded',
     addFollicleBtn: '+ Add a measurement',
@@ -3301,6 +3347,7 @@ const I18N = {
     // Phase 3 — Sales: Listings
     subListings: '📢 Listings',
     subClients: '👥 Clients',
+    subWaitlist: '📋 Waitlist',
     statForSale: 'For Sale (stock)',
     statReserved: 'Reserved',
     statSoldMonth: 'Sold This Month',
@@ -3369,9 +3416,11 @@ function applyTranslations(){
   try{ renderMyths(); }catch(e){}
   try{ renderChecklist(); }catch(e){}
   try{ renderSuppliers(); }catch(e){}
+  try{ renderGlossary(); }catch(e){}
   try{ renderLastYearReference(); }catch(e){}
   try{ renderCustomEvents(); }catch(e){}
   try{ renderTimeline(); }catch(e){}
+  try{ renderProjects(); }catch(e){}
   try{ renderSavedList(); }catch(e){}
   try{ renderDashboard(); }catch(e){}
   try{ renderRackGrid(); }catch(e){}
@@ -3900,10 +3949,27 @@ function renderFirstSnakeTip(){
     : (isEn
         ? 'LOCUS\'s genetic calculator only covers ball pythons, but tracking (weight, sheds, meals, health) works for any reptile. Check species-specific resources for exact husbandry needs.'
         : 'Le calculateur génétique de LOCUS couvre seulement le python royal, mais le suivi (poids, mues, repas, santé) fonctionne pour n\'importe quel reptile. Renseigne-toi auprès de ressources spécifiques à ton espèce pour les besoins d\'élevage exacts.');
+  // Suivi des premiers pas — calculé directement depuis le journal existant (aucun nouveau
+  // stockage), pour donner une confiance concrète plutôt que juste des conseils texte.
+  const fedDone = (first.health.events||[]).some(e=>e.type==='fed');
+  const weighedDone = (first.health.weights||[]).length>0;
+  const shedDone = (first.health.events||[]).some(e=>e.type==='shed');
+  const steps = [
+    { done:fedDone, fr:'Premier repas noté', en:'First meal logged' },
+    { done:weighedDone, fr:'Première pesée notée', en:'First weigh-in logged' },
+    { done:shedDone, fr:'Première mue notée', en:'First shed logged' },
+  ];
+  const doneCount = steps.filter(s=>s.done).length;
+  const stepsHtml = '<div style="margin-top:10px;padding-top:8px;border-top:1px dashed rgba(255,255,255,.18);">'+
+    '<div style="font-weight:700;font-size:10.5px;margin-bottom:4px;">'+(isEn?'First steps':'Premiers pas')+' ('+doneCount+'/3)</div>'+
+    steps.map(s=>'<div style="font-size:11px;line-height:1.7;">'+(s.done?'✅':'⬜')+' '+(isEn?s.en:s.fr)+'</div>').join('')+
+  '</div>';
   banner.innerHTML =
     '<span class="ob-icon">🌱</span>'+
     '<div class="ob-body"><span class="ob-title">'+title+'</span>'+body+
-      ' <a href="#" onclick="showTab(\'utilitaire\'); return false;" style="color:var(--sage);font-weight:600;">'+(isEn?'More in Community →':'Plus dans Communauté →')+'</a></div>'+
+      ' <a href="#" onclick="showTab(\'utilitaire\'); return false;" style="color:var(--sage);font-weight:600;">'+(isEn?'More in Community →':'Plus dans Communauté →')+'</a>'+
+      stepsHtml+
+    '</div>'+
     '<button class="ob-close" onclick="dismissFirstSnakeTip()">×</button>';
   banner.style.display = 'flex';
 }
@@ -3935,7 +4001,7 @@ function showTab(tab){
   if(tab==='elevage'){ renderLayoutPrefs(); renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderTourLayoutPrefs(); renderPairingForm(); renderTimeline(); renderHealthLog(); }
   if(tab==='ventes'){ renderSalesView(); }
   if(tab==='incubation'){ renderClutchForm(); renderClutches(); }
-  if(tab==='utilitaire'){ try{ renderPreyChart(); }catch(e){ console.error('renderPreyChart error:', e); } try{ renderHusbandryFaq(); }catch(e){ console.error('renderHusbandryFaq error:', e); } try{ renderMyths(); }catch(e){} try{ renderChecklist(); }catch(e){} try{ renderSuppliers(); }catch(e){} try{ renderPreBuyCalculator(); }catch(e){ console.error('renderPreBuyCalculator error:', e); } }
+  if(tab==='utilitaire'){ try{ renderPreyChart(); }catch(e){ console.error('renderPreyChart error:', e); } try{ renderHusbandryFaq(); }catch(e){ console.error('renderHusbandryFaq error:', e); } try{ renderMyths(); }catch(e){} try{ renderChecklist(); }catch(e){} try{ renderSuppliers(); }catch(e){} try{ renderGlossary(); }catch(e){} try{ renderPreBuyCalculator(); }catch(e){ console.error('renderPreBuyCalculator error:', e); } }
   if(tab==='fiscal'){ renderFiscalView(); }
   if(tab==='valeur'){ renderValeurView(); }
   if(tab==='reglement'){ const el = document.getElementById('reg-check-date'); if(el) el.textContent = '4 août 2026'; }
@@ -4044,6 +4110,47 @@ function computeAgeLabel(birthDate){
   return isEn
     ? years+' year'+(years>1?'s':'')+(rem?' '+rem+' month'+(rem>1?'s':''):'')
     : years+' an'+(years>1?'s':'')+(rem?' et '+rem+' mois':'');
+}
+
+// Âge en mois (nombre) — nécessite une précision 'full' ou 'month', trop imprécis en 'year' pour
+// une comparaison de croissance. Utilisé par expectedWeightRange (repère de croissance).
+function ageInMonths(birthDate){
+  const prec = birthPrecision(birthDate);
+  if(prec!=='full' && prec!=='month') return null;
+  const today = new Date();
+  if(prec==='month'){
+    const [y,m] = birthDate.split('-').map(Number);
+    return (today.getFullYear()-y)*12 + (today.getMonth()+1-m);
+  }
+  const b = new Date(birthDate+'T00:00:00');
+  let months = (today.getFullYear()-b.getFullYear())*12 + (today.getMonth()-b.getMonth());
+  if(today.getDate()<b.getDate()) months--;
+  return months;
+}
+
+// Repère de croissance (python royal seulement) — fourchettes larges et indicatives, construites
+// par interpolation linéaire entre des points d'ancrage communément cités dans la communauté.
+// Variation individuelle énorme selon génétique/alimentation/sexe (les femelles finissent souvent
+// bien plus grosses) — jamais présenté comme un standard médical, seulement un repère général.
+const GROWTH_REFERENCE_POINTS = [
+  {m:0, min:40, max:70}, {m:1, min:50, max:90}, {m:3, min:90, max:160},
+  {m:6, min:160, max:300}, {m:9, min:230, max:420}, {m:12, min:300, max:550},
+  {m:18, min:450, max:800}, {m:24, min:600, max:1100}, {m:36, min:800, max:1600},
+  {m:48, min:900, max:2200},
+];
+function expectedWeightRange(ageMonths){
+  const pts = GROWTH_REFERENCE_POINTS;
+  if(ageMonths==null || ageMonths<0) return null;
+  if(ageMonths<=pts[0].m) return {min:pts[0].min, max:pts[0].max};
+  if(ageMonths>=pts[pts.length-1].m) return {min:pts[pts.length-1].min, max:pts[pts.length-1].max};
+  for(let i=0;i<pts.length-1;i++){
+    const a=pts[i], b=pts[i+1];
+    if(ageMonths>=a.m && ageMonths<=b.m){
+      const t=(ageMonths-a.m)/(b.m-a.m);
+      return { min: Math.round(a.min+(b.min-a.min)*t), max: Math.round(a.max+(b.max-a.max)*t) };
+    }
+  }
+  return null;
 }
 
 function updateDraftSpeciesVisibility(){
@@ -4285,6 +4392,26 @@ function batchToggleTerrarium(){
   showToast('🏠 '+count+' '+(isEn?'reptile(s) moved.':'reptile(s) déplacé(s).'), 'success');
   toggleBatchMode();
   renderRackGrid(); renderTerrariumList();
+}
+function batchSetPrice(){
+  const isEn = currentLang==='en';
+  if(batchSelectedIds.size===0) return;
+  const inp = document.getElementById('batch-price-input');
+  const val = inp ? parseFloat(inp.value) : NaN;
+  if(isNaN(val) || val<0){ showToast(isEn?'Enter a valid price.':'Entre un prix valide.', 'error'); return; }
+  let count = 0;
+  batchSelectedIds.forEach(id=>{
+    const s = savedSnakes.find(x=>x.id===id);
+    if(!s) return;
+    ensureSnakeMeta(s);
+    s.askingPrice = val;
+    count++;
+  });
+  storage.save(savedSnakes);
+  if(inp) inp.value = '';
+  showToast('💰 '+(isEn?'Price set for ':'Prix appliqué à ')+count+' '+(isEn?'reptile(s).':'reptile(s).'), 'success');
+  toggleBatchMode();
+  renderSalesView();
 }
 
 function renderSavedList(){
@@ -4990,6 +5117,27 @@ function openLogbook(id){
   const helpFolderId = 'faq-help-'+id;
   const helpFolderWasOpen = document.getElementById(helpFolderId) && !document.getElementById(helpFolderId).classList.contains('collapsed');
 
+  // Repère de croissance — python royal seulement, demande une date de naissance à précision
+  // suffisante (jour ou mois) et au moins une pesée. Fourchette large et indicative, pas un standard.
+  let growthCompareHtml = '';
+  if((s.species||'ball_python')==='ball_python' && s.health.weights.length){
+    const ageM = ageInMonths(s.birthDate);
+    const range = ageM!=null ? expectedWeightRange(ageM) : null;
+    if(range){
+      const latest = [...s.health.weights].sort((a,b)=>b.date.localeCompare(a.date))[0].value;
+      const status = latest<range.min ? 'below' : latest>range.max ? 'above' : 'within';
+      const statusColor = status==='within' ? 'var(--sage)' : 'var(--gold)';
+      const statusText = currentLang==='en'
+        ? (status==='within' ? '✅ Within the typical range for this age' : status==='below' ? '⬇ Below the typical range for this age' : '⬆ Above the typical range for this age')
+        : (status==='within' ? '✅ Dans la fourchette typique pour cet âge' : status==='below' ? '⬇ Sous la fourchette typique pour cet âge' : '⬆ Au-dessus de la fourchette typique pour cet âge');
+      growthCompareHtml = '<div class="modal-row"><span style="color:'+statusColor+';">'+statusText+'</span><span>'+range.min+'-'+range.max+'g</span></div>'+
+        '<p class="husbandry-health-note" style="margin-top:6px;">'+(currentLang==='en'
+          ? '⚠ Rough community-sourced reference only, not a medical standard — genetics, sex (females often end up larger), and feeding schedule cause huge individual variation.'
+          : '⚠ Repère indicatif basé sur des chiffres communément cités, pas un standard médical — la génétique, le sexe (les femelles finissent souvent plus grosses) et le calendrier de nourrissage causent une énorme variation individuelle.')+
+        '</p>';
+    }
+  }
+
   const myPairings = pairings.filter(p=>p.maleId===id || p.femaleId===id);
   const pairingsHtml = myPairings.length
     ? myPairings.map(p=>{
@@ -5101,7 +5249,7 @@ function openLogbook(id){
       photosHtml+
     '</div>'+
     '<div class="modal-section"><h3>'+t('genealogyTitle')+'</h3>'+pedigreeHtml+pedigreeTreeHtml+'</div>'+
-    '<div class="modal-section"><h3>'+t('weightHistoryTitle')+'</h3>'+weightsHtml+'</div>'+
+    '<div class="modal-section"><h3>'+t('weightHistoryTitle')+'</h3>'+weightsHtml+growthCompareHtml+'</div>'+
     '<div class="modal-section"><h3>'+t('lengthHistoryTitle')+'</h3>'+lengthsHtml+'</div>'+
     '<div class="modal-section"><h3>'+t('vetJournalTitle')+'</h3>'+
       '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">'+
@@ -5334,7 +5482,7 @@ function confirmFed(id, quantity){
   closeQuickModal();
   showToast('🍽 '+s.name+(isEn?' ate':' a mangé')+(quantity==='partial'?(isEn?' (partial).':' (partiellement).'):'.'), 'success');
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
-  renderRackGrid(); renderTerrariumList(); renderTourGrid();
+  renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderFirstSnakeTip();
 }
 
 function openWeighModal(id){
@@ -5367,7 +5515,7 @@ function confirmWeigh(id){
   storage.save(savedSnakes);
   closeQuickModal();
   showToast('⚖ '+s.name+' pesé : '+val+'g', 'success');
-  renderRackGrid(); renderTerrariumList(); renderTourGrid();
+  renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderFirstSnakeTip();
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
 }
 
@@ -5448,6 +5596,7 @@ function confirmShed(id){
   storage.save(savedSnakes);
   closeQuickModal();
   showToast('✨ '+s.name+(isEn?' shed — ':' a mué — ')+shedQualityLabel(quality), quality==='complete'?'success':undefined);
+  renderFirstSnakeTip();
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
 }
 
@@ -5596,8 +5745,8 @@ const DEFAULT_LAYOUT = { hideRacks:false, hideTerrariums:false, order:'racks-fir
 function loadElevage(){
   try{
     const raw = localStorage.getItem(ELEVAGE_KEY);
-    return raw ? JSON.parse(raw) : { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[] };
-  }catch(e){ console.warn('LOCUS: lecture élevage impossible', e); return { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[] }; }
+    return raw ? JSON.parse(raw) : { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[] };
+  }catch(e){ console.warn('LOCUS: lecture élevage impossible', e); return { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[] }; }
 }
 function saveElevage(){
   trackLocalChanges('racks', racks);
@@ -5606,7 +5755,7 @@ function saveElevage(){
   trackLocalChanges('expenses', expenses);
   trackLocalChanges('customers', customers);
   try{
-    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, pairings, layout, clutches, expenses, customers, customEvents }));
+    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, pairings, layout, clutches, expenses, customers, customEvents, projects }));
     storageWriteFailed = false;
   }catch(e){
     console.warn('LOCUS: écriture élevage impossible', e);
@@ -5619,6 +5768,10 @@ let elevageData = loadElevage();
 let { pairings, layout, clutches, expenses, customers } = elevageData;
 (pairings||[]).forEach(p=>{ if(!p.follicleSizes) p.follicleSizes = []; }); // migration : suivi folliculaire ajouté après coup
 let customEvents = elevageData.customEvents || [];
+// Projets multi-générations — regroupe des accouplements sur plusieurs saisons vers un objectif
+// génétique précis (ex. « Bumblebee project »). Stocké comme customEvents : local dans
+// locus_elevage_v1, synchronisé au cloud via app_state.projects (voir syncPushAll/syncPullAll).
+let projects = elevageData.projects || [];
 let racks = elevageData.racks;
 // Migration : anciennes sauvegardes qui n'avaient qu'un seul rack uniforme (rackDims) —
 // converties une seule fois vers le nouveau modèle multi-racks, aucune perte de données.
@@ -5754,7 +5907,7 @@ async function syncPushAll(forceAll){
       const dirty = itemsToPush('customers', customers, forceAll);
       if(dirty.length) await sb.from('customers').upsert(dirty.map(cu=>({ id:cu.id, user_id:currentUser.id, data:cu })));
     }
-    await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners() });
+    await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects });
     const profile = loadProfile();
     await sb.from('profiles').upsert({ user_id:currentUser.id, breeder_name: profile.breederName||null, email: profile.email||null, phone: profile.phone||null });
     ['snakes','racks','pairings','clutches','expenses','customers'].forEach(kind=> dirtySyncIds[kind].clear());
@@ -5810,6 +5963,7 @@ async function syncPullAll(){
     }
     if(stateRes.data && stateRes.data.layout) layout = stateRes.data.layout;
     if(stateRes.data && stateRes.data.custom_events) customEvents = mergeById(customEvents, stateRes.data.custom_events);
+    if(stateRes.data && stateRes.data.projects) projects = mergeById(projects, stateRes.data.projects);
     if(stateRes.data && stateRes.data.dismissed_banners){
       const mergedBanners = [...new Set([...loadDismissedBanners(), ...stateRes.data.dismissed_banners])];
       saveDismissedBanners(mergedBanners);
@@ -6562,7 +6716,7 @@ function showSubtab(sub){
   document.querySelectorAll('.subtab-btn').forEach(b=>b.classList.toggle('active', b.dataset.sub===sub));
   if(sub==='racks'){ renderRackGrid(); renderTerrariumList(); }
   if(sub==='tour'){ renderTourGrid(); renderTourLayoutPrefs(); }
-  if(sub==='calendar'){ renderPairingForm(); renderTimeline(); renderHealthLog(); }
+  if(sub==='calendar'){ renderPairingForm(); renderTimeline(); renderHealthLog(); renderProjects(); }
   if(sub==='nourriture'){ renderFoodView(); }
 }
 
@@ -6937,6 +7091,8 @@ function renderPairingForm(){
   maleSel.innerHTML = males.length ? males.map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+'</option>').join('') : '<option value="">'+(isEn?'No male registered':'Aucun mâle enregistré')+'</option>';
   femaleSel.innerHTML = females.length ? females.map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+'</option>').join('') : '<option value="">'+(isEn?'No female registered':'Aucune femelle enregistrée')+'</option>';
   if(!document.getElementById('pairing-date').value) document.getElementById('pairing-date').valueAsDate = new Date();
+  const projectSel = document.getElementById('pairing-project');
+  if(projectSel) projectSel.innerHTML = '<option value="">'+(isEn?'No project':'Aucun projet')+'</option>'+projects.map(p=>'<option value="'+p.id+'">'+escapeHtml(p.name)+'</option>').join('');
 }
 
 const MIN_BREEDING_WEIGHT = { male:500, female:1300 }; // grammes — seuils standards, à ajuster ici si besoin
@@ -6961,10 +7117,68 @@ function addPairing(){
     warnings.push((isEn?'Inbreeding coefficient for this pairing: ':'Coefficient de consanguinité pour cet accouplement : ')+pairFpct+'%'+(isEn?' (based on recorded pedigree).':' (basé sur le pedigree enregistré).'));
   }
   if(warnings.length && !confirm((isEn?'⚠ Points to check before this pairing:\n\n':'⚠ Points à vérifier avant cet accouplement :\n\n')+warnings.join('\n')+(isEn?'\n\nPair anyway?':'\n\nAccoupler quand même ?'))) return;
-  pairings.push({ id:'pr_'+Date.now(), maleId, femaleId, pairedDate:date, coolingDate, ovulationConfirmed:false, ovulationDate:null, follicleSizes:[] });
+  const projectId = document.getElementById('pairing-project').value || null;
+  pairings.push({ id:'pr_'+Date.now(), maleId, femaleId, pairedDate:date, coolingDate, ovulationConfirmed:false, ovulationDate:null, follicleSizes:[], projectId });
   saveElevage();
   renderTimeline();
+  renderProjects();
   document.getElementById('pairing-cooling-date').value = '';
+}
+
+// Projets multi-générations — voir la note au chargement de `projects` pour le stockage/la synchro.
+function addProject(){
+  const isEn = currentLang==='en';
+  const nameEl = document.getElementById('project-name-input');
+  const goalEl = document.getElementById('project-goal-input');
+  const name = nameEl.value.trim();
+  if(!name){ alert(isEn?'Enter a project name.':'Entre un nom de projet.'); return; }
+  const goal = goalEl.value.trim();
+  projects.push({ id:'proj_'+Date.now(), name, goal, notes:'', createdAt:Date.now() });
+  saveElevage();
+  nameEl.value = '';
+  goalEl.value = '';
+  renderProjects();
+  renderPairingForm();
+}
+function deleteProject(id){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this project? Its pairings stay — they just get unlinked.':'Supprimer ce projet ? Ses accouplements restent, juste déliés.')) return;
+  projects = projects.filter(p=>p.id!==id);
+  pairings.forEach(p=>{ if(p.projectId===id) p.projectId = null; });
+  saveElevage();
+  renderProjects();
+  renderPairingForm();
+}
+function renderProjects(){
+  const isEn = currentLang==='en';
+  const wrap = document.getElementById('projects-list');
+  if(!wrap) return;
+  wrap.innerHTML = projects.length ? '' : '<div class="empty">'+(isEn?'No project yet — group pairings across seasons toward a specific genetic goal.':'Aucun projet pour l\'instant — regroupe des accouplements sur plusieurs saisons vers un objectif génétique précis.')+'</div>';
+  projects.forEach(proj=>{
+    const linkedPairings = pairings.filter(p=>p.projectId===proj.id).sort((a,b)=>(a.pairedDate||'').localeCompare(b.pairedDate||''));
+    const offspringCount = linkedPairings.reduce((sum,p)=>sum+savedSnakes.filter(s=>s.sireId===p.maleId && s.damId===p.femaleId).length, 0);
+    const pairingsHtml = linkedPairings.length ? linkedPairings.map(p=>{
+      const male = savedSnakes.find(s=>s.id===p.maleId);
+      const female = savedSnakes.find(s=>s.id===p.femaleId);
+      return '<div class="modal-row"><span>🐍 '+(male?escapeHtml(male.name):'?')+' × '+(female?escapeHtml(female.name):'?')+'</span><span>'+(p.pairedDate||'?')+'</span></div>';
+    }).join('') : '<div class="modal-row"><span>'+(isEn?'No pairing linked yet':'Aucun accouplement lié pour l\'instant')+'</span></div>';
+    const folderId = 'folder-proj-'+proj.id;
+    const existing = document.getElementById(folderId);
+    const isOpen = existing ? !existing.classList.contains('collapsed') : false;
+    const div = document.createElement('div');
+    div.className = 'community-folder'+(isOpen?'':' collapsed');
+    div.id = folderId;
+    div.innerHTML =
+      '<button class="community-folder-header" onclick="toggleCommunityFolder(\''+folderId+'\')">'+
+        '<span class="folder-icon">▾</span><span>🧬 '+escapeHtml(proj.name)+' — '+linkedPairings.length+' '+(isEn?'pairing(s), ':'accouplement(s), ')+offspringCount+' '+(isEn?'offspring':'bébé(s)')+'</span>'+
+      '</button>'+
+      '<div class="community-folder-body">'+
+        (proj.goal ? '<p style="font-size:11.5px;color:var(--ink-dim);margin:0 0 10px;">'+(isEn?'Goal: ':'Objectif : ')+escapeHtml(proj.goal)+'</p>' : '')+
+        pairingsHtml+
+        '<button class="sc-btn danger" style="margin-top:10px;" onclick="deleteProject(\''+proj.id+'\')">'+(isEn?'Delete project':'Supprimer le projet')+'</button>'+
+      '</div>';
+    wrap.appendChild(div);
+  });
 }
 
 function loadPairingIntoCalculator(pairingId){
@@ -7349,6 +7563,42 @@ function renderSuppliers(){
   '</div>';
 }
 
+// Glossaire rapide du jargon d'éleveur — format scannable (terme → définition courte), distinct
+// de la FAQ husbandry qui répond déjà à certaines de ces questions en format conversationnel plus long.
+const GLOSSARY_TERMS = [
+  { term:'Het / Hétérozygote', fr:'Porteur invisible d\'un gène récessif — ne montre pas le trait, mais peut le transmettre à ~50% de sa progéniture.', en:'Invisible carrier of a recessive gene — doesn\'t show the trait, but can pass it to ~50% of offspring.' },
+  { term:'Possible het (poss het)', fr:'Porteur probable mais non confirmé, basé sur la lignée parentale plutôt que sur une preuve directe.', en:'Likely carrier that\'s unconfirmed, based on parental lineage rather than direct proof.' },
+  { term:'Visuel (visual)', fr:'L\'animal montre physiquement le trait génétique — pas besoin de test ou de lignée pour le confirmer.', en:'The animal physically shows the genetic trait — no test or lineage needed to confirm it.' },
+  { term:'Combo', fr:'Un animal portant plusieurs gènes différents en même temps (ex. Pastel + Clown + Het Albino).', en:'An animal carrying several different genes at once (e.g. Pastel + Clown + Het Albino).' },
+  { term:'Proven pair', fr:'Un couple dont on sait qu\'il peut produire une ponte fertile, parce que ça a déjà fonctionné au moins une fois.', en:'A pair known to be able to produce a fertile clutch, because it has already worked at least once.' },
+  { term:'Ponte / Clutch', fr:'L\'ensemble des œufs pondus par une femelle lors d\'un même événement de reproduction.', en:'The full set of eggs laid by a female in a single breeding event.' },
+  { term:'Ovulation', fr:'Signe physique (renflement au tiers du corps) indiquant que la femelle va bientôt pondre — généralement suivi d\'une mue puis de la ponte.', en:'Physical sign (a bulge about a third down the body) indicating the female will lay soon — usually followed by a shed then the clutch.' },
+  { term:'Œuf infertile (slug)', fr:'Un œuf non fécondé ou qui ne s\'est pas développé — normal d\'en avoir occasionnellement dans une ponte.', en:'An unfertilized or undeveloped egg — normal to have one occasionally in a clutch.' },
+  { term:'Wobble', fr:'Syndrome neurologique (tremblement de tête, désorientation) associé à certains gènes comme Spider — enjeu de bien-être animal débattu dans la communauté.', en:'Neurological syndrome (head tremor, disorientation) linked to certain genes like Spider — a debated animal-welfare issue in the community.' },
+  { term:'Line-bred (lignée fixée)', fr:'Une lignée reproduite de façon répétée pour renforcer un trait ou une qualité particulière au fil des générations.', en:'A line bred repeatedly to reinforce a particular trait or quality across generations.' },
+  { term:'Codominant', fr:'Un gène qui donne un look distinct avec une seule copie, et un look encore différent (forme « super ») avec deux copies.', en:'A gene that gives a distinct look with one copy, and a further-different look (the "super" form) with two copies.' },
+  { term:'Freeway', fr:'Un gène dont l\'identité exacte n\'est pas confirmée sur son locus — visuellement présent mais pas encore identifié avec certitude.', en:'A gene whose exact identity isn\'t confirmed at its locus — visually present but not yet identified with certainty.' },
+  { term:'Sondage / Probing / Popping', fr:'Méthodes utilisées par un professionnel pour déterminer le sexe d\'un python royal avec certitude.', en:'Methods used by a professional to determine a ball python\'s sex with certainty.' },
+  { term:'Brumation', fr:'Une période de température/lumière réduite parfois utilisée pour stimuler la reproduction — débattue et généralement moins nécessaire chez le python royal que chez d\'autres espèces.', en:'A period of reduced temperature/light sometimes used to stimulate breeding — debated and generally less necessary for ball pythons than other species.' },
+];
+function renderGlossary(){
+  const isEn = currentLang==='en';
+  const container = document.getElementById('glossary-container');
+  if(!container) return;
+  const folderId = 'folder-glossary';
+  const existing = document.getElementById(folderId);
+  const isOpen = existing ? !existing.classList.contains('collapsed') : false;
+  const itemsHtml = GLOSSARY_TERMS.map(g=>
+    '<div class="husbandry-qa"><div class="q">'+g.term+'</div><div class="a">'+(isEn?g.en:g.fr)+'</div></div>'
+  ).join('');
+  container.innerHTML = '<div class="community-folder'+(isOpen?'':' collapsed')+'" id="'+folderId+'">'+
+    '<button class="community-folder-header" onclick="toggleCommunityFolder(\''+folderId+'\')">'+
+      '<span class="folder-icon">▾</span><span>📖 '+(isEn?'Breeder jargon glossary':'Glossaire du jargon d\'éleveur')+'</span>'+
+    '</button>'+
+    '<div class="community-folder-body">'+itemsHtml+'</div>'+
+  '</div>';
+}
+
 // Outil : convertisseur °F/°C — deux champs synchronisés, sans arrondi agressif.
 function convertTemp(source){
   const fEl = document.getElementById('temp-f-input');
@@ -7547,6 +7797,45 @@ function renderPairingROI(){
         '<input type="number" class="price-input" style="width:80px;" value="'+(p.estimatedCost||'')+'" placeholder="'+(isEn?'Cost $':'Coût $')+'" onchange="setPairingCost(\''+p.id+'\', this.value)"/>'+
         '<span style="color:'+(r.roi>=0?'var(--sage)':'var(--rust)')+';font-weight:700;">'+(r.roi>=0?'+':'')+r.roi+' $</span>'+
       '</div>';
+    wrap.appendChild(row);
+  });
+}
+
+// Comparaison saison contre saison sur l'ensemble du cheptel — regroupe par année de ponte
+// (pontes/œufs) et de vente (revenu), plus les morphs les plus fréquents parmi les bébés nés
+// cette année-là. Complète la fertilité par femelle (déjà par saison, mais par individu seulement).
+function computeSeasonStats(){
+  const years = new Set();
+  clutches.forEach(c=>{ if(c.layDate) years.add(c.layDate.slice(0,4)); });
+  savedSnakes.forEach(s=>{ if(s.soldDate) years.add(s.soldDate.slice(0,4)); });
+  return Array.from(years).sort().reverse().map(year=>{
+    const clutchesThisYear = clutches.filter(c=>c.layDate && c.layDate.slice(0,4)===year);
+    const totalClutches = clutchesThisYear.length;
+    const totalEggs = clutchesThisYear.reduce((a,c)=>a+(c.eggCount||0),0);
+    const revenue = savedSnakes.filter(s=>s.status==='sold' && s.soldDate && s.soldDate.slice(0,4)===year).reduce((a,s)=>a+(s.soldPrice||0),0);
+    const bornThisYear = savedSnakes.filter(s=>s.birthDate && s.birthDate.slice(0,4)===year);
+    const morphCounts = {};
+    bornThisYear.forEach(s=>{
+      const label = summarizeGenes(s.genes);
+      morphCounts[label] = (morphCounts[label]||0)+1;
+    });
+    const topMorphs = Object.entries(morphCounts).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    return { year, totalClutches, totalEggs, revenue, babiesCount:bornThisYear.length, topMorphs };
+  });
+}
+function renderSeasonComparison(){
+  const isEn = currentLang==='en';
+  const wrap = document.getElementById('season-comparison-list');
+  if(!wrap) return;
+  const stats = computeSeasonStats();
+  wrap.innerHTML = stats.length ? '' : '<div class="empty">'+(isEn?'Not enough data yet to compare seasons.':'Pas assez de données pour comparer des saisons pour l\'instant.')+'</div>';
+  stats.forEach(y=>{
+    const topMorphsLabel = y.topMorphs.length ? y.topMorphs.map(([name,count])=>name+' ('+count+')').join(', ') : (isEn?'—':'—');
+    const row = document.createElement('div');
+    row.className = 'sale-row';
+    row.innerHTML =
+      '<div class="sale-name">'+y.year+'<small>'+y.totalClutches+(isEn?' clutch(es), ':' ponte(s), ')+y.totalEggs+(isEn?' eggs, ':' œufs, ')+y.babiesCount+(isEn?' born':' né(s)')+'<br/>'+(isEn?'Top morphs: ':'Morphs les plus fréquents : ')+topMorphsLabel+'</small></div>'+
+      '<div class="sale-price">'+y.revenue+' $</div>';
     wrap.appendChild(row);
   });
 }
@@ -8196,8 +8485,36 @@ function showVentesSubtab(sub){
   showOnboardingTip(sub);
   document.getElementById('vsub-listings').style.display = sub==='listings' ? '' : 'none';
   document.getElementById('vsub-clients').style.display = sub==='clients' ? '' : 'none';
+  document.getElementById('vsub-waitlist').style.display = sub==='waitlist' ? '' : 'none';
   document.querySelectorAll('#view-ventes .subtab-btn').forEach(b=>b.classList.toggle('active', b.dataset.vsub===sub));
   if(sub==='clients') renderClientsView();
+  if(sub==='waitlist') renderConsolidatedWaitlist();
+}
+
+// Liste d'attente consolidée — agrège p.waitlist de TOUS les accouplements en une seule vue,
+// plutôt que d'avoir à ouvrir chaque accouplement individuellement pour voir qui attend quoi.
+function renderConsolidatedWaitlist(){
+  const isEn = currentLang==='en';
+  const wrap = document.getElementById('waitlist-consolidated-list');
+  if(!wrap) return;
+  const entries = [];
+  pairings.forEach(p=>{
+    (p.waitlist||[]).forEach(w=>{
+      const male = savedSnakes.find(s=>s.id===p.maleId);
+      const female = savedSnakes.find(s=>s.id===p.femaleId);
+      entries.push({ ...w, pairingId:p.id, pairedDate:p.pairedDate, parents:(male?male.name:'?')+' × '+(female?female.name:'?') });
+    });
+  });
+  entries.sort((a,b)=>(b.pairedDate||'').localeCompare(a.pairedDate||''));
+  wrap.innerHTML = entries.length ? '' : '<div class="empty">'+(isEn?'No one on a waitlist right now.':'Personne en liste d\'attente pour l\'instant.')+'</div>';
+  entries.forEach(w=>{
+    const row = document.createElement('div');
+    row.className = 'sale-row';
+    row.innerHTML =
+      '<div class="sale-name">'+escapeHtml(w.client)+(w.morph?' — '+escapeHtml(w.morph):'')+'<small>'+(isEn?'Pairing: ':'Accouplement : ')+w.parents+' ('+w.pairedDate+')</small></div>'+
+      '<div class="sale-price">'+(w.deposit?w.deposit+' '+(isEn?'deposit':'acompte'):'—')+' <button class="sc-btn danger" style="margin-left:6px;padding:3px 8px;" onclick="removeWaitlistEntry(\''+w.pairingId+'\',\''+w.id+'\'); renderConsolidatedWaitlist();">×</button></div>';
+    wrap.appendChild(row);
+  });
 }
 
 function normalizedBuyerKey(name){ return (name||'').trim().toLowerCase(); }
@@ -8915,6 +9232,7 @@ function exportBudgetExcel(){
 function renderFiscalView(){
   populateExpenseCategorySelect();
   renderPairingROI();
+  renderSeasonComparison();
   const yearSel = document.getElementById('fiscal-year-select');
   const years = fiscalYearsAvailable();
   yearSel.innerHTML = years.map(y=>'<option value="'+y+'"'+(y===fiscalYear?' selected':'')+'>'+y+'</option>').join('');
