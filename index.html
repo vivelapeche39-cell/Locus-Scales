@@ -1301,6 +1301,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
     <div id="husbandry-faq-container"></div>
     <div id="myths-container"></div>
     <div id="checklist-container"></div>
+    <div id="suppliers-container"></div>
     </div>
 
     <div id="usub-outils" style="display:none;">
@@ -1635,7 +1636,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.14.2';
+const APP_VERSION = '2026.08.18.1';
 (function checkForNewVersion(){
   try{
     if(sessionStorage.getItem('locus_version_reloaded')){ sessionStorage.removeItem('locus_version_reloaded'); return; }
@@ -3367,6 +3368,7 @@ function applyTranslations(){
   try{ renderHusbandryFaq(); }catch(e){}
   try{ renderMyths(); }catch(e){}
   try{ renderChecklist(); }catch(e){}
+  try{ renderSuppliers(); }catch(e){}
   try{ renderLastYearReference(); }catch(e){}
   try{ renderCustomEvents(); }catch(e){}
   try{ renderTimeline(); }catch(e){}
@@ -3933,7 +3935,7 @@ function showTab(tab){
   if(tab==='elevage'){ renderLayoutPrefs(); renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderTourLayoutPrefs(); renderPairingForm(); renderTimeline(); renderHealthLog(); }
   if(tab==='ventes'){ renderSalesView(); }
   if(tab==='incubation'){ renderClutchForm(); renderClutches(); }
-  if(tab==='utilitaire'){ try{ renderPreyChart(); }catch(e){ console.error('renderPreyChart error:', e); } try{ renderHusbandryFaq(); }catch(e){ console.error('renderHusbandryFaq error:', e); } try{ renderMyths(); }catch(e){} try{ renderChecklist(); }catch(e){} try{ renderPreBuyCalculator(); }catch(e){ console.error('renderPreBuyCalculator error:', e); } }
+  if(tab==='utilitaire'){ try{ renderPreyChart(); }catch(e){ console.error('renderPreyChart error:', e); } try{ renderHusbandryFaq(); }catch(e){ console.error('renderHusbandryFaq error:', e); } try{ renderMyths(); }catch(e){} try{ renderChecklist(); }catch(e){} try{ renderSuppliers(); }catch(e){} try{ renderPreBuyCalculator(); }catch(e){ console.error('renderPreBuyCalculator error:', e); } }
   if(tab==='fiscal'){ renderFiscalView(); }
   if(tab==='valeur'){ renderValeurView(); }
   if(tab==='reglement'){ const el = document.getElementById('reg-check-date'); if(el) el.textContent = '4 août 2026'; }
@@ -7302,6 +7304,46 @@ function renderChecklist(){
   container.innerHTML = '<div class="community-folder'+(isOpen?'':' collapsed')+'" id="'+folderId+'">'+
     '<button class="community-folder-header" onclick="toggleCommunityFolder(\''+folderId+'\')">'+
       '<span class="folder-icon">▾</span><span>✅ '+(isEn?'Pre-purchase checklist':'Checklist pré-achat')+'</span>'+
+    '</button>'+
+    '<div class="community-folder-body">'+itemsHtml+'</div>'+
+  '</div>';
+}
+
+// Fournisseurs de proies congelées — les plus reconnus, séparés par pays. LOCUS n'est affilié
+// à aucun d'entre eux ; liens fournis à titre informatif seulement (voir aussi Réglementation/CGU
+// pour la clause générale sur les liens externes).
+const PREY_SUPPLIERS = {
+  us: [
+    { name:'RodentPro', url:'https://rodentpro.com/' },
+    { name:'MiceDirect', url:'https://micedirect.com/' },
+    { name:'PerfectPrey', url:'https://perfectprey.com/' },
+  ],
+  ca: [
+    { name:'Rodent King', url:'https://rodentking.ca/' },
+    { name:'Monarch Reptiles', url:'https://monarchreptiles.com/feeders/frozen-feeders/' },
+    { name:'East Coast Exotics', url:'https://www.eastcoastreptilefoods.com/' },
+  ],
+};
+function renderSuppliers(){
+  const isEn = currentLang==='en';
+  const container = document.getElementById('suppliers-container');
+  if(!container) return;
+  const folderId = 'folder-suppliers';
+  const existing = document.getElementById(folderId);
+  const isOpen = existing ? !existing.classList.contains('collapsed') : false;
+  const groupHtml = (flag, label, list)=>
+    '<div style="font-size:10.5px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px;">'+flag+' '+label+'</div>'+
+    list.map(s=>'<div class="modal-row"><span>'+s.name+'</span><span><a href="'+s.url+'" target="_blank" rel="noopener">'+(isEn?'Visit site':'Voir le site')+' →</a></span></div>').join('');
+  const itemsHtml =
+    groupHtml('🇺🇸', isEn?'United States':'États-Unis', PREY_SUPPLIERS.us) +
+    groupHtml('🇨🇦', 'Canada', PREY_SUPPLIERS.ca) +
+    '<p class="husbandry-health-note" style="margin-top:10px;">'+(isEn
+      ? '⚠ LOCUS is not affiliated with any of these suppliers — links provided for reference only. Prices and shipping areas change; confirm directly with the supplier.'
+      : '⚠ LOCUS n\'est affilié à aucun de ces fournisseurs — liens fournis à titre informatif seulement. Les prix et zones de livraison changent, confirme directement avec le fournisseur.')+
+    '</p>';
+  container.innerHTML = '<div class="community-folder'+(isOpen?'':' collapsed')+'" id="'+folderId+'">'+
+    '<button class="community-folder-header" onclick="toggleCommunityFolder(\''+folderId+'\')">'+
+      '<span class="folder-icon">▾</span><span>🐭 '+(isEn?'Feeder rodent suppliers':'Fournisseurs de rongeurs')+'</span>'+
     '</button>'+
     '<div class="community-folder-body">'+itemsHtml+'</div>'+
   '</div>';
