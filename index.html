@@ -1667,7 +1667,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.18.3';
+const APP_VERSION = '2026.08.18.4';
 (function checkForNewVersion(){
   try{
     if(sessionStorage.getItem('locus_version_reloaded')){ sessionStorage.removeItem('locus_version_reloaded'); return; }
@@ -2676,7 +2676,7 @@ const I18N = {
     preyWeightCol: 'Poids',
     pythonWeightChartTitle: '📏 Charte approximative — poids du python → proie recommandée',
     pythonWeightCol: 'Poids du python',
-    suggestedPreyCol: 'Proie suggérée (10-15%)',
+    suggestedPreyCol: 'Proie suggérée (% du poids)',
     typicalChoiceCol: 'Choix typique',
     preyChartDisclaimer: '⚠ Charte donnée à titre indicatif seulement — l\'appétit, l\'âge, l\'état de santé et le tempérament de chaque individu varient. Ne remplace pas ton propre jugement d\'éleveur ni l\'avis d\'un vétérinaire reptile en cas de doute.',
     appTag: 'Gestion d\'élevage — Python royal (Ball Python)',
@@ -3070,7 +3070,7 @@ const I18N = {
     preyWeightCol: 'Weight',
     pythonWeightChartTitle: '📏 Approximate chart — python weight → recommended prey',
     pythonWeightCol: 'Python weight',
-    suggestedPreyCol: 'Suggested prey (10-15%)',
+    suggestedPreyCol: 'Suggested prey (% of weight)',
     typicalChoiceCol: 'Typical choice',
     preyChartDisclaimer: '⚠ Chart given as a general guide only — appetite, age, health, and temperament vary by individual. This does not replace your own judgment as a breeder or the advice of a reptile vet when in doubt.',
     appTag: 'Ball Python breeding management',
@@ -3493,6 +3493,17 @@ function applyTranslations(){
   try{ renderFiscalView(); }catch(e){}
   try{ renderValeurView(); }catch(e){}
   try{ renderHealthLog(); }catch(e){}
+  try{ renderPersonalizationSettings(); }catch(e){}
+  try{ renderConsolidatedWaitlist(); }catch(e){}
+  try{ renderClientsView(); }catch(e){}
+  // La fiche animal (openLogbook) ne se reconstruit jamais toute seule — si elle est ouverte
+  // pendant un changement de langue, on la régénère pour la même fiche plutôt que de la laisser
+  // figée dans l'ancienne langue jusqu'à la fermeture/réouverture.
+  try{
+    if(currentLogbookId && document.getElementById('logbook-overlay') && document.getElementById('logbook-overlay').style.display==='flex'){
+      openLogbook(currentLogbookId);
+    }
+  }catch(e){}
   // renderPairingForm(), renderClutchForm() et renderPreBuyCalculator() sont exclus volontairement :
   // ils reconstruisent des <select>/<input> à partir de valeurs par défaut et effaceraient une
   // sélection ou saisie en cours si rappelés ici pendant un changement de langue.
@@ -4356,7 +4367,7 @@ function renderGeneticHealthReport(){
   savedSnakes.forEach(ensureSnakeMeta);
   const byGene = {};
   savedSnakes.forEach(s=>{
-    const flagged = s.health.consecutiveRefusals>=3 || weightDropping(s);
+    const flagged = isFeedingFlagged(s) || weightDropping(s);
     Object.keys(s.genes||{}).forEach(geneId=>{
       if(!byGene[geneId]) byGene[geneId] = { total:0, flagged:0 };
       byGene[geneId].total++;
@@ -5072,7 +5083,7 @@ function escapeHtml(str){
 
 function mrow(label, value){ return '<div class="modal-row"><span>'+label+'</span><span>'+value+'</span></div>'; }
 
-function closeLogbook(){ document.getElementById('logbook-overlay').style.display = 'none'; }
+function closeLogbook(){ currentLogbookId = null; document.getElementById('logbook-overlay').style.display = 'none'; }
 document.getElementById('logbook-overlay').addEventListener('click', (e)=>{ if(e.target.id==='logbook-overlay') closeLogbook(); });
 
 // Journal vétérinaire par reptile — visites, motif, observations. Vit dans health.vetVisits
@@ -5118,9 +5129,11 @@ function deleteVetVisit(id, visitId){
   if(listEl) listEl.innerHTML = renderVetVisitsHtml(s);
 }
 
+let currentLogbookId = null; // suit quelle fiche est ouverte, pour pouvoir la régénérer au changement de langue
 function openLogbook(id){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
+  currentLogbookId = id;
   ensureSnakeMeta(s);
   document.getElementById('logbook-title').textContent = s.name;
   const placeLabel = s.placement.mode==='rack' ? t('rackLocationLabel').replace('__ROW__', s.placement.row).replace('__TUB__', s.placement.tub) : t('terrariumLocationLabel');
@@ -5197,6 +5210,16 @@ function openLogbook(id){
     }
   }
 
+  // Suggestion de proie automatique — liée au dernier poids enregistré, plus besoin de retaper
+  // le poids dans un outil séparé. Python royal seulement (échelle basée sur cette espèce).
+  let preySuggestionHtml = '';
+  if((s.species||'ball_python')==='ball_python' && s.health.weights.length){
+    const latestWeight = [...s.health.weights].sort((a,b)=>b.date.localeCompare(a.date))[0].value;
+    const pct = preyPercentRange(latestWeight);
+    const lo = Math.round(latestWeight*pct.min), hi = Math.round(latestWeight*pct.max);
+    preySuggestionHtml = '<div style="font-size:11px;color:var(--gold);margin-bottom:8px;">→ '+(currentLang==='en'?'suggested, based on last weigh-in (':'suggéré, basé sur la dernière pesée (')+latestWeight+'g) : '+lo+'–'+hi+'g ('+Math.round(pct.min*100)+'-'+Math.round(pct.max*100)+'%)</div>';
+  }
+
   const myPairings = pairings.filter(p=>p.maleId===id || p.femaleId===id);
   const pairingsHtml = myPairings.length
     ? myPairings.map(p=>{
@@ -5218,6 +5241,7 @@ function openLogbook(id){
     '<div class="modal-row"><span>'+t('feedingIntervalLabel')+'</span><span><input type="number" class="price-input" style="width:60px;" min="1" value="'+(s.feedingIntervalDays||'')+'" placeholder="'+DEFAULT_FEEDING_INTERVAL+'" onchange="setFeedingInterval(\''+id+'\', this.value)"/> '+t('daysWord')+'</span></div>'+
     '<div style="padding:8px 0;border-bottom:1px dashed var(--line);">'+
       '<span style="font-size:12.5px;display:block;margin-bottom:8px;">'+t('preyLabel')+'</span>'+
+      preySuggestionHtml+
       '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">'+
         '<select onchange="updatePreySpecies(\''+id+'\', this.value)" style="flex:1;min-width:100px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:\'Courier New\',monospace;font-size:11.5px;padding:8px;">'+
           '<option value="">'+t('preySpeciesEllipsis')+'</option>'+
@@ -6558,6 +6582,20 @@ function daysSinceLastWeigh(s){
   return Math.floor((Date.now() - new Date(last.date+'T00:00:00').getTime()) / 86400000);
 }
 
+// Jours depuis le dernier repas réussi — remplace l'ancien compteur "refus×N" qui dépendait de
+// refus explicitement journalisés (un éleveur qui oublie de logger un refus voyait 0, même après
+// des semaines sans repas). Toujours calculable dès qu'un seul "fed" existe au journal.
+function daysSinceLastFed(s){
+  const fedEvents = (s.health.events||[]).filter(e=>e.type==='fed').sort((a,b)=>b.date.localeCompare(a.date));
+  if(!fedEvents.length) return null;
+  return Math.floor((Date.now() - new Date(fedEvents[0].date+'T00:00:00').getTime()) / 86400000);
+}
+const HEALTH_FLAG_DAYS_SINCE_FED = 21; // jours sans repas réussi avant de signaler "à surveiller" — ajustable ici seulement
+function isFeedingFlagged(s){
+  const d = daysSinceLastFed(s);
+  return d!==null && d>=HEALTH_FLAG_DAYS_SINCE_FED;
+}
+
 // Statut couleur du Mode Tournée, basé sur le dernier événement fed/refused du journal.
 // Seuils centralisés ici : à modifier uniquement à cet endroit si l'éleveur veut ajuster les paliers.
 const FEEDING_THRESHOLDS = [ {max:5, status:'green'}, {max:8, status:'yellow'}, {max:9, status:'orange'} ];
@@ -7026,9 +7064,12 @@ function renderTourGrid(){
         let tag = '';
         if(snake){
           ensureSnakeMeta(snake);
-          if(snake.health.consecutiveRefusals>=3) alertIcon = '<span class="tub-alert">⚠</span>';
+          if(isFeedingFlagged(snake)) alertIcon = '<span class="tub-alert">⚠</span>';
           else if(weightDropping(snake)) alertIcon = '<span class="tub-alert">📉</span>';
-          tag = snake.health.consecutiveRefusals ? ('refus×'+snake.health.consecutiveRefusals) : '';
+          if(feedingStatus(snake)!=='green'){
+            const dsf = daysSinceLastFed(snake);
+            tag = dsf!==null ? (dsf+(isEn?'d':'j')) : (isEn?'never fed':'jamais nourri');
+          }
           cell.setAttribute('data-tooltip', snakeTooltip(snake));
         }
         cell.innerHTML = (snake ? '<div class="tub-name">'+escapeHtml(snake.name)+'</div><div class="tub-tag">'+tag+'</div>' : (isEn?'Tub ':'Bac ')+t+(isEn?' — empty':' — vide')) + alertIcon;
@@ -7089,11 +7130,13 @@ function renderTourTerrariums(){
     const key = terraKey(s.id);
     const chip = document.createElement('div');
     let alertIcon = '';
-    if(s.health.consecutiveRefusals>=3) alertIcon = ' <span class="tc-alert">⚠</span>';
+    if(isFeedingFlagged(s)) alertIcon = ' <span class="tc-alert">⚠</span>';
     else if(weightDropping(s)) alertIcon = ' <span class="tc-alert">📉</span>';
     chip.className = 'terrarium-chip selectable feed-'+feedingStatus(s) + (tourSelection.has(key)?' selected':'');
     chip.setAttribute('data-tooltip', snakeTooltip(s));
-    chip.innerHTML = '<span>'+escapeHtml(s.name)+' ('+(s.sex==='male'?'♂':'♀')+')'+(s.health.consecutiveRefusals?(isEn?' — refused×'+s.health.consecutiveRefusals:' — refus×'+s.health.consecutiveRefusals):'')+alertIcon+'</span>';
+    const chipDsf = daysSinceLastFed(s);
+    const chipTag = feedingStatus(s)!=='green' ? (chipDsf!==null ? (isEn?' — '+chipDsf+'d':' — '+chipDsf+'j') : (isEn?' — never fed':' — jamais nourri')) : '';
+    chip.innerHTML = '<span>'+escapeHtml(s.name)+' ('+(s.sex==='male'?'♂':'♀')+')'+chipTag+alertIcon+'</span>';
     chip.addEventListener('click', ()=>{ tourSelection.has(key) ? tourSelection.delete(key) : tourSelection.add(key); renderTourGrid(); });
     makeKeyboardClickable(chip, (tourSelection.has(key)?(isEn?'Deselect ':'Désélectionner '):(isEn?'Select ':'Sélectionner '))+s.name);
     wrap.appendChild(chip);
@@ -7133,11 +7176,11 @@ function applyTourAction(action){
 function renderHealthAlerts(){
   const isEn = currentLang==='en';
   savedSnakes.forEach(ensureSnakeMeta);
-  const flagged = savedSnakes.filter(s=> s.health.consecutiveRefusals>=3 || weightDropping(s));
+  const flagged = savedSnakes.filter(s=> isFeedingFlagged(s) || weightDropping(s));
   const wrap = document.getElementById('health-alerts');
   if(!wrap) return;
   wrap.innerHTML = flagged.length ? '<div class="health-alert-bar"><span>⚠ <b>'+flagged.length+(isEn?' reptile(s)</b> to watch: ':' reptile(s)</b> à surveiller : ')+
-    flagged.map(s=> s.name + (s.health.consecutiveRefusals>=3 ? (isEn?' (refused ×'+s.health.consecutiveRefusals+')':' (refus ×'+s.health.consecutiveRefusals+')') : (isEn?' (weight loss)':' (perte de poids)'))).join(', ')+'</span></div>' : '';
+    flagged.map(s=> s.name + (isFeedingFlagged(s) ? (isEn?' ('+daysSinceLastFed(s)+'d without a meal)':' ('+daysSinceLastFed(s)+'j sans repas)') : (isEn?' (weight loss)':' (perte de poids)'))).join(', ')+'</span></div>' : '';
 }
 
 /* ---- Calendrier / Timeline de production ---- */
@@ -7321,7 +7364,8 @@ const PYTHON_WEIGHT_CHART = [
   {min:50, max:150, fr:'Souris hopper à sevrée', en:'Hopper to weanling mouse'},
   {min:150, max:300, fr:'Souris adulte à jumbo', en:'Adult to jumbo mouse'},
   {min:300, max:500, fr:'Souris jumbo ou rat pinky/fuzzy', en:'Jumbo mouse or rat pinky/fuzzy'},
-  {min:500, max:800, fr:'Rat sevré à petit', en:'Weanling to small rat'},
+  {min:500, max:700, fr:'Rat sevré à petit', en:'Weanling to small rat'},
+  {min:700, max:800, fr:'Rat sevré à petit', en:'Weanling to small rat'},
   {min:800, max:1200, fr:'Rat petit à moyen', en:'Small to medium rat'},
   {min:1200, max:1800, fr:'Rat moyen à gros', en:'Medium to large rat'},
   {min:1800, max:2500, fr:'Rat gros', en:'Large rat'},
@@ -7330,6 +7374,16 @@ const PYTHON_WEIGHT_CHART = [
 
 function formatPreyWeight(min, max, isEn){
   return max ? min+'–'+max+'g' : min+'g'+(isEn?'+':'+');
+}
+
+// Pourcentage du poids corporel suggéré pour la taille de proie — dégressif avec le poids, suite
+// à un retour communauté (ralentissement métabolique après ~500g, encore plus après la maturité
+// sexuelle ~700g+). Basé sur des chiffres communément cités, pas une source médicale unique —
+// reste à titre indicatif (voir avertissement affiché à côté de la charte).
+function preyPercentRange(bodyWeight){
+  if(bodyWeight>=700) return {min:0.05, max:0.07};
+  if(bodyWeight>=500) return {min:0.07, max:0.10};
+  return {min:0.10, max:0.15};
 }
 
 function renderPreyChart(){
@@ -7349,10 +7403,12 @@ function renderPreyChart(){
 
   weightTbody.innerHTML = PYTHON_WEIGHT_CHART.map(r=>{
     const range = r.max ? r.min+'–'+r.max+'g' : r.min+'g'+'+';
-    const preyMin = Math.round(r.min*0.10), preyMax = r.max ? Math.round(r.max*0.15) : Math.round(r.min*0.15);
+    const pct = preyPercentRange(r.min);
+    const preyMin = Math.round(r.min*pct.min), preyMax = r.max ? Math.round(r.max*pct.max) : Math.round(r.min*pct.max);
+    const pctLabel = ' ('+Math.round(pct.min*100)+'-'+Math.round(pct.max*100)+'%)';
     return '<tr style="border-bottom:1px solid rgba(255,255,255,.05);">'+
       '<td style="padding:6px 4px;font-family:\'Courier New\',monospace;">'+range+'</td>'+
-      '<td style="padding:6px 4px;text-align:right;font-family:\'Courier New\',monospace;color:var(--gold);">'+preyMin+'–'+preyMax+'g</td>'+
+      '<td style="padding:6px 4px;text-align:right;font-family:\'Courier New\',monospace;color:var(--gold);">'+preyMin+'–'+preyMax+'g<span style="color:var(--ink-dim);font-size:9.5px;">'+pctLabel+'</span></td>'+
       '<td style="padding:6px 4px;text-align:right;">'+(isEn?r.en:r.fr)+'</td>'+
     '</tr>';
   }).join('');
@@ -7364,8 +7420,9 @@ function renderPreyChart(){
     if(!w || w<=0){
       resultEl.textContent = '';
     } else {
-      const lo = Math.round(w*0.10), hi = Math.round(w*0.15);
-      resultEl.textContent = '→ '+(isEn?'suggested prey: ':'proie suggérée : ')+lo+'–'+hi+'g';
+      const pct = preyPercentRange(w);
+      const lo = Math.round(w*pct.min), hi = Math.round(w*pct.max);
+      resultEl.textContent = '→ '+(isEn?'suggested prey: ':'proie suggérée : ')+lo+'–'+hi+'g ('+Math.round(pct.min*100)+'-'+Math.round(pct.max*100)+'%)';
     }
   }
 }
@@ -8863,7 +8920,7 @@ function renderDashboard(){
   });
 
   // Alertes santé (même logique que renderHealthAlerts en Mode Tournée)
-  const healthFlagged = dashSnakes.filter(s => s.health.consecutiveRefusals>=3 || weightDropping(s));
+  const healthFlagged = dashSnakes.filter(s => isFeedingFlagged(s) || weightDropping(s));
 
   // Reptiles actuellement en quarantaine (période non complétée)
   const inQuarantine = dashSnakes.filter(s=>{ const qs = quarantineStatus(s); return qs && !qs.complete; });
