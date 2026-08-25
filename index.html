@@ -201,6 +201,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
 .card .name{font-size:13.5px;font-weight:600;margin-top:8px;line-height:1.3;}
 .card .subline{font-family:'Courier New',monospace;font-size:10px;color:#6b5f45;margin-top:8px;line-height:1.5;}
 .card .warn{margin-top:8px;font-size:10.5px;color:var(--rust);font-family:'Courier New',monospace;line-height:1.4;}
+.parent-combo{font-family:Georgia,serif;font-size:15.5px;margin:2px 0 10px;color:var(--ink);}
+.parent-combo.risk{color:var(--rust);font-weight:700;}
 .card .warn.risk{background:rgba(163,77,44,.18);border:1px solid var(--rust);border-radius:10px;padding:7px 9px;font-weight:700;cursor:pointer;}
 .card .warn.risk .warn-full{display:none;}
 .card .warn.risk.expanded .warn-short{display:none;}
@@ -935,6 +937,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
     <h2 data-i18n="resultsTitle">Résultats</h2>
     <span id="combo-count"></span>
   </div>
+  <div id="parent-combo" class="parent-combo"></div>
   <div id="sex-note" class="sex-note"></div>
   <div id="results" class="grid"><div class="empty" data-i18n="calcEmptyState">Sélectionne les gènes des deux parents, puis lance le calcul.</div></div>
   <div id="punnett-wrap" class="punnett-wrap">
@@ -1691,7 +1694,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.2';
+const APP_VERSION = '2026.08.25.3';
 (function checkForNewVersion(){
   try{
     if(sessionStorage.getItem('locus_version_reloaded')){ sessionStorage.removeItem('locus_version_reloaded'); return; }
@@ -4913,6 +4916,18 @@ function pairToGeneStatuses(locus, pair){
   return result;
 }
 
+function parentComboSummary(){
+  const isEn = currentLang==='en';
+  const namesFor = sex => Object.keys(state[sex])
+    .filter(k=>!isFreewayKey(k))
+    .map(k=>GENES.find(g=>g.id===k))
+    .filter(Boolean)
+    .map(g=>g.name);
+  const maleNames = namesFor('male');
+  const femaleNames = namesFor('female');
+  const normalLabel = isEn?'Normal':'Normal';
+  return (maleNames.length?maleNames.join(' '):normalLabel) + ' × ' + (femaleNames.length?femaleNames.join(' '):normalLabel);
+}
 function runCross(){
   const isEn = currentLang==='en';
   updateSexNote();
@@ -4926,6 +4941,7 @@ function runCross(){
   if(loci.length===0 && lastFreewayLoci.length===0 && lastUncertainGenes.length===0 && lastUnknownTypeGenes.length===0){
     document.getElementById('results').innerHTML = '<div class="empty">'+(isEn?'Select at least one gene for one of the parents.':'Sélectionne au moins un gène chez un des parents.')+'</div>';
     document.getElementById('combo-count').textContent = '';
+    document.getElementById('parent-combo').textContent = '';
     document.getElementById('punnett-wrap').style.display = 'none';
     document.getElementById('clutch-panel').style.display = 'none';
     return;
@@ -4965,6 +4981,10 @@ function runCross(){
   });
 
   const results = Object.values(agg).sort((a,b)=>b.prob-a.prob);
+  const hasRisk = results.some(r=>r.warnings && r.warnings.length);
+  const comboEl = document.getElementById('parent-combo');
+  comboEl.className = 'parent-combo' + (hasRisk?' risk':'');
+  comboEl.textContent = (hasRisk?'🚨 ':'') + parentComboSummary();
   document.getElementById('combo-count').textContent = results.length + (isEn?' result(s) — ':' résultat(s) — ') + loci.length + (isEn?' locus factored in':' locus pris en compte') + (lastFreewayLoci.length ? (isEn?' — 🔍 '+lastFreewayLoci.length+' unconfirmed locus':' — 🔍 '+lastFreewayLoci.length+' locus non confirmé(s)') : '') + (lastUncertainGenes.length ? (isEn?' — 🔍 '+lastUncertainGenes.length+' unconfirmed gene(s)':' — 🔍 '+lastUncertainGenes.length+' gène(s) non confirmé(s)') : '');
 
   const grid = document.getElementById('results');
