@@ -201,7 +201,11 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
 .card .name{font-size:13.5px;font-weight:600;margin-top:8px;line-height:1.3;}
 .card .subline{font-family:'Courier New',monospace;font-size:10px;color:#6b5f45;margin-top:8px;line-height:1.5;}
 .card .warn{margin-top:8px;font-size:10.5px;color:var(--rust);font-family:'Courier New',monospace;line-height:1.4;}
-.card .warn.risk{background:rgba(163,77,44,.18);border:1px solid var(--rust);border-radius:10px;padding:7px 9px;font-weight:700;}
+.card .warn.risk{background:rgba(163,77,44,.18);border:1px solid var(--rust);border-radius:10px;padding:7px 9px;font-weight:700;cursor:pointer;}
+.card .warn.risk .warn-full{display:none;}
+.card .warn.risk.expanded .warn-short{display:none;}
+.card .warn.risk.expanded .warn-full{display:block;}
+.card .warn.risk u{text-decoration:underline;font-weight:400;color:var(--ink-dim);}
 .card .note{margin-top:8px;font-size:10.5px;color:var(--ink-dim);font-family:'Courier New',monospace;line-height:1.4;background:rgba(255,255,255,.04);border:1px dashed var(--line);border-radius:10px;padding:6px 8px;}
 .punnett-table td.risk-cell{background:rgba(163,77,44,.22);border:1px solid var(--rust);font-weight:700;}
 .card .worldfirst{margin-top:8px;font-size:10px;color:#4a6b3a;font-family:'Courier New',monospace;line-height:1.4;background:rgba(124,131,99,.18);border-radius:12px;padding:5px 7px;}
@@ -932,11 +936,11 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
     <span id="combo-count"></span>
   </div>
   <div id="sex-note" class="sex-note"></div>
+  <div id="results" class="grid"><div class="empty" data-i18n="calcEmptyState">Sélectionne les gènes des deux parents, puis lance le calcul.</div></div>
   <div id="punnett-wrap" class="punnett-wrap">
     <h3><span data-i18n="punnettTitle">Carré de Punnett</span> — <span id="punnett-locus"></span></h3>
     <table class="punnett-table" id="punnett-table"></table>
   </div>
-  <div id="results" class="grid"><div class="empty" data-i18n="calcEmptyState">Sélectionne les gènes des deux parents, puis lance le calcul.</div></div>
 
   <div class="clutch-panel" id="clutch-panel">
     <div class="clutch-hdr">
@@ -1687,7 +1691,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.1';
+const APP_VERSION = '2026.08.25.2';
 (function checkForNewVersion(){
   try{
     if(sessionStorage.getItem('locus_version_reloaded')){ sessionStorage.removeItem('locus_version_reloaded'); return; }
@@ -4970,7 +4974,14 @@ function runCross(){
     card.className='card';
     let sub = '';
     if(r.hets.length) sub += (isEn?'Carrier: ':'Porteur : ')+r.hets.join(', ');
-    let warn = r.warnings.length ? '<div class="warn risk">🚨 '+[...new Set(r.warnings)].join(' ')+'</div>' : '';
+    let warn = '';
+    if(r.warnings.length){
+      const fullWarn = [...new Set(r.warnings)].join(' ');
+      const shortWarn = fullWarn.length>70 ? fullWarn.slice(0,70).replace(/\s+\S*$/,'') + '…' : fullWarn;
+      warn = '<div class="warn risk" onclick="this.classList.toggle(\'expanded\')">'+
+        '<span class="warn-short">🚨 '+shortWarn+' <u>'+(isEn?'(tap for details)':'(toucher pour détails)')+'</u></span>'+
+        '<span class="warn-full">🚨 '+fullWarn+'</span></div>';
+    }
     let wf = r.visualsCount>=3 ? '<div class="worldfirst">🌍 '+(isEn?'Possible World First — no known price reference':'Possible World First — pas de référence de prix connue')+'</div>' : '';
     card.innerHTML = '<div class="pct">'+(r.prob*100).toFixed(2).replace(/\.00$/,'')+'%</div>'+
       '<div class="name">'+r.name+'</div>'+
