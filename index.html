@@ -201,6 +201,9 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
 .card .name{font-size:13.5px;font-weight:600;margin-top:8px;line-height:1.3;}
 .card .subline{font-family:'Courier New',monospace;font-size:10px;color:#6b5f45;margin-top:8px;line-height:1.5;}
 .card .warn{margin-top:8px;font-size:10.5px;color:var(--rust);font-family:'Courier New',monospace;line-height:1.4;}
+.card .warn.risk{background:rgba(163,77,44,.18);border:1px solid var(--rust);border-radius:10px;padding:7px 9px;font-weight:700;}
+.card .note{margin-top:8px;font-size:10.5px;color:var(--ink-dim);font-family:'Courier New',monospace;line-height:1.4;background:rgba(255,255,255,.04);border:1px dashed var(--line);border-radius:10px;padding:6px 8px;}
+.punnett-table td.risk-cell{background:rgba(163,77,44,.22);border:1px solid var(--rust);font-weight:700;}
 .card .worldfirst{margin-top:8px;font-size:10px;color:#4a6b3a;font-family:'Courier New',monospace;line-height:1.4;background:rgba(124,131,99,.18);border-radius:12px;padding:5px 7px;}
 .empty{color:var(--ink-dim);font-family:'Courier New',monospace;font-size:12.5px;text-align:center;padding:40px 0;}
 
@@ -930,7 +933,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
   </div>
   <div id="sex-note" class="sex-note"></div>
   <div id="punnett-wrap" class="punnett-wrap">
-    <h3>Carré de Punnett — <span id="punnett-locus"></span></h3>
+    <h3><span data-i18n="punnettTitle">Carré de Punnett</span> — <span id="punnett-locus"></span></h3>
     <table class="punnett-table" id="punnett-table"></table>
   </div>
   <div id="results" class="grid"><div class="empty" data-i18n="calcEmptyState">Sélectionne les gènes des deux parents, puis lance le calcul.</div></div>
@@ -1955,15 +1958,16 @@ const GENES = [
   // Cinnamon / Black Pastel Complex — locus partagé (allélisme prouvé, vérifié ReptiDex).
   // Les deux formes homozygotes ET le composé hétérozygote Cinnamon×Black Pastel ("8-Ball", voir
   // COMPOUND_NAMES) partagent le même risque santé accru — texte d'avertissement volontairement identique.
-  {id:'champagne', name:'Champagne', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant', warning:"Wobble (trouble neurologique de la tête/du regard) présent chez la quasi-totalité des porteurs, même à l'état simple. Forme homozygote (Super Champagne) létale in ovo — jamais viable. Combinaison avec Spider (même locus) également létale."},
-  {id:'cinnamon', name:'Cinnamon', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant', warning:"Forme homozygote (Super Cinnamon / « 8-Ball ») associée à un risque accru de kinking (déformations vertébrales), microphtalmie (« bug eyes »), malformation de la mâchoire (duckbill) et retard de croissance. Tous les individus supers ne sont pas affectés, mais l'incidence est jugée significative par de nombreux éleveurs expérimentés."},
-  {id:'blackpastel', name:'Black Pastel', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant', warning:"Forme homozygote (Super Black Pastel / « 8-Ball ») associée au même risque accru que Super Cinnamon : kinking, microphtalmie, malformation de la mâchoire, retard de croissance."},
+  {id:'champagne', name:'Champagne', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant', warning:"Wobble (trouble neurologique de la tête/du regard) présent chez la quasi-totalité des porteurs, même à l'état simple. Forme homozygote (Super Champagne) létale in ovo — jamais viable. Combinaison avec Spider (même locus) également létale.", warningEn:"Wobble (neurological head/eye-tracking disorder) present in nearly all carriers, even in single (het) form. Homozygous form (Super Champagne) is lethal in ovo — never viable. Combination with Spider (same locus) is also lethal."},
+  {id:'cinnamon', name:'Cinnamon', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant', warning:"Forme homozygote (Super Cinnamon / « 8-Ball ») associée à un risque accru de kinking (déformations vertébrales), microphtalmie (« bug eyes »), malformation de la mâchoire (duckbill) et retard de croissance. Tous les individus supers ne sont pas affectés, mais l'incidence est jugée significative par de nombreux éleveurs expérimentés.", warningEn:"Homozygous form (Super Cinnamon / \"8-Ball\") is associated with an increased risk of kinking (spinal deformities), microphthalmia (\"bug eyes\"), jaw malformation (duckbill), and stunted growth. Not every super individual is affected, but the incidence is considered significant by many experienced breeders."},
+  {id:'blackpastel', name:'Black Pastel', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant', warning:"Forme homozygote (Super Black Pastel / « 8-Ball ») associée au même risque accru que Super Cinnamon : kinking, microphtalmie, malformation de la mâchoire, retard de croissance.", warningEn:"Homozygous form (Super Black Pastel / \"8-Ball\") carries the same increased risk as Super Cinnamon: kinking, microphthalmia, jaw malformation, stunted growth."},
   {id:'huffman', name:'Huffman', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant'},
   {id:'jolt', name:'Jolt', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant'},
   {id:'razor', name:'Razor', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant'},
   {id:'banana', name:'Banana', type:'incdom', locus:'banana', cat:'Codominant / Incomplet dominant', superLabel:'Super Banana (phénotype Coral Glow)',
     sexLinkedMaker:true,
-    warning:"Gène lié au sexe (porté par X, parfois Y) : certains mâles porteurs de ce gène sont « Male Maker » ou « Female Maker » et produisent une portée très déséquilibrée en sexe. Ce moteur calcule les probabilités de traits visuels, pas la répartition des sexes — voir la note affichée si le mâle est marqué Male/Female Maker."},
+    warning:"Gène lié au sexe (porté par X, parfois Y) : certains mâles porteurs de ce gène sont « Male Maker » ou « Female Maker » et produisent une portée très déséquilibrée en sexe. Ce moteur calcule les probabilités de traits visuels, pas la répartition des sexes — voir la note affichée si le mâle est marqué Male/Female Maker.",
+    warningEn:"Sex-linked gene (carried on X, sometimes Y): some males carrying this gene are \"Male Maker\" or \"Female Maker\" and produce a heavily sex-skewed clutch. This engine calculates visual trait probabilities, not sex ratios — see the note displayed if the male is flagged as Male/Female Maker."},
   {id:'yellowbelly', name:'Yellowbelly', type:'incdom', locus:'yellowbellyComplex', cat:'Codominant / Incomplet dominant', superLabel:'Ivory (super Yellowbelly)'},
   {id:'asphalt', name:'Asphalt', type:'incdom', locus:'yellowbellyComplex', cat:'Codominant / Incomplet dominant'},
   {id:'specter', name:'Specter', type:'incdom', locus:'yellowbellyComplex', cat:'Codominant / Incomplet dominant'},
@@ -1979,22 +1983,22 @@ const GENES = [
   {id:'hetredaxanthic', name:'Het Red Axanthic', type:'incdom', locus:'hetredaxanthic', cat:'Codominant / Incomplet dominant', superLabel:'Red Axanthic (super Het Red Axanthic)'},
   {id:'sable', name:'Sable', type:'incdom', locus:'sable', cat:'Codominant / Incomplet dominant'},
   {id:'redstripe', name:'Red Stripe', type:'incdom', locus:'redstripe', cat:'Codominant / Incomplet dominant'},
-  {id:'stranger', name:'Stranger', type:'incdom', locus:'stranger', cat:'Codominant / Incomplet dominant', warning:"Statut génétique noté « suspecté » (non encore confirmé à 100 %) par Morphpedia — traité ici comme codominant par défaut, à vérifier avant tout usage commercial engageant."},
+  {id:'stranger', name:'Stranger', type:'incdom', locus:'stranger', cat:'Codominant / Incomplet dominant', warning:"Statut génétique noté « suspecté » (non encore confirmé à 100 %) par Morphpedia — traité ici comme codominant par défaut, à vérifier avant tout usage commercial engageant.", warningEn:"Genetic status listed as \"suspected\" (not yet 100% confirmed) by Morphpedia — treated here as codominant by default; verify before any binding commercial use."},
   // Dominant — Spider Complex : locus partagé (allélisme prouvé, vérifié ReptiDex). Spider et Champagne
   // (ci-dessus) sont TOUJOURS létaux à l'état homozygote et létaux ensemble (Spider × Champagne) — géré
   // via CROSS_WARNINGS plus bas. HGW et Woma : wobble léger rapporté chez une partie des individus
   // (source explicite) ; Blackhead/Spotnose/Chocolate/Wookie/Cypress : pas de wobble rapporté spécifiquement
   // dans la source consultée — aucun avertissement ajouté pour ne pas suggérer un risque non confirmé.
-  {id:'spider', name:'Spider', type:'dominant', locus:'spiderComplex', cat:'Dominant', warning:"Wobble syndrome (trouble neurologique de la tête/du regard) présent chez la quasi-totalité des individus, même à l'état simple. Forme homozygote (Super Spider) létale in ovo — jamais viable. Combinaison avec Champagne (même locus) également létale."},
-  {id:'woma', name:'Woma', type:'dominant', locus:'spiderComplex', cat:'Dominant', warning:"Wobble (trouble neurologique de la tête/du regard) rapporté chez une partie des individus porteurs de ce gène."},
-  {id:'hgw', name:'Hidden Gene Woma (HGW)', type:'dominant', locus:'spiderComplex', cat:'Dominant', warning:"Wobble léger rapporté chez une partie des individus porteurs de ce gène."},
-  {id:'blackhead', name:'Blackhead', type:'dominant', locus:'spiderComplex', cat:'Dominant'},
-  {id:'spotnose', name:'Spotnose', type:'dominant', locus:'spiderComplex', cat:'Dominant'},
-  {id:'chocolate', name:'Chocolate', type:'dominant', locus:'spiderComplex', cat:'Dominant'},
-  {id:'wookie', name:'Wookie', type:'dominant', locus:'spiderComplex', cat:'Dominant'},
-  {id:'cypress', name:'Cypress', type:'dominant', locus:'spiderComplex', cat:'Dominant'},
+  {id:'spider', name:'Spider', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant', warning:"Wobble syndrome (trouble neurologique de la tête/du regard) présent chez la quasi-totalité des individus, même à l'état simple. Forme homozygote (Super Spider) létale in ovo — jamais viable. Combinaison avec Champagne (même locus) également létale.", warningEn:"Wobble syndrome (neurological head/eye-tracking disorder) present in nearly all individuals, even in single (het) form. Homozygous form (Super Spider) is lethal in ovo — never viable. Combination with Champagne (same locus) is also lethal."},
+  {id:'woma', name:'Woma', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant', warning:"Wobble (trouble neurologique de la tête/du regard) rapporté chez une partie des individus porteurs de ce gène.", warningEn:"Wobble (neurological head/eye-tracking disorder) reported in some individuals carrying this gene."},
+  {id:'hgw', name:'Hidden Gene Woma (HGW)', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant', warning:"Wobble léger rapporté chez une partie des individus porteurs de ce gène.", warningEn:"Mild wobble reported in some individuals carrying this gene."},
+  {id:'blackhead', name:'Blackhead', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant'},
+  {id:'spotnose', name:'Spotnose', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant'},
+  {id:'chocolate', name:'Chocolate', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant'},
+  {id:'wookie', name:'Wookie', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant'},
+  {id:'cypress', name:'Cypress', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant'},
   {id:'confusion', name:'Confusion', type:'dominant', locus:'confusion', cat:'Dominant'},
-  {id:'bongo', name:'Bongo', type:'dominant', locus:'spiderComplex', cat:'Dominant'},
+  {id:'bongo', name:'Bongo', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant'},
   {id:'eramosa', name:'Eramosa', type:'dominant', locus:'eramosa', cat:'Dominant'},
   {id:'pinstripe', name:'Pinstripe', type:'dominant', locus:'pinstripe', cat:'Dominant'},
   {id:'leopard', name:'Leopard', type:'dominant', locus:'leopard', cat:'Dominant'},
@@ -2004,8 +2008,8 @@ const GENES = [
   {id:'clown', name:'Clown', type:'recessive', locus:'clown', cat:'Récessif'},
   // T- Albino Complex — Albino et Candy partagent le locus TYR (vérifié ReptiDex) ; le composé
   // hétérozygote Albino×Candy produit le phénotype Ultramel (voir COMPOUND_NAMES plus bas).
-  {id:'albino', name:'Albino', type:'recessive', locus:'tAlbinoComplex', cat:'Récessif', warning:"Photophobie (grande sensibilité à la lumière) rapportée chez les individus visuels, due au manque de pigment dans l'iris — éclairage du terrarium à adapter (lumière tamisée, cachettes ombragées disponibles)."},
-  {id:'candy', name:'Candy / Toffee', type:'recessive', locus:'tAlbinoComplex', cat:'Récessif', warning:"Même allèle que Candy, nommé différemment selon la lignée d'origine (Toffee = lignée Craig Stewart, Candy = lignée Peter Kahl) — génétiquement identiques. Photophobie rapportée chez les individus visuels, comme pour Albino, due au manque de pigment dans l'iris."},
+  {id:'albino', name:'Albino', type:'recessive', locus:'tAlbinoComplex', cat:'Récessif', warning:"Photophobie (grande sensibilité à la lumière) rapportée chez les individus visuels, due au manque de pigment dans l'iris — éclairage du terrarium à adapter (lumière tamisée, cachettes ombragées disponibles).", warningEn:"Photophobia (high light sensitivity) reported in visual individuals, due to lack of pigment in the iris — terrarium lighting should be adapted (dimmed light, shaded hides available)."},
+  {id:'candy', name:'Candy / Toffee', type:'recessive', locus:'tAlbinoComplex', cat:'Récessif', warning:"Même allèle que Candy, nommé différemment selon la lignée d'origine (Toffee = lignée Craig Stewart, Candy = lignée Peter Kahl) — génétiquement identiques. Photophobie rapportée chez les individus visuels, comme pour Albino, due au manque de pigment dans l'iris.", warningEn:"Same allele as Candy, named differently depending on the founding line (Toffee = Craig Stewart line, Candy = Peter Kahl line) — genetically identical. Photophobia reported in visual individuals, as with Albino, due to lack of pigment in the iris."},
   {id:'lavenderalbino', name:'Lavender Albino', type:'recessive', locus:'lavenderalbino', cat:'Récessif'},
   {id:'axanthic', name:'Axanthic (VPI)', type:'recessive', locus:'axanthicvpi', cat:'Récessif'},
   {id:'axanthictsk', name:'Axanthic (TSK)', type:'recessive', locus:'axanthictsk', cat:'Récessif'},
@@ -2731,6 +2735,7 @@ const I18N = {
     loadBtn: 'Charger…',
     searchGenePlaceholder: 'Rechercher un gène (ex. Pastel, Mojave, Piebald)…',
     resultsTitle: 'Résultats',
+    punnettTitle: 'Carré de Punnett',
     calcEmptyState: 'Sélectionne les gènes des deux parents, puis lance le calcul.',
     simulateClutchTitle: 'Simuler une ponte',
     eggsLabel: 'Œufs :',
@@ -3127,6 +3132,7 @@ const I18N = {
     loadBtn: 'Load…',
     searchGenePlaceholder: 'Search a gene (e.g. Pastel, Mojave, Piebald)…',
     resultsTitle: 'Results',
+    punnettTitle: 'Punnett Square',
     calcEmptyState: 'Select genes for both parents, then run the calculation.',
     simulateClutchTitle: 'Simulate a Clutch',
     eggsLabel: 'Eggs:',
@@ -3837,7 +3843,7 @@ function renderTags(sex){
       const locus = freewayLocusFromKey(geneId);
       const pill = document.createElement('div');
       pill.className='tag-pill freeway';
-      pill.innerHTML = '<span>⚠ '+freewayLabel(locus)+'</span><span class="rm" data-g="'+geneId+'">×</span>';
+      pill.innerHTML = '<span>🔍 '+freewayLabel(locus)+'</span><span class="rm" data-g="'+geneId+'">×</span>';
       wrap.appendChild(pill);
       return;
     }
@@ -4797,6 +4803,10 @@ function crossLocus(p1pair, p2pair){
   return list;
 }
 
+function geneWarning(g){
+  if(!g || !g.warning) return undefined;
+  return (currentLang==='en') ? (g.warningEn || g.warning) : g.warning;
+}
 function phenotypeForLocusPair(locus, pair){
   const [a,b] = pair;
   if(a==='WT' && b==='WT') return null;
@@ -4804,18 +4814,18 @@ function phenotypeForLocusPair(locus, pair){
   if(a===b){
     const g = genesAtLocus.find(x=>x.id===a);
     if(g.type==='recessive') return {label:g.name, visual:true, geneIds:[g.id]};
-    return {label:superName(g), visual:true, warning:g.warning, geneIds:[g.id]};
+    return {label:superName(g), visual:true, warning:geneWarning(g), geneIds:[g.id]};
   }
   if(a==='WT' || b==='WT'){
     const mutId = a==='WT'?b:a;
     const g = genesAtLocus.find(x=>x.id===mutId);
     if(g.type==='recessive') return {label:g.name+' (porteur)', visual:false, geneIds:[g.id]};
-    return {label:g.name, visual:true, warning:g.warning, geneIds:[g.id]};
+    return {label:g.name, visual:true, warning:geneWarning(g), geneIds:[g.id]};
   }
   const key = [a,b].sort().join('+');
   const compoundName = (COMPOUND_NAMES[locus] && COMPOUND_NAMES[locus][key]);
   const gA = genesAtLocus.find(x=>x.id===a), gB = genesAtLocus.find(x=>x.id===b);
-  const warnings = [gA.warning, gB.warning].filter(Boolean);
+  const warnings = [geneWarning(gA), geneWarning(gB)].filter(Boolean);
   if(compoundName) return {label:compoundName, visual:true, geneIds:[a,b], warning: warnings.join(' ') || undefined};
   return {label:gA.name+' + '+gB.name+' (combo)', visual:true, geneIds:[a,b], warning: warnings.join(' ') || undefined};
 }
@@ -4949,7 +4959,7 @@ function runCross(){
   });
 
   const results = Object.values(agg).sort((a,b)=>b.prob-a.prob);
-  document.getElementById('combo-count').textContent = results.length + (isEn?' result(s) — ':' résultat(s) — ') + loci.length + (isEn?' locus factored in':' locus pris en compte') + (lastFreewayLoci.length ? (isEn?' — ⚠ '+lastFreewayLoci.length+' unconfirmed locus':' — ⚠ '+lastFreewayLoci.length+' locus non confirmé(s)') : '') + (lastUncertainGenes.length ? (isEn?' — ⚠ '+lastUncertainGenes.length+' unconfirmed gene(s)':' — ⚠ '+lastUncertainGenes.length+' gène(s) non confirmé(s)') : '');
+  document.getElementById('combo-count').textContent = results.length + (isEn?' result(s) — ':' résultat(s) — ') + loci.length + (isEn?' locus factored in':' locus pris en compte') + (lastFreewayLoci.length ? (isEn?' — 🔍 '+lastFreewayLoci.length+' unconfirmed locus':' — 🔍 '+lastFreewayLoci.length+' locus non confirmé(s)') : '') + (lastUncertainGenes.length ? (isEn?' — 🔍 '+lastUncertainGenes.length+' unconfirmed gene(s)':' — 🔍 '+lastUncertainGenes.length+' gène(s) non confirmé(s)') : '');
 
   const grid = document.getElementById('results');
   grid.innerHTML = '';
@@ -4958,7 +4968,7 @@ function runCross(){
     card.className='card';
     let sub = '';
     if(r.hets.length) sub += (isEn?'Carrier: ':'Porteur : ')+r.hets.join(', ');
-    let warn = r.warnings.length ? '<div class="warn">⚠ '+[...new Set(r.warnings)].join(' ')+'</div>' : '';
+    let warn = r.warnings.length ? '<div class="warn risk">🚨 '+[...new Set(r.warnings)].join(' ')+'</div>' : '';
     let wf = r.visualsCount>=3 ? '<div class="worldfirst">🌍 '+(isEn?'Possible World First — no known price reference':'Possible World First — pas de référence de prix connue')+'</div>' : '';
     card.innerHTML = '<div class="pct">'+(r.prob*100).toFixed(2).replace(/\.00$/,'')+'%</div>'+
       '<div class="name">'+r.name+'</div>'+
@@ -4973,7 +4983,7 @@ function runCross(){
     card.style.borderTopColor = 'var(--rust)';
     card.innerHTML = '<div class="pct" style="font-size:18px;color:var(--rust);">?</div>'+
       '<div class="name">'+freewayLabel(locus)+'</div>'+
-      '<div class="warn">⚠ '+(isEn?'Genetics not calculable — a parent carries an unconfirmed identity on this locus. To be settled by visual ID of the baby or a test breeding.':'Génétique non calculable — un parent est porteur d\'une identité non confirmée sur ce locus. À trancher par identification visuelle du bébé ou élevage-test.')+'</div>';
+      '<div class="note">🔍 '+(isEn?'Genetics not calculable — a parent carries an unconfirmed identity on this locus. To be settled by visual ID of the baby or a test breeding.':'Génétique non calculable — un parent est porteur d\'une identité non confirmée sur ce locus. À trancher par identification visuelle du bébé ou élevage-test.')+'</div>';
     grid.appendChild(card);
   });
 
@@ -4986,7 +4996,7 @@ function runCross(){
     const pctTxt = u.percent ? u.percent+'%' : (isEn?'Possible':'Possible');
     card.innerHTML = '<div class="pct" style="font-size:18px;color:var(--rust);">'+pctTxt+'</div>'+
       '<div class="name">'+u.gene.name+' — '+(u.sex==='male'?(isEn?'male side':'côté mâle'):(isEn?'female side':'côté femelle'))+'</div>'+
-      '<div class="warn">⚠ '+(isEn?'Not 100% confirmed, not included in the Mendelian calculation. Confirm it (DNA test, test breeding) to factor it into the probabilities.':'Non confirmé à 100%, non inclus dans le calcul mendélien. Confirme-le (test ADN, élevage-test) pour l\'intégrer aux probabilités.')+'</div>';
+      '<div class="note">🔍 '+(isEn?'Not 100% confirmed, not included in the Mendelian calculation. Confirm it (DNA test, test breeding) to factor it into the probabilities.':'Non confirmé à 100%, non inclus dans le calcul mendélien. Confirme-le (test ADN, élevage-test) pour l\'intégrer aux probabilités.')+'</div>';
     grid.appendChild(card);
   });
 
@@ -5035,7 +5045,8 @@ function renderPunnett(locus, p1pair, p2pair){
       const pair = [p1pair[ri], p2pair[ci]].sort();
       const pheno = phenotypeForLocusPair(locus, pair);
       const label = pheno ? pheno.label : (isEn?'Normal':'Normal');
-      html += '<td>'+label+'</td>';
+      const risky = pheno && pheno.warning;
+      html += '<td'+(risky?' class="risk-cell" title="'+escapeHtml(pheno.warning)+'"':'')+'>'+label+(risky?' 🚨':'')+'</td>';
     });
     html += '</tr>';
   });
