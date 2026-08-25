@@ -3816,7 +3816,9 @@ function buildSearchIndex(){
   Object.keys(GENES_BY_LOCUS).forEach(locus=>{
     const members = GENES_BY_LOCUS[locus];
     if(members.length>1){
-      items.push({ id:'freeway__'+locus, status:'freeway', name:freewayLabel(locus), group:members[0].cat, gene:{type:'freeway', locus}, isFreeway:true });
+      // Option "Freeway" retirée du sélecteur le 25 août — portait à confusion (Alex).
+      // Le code de support (isFreewayKey, freewayLabel, etc.) reste en place pour ne pas
+      // casser une fiche existante qui l'aurait déjà utilisée, mais on ne peut plus en ajouter.
     }
   });
   return items.sort((a,b)=> CATS_ORDER.indexOf(a.group) - CATS_ORDER.indexOf(b.group));
