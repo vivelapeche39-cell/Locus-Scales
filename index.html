@@ -1671,7 +1671,22 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
     <button class="app-menu-item" onclick="closeAppMenu(); openConfigModal();"><span>⚙️</span> <span data-i18n="menuConfig">Configuration</span></button>
     <button class="app-menu-item" onclick="closeAppMenu(); openTermsModal();"><span>📄</span> <span data-i18n="menuTerms">Conditions d'utilisation</span></button>
     <button class="app-menu-item" onclick="closeAppMenu(); openPrivacyModal();"><span>🔒</span> <span data-i18n="menuPrivacy">Confidentialité</span></button>
+    <button class="app-menu-item" onclick="closeAppMenu(); openBugReportModal();"><span>🐛</span> <span data-i18n="menuBugReport">Signaler un bug</span></button>
     <div class="app-menu-foot">LOCUS Scales — Gestion d'élevage Python royal</div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="bug-report-overlay" role="dialog" aria-modal="true" aria-labelledby="bug-report-title">
+  <div class="modal-panel" style="max-width:420px;">
+    <div class="modal-head"><h2 id="bug-report-title" style="font-size:17px;" data-i18n="bugReportTitle">Signaler un bug</h2><button class="modal-close" onclick="closeBugReportModal()" aria-label="Fermer">×</button></div>
+    <p style="font-size:11px;color:var(--ink-dim);margin:0 0 12px;" data-i18n="bugReportHint">Décris ce qui s'est passé — même juste quelques mots aident. Une capture d'écran est un plus, mais pas obligatoire.</p>
+    <label style="display:block;font-family:'Courier New',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:6px;" data-i18n="bugReportDescLabel">Qu'est-ce qui s'est passé ?</label>
+    <textarea id="bug-report-desc" rows="4" style="width:100%;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:Verdana,sans-serif;font-size:13px;padding:9px 10px;resize:vertical;"></textarea>
+    <div id="bug-report-email-wrap" style="margin-top:12px;"></div>
+    <label style="display:block;font-family:'Courier New',monospace;font-size:10.5px;color:var(--ink-dim);margin:12px 0 6px;" data-i18n="bugReportScreenshotLabel">Capture d'écran (optionnel)</label>
+    <input type="file" id="bug-report-screenshot" accept="image/*" style="font-size:12px;color:var(--ink-dim);"/>
+    <div id="bug-report-screenshot-preview" style="margin-top:8px;"></div>
+    <button class="save-btn" style="margin-top:16px;width:100%;" onclick="submitBugReport()" data-i18n="bugReportSubmitBtn">Envoyer</button>
   </div>
 </div>
 
@@ -1720,7 +1735,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.11';
+const APP_VERSION = '2026.08.25.12';
 (function checkForNewVersion(){
   try{
     if(sessionStorage.getItem('locus_version_reloaded')){ sessionStorage.removeItem('locus_version_reloaded'); return; }
@@ -2356,6 +2371,77 @@ function updateStorageBanner(){
 function openAppMenu(){ document.getElementById('app-menu-overlay').classList.add('open'); }
 function closeAppMenu(){ document.getElementById('app-menu-overlay').classList.remove('open'); }
 
+/* Rapport de bug (25 août) — dépôt volontairement à sens unique : n'importe qui peut soumettre
+   (connecté ou non), personne (même connecté) ne peut relire les rapports via l'app — voir la
+   politique RLS sur bug_reports. La capture d'écran, si fournie, est stockée en base64 directement
+   dans la table (pas de bucket Storage séparé — volume attendu trop faible pour le justifier). */
+let bugReportScreenshotData = null;
+function openBugReportModal(){
+  const isEn = currentLang==='en';
+  document.getElementById('bug-report-desc').value = '';
+  document.getElementById('bug-report-screenshot').value = '';
+  document.getElementById('bug-report-screenshot-preview').innerHTML = '';
+  bugReportScreenshotData = null;
+  const emailWrap = document.getElementById('bug-report-email-wrap');
+  if(currentUser && currentUser.email){
+    emailWrap.innerHTML = '<div style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Reply-to: ':'Réponse à : ')+escapeHtml(currentUser.email)+'</div>';
+  } else {
+    emailWrap.innerHTML = '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:6px;">'+(isEn?'Your email (optional, so we can follow up)':'Ton courriel (optionnel, pour te recontacter)')+'</label>'+
+      '<input type="email" id="bug-report-email" style="width:100%;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:Verdana,sans-serif;font-size:13px;padding:9px 10px;"/>';
+  }
+  document.getElementById('bug-report-overlay').style.display = 'flex';
+}
+function closeBugReportModal(){
+  document.getElementById('bug-report-overlay').style.display = 'none';
+}
+document.addEventListener('change', function(e){
+  if(e.target && e.target.id==='bug-report-screenshot'){
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const maxW = 900;
+        const scale = Math.min(1, maxW/img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width*scale);
+        canvas.height = Math.round(img.height*scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        bugReportScreenshotData = canvas.toDataURL('image/jpeg', 0.75);
+        document.getElementById('bug-report-screenshot-preview').innerHTML = '<img src="'+bugReportScreenshotData+'" style="max-width:100%;border-radius:8px;border:1px solid var(--line);"/>';
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+});
+function submitBugReport(){
+  const isEn = currentLang==='en';
+  const desc = document.getElementById('bug-report-desc').value.trim();
+  if(!desc){ showToast(isEn?'Add a short description first.':'Ajoute une courte description d\'abord.', 'error'); return; }
+  const emailInput = document.getElementById('bug-report-email');
+  const email = (currentUser && currentUser.email) ? currentUser.email : (emailInput ? emailInput.value.trim() : '');
+  const activeTabBtn = document.querySelector('.tab-btn.active');
+  const payload = {
+    user_id: currentUser ? currentUser.id : null,
+    email: email || null,
+    description: desc,
+    screenshot_base64: bugReportScreenshotData,
+    app_version: APP_VERSION,
+    tab_context: activeTabBtn ? activeTabBtn.textContent.trim() : null,
+    lang: currentLang
+  };
+  if(!sb){ showToast(isEn?'Connection error — try again shortly.':'Erreur de connexion — réessaie sous peu.', 'error'); return; }
+  sb.from('bug_reports').insert(payload).then(({error})=>{
+    if(error){ showToast(isEn?'Could not send — try again shortly.':'Envoi impossible — réessaie sous peu.', 'error'); return; }
+    closeBugReportModal();
+    showToast('🐛 '+(isEn?'Thanks — bug report sent.':'Merci — rapport envoyé.'), 'success');
+  });
+}
+
+
+
 // Échap ferme la modale actuellement ouverte, peu importe laquelle — attendu par tout
 // utilisateur clavier, absent jusqu'ici sur les 3 systèmes de modale de l'app.
 document.addEventListener('keydown', (e)=>{
@@ -2916,6 +3002,13 @@ const I18N = {
     menuConfig: 'Configuration',
     menuTerms: 'Conditions d\'utilisation',
     menuPrivacy: 'Confidentialité',
+    menuBugReport: 'Signaler un bug',
+    bugReportTitle: 'Signaler un bug',
+    bugReportHint: 'Décris ce qui s\'est passé — même juste quelques mots aident. Une capture d\'écran est un plus, mais pas obligatoire.',
+    bugReportDescLabel: 'Qu\'est-ce qui s\'est passé ?',
+    bugReportEmailLabel: 'Ton courriel (pour te recontacter au besoin)',
+    bugReportScreenshotLabel: 'Capture d\'écran (optionnel)',
+    bugReportSubmitBtn: 'Envoyer',
     // Phase 2 — Calculateur
     specimenMale: 'Reproducteur — Mâle',
     specimenFemale: 'Reproductrice — Femelle',
@@ -3320,6 +3413,13 @@ const I18N = {
     menuConfig: 'Settings',
     menuTerms: 'Terms of Use',
     menuPrivacy: 'Privacy',
+    menuBugReport: 'Report a bug',
+    bugReportTitle: 'Report a bug',
+    bugReportHint: 'Describe what happened — even a few words help. A screenshot is a plus, but not required.',
+    bugReportDescLabel: 'What happened?',
+    bugReportEmailLabel: 'Your email (so we can follow up if needed)',
+    bugReportScreenshotLabel: 'Screenshot (optional)',
+    bugReportSubmitBtn: 'Send',
     // Phase 2 — Calculator
     specimenMale: 'Sire — Male',
     specimenFemale: 'Dam — Female',
