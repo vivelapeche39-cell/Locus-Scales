@@ -1699,6 +1699,17 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
   </div>
 </div>
 
+<div class="modal-overlay" id="photo-compare-overlay" role="dialog" aria-modal="true" aria-labelledby="photo-compare-title">
+  <div class="modal-panel" style="max-width:460px;">
+    <div class="modal-head"><h2 id="photo-compare-title" style="font-size:17px;" data-i18n="photoCompareTitle">Comparer (avant/après)</h2><button class="modal-close" onclick="closePhotoCompare()" aria-label="Fermer">×</button></div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <select id="photo-compare-a" style="flex:1;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:'Courier New',monospace;font-size:12px;padding:8px;" onchange="renderPhotoCompare()"></select>
+      <select id="photo-compare-b" style="flex:1;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:'Courier New',monospace;font-size:12px;padding:8px;" onchange="renderPhotoCompare()"></select>
+    </div>
+    <div id="photo-compare-view" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="logbook-overlay" role="dialog" aria-modal="true" aria-labelledby="logbook-title">
   <div class="modal-panel">
     <div class="modal-head"><h2 id="logbook-title"></h2><button class="modal-close" onclick="closeLogbook()" aria-label="Fermer">×</button></div>
@@ -1735,7 +1746,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.12';
+const APP_VERSION = '2026.08.25.13';
 (function checkForNewVersion(){
   try{
     if(sessionStorage.getItem('locus_version_reloaded')){ sessionStorage.removeItem('locus_version_reloaded'); return; }
@@ -2376,6 +2387,38 @@ function closeAppMenu(){ document.getElementById('app-menu-overlay').classList.r
    politique RLS sur bug_reports. La capture d'écran, si fournie, est stockée en base64 directement
    dans la table (pas de bucket Storage séparé — volume attendu trop faible pour le justifier). */
 let bugReportScreenshotData = null;
+// Comparaison photo avant/après (25 août) — palier PAYANT (pas Gratuit, décision Alex 25 août).
+// Réutilise s.photos déjà existant, aucune nouvelle donnée à stocker.
+let photoCompareSnakeId = null;
+function openPhotoCompare(id){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s || !s.photos || s.photos.length<2) return;
+  photoCompareSnakeId = id;
+  const options = s.photos.map((p,i)=>'<option value="'+i+'">'+p.date+'</option>').join('');
+  const selA = document.getElementById('photo-compare-a');
+  const selB = document.getElementById('photo-compare-b');
+  selA.innerHTML = options;
+  selB.innerHTML = options;
+  selA.selectedIndex = 0;
+  selB.selectedIndex = s.photos.length-1;
+  document.getElementById('photo-compare-overlay').style.display = 'flex';
+  renderPhotoCompare();
+}
+function closePhotoCompare(){
+  document.getElementById('photo-compare-overlay').style.display = 'none';
+  photoCompareSnakeId = null;
+}
+function renderPhotoCompare(){
+  const s = savedSnakes.find(x=>x.id===photoCompareSnakeId);
+  if(!s) return;
+  const iA = parseInt(document.getElementById('photo-compare-a').value, 10);
+  const iB = parseInt(document.getElementById('photo-compare-b').value, 10);
+  const pA = s.photos[iA], pB = s.photos[iB];
+  const cell = (p)=> p ? '<div style="text-align:center;"><img src="'+p.dataUrl+'" style="width:100%;border-radius:8px;border:1px solid var(--line);"/><div style="font-size:10.5px;color:var(--ink-dim);margin-top:4px;">'+p.date+'</div></div>' : '';
+  document.getElementById('photo-compare-view').innerHTML = cell(pA) + cell(pB);
+}
+
 function openBugReportModal(){
   const isEn = currentLang==='en';
   document.getElementById('bug-report-desc').value = '';
@@ -3145,6 +3188,7 @@ const I18N = {
     sexLabel: 'Sexe',
     removeBtn: 'Retirer',
     noPhotoAdded: 'Aucune photo ajoutée — LOCUS ne génère aucune image, ajoute les tiennes.',
+    photoCompareTitle: 'Comparer (avant/après)',
     markSoldBtn: 'Marquer vendu',
     buyerLabel: 'Acheteur',
     saleDateLabel: 'Date de vente',
@@ -3556,6 +3600,7 @@ const I18N = {
     sexLabel: 'Sex',
     removeBtn: 'Remove',
     noPhotoAdded: 'No photo added — LOCUS never generates images, add your own.',
+    photoCompareTitle: 'Compare (before/after)',
     markSoldBtn: 'Mark as sold',
     buyerLabel: 'Buyer',
     saleDateLabel: 'Sale date',
@@ -5679,6 +5724,7 @@ function openLogbook(id){
         '<div class="photo-thumb"><img src="'+p.dataUrl+'" alt="Photo"/><div class="photo-date">'+p.date+'</div>'+
         '<button class="sc-btn danger" style="margin-top:3px;padding:2px 6px;font-size:9px;" onclick="deletePhoto(\''+id+'\',\''+p.id+'\')">'+t('removeBtn')+'</button></div>'
       ).join('')+'</div>'
+      + (s.photos.length>=2 ? '<button class="sc-btn" style="margin-top:8px;" onclick="openPhotoCompare(\''+id+'\')">📷 '+(isEn?'Compare (before/after)':'Comparer (avant/après)')+'</button>' : '')
     : '<div style="font-size:11.5px;color:var(--ink-dim);">'+t('noPhotoAdded')+'</div>';
   const statusButtonsHtml = ['kept','forsale','reserved'].map(v=>
     '<button class="sc-btn'+(s.status===v?' accent':'')+'" onclick="setListingStatus(\''+id+'\',\''+v+'\')">'+saleStatusLabel(v)+'</button>'
@@ -5920,6 +5966,24 @@ function openLogbook(id){
       }).join('');
       return '<div class="modal-section"><h3>🐣 '+(currentLang==='en'?'Fertility & track record':'Fertilité & reproductibilité')+'</h3>'+
         mrow(currentLang==='en'?'Pairings logged':'Accouplements enregistrés', fert.totalPairings) +
+        mrow(currentLang==='en'?'Clutches obtained':'Pontes obtenues', fert.totalClutches) +
+        (fert.successRate!=null ? mrow(currentLang==='en'?'Success rate':'Taux de réussite', fert.successRate+'%') : '') +
+        (fert.avgEggCount!=null ? mrow(currentLang==='en'?'Average clutch size':'Taille moyenne de portée', fert.avgEggCount) : '') +
+        (seasonRows ? '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);">'+
+          '<div style="font-size:10.5px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">'+(currentLang==='en'?'By season':'Par saison')+'</div>'+seasonRows+'</div>' : '')+
+      '</div>';
+    })()+
+    (function(){
+      if(s.sex!=='male') return '';
+      const fert = computeMaleFertility(id);
+      if(!fert) return '';
+      const seasonRows = Object.keys(fert.bySeason).sort().map(year=>{
+        const d = fert.bySeason[year];
+        return mrow(year, d.count+(currentLang==='en'?' clutch(es), avg ':' ponte(s), moy. ')+Math.round(d.eggs/d.count*10)/10+(currentLang==='en'?' eggs':' œufs'));
+      }).join('');
+      return '<div class="modal-section"><h3>🐣 '+(currentLang==='en'?'Fertility & track record':'Fertilité & reproductibilité')+'</h3>'+
+        mrow(currentLang==='en'?'Pairings logged':'Accouplements enregistrés', fert.totalPairings) +
+        mrow(currentLang==='en'?'Different partners':'Partenaires différentes', fert.partners) +
         mrow(currentLang==='en'?'Clutches obtained':'Pontes obtenues', fert.totalClutches) +
         (fert.successRate!=null ? mrow(currentLang==='en'?'Success rate':'Taux de réussite', fert.successRate+'%') : '') +
         (fert.avgEggCount!=null ? mrow(currentLang==='en'?'Average clutch size':'Taille moyenne de portée', fert.avgEggCount) : '') +
@@ -8674,6 +8738,27 @@ function computeFemaleFertility(femaleId){
     bySeason[year].eggs += c.eggCount;
   });
   return { totalPairings: myPairings.length, totalClutches: myClutches.length, successRate, avgEggCount, bySeason };
+}
+
+// Taux de succès reproducteur côté mâle (25 août) — palier PAYANT (10$/Illimité, décision Alex).
+// Même logique que computeFemaleFertility, appliquée à toutes les femelles couvertes par ce mâle
+// (pas juste une paire précise) — utile pour repérer un reproducteur avec un historique fragile
+// avant de miser dessus à nouveau, toutes saisons/partenaires confondues.
+function computeMaleFertility(maleId){
+  const myPairings = pairings.filter(p=>p.maleId===maleId);
+  const myClutches = clutches.filter(c=>c.sireId===maleId);
+  if(!myPairings.length && !myClutches.length) return null;
+  const successRate = myPairings.length ? Math.round((myClutches.length/myPairings.length)*100) : null;
+  const avgEggCount = myClutches.length ? Math.round(myClutches.reduce((a,c)=>a+c.eggCount,0)/myClutches.length*10)/10 : null;
+  const bySeason = {};
+  myClutches.forEach(c=>{
+    const year = (c.layDate||'').slice(0,4) || '?';
+    if(!bySeason[year]) bySeason[year] = { count:0, eggs:0 };
+    bySeason[year].count++;
+    bySeason[year].eggs += c.eggCount;
+  });
+  const partners = [...new Set(myPairings.map(p=>p.femaleId))].length;
+  return { totalPairings: myPairings.length, totalClutches: myClutches.length, successRate, avgEggCount, bySeason, partners };
 }
 
 // ROI par accouplement : revenu réel (bébés déjà vendus) + revenu potentiel (prix demandé sur
