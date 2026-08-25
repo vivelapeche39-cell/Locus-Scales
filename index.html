@@ -40,14 +40,19 @@
 <meta property="og:title" content="LOCUS Scales"/>
 <meta property="og:description" content="Gestion d'élevage complète pour le python royal — génétique, ventes, incubation et administration."/>
 <meta property="og:type" content="website"/>
+<meta property="og:image" content="https://app.locusscales.com/assets/og-image.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<!-- Anti-cache retiré du document HTML lui-même (meta http-equiv Cache-Control/Pragma/Expires) :
+     redondant avec checkForNewVersion() plus bas, qui vérifie déjà version.txt à chaque chargement
+     (fetch no-store, donc toujours frais) et force un rechargement UNIQUEMENT si une vraie nouvelle
+     version est sortie. Les balises meta étaient de toute façon peu fiables sur Safari/iOS — la
+     plateforme même qu'on essayait de corriger. Les retirer permet au navigateur de mettre en cache
+     ce document entre les visites (chargements plus rapides), sans perdre la détection de staleness. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"/>
 <meta name="theme-color" content="#000000"/>
 <meta name="color-scheme" content="dark only"/>
-<!-- Décourage la mise en cache agressive du document HTML lui-même (surtout iOS Safari) —
-     complète le mécanisme de vérification de version dans le script, ne le remplace pas. -->
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
-<meta http-equiv="Pragma" content="no-cache"/>
-<meta http-equiv="Expires" content="0"/>
 <style>
 
 :root{
@@ -1330,9 +1335,11 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
     <div id="checklist-container"></div>
     <div id="suppliers-container"></div>
     <div id="glossary-container"></div>
+    <div id="community-faq-container"></div>
     </div>
 
     <div id="usub-outils" style="display:none;">
+      <div id="community-faq-admin-container"></div>
       <div class="community-folder" id="folder-temp-converter">
         <button class="community-folder-header" onclick="toggleCommunityFolder('folder-temp-converter')">
           <span class="folder-icon">▾</span><span>🌡️ <span data-i18n="toolTempTitle">Convertisseur de température</span></span>
@@ -1387,6 +1394,16 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
         </button>
         <div class="community-folder-body">
           <div id="prebuy-calc-container"></div>
+        </div>
+      </div>
+
+      <div class="community-folder" id="folder-species-guides">
+        <button class="community-folder-header" onclick="toggleCommunityFolder('folder-species-guides')">
+          <span class="folder-icon">▾</span><span>🔗 <span data-i18n="toolGuidesTitle">Partager une fiche espèce</span></span>
+        </button>
+        <div class="community-folder-body">
+          <p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 12px;" data-i18n="toolGuidesHint">Liens publics et partageables, sans compte requis — utile pour les groupes Facebook.</p>
+          <div id="species-guides-list"></div>
         </div>
       </div>
     </div>
@@ -1788,9 +1805,23 @@ if(sb){
     currentUser = session ? session.user : null;
     updateAuthUI();
     if(event === 'SIGNED_IN'){
-      syncWithCloud();
+      syncWithCloud().then(()=>backfillMissingPhotoUrls());
     }
   });
+}
+// Rattrapage silencieux — s'assure que toute photo déjà présente sur une fiche (ex. restaurée
+// depuis un vieux backup JSON en base64) obtient une vraie URL publique tôt ou tard, sans action
+// de l'éleveur. Traite un animal à la fois pour ne pas surcharger Storage d'un coup au login.
+async function backfillMissingPhotoUrls(){
+  if(!currentUser || !sb) return;
+  for(const s of savedSnakes){
+    if(!s.photos || !s.photos.length) continue;
+    for(const p of s.photos){
+      if(!p.publicUrl){
+        await ensurePhotoPublicUrl(s, p);
+      }
+    }
+  }
 }
 function updateAuthUI(){
   const isEn = currentLang==='en';
@@ -1825,6 +1856,7 @@ function updateAuthUI(){
     if(signoutBtn) signoutBtn.style.display = 'none';
   }
   try{ renderPreBuyCalculator(); }catch(e){}
+  try{ renderCommunityFaqAdmin(); }catch(e){}
 }
 // Bloque une action tant que l'utilisateur n'est pas connecté (compte requis pour tout
 // ce qui touche à l'enregistrement d'un reptile, puisque le stockage est maintenant
@@ -2663,6 +2695,8 @@ const I18N = {
     toolFeedingTitle: 'Compte à rebours — prochain repas',
     toolFeedingHint: 'Outil rapide, sans compte requis — pour tes reptiles déjà enregistrés, le statut est déjà affiché automatiquement en Mode Tournée.',
     toolPreBuyTitle: 'Calculateur de coût — avant l\'achat',
+    toolGuidesTitle: 'Partager une fiche espèce',
+    toolGuidesHint: 'Liens publics et partageables, sans compte requis — utile pour les groupes Facebook.',
     toolFeedingLastLabel: 'Dernier repas :',
     toolFeedingIntervalLabel: 'Intervalle (jours) :',
     communauteIntro: 'Le vrai forum communautaire arrive plus tard (une fois LOCUS branché sur son propre serveur). En attendant, voici une première fiche de référence utile — plus de contenu à venir ici avec le temps.',
@@ -3057,6 +3091,8 @@ const I18N = {
     toolFeedingTitle: 'Countdown — next meal',
     toolFeedingHint: 'Quick tool, no account needed — for your saved reptiles, status is already shown automatically in Tour Mode.',
     toolPreBuyTitle: 'Cost calculator — before you buy',
+    toolGuidesTitle: 'Share a species guide',
+    toolGuidesHint: 'Public, shareable links — no account required. Handy for Facebook groups.',
     toolFeedingLastLabel: 'Last meal:',
     toolFeedingIntervalLabel: 'Interval (days):',
     communauteIntro: 'The real community forum is coming later (once LOCUS is connected to its own server). In the meantime, here\'s a first useful reference sheet — more content will be added here over time.',
@@ -4071,7 +4107,7 @@ function showTab(tab){
   if(tab==='elevage'){ renderLayoutPrefs(); renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderTourLayoutPrefs(); renderPairingForm(); renderTimeline(); renderHealthLog(); }
   if(tab==='ventes'){ renderSalesView(); }
   if(tab==='incubation'){ renderClutchForm(); renderClutches(); }
-  if(tab==='utilitaire'){ try{ renderPreyChart(); }catch(e){ console.error('renderPreyChart error:', e); } try{ renderHusbandryFaq(); }catch(e){ console.error('renderHusbandryFaq error:', e); } try{ renderMyths(); }catch(e){} try{ renderChecklist(); }catch(e){} try{ renderSuppliers(); }catch(e){} try{ renderGlossary(); }catch(e){} try{ renderPreBuyCalculator(); }catch(e){ console.error('renderPreBuyCalculator error:', e); } }
+  if(tab==='utilitaire'){ try{ renderPreyChart(); }catch(e){ console.error('renderPreyChart error:', e); } try{ renderHusbandryFaq(); }catch(e){ console.error('renderHusbandryFaq error:', e); } try{ renderMyths(); }catch(e){} try{ renderChecklist(); }catch(e){} try{ renderSuppliers(); }catch(e){} try{ renderGlossary(); }catch(e){} try{ renderPreBuyCalculator(); }catch(e){ console.error('renderPreBuyCalculator error:', e); } try{ renderCommunityFaq(); }catch(e){ console.error('renderCommunityFaq error:', e); } }
   if(tab==='fiscal'){ renderFiscalView(); }
   if(tab==='valeur'){ renderValeurView(); }
   if(tab==='reglement'){ const el = document.getElementById('reg-check-date'); if(el) el.textContent = '4 août 2026'; }
@@ -4084,6 +4120,60 @@ function setDraftSex(v){
 
 // Le champ species est du texte libre (voir saveDraft) — 'ball_python' et 'other' sont les deux
 // seules valeurs à traduire, tout le reste s'affiche tel quel (ce que l'éleveur a tapé).
+const SPECIES_REFERENCE = [
+  { id:'corn_snake', nameFr:'Corn snake', nameEn:'Corn snake', tempWarm:30, tempCool:23, humidity:50,
+    noteFr:'Fourchette classique 40-60% citée par la majorité des sources. Certaines sources récentes (ReptiFiles, The Bio Dude) argumentent plutôt pour 65-75% selon l\'habitat naturel réel — débat non tranché, ajuste selon tes observations.',
+    noteEn:'Classic 40-60% range cited by most sources. Some more recent sources (ReptiFiles, The Bio Dude) argue for 65-75% based on actual native habitat — debate not settled, adjust based on your own observations.'},
+  { id:'king_california', nameFr:'King snake (Californie)', nameEn:'Kingsnake (California)', tempWarm:29, tempCool:24, humidity:45,
+    noteFr:'Origine climat sec (Californie/Arizona/Nevada) — presque toutes les sources s\'entendent sur une humidité modérée-basse, contrairement au king de Floride.',
+    noteEn:'Dry-climate origin (California/Arizona/Nevada) — nearly all sources agree on moderate-low humidity, unlike the Florida kingsnake.'},
+  { id:'king_florida', nameFr:'King snake (Floride)', nameEn:'Kingsnake (Florida)', tempWarm:29, tempCool:24, humidity:55,
+    noteFr:'Origine climat humide du sud-est américain — besoin d\'humidité plus élevé que le king de Californie, souvent sous-estimé si on applique les mêmes règles génériques.',
+    noteEn:'Humid southeastern-US origin — needs higher humidity than the California kingsnake, often underestimated when generic kingsnake rules are applied.'},
+  { id:'hognose', nameFr:'Hognose (Western/Mexican)', nameEn:'Hognose (Western/Mexican)', tempWarm:33, tempCool:22, humidity:40,
+    noteFr:'Espèce fouisseuse de climat semi-aride. Besoin d\'un substrat assez meuble pour s\'enfouir — priorise ce confort avant le calcul du risque d\'ingestion.',
+    noteEn:'Fossorial species from a semi-arid climate. Needs loose enough substrate to burrow — prioritize that comfort need before weighing ingestion risk.'},
+  { id:'leopard_gecko', nameFr:'Gecko léopard', nameEn:'Leopard gecko', tempWarm:32, tempCool:24, humidity:35,
+    noteFr:'Humidité ambiante basse par nature, mais garde toujours un accès à une cachette humide (shedding box) pour faciliter la mue.',
+    noteEn:'Naturally low ambient humidity, but always keep access to a humid hide (shedding box) to support proper shedding.'},
+  { id:'crested_gecko', nameFr:'Gecko à crête', nameEn:'Crested gecko', tempWarm:28, tempCool:22, humidity:65,
+    noteFr:'Espèce tropicale sensible à la chaleur — ne dépasse jamais 29-30°C, contrairement à la plupart des autres reptiles de cette liste.',
+    noteEn:'Heat-sensitive tropical species — never exceed 29-30°C (84-86°F), unlike most other species on this list.'},
+  { id:'boa', nameFr:'Boa constrictor', nameEn:'Boa constrictor', tempWarm:32, tempCool:25, humidity:65,
+    noteFr:'Espèce tropicale, humidité élevée requise en continu (pas juste en période de mue) pour la santé respiratoire.',
+    noteEn:'Tropical species, requires continuously high humidity (not just during shed cycles) for respiratory health.'},
+];
+function loadSpeciesReference(id){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const sel = document.getElementById('species-ref-select-'+id);
+  const refId = sel ? sel.value : '';
+  const ref = SPECIES_REFERENCE.find(r=>r.id===refId);
+  if(!ref) return;
+  const hasExisting = s.careParams.tempWarm!=null || s.careParams.tempCool!=null || s.careParams.humidity!=null;
+  if(hasExisting && !confirm(isEn?'This will overwrite the current care parameters for this reptile. Continue?':'Ça va remplacer les paramètres d\'élevage déjà entrés pour ce reptile. Continuer ?')) return;
+  s.careParams.tempWarm = ref.tempWarm;
+  s.careParams.tempCool = ref.tempCool;
+  s.careParams.humidity = ref.humidity;
+  storage.save(savedSnakes);
+  openLogbook(id);
+}
+function speciesReferenceOptionsHtml(){
+  const isEn = currentLang==='en';
+  return '<option value="">'+(isEn?'Choose a species…':'Choisis une espèce…')+'</option>'+
+    SPECIES_REFERENCE.map(r=>'<option value="'+r.id+'">'+(isEn?r.nameEn:r.nameFr)+'</option>').join('');
+}
+function showSpeciesRefNote(id){
+  const isEn = currentLang==='en';
+  const sel = document.getElementById('species-ref-select-'+id);
+  const noteEl = document.getElementById('species-ref-note-'+id);
+  if(!sel || !noteEl) return;
+  const ref = SPECIES_REFERENCE.find(r=>r.id===sel.value);
+  noteEl.textContent = ref ? (isEn?ref.noteEn:ref.noteFr) : '';
+}
+
 function speciesDisplayLabel(species){
   const isEn = currentLang==='en';
   if(!species || species==='ball_python') return isEn?'Ball Python':'Python royal';
@@ -5280,6 +5370,14 @@ function openLogbook(id){
       (s.provenance ? mrow('Provenance', escapeHtml(s.provenance)) : '')+
     '</div>'+
     '<div class="modal-section"><h3>🌡️ '+(currentLang==='en'?'Care parameters':'Paramètres d\'élevage')+'</h3>'+
+      (s.species!=='ball_python' ? (
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px;padding:8px 10px;background:var(--bg-panel-2);border-radius:8px;">'+
+        '<label style="flex:1;min-width:160px;"><span style="font-size:9.5px;color:var(--ink-dim);display:block;margin-bottom:4px;">'+(currentLang==='en'?'Load reference values for a common species':'Charger des valeurs de référence pour une espèce courante')+'</span>'+
+          '<select id="species-ref-select-'+id+'" onchange="showSpeciesRefNote(\''+id+'\')" style="width:100%;font-size:14px;padding:7px 8px;background:var(--bg-panel);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+speciesReferenceOptionsHtml()+'</select></label>'+
+        '<button class="sc-btn accent" onclick="loadSpeciesReference(\''+id+'\')">'+(currentLang==='en'?'Load':'Charger')+'</button>'+
+        '<div id="species-ref-note-'+id+'" style="width:100%;font-size:10.5px;color:var(--ink-dim);line-height:1.5;margin-top:2px;"></div>'+
+      '</div>'
+      ) : '')+
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">'+
         '<label style="flex:1;min-width:110px;"><span style="font-size:10.5px;color:var(--ink-dim);display:block;margin-bottom:4px;">'+(currentLang==='en'?'Warm side (°C)':'Côté chaud (°C)')+'</span>'+
           '<input type="number" step="0.5" style="width:100%;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" value="'+(s.careParams.tempWarm??'')+'" onchange="setCareParam(\''+id+'\',\'tempWarm\',this.value)"/></label>'+
@@ -7173,14 +7271,43 @@ function applyTourAction(action){
   renderTourGrid();
 }
 
+// Score de risque santé combiné — un seul signal isolé (ex. juste un peu de perte de poids,
+// ou juste un repas en retard) arrive souvent et n'est pas forcément inquiétant seul. Plusieurs
+// signaux simultanés sur le même animal sont beaucoup plus révélateurs qu'un signal isolé — on
+// les combine ici pour distinguer "à surveiller" (1 signal) de "attention prioritaire" (2+ signaux).
+function lastShedQuality(s){
+  const sheds = (s.health.events||[]).filter(e=>e.type==='shed' && e.quality).sort((a,b)=>b.date.localeCompare(a.date));
+  return sheds.length ? sheds[0].quality : null;
+}
+function healthRiskAssessment(s){
+  const isEn = currentLang==='en';
+  const signals = [];
+  if(isFeedingFlagged(s)) signals.push({ type:'feeding', label:isEn?daysSinceLastFed(s)+'d without a meal':daysSinceLastFed(s)+'j sans repas' });
+  if(weightDropping(s)) signals.push({ type:'weight', label:isEn?'weight loss':'perte de poids' });
+  const shedQ = lastShedQuality(s);
+  if(shedQ && shedQ!=='complete') signals.push({ type:'shed', label:isEn?'incomplete last shed':'dernière mue incomplète' });
+  const level = signals.length>=2 ? 'urgent' : (signals.length===1 ? 'watch' : 'none');
+  return { level, signals };
+}
+
 function renderHealthAlerts(){
   const isEn = currentLang==='en';
   savedSnakes.forEach(ensureSnakeMeta);
-  const flagged = savedSnakes.filter(s=> isFeedingFlagged(s) || weightDropping(s));
+  const assessed = savedSnakes.map(s=>({ s, risk:healthRiskAssessment(s) })).filter(x=>x.risk.level!=='none');
+  const urgent = assessed.filter(x=>x.risk.level==='urgent');
+  const watch = assessed.filter(x=>x.risk.level==='watch');
   const wrap = document.getElementById('health-alerts');
   if(!wrap) return;
-  wrap.innerHTML = flagged.length ? '<div class="health-alert-bar"><span>⚠ <b>'+flagged.length+(isEn?' reptile(s)</b> to watch: ':' reptile(s)</b> à surveiller : ')+
-    flagged.map(s=> s.name + (isFeedingFlagged(s) ? (isEn?' ('+daysSinceLastFed(s)+'d without a meal)':' ('+daysSinceLastFed(s)+'j sans repas)') : (isEn?' (weight loss)':' (perte de poids)'))).join(', ')+'</span></div>' : '';
+  let html = '';
+  if(urgent.length){
+    html += '<div class="health-alert-bar">🚨 <b>'+urgent.length+(isEn?' reptile(s)</b> need priority attention: ':' reptile(s)</b> à surveiller en priorité : ')+
+      urgent.map(x=> x.s.name+' ('+x.risk.signals.map(sig=>sig.label).join(', ')+')').join(', ')+'</div>';
+  }
+  if(watch.length){
+    html += '<div class="health-alert-bar" style="background:rgba(216,187,70,.14);border-color:var(--gold);"><span>⚠ <b style="color:var(--gold);">'+watch.length+(isEn?' reptile(s)</b> to watch: ':' reptile(s)</b> à surveiller : ')+
+      watch.map(x=> x.s.name+' ('+x.risk.signals[0].label+')').join(', ')+'</span></div>';
+  }
+  wrap.innerHTML = html;
 }
 
 /* ---- Calendrier / Timeline de production ---- */
@@ -7444,6 +7571,35 @@ const HUSBANDRY_FAQ = [
     {qFr:'Quel substrat utiliser ?', qEn:'What substrate should I use?',
      aFr:'Fibre de coco, copeaux de cyprès, ou substrat spécialisé qui retient bien l\'humidité. À éviter : pin et cèdre, toxiques pour les reptiles.',
      aEn:'Coconut fiber, cypress mulch, or a specialized humidity-retaining substrate. Avoid pine and cedar — both are toxic to reptiles.'},
+    {qFr:'Pourquoi les recommandations sur le substrat semblent-elles si contradictoires ?', qEn:'Why do substrate recommendations seem so contradictory?',
+     aFr:'<p>Bonne question, et la confusion est légitime — les recommandations ont vraiment changé plusieurs fois avec les années. À une époque le millet était populaire justement parce qu\'il semblait moins problématique à avaler; puis une vague de sable et de fibre de coco broyée a suivi, jugée « naturelle » donc supposément moins risquée. Aujourd\'hui, la tendance revient vers des substrats qui imitent l\'environnement naturel de l\'espèce, tout en gardant des mises en garde sur le risque d\'occlusion. Le vieux réflexe « tout substrat meuble = danger » est largement dépassé quand la husbandry est bien faite — mais ça ne veut pas dire que tous les substrats se valent.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">Le vrai cadre de risque, dans l\'ordre d\'importance :</b></p>'+
+       '<ol style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li><b>Type et texture précise du substrat</b> — un sable fin ou calcique n\'a rien à voir avec un gros morceau de coco.</li>'+
+         '<li><b>Technique d\'alimentation</b> — nourrir directement dans un enclos à substrat meuble (où la proie traîne et colle des particules) est plus risqué que nourrir aux pinces ou sur une surface séparée.</li>'+
+         '<li><b>Hydratation</b> — un animal déshydraté peut développer un bouchon d\'urates qui bloque le système digestif, indépendamment du substrat.</li>'+
+         '<li><b>Espèce et taille de particule relative à l\'animal</b> — une particule assez petite ou au contraire trop grosse pour être avalée pose généralement moins de risque.</li>'+
+       '</ol>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Comparatif rapide :</b></p>'+
+       '<div style="margin-top:6px;padding:8px 10px;background:var(--bg-panel-2);border-left:3px solid var(--rust);border-radius:6px;"><b style="color:var(--rust);">⚠ Risque documenté</b> — sable calcique (« digestible » au marketing, mais toujours en cause dans des cas rapportés), gravier, coquille de noix broyée, litière à chat.</div>'+
+       '<div style="margin-top:6px;padding:8px 10px;background:var(--bg-panel-2);border-left:3px solid var(--sage);border-radius:6px;"><b style="color:var(--sage);">✓ Généralement sécuritaire</b> — fibre de coco en <i>gros</i> morceaux, mélange terre/sable de type bioactif, écorce de cyprès.</div>'+
+       '<div style="margin-top:6px;padding:8px 10px;background:var(--bg-panel-2);border-left:3px solid var(--ink-dim);border-radius:6px;"><b style="color:var(--ink);">◦ Neutre / pratique</b> — aspen (mais moisit en conditions humides prolongées), papier.</div>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Peu importe le substrat choisi :</b> nourrir sur une surface séparée ou aux pinces, et surveiller l\'hydratation, réduisent la majorité du risque réel.</p>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Limite honnête : on n\'a pas trouvé d\'étude vétérinaire rigoureuse et contrôlée sur ce sujet précis — la plupart des sources disponibles viennent de rapports de terrain et de cas individuels, pas d\'essais cliniques.</p>',
+     aEn:'<p>Fair question — the confusion is legitimate, since recommendations have genuinely shifted several times over the years. At one point millet was popular precisely because it seemed less problematic if swallowed; then a wave of sand and crushed coconut fiber followed, seen as "natural" and therefore supposedly safer. Today the trend is shifting back toward substrates that mimic a species\' natural environment, while warnings about impaction risk persist. The old reflex of "any loose substrate = danger" is largely outdated when husbandry is done properly — but that doesn\'t mean every substrate is equal.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">The real risk framework, in order of importance:</b></p>'+
+       '<ol style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li><b>Exact substrate type and texture</b> — fine or calcium sand has nothing in common with a large coco chunk.</li>'+
+         '<li><b>Feeding technique</b> — feeding directly in a loose-substrate enclosure (where prey drags through and picks up particles) is riskier than tong-feeding or feeding on a separate surface.</li>'+
+         '<li><b>Hydration</b> — a dehydrated animal can develop a urate plug that blocks the digestive tract, regardless of substrate.</li>'+
+         '<li><b>Species and particle size relative to the animal</b> — a particle small enough, or conversely too large to be swallowed, generally poses less risk.</li>'+
+       '</ol>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Quick comparison:</b></p>'+
+       '<div style="margin-top:6px;padding:8px 10px;background:var(--bg-panel-2);border-left:3px solid var(--rust);border-radius:6px;"><b style="color:var(--rust);">⚠ Documented risk</b> — calcium sand (marketed as "digestible" but still implicated in reported cases), gravel, crushed walnut shell, cat litter.</div>'+
+       '<div style="margin-top:6px;padding:8px 10px;background:var(--bg-panel-2);border-left:3px solid var(--sage);border-radius:6px;"><b style="color:var(--sage);">✓ Generally safe</b> — coconut fiber in <i>large</i> chunks, bioactive-style soil/sand mixes, cypress mulch.</div>'+
+       '<div style="margin-top:6px;padding:8px 10px;background:var(--bg-panel-2);border-left:3px solid var(--ink-dim);border-radius:6px;"><b style="color:var(--ink);">◦ Neutral / practical</b> — aspen (but molds in prolonged humid conditions), paper.</div>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Regardless of substrate:</b> feeding on a separate surface or with tongs, and monitoring hydration, address most of the real risk.</p>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Honest limitation: we couldn\'t find a rigorous, controlled veterinary study on this exact topic — most available sources are field reports and individual cases, not clinical trials.</p>'},
     {qFr:'À quelle fréquence nourrir ?', qEn:'How often should I feed?',
      aFr:'Bébé : environ chaque 5-7 jours. Adulte : chaque 10-14 jours, parfois plus espacé. Ajuste selon le poids et la condition corporelle plutôt qu\'un horaire fixe.',
      aEn:'Baby: roughly every 5-7 days. Adult: every 10-14 days, sometimes longer. Adjust based on weight and body condition rather than a fixed schedule.'},
@@ -8593,7 +8749,7 @@ function showUtilitaireSubtab(sub){
   document.getElementById('usub-communaute').style.display = sub==='communaute' ? '' : 'none';
   document.getElementById('usub-outils').style.display = sub==='outils' ? '' : 'none';
   document.querySelectorAll('#view-utilitaire .subtab-btn').forEach(b=>b.classList.toggle('active', b.dataset.usub===sub));
-  if(sub==='outils') renderPreBuyCalculator();
+  if(sub==='outils'){ renderPreBuyCalculator(); renderSpeciesGuidesList(); renderCommunityFaqAdmin(); }
 }
 
 function showVentesSubtab(sub){
@@ -8921,6 +9077,7 @@ function renderDashboard(){
 
   // Alertes santé (même logique que renderHealthAlerts en Mode Tournée)
   const healthFlagged = dashSnakes.filter(s => isFeedingFlagged(s) || weightDropping(s));
+  const hasUrgentHealth = dashSnakes.some(s => healthRiskAssessment(s).level==='urgent');
 
   // Reptiles actuellement en quarantaine (période non complétée)
   const inQuarantine = dashSnakes.filter(s=>{ const qs = quarantineStatus(s); return qs && !qs.complete; });
@@ -8929,7 +9086,7 @@ function renderDashboard(){
     { icon:'🍽', count:feedingOverdue.length, label:isEn?'meal(s) overdue':'repas en retard', tone: feedingOverdue.length?'red':'ok', action:"showTab('elevage'); showSubtab('tour');" },
     { icon:'🥚', count: hatchDays!=null ? hatchDays : '—', label: upcoming ? (isEn?'day'+(hatchDays>1?'s':'')+' until hatch':'jour'+(hatchDays>1?'s':'')+' avant éclosion') : (isEn?'no clutch in progress':'aucune portée en cours'), tone: hatchDays!=null && hatchDays<=3 ? 'gold' : 'neutral', action:"showTab('incubation');" },
     { icon:'💰', count:staleListings.length, label:isEn?'listing(s) pending 14d+':'annonce(s) en attente 14j+', tone: staleListings.length?'amber':'ok', action:"showTab('ventes');" },
-    { icon:'⚠', count:healthFlagged.length, label:isEn?'reptile(s) to watch':'reptile(s) à surveiller', tone: healthFlagged.length?'red':'ok', action:"showTab('elevage'); showSubtab('tour');" },
+    { icon: hasUrgentHealth?'🚨':'⚠', count:healthFlagged.length, label:isEn?'reptile(s) to watch':'reptile(s) à surveiller', tone: healthFlagged.length?'red':'ok', action:"showTab('elevage'); showSubtab('tour');" },
     { icon:'🔒', count:inQuarantine.length, label:isEn?'in quarantine':'en quarantaine', tone: inQuarantine.length?'amber':'ok', action:"showTab('mine');" },
   ];
   document.getElementById('dash-alert-grid').innerHTML = cards.map(c=>
@@ -9727,6 +9884,175 @@ function renderHealthLog(){
     '<div class="timeline-card" style="padding:9px 14px;"><span class="timeline-title" style="font-size:12.5px;">'+e.date+' — '+escapeHtml(e.snake)+' : '+eventLabel(e.type)+(e.type==='weigh'?' ('+e.value+'g)':'')+(e.type==='length'?' ('+e.value+'cm)':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(currentLang==='en'?'partial':'partiel'):'')+'</span></div>'
   ).join('') : '<div class="empty">'+t('noHealthLogEmpty')+'</div>';
 }
+
+// FAQ communautaire modérée — les utilisateurs proposent une question/réponse (table Supabase
+// community_faq, RLS : lecture publique si approuvée, écriture propre à l'auteur, modération
+// réservée au drapeau is_admin sur profiles). Distincte de HUSBANDRY_FAQ (contenu officiel/sourcé
+// par LOCUS) — celle-ci est du contenu généré par la communauté, publié seulement après révision.
+let isAdminUser = false;
+async function checkAdminStatus(){
+  if(!currentUser || !sb){ isAdminUser = false; return false; }
+  try{
+    const { data, error } = await sb.from('profiles').select('is_admin').eq('user_id', currentUser.id).single();
+    isAdminUser = !error && data && data.is_admin === true;
+  }catch(e){ isAdminUser = false; }
+  return isAdminUser;
+}
+async function renderCommunityFaq(){
+  const isEn = currentLang==='en';
+  const wrap = document.getElementById('community-faq-container');
+  if(!wrap) return;
+  wrap.innerHTML = '<div class="community-folder" id="folder-community-faq">'+
+    '<button class="community-folder-header" onclick="toggleCommunityFolder(\'folder-community-faq\')"><span class="folder-icon">▾</span><span>💬 '+(isEn?'Community FAQ':'FAQ communautaire')+'</span></button>'+
+    '<div class="community-folder-body" id="community-faq-body">'+(isEn?'Loading…':'Chargement…')+'</div>'+
+  '</div>';
+  const bodyEl = document.getElementById('community-faq-body');
+  if(!sb){ bodyEl.innerHTML = ''; return; }
+  const { data, error } = await sb.from('community_faq').select('id,question,answer,created_at').eq('status','approved').order('created_at', { ascending:false }).limit(50);
+  const approvedHtml = (!error && data && data.length)
+    ? data.map(item=>'<div class="husbandry-qa" style="margin-bottom:14px;"><div style="font-weight:600;color:var(--gold);margin-bottom:4px;">'+escapeHtml(item.question)+'</div><div style="font-size:12px;line-height:1.6;">'+escapeHtml(item.answer)+'</div></div>').join('')
+    : '<p style="font-size:11px;color:var(--ink-dim);">'+(isEn?'No community questions published yet.':'Aucune question communautaire publiée pour l\'instant.')+'</p>';
+  const formHtml = currentUser
+    ? '<div style="margin-top:16px;padding-top:16px;border-top:1px dashed var(--line);">'+
+        '<p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 10px;">'+(isEn?'Suggest a question and its answer — reviewed by the LOCUS team before publishing.':'Propose une question et sa réponse — validée par l\'équipe LOCUS avant publication.')+'</p>'+
+        '<input type="text" id="cfaq-question" placeholder="'+(isEn?'Question…':'Question…')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:6px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
+        '<textarea id="cfaq-answer" rows="3" placeholder="'+(isEn?'Answer…':'Réponse…')+'" style="width:100%;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:\'Courier New\',monospace;resize:vertical;"></textarea>'+
+        '<button class="sc-btn accent" style="margin-top:8px;" onclick="submitCommunityFaq()">'+(isEn?'Submit for review':'Soumettre pour révision')+'</button>'+
+        '<div id="cfaq-submit-status" style="margin-top:6px;font-size:10.5px;color:var(--ink-dim);"></div>'+
+      '</div>'
+    : '<div style="margin-top:16px;padding-top:16px;border-top:1px dashed var(--line);"><button class="sc-btn" onclick="openAuthModal()">'+(isEn?'Sign in to suggest a question':'Se connecter pour proposer une question')+'</button></div>';
+  bodyEl.innerHTML = approvedHtml + formHtml;
+}
+async function submitCommunityFaq(){
+  const isEn = currentLang==='en';
+  if(!requireAuthOrPrompt()) return;
+  const qEl = document.getElementById('cfaq-question');
+  const aEl = document.getElementById('cfaq-answer');
+  const statusEl = document.getElementById('cfaq-submit-status');
+  const question = qEl.value.trim();
+  const answer = aEl.value.trim();
+  if(!question || !answer){ if(statusEl) statusEl.textContent = isEn?'Fill in both fields.':'Remplis les deux champs.'; return; }
+  const { error } = await sb.from('community_faq').insert({ user_id: currentUser.id, question, answer, status:'pending' });
+  if(error){ if(statusEl) statusEl.textContent = '⚠ '+error.message; return; }
+  qEl.value=''; aEl.value='';
+  if(statusEl) statusEl.textContent = isEn?'✓ Submitted — pending review.':'✓ Soumis — en attente de révision.';
+  showToast('✓ '+(isEn?'Question submitted for review.':'Question soumise pour révision.'), 'success');
+}
+async function renderCommunityFaqAdmin(){
+  const wrap = document.getElementById('community-faq-admin-container');
+  if(!wrap) return;
+  wrap.innerHTML = '';
+  if(!currentUser || !sb) return;
+  await checkAdminStatus();
+  if(!isAdminUser) return;
+  const isEn = currentLang==='en';
+  const { data, error } = await sb.from('community_faq').select('id,question,answer,created_at').eq('status','pending').order('created_at', { ascending:true });
+  const rows = (!error && data) ? data : [];
+  wrap.innerHTML = '<div class="community-folder" id="folder-community-faq-admin">'+
+    '<button class="community-folder-header" onclick="toggleCommunityFolder(\'folder-community-faq-admin\')">'+
+      '<span class="folder-icon">▾</span><span>🛠 '+(isEn?'FAQ moderation (admin) — ':'Modération FAQ (admin) — ')+rows.length+(isEn?' pending':' en attente')+'</span>'+
+    '</button>'+
+    '<div class="community-folder-body">'+
+      (rows.length ? rows.map(r=>
+        '<div class="husbandry-qa" style="margin-bottom:14px;border-bottom:1px dashed var(--line);padding-bottom:12px;">'+
+          '<div style="font-weight:600;color:var(--gold);margin-bottom:4px;">'+escapeHtml(r.question)+'</div>'+
+          '<div style="font-size:12px;line-height:1.6;margin-bottom:8px;">'+escapeHtml(r.answer)+'</div>'+
+          '<div style="display:flex;gap:8px;">'+
+            '<button class="sc-btn accent" onclick="moderateCommunityFaq(\''+r.id+'\',\'approved\')">✓ '+(isEn?'Approve':'Approuver')+'</button>'+
+            '<button class="sc-btn danger" onclick="moderateCommunityFaq(\''+r.id+'\',\'rejected\')">✕ '+(isEn?'Reject':'Refuser')+'</button>'+
+          '</div>'+
+        '</div>'
+      ).join('') : '<p style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Nothing to review.':'Rien à réviser.')+'</p>')+
+    '</div>'+
+  '</div>';
+}
+async function moderateCommunityFaq(id, status){
+  const { error } = await sb.from('community_faq').update({ status, reviewed_at: new Date().toISOString() }).eq('id', id);
+  if(error){ alert(error.message); return; }
+  renderCommunityFaqAdmin();
+}
+
+function renderSpeciesGuidesList(){
+  const isEn = currentLang==='en';
+  const wrap = document.getElementById('species-guides-list');
+  if(!wrap) return;
+  const all = [ { id:'ball_python', nameFr:'Python royal', nameEn:'Ball Python' }, ...SPECIES_REFERENCE ];
+  wrap.innerHTML = all.map(sp=>
+    '<div class="modal-row"><span>'+(isEn?sp.nameEn:sp.nameFr)+'</span>'+
+    '<button class="sc-btn" onclick="copySpeciesGuideLink(\''+sp.id+'\')">'+(isEn?'Copy link':'Copier le lien')+'</button></div>'
+  ).join('');
+}
+function copySpeciesGuideLink(speciesId){
+  const isEn = currentLang==='en';
+  const url = publicGuideUrl(speciesId);
+  navigator.clipboard.writeText(url)
+    .then(()=>showToast('🔗 '+(isEn?'Link copied.':'Lien copié.'), 'success'))
+    .catch(()=>alert(url));
+}
+
+// Fiche espèce publique et partageable (?guide=<id>) — pensée pour être partagée dans les groupes
+// Facebook, aucun compte requis, aucun appel réseau nécessaire (contenu déjà local au chargement).
+// Python royal utilise le contenu riche déjà sourcé (FAQ husbandry, catégorie "Entretien de base") ;
+// les autres espèces utilisent SPECIES_REFERENCE (plus mince mais toujours sourcé, jamais inventé).
+function publicGuideUrl(speciesId){
+  return location.origin + location.pathname + '?guide=' + speciesId;
+}
+function buildSpeciesGuideHtml(speciesId){
+  const isEn = !(navigator.language||'').toLowerCase().startsWith('fr');
+  const langKey = isEn ? 'En' : 'Fr';
+  let title, introHtml, bodyHtml;
+  if(speciesId==='ball_python'){
+    title = isEn ? 'Ball Python — Care Guide' : 'Python royal — Fiche d\'entretien';
+    introHtml = isEn
+      ? '<p style="color:var(--ink-dim);font-size:12.5px;line-height:1.6;">A quick, sourced reference — the same content used inside LOCUS Scales, a management app built specifically for ball python keepers and breeders.</p>'
+      : '<p style="color:var(--ink-dim);font-size:12.5px;line-height:1.6;">Une référence rapide et sourcée — le même contenu qu\'on retrouve dans LOCUS Scales, une app de gestion pensée spécifiquement pour les gardiens et éleveurs de python royal.</p>';
+    const cat = HUSBANDRY_FAQ.find(c=>c.id==='entretien');
+    bodyHtml = (cat ? cat.items : []).map(it=>
+      '<div class="husbandry-qa" style="margin-bottom:18px;">'+
+        '<div style="font-weight:600;color:var(--gold);margin-bottom:6px;">'+(isEn?it.qEn:it.qFr)+'</div>'+
+        '<div style="font-size:12.5px;line-height:1.7;color:var(--ink);">'+(isEn?it.aEn:it.aFr)+'</div>'+
+      '</div>'
+    ).join('');
+  } else {
+    const ref = SPECIES_REFERENCE.find(r=>r.id===speciesId);
+    if(!ref) return null;
+    title = (isEn?ref.nameEn:ref.nameFr);
+    introHtml = isEn
+      ? '<p style="color:var(--ink-dim);font-size:12.5px;line-height:1.6;">Quick sourced reference values. LOCUS Scales\' full breeding/genetics toolset is built specifically for ball pythons — this page is a courtesy reference for other species.</p>'
+      : '<p style="color:var(--ink-dim);font-size:12.5px;line-height:1.6;">Valeurs de référence rapides et sourcées. La suite complète d\'outils élevage/génétique de LOCUS Scales est pensée spécifiquement pour le python royal — cette page est une référence de courtoisie pour les autres espèces.</p>';
+    bodyHtml =
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">'+
+        '<div style="flex:1;min-width:110px;padding:12px;background:var(--bg-panel-2);border-radius:10px;text-align:center;"><div style="font-size:9.5px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:1px;">'+(isEn?'Warm side':'Côté chaud')+'</div><div style="font-size:20px;color:var(--gold);font-family:\'Courier New\',monospace;">'+ref.tempWarm+'°C</div></div>'+
+        '<div style="flex:1;min-width:110px;padding:12px;background:var(--bg-panel-2);border-radius:10px;text-align:center;"><div style="font-size:9.5px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:1px;">'+(isEn?'Cool side':'Côté froid')+'</div><div style="font-size:20px;color:var(--gold);font-family:\'Courier New\',monospace;">'+ref.tempCool+'°C</div></div>'+
+        '<div style="flex:1;min-width:110px;padding:12px;background:var(--bg-panel-2);border-radius:10px;text-align:center;"><div style="font-size:9.5px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:1px;">'+(isEn?'Humidity':'Humidité')+'</div><div style="font-size:20px;color:var(--gold);font-family:\'Courier New\',monospace;">'+ref.humidity+'%</div></div>'+
+      '</div>'+
+      '<p style="font-size:12.5px;line-height:1.7;color:var(--ink);">'+(isEn?ref.noteEn:ref.noteFr)+'</p>';
+  }
+  return '<div style="max-width:560px;margin:0 auto;padding:40px 20px 60px;font-family:Verdana,sans-serif;">'+
+    '<div style="text-align:center;margin-bottom:24px;">'+
+      '<div style="font-family:Georgia,serif;font-size:13px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;">LOCUS Scales</div>'+
+      '<h1 style="font-family:Georgia,serif;font-size:24px;margin:6px 0 0;color:var(--ink);">'+title+'</h1>'+
+    '</div>'+
+    introHtml+
+    '<div style="margin-top:20px;">'+bodyHtml+'</div>'+
+    '<div style="margin-top:30px;padding-top:20px;border-top:1px dashed var(--line);text-align:center;">'+
+      '<a href="'+location.origin+location.pathname+'" style="display:inline-block;background:var(--gold);color:#1a1410;font-weight:600;padding:12px 24px;border-radius:24px;text-decoration:none;font-size:13px;">'+(isEn?'Discover LOCUS Scales →':'Découvrir LOCUS Scales →')+'</a>'+
+      '<p style="font-size:10.5px;color:var(--ink-dim);margin-top:14px;">'+(isEn?'General reference content — does not replace veterinary advice.':'Contenu de référence général — ne remplace pas un avis vétérinaire.')+'</p>'+
+    '</div>'+
+  '</div>';
+}
+function initPublicSpeciesGuide(){
+  const speciesId = new URLSearchParams(location.search).get('guide');
+  if(!speciesId) return;
+  const overlay = document.getElementById('public-view-overlay');
+  if(!overlay) return;
+  const html = buildSpeciesGuideHtml(speciesId);
+  const isEn = !(navigator.language||'').toLowerCase().startsWith('fr');
+  overlay.style.display = 'block';
+  overlay.innerHTML = html || ('<div style="max-width:520px;margin:0 auto;padding:60px 20px;text-align:center;font-family:Verdana,sans-serif;color:var(--ink-dim);">'+(isEn?'Guide not found.':'Fiche introuvable.')+'</div>');
+}
+initPublicSpeciesGuide();
+
 
 
 </script>
