@@ -414,6 +414,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
 .toast-success{border-color:var(--sage);}
 .toast-hatch{border-color:var(--gold);background:linear-gradient(135deg, rgba(201,151,62,.18), #211B15);}
 .toast-error{border-color:var(--rust);}
+.toast-warning{border-color:var(--rust);color:var(--rust);}
 .footnote b{color:var(--gold);}
 
 /* Punnett square (single-locus crosses) */
@@ -884,7 +885,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
     <div id="dash-feeding-list"></div>
     <div class="results-hdr" style="margin-top:22px;"><h2 style="font-size:16px;">🥚 Prochaines éclosions</h2></div>
     <div id="dash-hatch-list" class="sale-list"></div>
-    <a href="https://www.facebook.com/share/1PukXjXpVP/?mibextid=wwXIfr" target="_blank" rel="noopener" style="text-decoration:none;">
+    <a href="https://www.facebook.com/share/1PukXjXpVP/?mibextid=wwXIfr" target="_blank" rel="noopener" id="dash-facebook-banner" style="text-decoration:none;">
       <div style="margin-top:26px;background:linear-gradient(135deg, rgba(24,119,242,.16), rgba(201,151,62,.08));border:1px solid #1877f2;border-radius:16px;padding:16px 20px;display:flex;align-items:center;gap:14px;">
         <span style="font-size:26px;flex-shrink:0;">📘</span>
         <div>
@@ -1087,6 +1088,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
       <button class="subtab-btn" data-sub="tour" data-i18n="subTour" onclick="showSubtab('tour')">🔄 Mode Tournée</button>
       <button class="subtab-btn" data-sub="calendar" data-i18n="subCalendar" onclick="showSubtab('calendar')">📅 Calendrier</button>
       <button class="subtab-btn" data-sub="nourriture" data-i18n="subNourriture" onclick="showSubtab('nourriture')">🍽 Nourriture</button>
+      <button class="subtab-btn" data-sub="objectif" data-i18n="subObjectif" onclick="showSubtab('objectif')">🎯 Objectif</button>
     </div>
 
     <div id="sub-racks">
@@ -1209,6 +1211,30 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
       <div id="defrost-list" class="expense-breakdown"></div>
       <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" data-i18n="preyMissingTitle">⚠ Proie non renseignée</h2></div>
       <div id="prey-missing-list" class="sale-list"></div>
+      <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" data-i18n="feederStockTitle">🧊 Stock de proies</h2></div>
+      <p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 12px;" data-i18n="feederStockHint">Décompte automatiquement quand tu loggues un repas pour un reptile dont l'espèce/taille de proie est renseignée. Global au congélateur, pas par animal.</p>
+      <div id="feeder-stock-list"></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
+        <select id="feeder-stock-species" onchange="renderFeederStockSizeOptions()" style="background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:'Courier New',monospace;font-size:11.5px;padding:8px;">
+          <option value="mouse">🐁 Mouse</option>
+          <option value="rat">🐀 Rat</option>
+        </select>
+        <select id="feeder-stock-size" style="background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:'Courier New',monospace;font-size:11.5px;padding:8px;"></select>
+        <input type="number" id="feeder-stock-qty" min="0" placeholder="0" class="price-input" style="width:70px;"/>
+        <button class="sc-btn accent" onclick="setFeederStock()" data-i18n="feederStockSetBtn">Régler le stock</button>
+      </div>
+    </div>
+
+    <div id="sub-objectif" style="display:none;">
+      <p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 12px;" data-i18n="objectifHint">Choisis le(s) gène(s) visé(s), et l'app scanne ta collection pour proposer les meilleurs accouplements possibles — classés par probabilité réelle, pas juste par intuition.</p>
+      <div class="combo-wrap">
+        <input class="combo-input" id="input-objectif" data-i18n-placeholder="searchGenePlaceholder" placeholder="Rechercher un gène (ex. Pastel, Mojave, Piebald)…" autocomplete="off"/>
+        <div class="combo-list" id="list-objectif"></div>
+      </div>
+      <div class="tags" id="tags-objectif"></div>
+      <button class="save-btn" style="margin-top:14px;" onclick="renderPairingPlanner()" data-i18n="objectifFindBtn">🎯 Trouver les meilleures paires</button>
+      <div class="results-hdr" style="margin-top:22px;"><h2 style="font-size:16px;" data-i18n="objectifResultsTitle">Meilleures paires dans ta collection</h2></div>
+      <div id="pairing-planner-results"></div>
     </div>
   </div>
 
@@ -1694,7 +1720,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.3';
+const APP_VERSION = '2026.08.25.11';
 (function checkForNewVersion(){
   try{
     if(sessionStorage.getItem('locus_version_reloaded')){ sessionStorage.removeItem('locus_version_reloaded'); return; }
@@ -1791,6 +1817,92 @@ try{
     overlay.innerHTML = '<div style="max-width:520px;margin:0 auto;padding:60px 20px;text-align:center;color:var(--ink-dim);font-family:Verdana,sans-serif;">'+(isEn?'Connection error.':'Erreur de connexion.')+'</div>';
   });
 })();
+
+// Transfert de dossier complet (?transfer=<jeton>) — même principe que la vue publique ci-dessus,
+// mais destinée au nouveau propriétaire au moment de la vente : inclut l'historique de santé complet
+// (poids, mues, visites vétérinaires), jamais le prix/l'acheteur/l'emplacement (get_transfer_snake
+// ne les retourne pas côté serveur, peu importe ce qui est demandé).
+(function initTransferSnakeView(){
+  const token = new URLSearchParams(location.search).get('transfer');
+  if(!token) return;
+  const overlay = document.getElementById('public-view-overlay');
+  if(!overlay) return;
+  const isEn = !(navigator.language||'').toLowerCase().startsWith('fr');
+  overlay.style.display = 'block';
+  overlay.innerHTML = '<div style="max-width:520px;margin:0 auto;padding:60px 20px;text-align:center;color:var(--ink-dim);font-family:Verdana,sans-serif;">'+(isEn?'Loading…':'Chargement…')+'</div>';
+  if(!sb){
+    overlay.innerHTML = '<div style="max-width:520px;margin:0 auto;padding:60px 20px;text-align:center;color:var(--ink-dim);font-family:Verdana,sans-serif;">'+(isEn?'Connection error.':'Erreur de connexion.')+'</div>';
+    return;
+  }
+  sb.rpc('get_transfer_snake', { p_token: token }).then(({data, error})=>{
+    if(error || !data || !data.length){
+      overlay.innerHTML = '<div style="max-width:520px;margin:0 auto;padding:60px 20px;text-align:center;font-family:Verdana,sans-serif;">'+
+        '<div style="font-size:40px;margin-bottom:10px;">🔒</div>'+
+        '<div style="color:var(--ink);font-size:15px;margin-bottom:6px;">'+(isEn?'This link is no longer valid.':'Ce lien n\'est plus valide.')+'</div>'+
+      '</div>';
+      return;
+    }
+    const r = data[0];
+    const photosHtml = (r.photos && r.photos.length)
+      ? '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:16px 0;">'+
+          r.photos.slice(0,6).map(p=>'<img src="'+p.dataUrl+'" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--line);" alt="'+escapeHtml(r.name)+'"/>').join('')+
+        '</div>'
+      : '';
+    const genes = r.genes || {};
+    const geneNames = Object.keys(genes).length ? Object.keys(genes).map(gid=>{
+      const g = (typeof GENES!=='undefined' ? GENES.find(x=>x.id===gid) : null);
+      return g ? g.name : gid;
+    }).join(', ') : (isEn?'No genetics recorded':'Aucune génétique enregistrée');
+    const sexLabel = r.sex==='male' ? (isEn?'Male':'Mâle') : r.sex==='female' ? (isEn?'Female':'Femelle') : (isEn?'Unsexed':'Non sexé');
+    const speciesLabel = (!r.species || r.species==='ball_python') ? 'Ball Python' : (r.species==='other' ? (isEn?'Other species':'Autre espèce') : r.species);
+    const h = r.health || {};
+    const weights = (h.weights||[]);
+    const lengths = (h.lengths||[]);
+    const events = (h.events||[]).filter(e=>e.type==='shed');
+    const vetVisits = (h.vetVisits||[]);
+    const historyBlock = (arr, labelFn) => arr.length
+      ? '<div style="margin-top:8px;font-size:11.5px;color:var(--ink-dim);max-height:140px;overflow-y:auto;">'+
+          arr.slice(-10).reverse().map(labelFn).join('<br/>')+
+        '</div>'
+      : '<div style="margin-top:8px;font-size:11.5px;color:var(--ink-dim);">'+(isEn?'No history recorded.':'Aucun historique enregistré.')+'</div>';
+    overlay.innerHTML =
+      '<div style="max-width:560px;margin:0 auto;padding:32px 20px 60px;font-family:Verdana,sans-serif;">'+
+        '<div style="text-align:center;margin-bottom:24px;">'+
+          '<div style="font-family:Georgia,serif;font-size:22px;color:var(--gold);letter-spacing:1px;">LOCUS<span style="color:var(--sage);">.</span>Scales</div>'+
+          '<div style="font-size:10px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px;">'+(isEn?'Full record transfer — new owner':'Transfert de dossier complet — nouveau propriétaire')+'</div>'+
+        '</div>'+
+        photosHtml+
+        '<h1 style="font-family:Georgia,serif;font-size:28px;color:var(--ink);margin:0 0 4px;text-align:center;">'+escapeHtml(r.name)+'</h1>'+
+        '<div style="text-align:center;color:var(--ink-dim);font-size:12px;margin-bottom:20px;">'+speciesLabel+' — '+sexLabel+'</div>'+
+        '<div style="background:var(--bg-panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px;">'+
+          '<div class="modal-row"><span>'+(isEn?'Genetics':'Génétique')+'</span><span>'+escapeHtml(geneNames)+'</span></div>'+
+          (r.birth_date ? '<div class="modal-row"><span>'+(isEn?'Birth':'Naissance')+'</span><span>'+escapeHtml(r.birth_date)+'</span></div>' : '')+
+          (r.sire_name || r.dam_name ? '<div class="modal-row"><span>'+(isEn?'Parents':'Parents')+'</span><span>'+escapeHtml(r.sire_name||'?')+' × '+escapeHtml(r.dam_name||'?')+'</span></div>' : '')+
+          (r.provenance ? '<div class="modal-row"><span>Provenance</span><span>'+escapeHtml(r.provenance)+'</span></div>' : '')+
+        '</div>'+
+        '<div style="background:var(--bg-panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px;">'+
+          '<div style="font-weight:600;color:var(--gold);margin-bottom:4px;">'+(isEn?'Weight history':'Historique de poids')+'</div>'+
+          historyBlock(weights, w=>escapeHtml(w.date)+' — '+w.value+'g')+
+        '</div>'+
+        '<div style="background:var(--bg-panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px;">'+
+          '<div style="font-weight:600;color:var(--gold);margin-bottom:4px;">'+(isEn?'Length history':'Historique de longueur')+'</div>'+
+          historyBlock(lengths, l=>escapeHtml(l.date)+' — '+l.value+'cm')+
+        '</div>'+
+        '<div style="background:var(--bg-panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px;">'+
+          '<div style="font-weight:600;color:var(--gold);margin-bottom:4px;">'+(isEn?'Shed history':'Historique de mue')+'</div>'+
+          historyBlock(events, e=>escapeHtml(e.date)+(e.quality?' — '+escapeHtml(e.quality):''))+
+        '</div>'+
+        '<div style="background:var(--bg-panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;">'+
+          '<div style="font-weight:600;color:var(--gold);margin-bottom:4px;">'+(isEn?'Vet visits':'Visites vétérinaires')+'</div>'+
+          historyBlock(vetVisits, v=>escapeHtml(v.date)+(v.note?' — '+escapeHtml(v.note):''))+
+        '</div>'+
+        '<div style="text-align:center;margin-top:24px;font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Shared by the previous owner via LOCUS Scales at the moment of sale. Price, buyer, and location are never included here.':'Partagé par l\'ancien propriétaire via LOCUS Scales au moment de la vente. Le prix, l\'acheteur et l\'emplacement ne sont jamais inclus ici.')+'</div>'+
+      '</div>';
+  }).catch(()=>{
+    overlay.innerHTML = '<div style="max-width:520px;margin:0 auto;padding:60px 20px;text-align:center;color:var(--ink-dim);font-family:Verdana,sans-serif;">'+(isEn?'Connection error.':'Erreur de connexion.')+'</div>';
+  });
+})();
+
 
 let currentUser = null; // rempli par onAuthStateChange ; null = déconnecté (mode local uniquement)
 
@@ -2133,7 +2245,7 @@ const CAT_COUNTS = GENES.reduce((acc,g)=>{ acc[g.cat]=(acc[g.cat]||0)+1; return 
 const CATS_ORDER = Object.entries(CAT_COUNTS).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
 
 /* ---------------- UI BUILD ---------------- */
-const state = { male:{}, female:{}, draft:{} };
+const state = { male:{}, female:{}, draft:{}, objectif:{} };
 let draftSex = 'male';
 // Couche d'abstraction persistance : localStorage pour la phase de test.
 // Remplacer plus tard par des appels API (backend) sans toucher le reste du code —
@@ -2273,6 +2385,69 @@ const PERSONALIZATION_FEATURES = [
   { key:'fiscal', legal:'fiscal', fr:'Fiscal', en:'Taxes' },
   { key:'valeur', legal:'valeur', fr:'Valeur & assurance', en:'Value & insurance' },
 ];
+
+// Tableau de bord personnalisable (25 août) — simple show/hide par carte, pas de réordonnancement
+// (complexité pas justifiée pour l'instant). Toutes visibles par défaut — c'est un choix d'affichage,
+// pas un palier tarifaire, cohérent avec le mode personnalisé ci-dessus.
+const DASH_CARDS_KEY = 'locus_dash_cards_v1';
+const DASH_CARDS = [
+  { key:'alerts', fr:'Alertes (santé, ventes, etc.)', en:'Alerts (health, sales, etc.)' },
+  { key:'today', fr:'Aujourd\'hui — à surveiller', en:'Today — to watch' },
+  { key:'feeding', fr:'Calendrier de nourrissage', en:'Feeding calendar' },
+  { key:'hatch', fr:'Prochaines éclosions', en:'Upcoming hatchings' },
+  { key:'facebook', fr:'Bannière Facebook', en:'Facebook banner' },
+];
+function loadDashCardPrefs(){
+  try{
+    const raw = localStorage.getItem(DASH_CARDS_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  const prefs = {};
+  DASH_CARDS.forEach(c=> prefs[c.key] = true);
+  return prefs;
+}
+let dashCardPrefs = loadDashCardPrefs();
+function saveDashCardPrefs(){
+  try{ localStorage.setItem(DASH_CARDS_KEY, JSON.stringify(dashCardPrefs)); }catch(e){}
+}
+function toggleDashCard(key){
+  dashCardPrefs[key] = !dashCardPrefs[key];
+  saveDashCardPrefs();
+  renderDashCardSettings();
+  applyDashCardVisibility();
+}
+function renderDashCardSettings(){
+  const isEn = currentLang==='en';
+  const wrap = document.getElementById('dash-card-settings');
+  if(!wrap) return;
+  wrap.innerHTML = DASH_CARDS.map(c=>
+    '<label style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;">'+
+      '<input type="checkbox" '+(dashCardPrefs[c.key]?'checked':'')+' onchange="toggleDashCard(\''+c.key+'\')" style="width:18px;height:18px;flex-shrink:0;accent-color:var(--gold);"/>'+
+      '<span style="font-size:12px;">'+(isEn?c.en:c.fr)+'</span>'+
+    '</label>'
+  ).join('');
+}
+function applyDashCardVisibility(){
+  const map = {
+    alerts: 'dash-alert-grid',
+    today: null, // deux éléments (titre + widget) — géré à part ci-dessous
+    feeding: null,
+    hatch: null,
+    facebook: null
+  };
+  const alertsEl = document.getElementById('dash-alert-grid');
+  if(alertsEl) alertsEl.style.display = dashCardPrefs.alerts ? '' : 'none';
+  const todayTitle = document.getElementById('dash-today-title');
+  const todayWidget = document.getElementById('dash-today-widget');
+  if(todayTitle) todayTitle.parentElement.style.display = dashCardPrefs.today ? '' : 'none';
+  if(todayWidget) todayWidget.style.display = dashCardPrefs.today ? '' : 'none';
+  const feedingList = document.getElementById('dash-feeding-list');
+  if(feedingList){ feedingList.style.display = dashCardPrefs.feeding ? '' : 'none'; if(feedingList.previousElementSibling) feedingList.previousElementSibling.style.display = dashCardPrefs.feeding ? '' : 'none'; }
+  const hatchList = document.getElementById('dash-hatch-list');
+  if(hatchList){ hatchList.style.display = dashCardPrefs.hatch ? '' : 'none'; if(hatchList.previousElementSibling) hatchList.previousElementSibling.style.display = dashCardPrefs.hatch ? '' : 'none'; }
+  const fbBanner = document.getElementById('dash-facebook-banner');
+  if(fbBanner) fbBanner.style.display = dashCardPrefs.facebook ? '' : 'none';
+}
 function loadPersonalization(){
   try{
     const raw = localStorage.getItem(PERSONALIZATION_KEY);
@@ -2379,10 +2554,15 @@ function openProfileModal(){
     '<p style="font-size:11px;color:var(--ink-dim);margin:0 0 10px;line-height:1.5;">'+(isEn?'Show only the sections you actually use — build your own view of the app. Turn anything back on anytime.':'Affiche seulement les sections que tu utilises vraiment — construis ta propre vue de l\'app. Réactive n\'importe quoi en tout temps.')+'</p>'+
     '<div id="personalization-settings"></div>'+
     '<hr style="border:none;border-top:1px dashed var(--line);margin:18px 0;"/>'+
+    '<p style="margin:0 0 6px;"><b style="color:var(--sage);font-size:13px;">📋 '+(isEn?'Dashboard cards':'Cartes du tableau de bord')+'</b></p>'+
+    '<p style="font-size:11px;color:var(--ink-dim);margin:0 0 10px;line-height:1.5;">'+(isEn?'Choose what shows on your dashboard, in the order that matters to you.':'Choisis ce qui s\'affiche sur ton tableau de bord.')+'</p>'+
+    '<div id="dash-card-settings"></div>'+
+    '<hr style="border:none;border-top:1px dashed var(--line);margin:18px 0;"/>'+
     '<p style="margin:0 0 10px;"><b style="color:var(--sage);font-size:13px;">💳 '+(isEn?'Payments':'Paiements')+'</b></p>'+
     '<div id="stripe-connect-status">'+(isEn?'Checking status…':'Vérification du statut…')+'</div>'
   );
   renderPersonalizationSettings();
+  renderDashCardSettings();
   refreshStripeConnectStatus();
 }
 
@@ -2458,8 +2638,8 @@ const FAQ_APP_ITEMS = [
    aFr:'Chaque gène est vérifié individuellement avant ajout (mode de transmission confirmé par une source fiable). Demande-le en Configuration ou par courriel — on vérifie et on l\'ajoute.',
    aEn:'Every gene is individually verified before being added (mode of inheritance confirmed by a reliable source). Request it in Settings or by email — we\'ll verify and add it.'},
   {qFr:'Où sont mes données ?', qEn:'Where is my data?',
-   aFr:'Stockées localement sur cet appareil et synchronisées sur une base de données cloud sécurisée tant que tu es connecté — jamais vendues ni partagées. Une exception : générer un QR code d\'étiquette envoie le nom et la génétique du reptile concerné à un service externe (qrserver.com).',
-   aEn:'Stored locally on this device and synced to a secure cloud database while you\'re logged in — never sold or shared. One exception: generating a tub-label QR code sends that reptile\'s name and genetics to an external service (qrserver.com).'},
+   aFr:'Stockées localement sur cet appareil et synchronisées sur une base de données cloud sécurisée tant que tu es connecté — jamais vendues ni partagées. Une exception : générer un QR code d\'étiquette envoie l\'identifiant interne (pas le nom ni la génétique) du reptile concerné à un service externe (qrserver.com) pour fabriquer l\'image.',
+   aEn:'Stored locally on this device and synced to a secure cloud database while you\'re logged in — never sold or shared. One exception: generating a tub-label QR code sends that reptile\'s internal ID (not its name or genetics) to an external service (qrserver.com) to produce the image.'},
   {qFr:'Le badge « 🧬 À vérifier » sur un bébé, ça veut dire quoi ?', qEn:'What does the "🧬 To verify" badge on a baby mean?',
    aFr:'Sa génétique vient d\'un tirage statistique exact au moment de l\'éclosion, mais n\'a pas encore été confirmée visuellement par toi. Un bouton « Confirmer exacte » est sur sa fiche.',
    aEn:'Its genetics come from an exact statistical draw at hatching time, but haven\'t been visually confirmed by you yet. A "Confirm exact" button is on its record.'},
@@ -2656,14 +2836,14 @@ function openFaqModal(){
     (isEn ?
       '<p><b style="color:var(--gold);">What\'s the orange "Possible" or "?" badge on a gene?</b><br/>The gene isn\'t confirmed 100% (inherited from an unproven parent, or an uncertain Freeway-type identity). It\'s deliberately excluded from the Mendelian calculation rather than skewing a percentage.</p>'+
       '<p><b style="color:var(--gold);">Why is a gene I know not on the list?</b><br/>Every gene is individually verified before being added (mode of inheritance confirmed by a reliable source). Request it in Settings or by email — we\'ll verify and add it.</p>'+
-      '<p><b style="color:var(--gold);">Where is my data?</b><br/>Stored locally on this device and synced to a secure cloud database while you\'re logged in — never sold or shared. One exception: generating a tub-label QR code sends that reptile\'s name and genetics to an external service (qrserver.com). Without an account, your data stays local only and is not backed up.</p>'+
+      '<p><b style="color:var(--gold);">Where is my data?</b><br/>Stored locally on this device and synced to a secure cloud database while you\'re logged in — never sold or shared. One exception: generating a tub-label QR code sends that reptile\'s internal ID (not its name or genetics) to an external service (qrserver.com) to produce the image. Without an account, your data stays local only and is not backed up.</p>'+
       '<p><b style="color:var(--gold);">What does the "🧬 To verify" badge on a baby mean?</b><br/>Its genetics come from an exact statistical draw at hatching time, but haven\'t been visually confirmed by you yet. A "Confirm exact" button is on its record.</p>'+
       '<p><b style="color:var(--gold);">Can I have several racks of different shapes?</b><br/>Yes — each rack has its own name, and each row can have a different number of tubs, to recreate your exact physical setup.</p>'+
       '<p style="margin-bottom:0;"><b style="color:var(--gold);">Does LOCUS work across multiple devices at once?</b><br/>Yes — once you\'re logged into an account, your data syncs across every device automatically.</p>'
     :
       '<p><b style="color:var(--gold);">C\'est quoi le badge orange « Possible » ou « ? » sur un gène ?</b><br/>Le gène n\'est pas confirmé à 100% (hérité d\'un parent non prouvé, ou identité incertaine type Freeway). Il est volontairement exclu du calcul mendélien plutôt que de fausser un pourcentage.</p>'+
       '<p><b style="color:var(--gold);">Pourquoi un gène que je connais n\'est pas dans la liste ?</b><br/>Chaque gène est vérifié individuellement avant ajout (mode de transmission confirmé par une source fiable). Demande-le en Configuration ou par courriel — on vérifie et on l\'ajoute.</p>'+
-      '<p><b style="color:var(--gold);">Où sont mes données ?</b><br/>Stockées localement sur cet appareil et synchronisées sur une base de données cloud sécurisée tant que tu es connecté — jamais vendues ni partagées. Une exception : générer un QR code d\'étiquette envoie le nom et la génétique du reptile concerné à un service externe (qrserver.com). Sans compte, tes données restent locales uniquement et ne sont pas sauvegardées.</p>'+
+      '<p><b style="color:var(--gold);">Où sont mes données ?</b><br/>Stockées localement sur cet appareil et synchronisées sur une base de données cloud sécurisée tant que tu es connecté — jamais vendues ni partagées. Une exception : générer un QR code d\'étiquette envoie l\'identifiant interne (pas le nom ni la génétique) du reptile concerné à un service externe (qrserver.com) pour fabriquer l\'image. Sans compte, tes données restent locales uniquement et ne sont pas sauvegardées.</p>'+
       '<p><b style="color:var(--gold);">Le badge « 🧬 À vérifier » sur un bébé, ça veut dire quoi ?</b><br/>Sa génétique vient d\'un tirage statistique exact au moment de l\'éclosion, mais n\'a pas encore été confirmée visuellement par toi. Un bouton « Confirmer exacte » est sur sa fiche.</p>'+
       '<p><b style="color:var(--gold);">Je peux avoir plusieurs racks de formes différentes ?</b><br/>Oui — chaque rack a son propre nom, et chaque rangée peut avoir un nombre de bacs différent, pour recréer exactement ta configuration physique.</p>'+
       '<p style="margin-bottom:0;"><b style="color:var(--gold);">LOCUS fonctionne sur plusieurs appareils en même temps ?</b><br/>Oui — dès que tu es connecté à un compte, tes données se synchronisent automatiquement sur tous tes appareils.</p>'
@@ -3011,6 +3191,10 @@ const I18N = {
     subTour: '🔄 Mode Tournée',
     subCalendar: '📅 Calendrier',
     subNourriture: '🍽 Nourriture',
+    subObjectif: '🎯 Objectif',
+    objectifHint: 'Choisis le(s) gène(s) visé(s), et l\'app scanne ta collection pour proposer les meilleurs accouplements possibles — classés par probabilité réelle, pas juste par intuition.',
+    objectifFindBtn: '🎯 Trouver les meilleures paires',
+    objectifResultsTitle: 'Meilleures paires dans ta collection',
     actionFed: 'A mangé',
     actionShed: 'A mué',
     actionRefused: 'Refus',
@@ -3054,6 +3238,9 @@ const I18N = {
     horizonToday: 'Aujourd\'hui seulement',
     defrostListTitle: '📋 Liste de décongélation',
     preyMissingTitle: '⚠ Proie non renseignée',
+    feederStockTitle: '🧊 Stock de proies',
+    feederStockHint: 'Décompte automatiquement quand tu loggues un repas pour un reptile dont l\'espèce/taille de proie est renseignée. Global au congélateur, pas par animal.',
+    feederStockSetBtn: 'Régler le stock',
     fillPreyBtn: '📋 Renseigner la proie',
     // Phase 3 — Ventes : Annonces
     subListings: '📢 Annonces',
@@ -3408,6 +3595,10 @@ const I18N = {
     subTour: '🔄 Tour Mode',
     subCalendar: '📅 Calendar',
     subNourriture: '🍽 Feeding',
+    subObjectif: '🎯 Goal',
+    objectifHint: 'Pick your target gene(s), and the app scans your collection to suggest the best possible pairings — ranked by real probability, not just a hunch.',
+    objectifFindBtn: '🎯 Find the best pairs',
+    objectifResultsTitle: 'Best pairs in your collection',
     actionFed: 'Fed',
     actionShed: 'Shed',
     actionRefused: 'Refused',
@@ -3451,6 +3642,9 @@ const I18N = {
     horizonToday: 'Today only',
     defrostListTitle: '📋 Defrost List',
     preyMissingTitle: '⚠ Prey Not Set',
+    feederStockTitle: '🧊 Feeder Stock',
+    feederStockHint: 'Decreases automatically when you log a meal for a reptile with its prey species/size set. Shared across your whole collection, not per animal.',
+    feederStockSetBtn: 'Set stock',
     fillPreyBtn: '📋 Set Prey',
     // Phase 3 — Sales: Listings
     subListings: '📢 Listings',
@@ -3664,7 +3858,7 @@ function openPrivacyModal(){
       '<p><b style="color:var(--gold);">Data collected non-automatically</b><br/>First and last name; email; payment information; breeding data entered by the user (animal names, morphs, weights, feeding and reproduction history) — collected when creating an account, activating a paid subscription, and manually entering animal records.</p>'+
       '<p><b style="color:var(--gold);">How data is used</b><br/>Automatic data is used to secure accounts, authenticate logins, and optimize mobile/desktop display. Entered data is used to create and manage user accounts, process subscription payments via Stripe, and provide breeding management features.</p>'+
       '<p><b style="color:var(--gold);">Who we share data with</b><br/><i>Employees</i>: limited access to what is reasonably necessary. <i>Third parties</i>: payment service provider and cloud database host, for billing information, email, login identifier, and breeding data — never beyond what is necessary.</p>'+
-      '<p><b style="color:var(--gold);">Exception — QR code generation</b> <span style="color:var(--ink-dim);font-size:10px;">(LOCUS Scales–specific addition)</span><br/>The tub-label feature generates a QR code via an external service (qrserver.com). The <b>name and genetics</b> of the reptile involved are sent to this service to produce the image — no other data is sent, and we have no control over this third-party service\'s privacy policy. Do not use this feature if you do not wish this one-time transmission to occur.</p>'+
+      '<p><b style="color:var(--gold);">Exception — QR code generation</b> <span style="color:var(--ink-dim);font-size:10px;">(LOCUS Scales–specific addition)</span><br/>The tub-label feature generates a QR code via an external service (qrserver.com). The reptile\'s <b>internal ID only</b> (not its name or genetics) is sent to this service to produce the image — no other data is sent, and we have no control over this third-party service\'s privacy policy. Do not use this feature if you do not wish this one-time transmission to occur.</p>'+
       '<p><b style="color:var(--gold);">Other disclosures</b><br/>No sale or sharing with other third parties, except where required by law, for legal proceedings, to protect our legal rights, or to a potential buyer of the business in the event of its sale.</p>'+
       '<p><b style="color:var(--gold);">Retention period</b><br/>Non-payment or a lapsed free trial never deletes your data — only access to paid features is locked, and everything reappears as soon as you resubscribe. Separately, an account that has not been <b>logged into</b> for 18 to 24 months is considered dormant: we will email you a warning 30 days beforehand, invite you to export your data (a full JSON export is available at any time from the app), and only then proceed with deletion or archiving if there is still no activity. If you delete your account yourself, data is deleted except for what is required for our legal, tax, or accounting obligations.</p>'+
       '<p><b style="color:var(--gold);">How we protect your data</b><br/>Secure communications via HTTPS. Account authentication via Supabase. Payment processing fully encrypted via Stripe (PCI-DSS standard). No security is absolute — in the event of a breach affecting your information, you will be notified in accordance with legal obligations.</p>'+
@@ -3685,7 +3879,7 @@ function openPrivacyModal(){
       '<p><b style="color:var(--gold);">Données collectées non automatiquement</b><br/>Prénom et nom ; courriel ; information de paiement ; données d\'élevage saisies par l\'utilisateur (noms des animaux, morphs, poids, historiques de repas et de reproduction) — recueillies lors de la création d\'un compte, de l\'activation d\'un abonnement payant, et de la saisie manuelle des fiches d\'animaux.</p>'+
       '<p><b style="color:var(--gold);">Comment les données sont utilisées</b><br/>Les données automatiques servent à sécuriser les comptes, authentifier les connexions et optimiser l\'affichage mobile/ordinateur. Les données saisies servent à créer et gérer les comptes utilisateurs, traiter les paiements d\'abonnement via Stripe, et fournir les fonctionnalités de gestion d\'élevage.</p>'+
       '<p><b style="color:var(--gold);">Avec qui nous partageons les données</b><br/><i>Employés</i> : accès limité à ce qui est raisonnablement nécessaire. <i>Tiers</i> : fournisseur de service de paiement et hébergeur de base de données cloud, pour l\'information de facturation, le courriel, l\'identifiant de connexion et les données d\'élevage — jamais au-delà de ce qui est nécessaire.</p>'+
-      '<p><b style="color:var(--gold);">Exception — génération de QR codes</b> <span style="color:var(--ink-dim);font-size:10px;">(ajout spécifique à LOCUS Scales)</span><br/>La fonction d\'étiquette de bac génère un QR code via un service externe (qrserver.com). Le <b>nom et la génétique</b> du reptile concerné sont transmis à ce service pour fabriquer l\'image — aucune autre donnée n\'est envoyée, et nous n\'avons aucun contrôle sur la politique de confidentialité de ce service tiers. N\'utilisez pas cette fonction si vous ne souhaitez pas cette transmission ponctuelle.</p>'+
+      '<p><b style="color:var(--gold);">Exception — génération de QR codes</b> <span style="color:var(--ink-dim);font-size:10px;">(ajout spécifique à LOCUS Scales)</span><br/>La fonction d\'étiquette de bac génère un QR code via un service externe (qrserver.com). Seul l\'<b>identifiant interne</b> du reptile (pas son nom ni sa génétique) est transmis à ce service pour fabriquer l\'image — aucune autre donnée n\'est envoyée, et nous n\'avons aucun contrôle sur la politique de confidentialité de ce service tiers. N\'utilisez pas cette fonction si vous ne souhaitez pas cette transmission ponctuelle.</p>'+
       '<p><b style="color:var(--gold);">Autres divulgations</b><br/>Aucune vente ou partage à d\'autres tiers, sauf si la loi l\'exige, pour une procédure judiciaire, pour protéger nos droits légaux, ou à un acheteur potentiel de l\'entreprise en cas de vente de celle-ci.</p>'+
       '<p><b style="color:var(--gold);">Durée de conservation</b><br/>Un non-paiement ou un essai gratuit expiré n\'efface jamais vos données — seul l\'accès aux fonctionnalités payantes est verrouillé, et tout réapparaît dès que vous vous réabonnez. Séparément, un compte sans <b>connexion</b> depuis 18 à 24 mois est considéré comme dormant : nous vous enverrons un courriel d\'avertissement 30 jours avant, vous inviterons à exporter vos données (un export JSON complet est disponible en tout temps depuis l\'application), et procéderons seulement ensuite à la suppression ou l\'archivage en l\'absence persistante d\'activité. Si vous supprimez vous-même votre compte, les données sont supprimées sauf celles requises pour nos obligations légales, fiscales ou comptables.</p>'+
       '<p><b style="color:var(--gold);">Comment nous protégeons vos données</b><br/>Communications sécurisées via HTTPS. Authentification des comptes via Supabase. Traitement des paiements entièrement chiffré via Stripe (norme PCI-DSS). Aucune sécurité n\'est absolue — en cas de violation affectant vos renseignements, vous serez avisé conformément aux obligations légales.</p>'+
@@ -3960,6 +4154,7 @@ function buildCombobox(sex){
 buildCombobox('male');
 buildCombobox('female');
 buildCombobox('draft');
+buildCombobox('objectif');
 buildLoadMenu('male');
 buildLoadMenu('female');
 
@@ -4539,6 +4734,7 @@ function batchMarkFed(){
   if(batchSelectedIds.size===0) return;
   const today = new Date().toISOString().slice(0,10);
   let count = 0;
+  let stockTouched = false;
   batchSelectedIds.forEach(id=>{
     const s = savedSnakes.find(x=>x.id===id);
     if(!s) return;
@@ -4546,8 +4742,13 @@ function batchMarkFed(){
     s.health.consecutiveRefusals = 0;
     s.health.events.push({date:today, type:'fed'});
     count++;
+    if(s.preySpecies && s.preySize){
+      const key = feederStockKey(s.preySpecies, s.preySize);
+      if(feederStock[key]!=null){ feederStock[key] = Math.max(0, feederStock[key]-1); stockTouched = true; }
+    }
   });
   storage.save(savedSnakes);
+  if(stockTouched) saveElevage();
   showToast('🍽 '+count+' '+(isEn?'reptile(s) marked fed.':'reptile(s) marqué(s) nourri(s).'), 'success');
   toggleBatchMode();
   renderRackGrid(); renderTerrariumList(); renderTourGrid();
@@ -4812,6 +5013,33 @@ function crossLocus(p1pair, p2pair){
   return list;
 }
 
+/* Validation génétique à la confirmation d'un bébé (25 août) — vérifie que la génétique
+   déclarée pour un bébé est mendéliennement possible selon ses parents connus dans la
+   collection. Ne bloque jamais (avertit seulement) — un parent mal renseigné ou un
+   Freeway non résolu peut donner un faux positif, jamais une certitude à 100%. */
+function checkBabyGeneticsConsistency(snake){
+  if(!snake.sireId || !snake.damId) return null;
+  const sire = savedSnakes.find(s=>s.id===snake.sireId);
+  const dam = savedSnakes.find(s=>s.id===snake.damId);
+  if(!sire || !dam) return null;
+  const sireAlleles = allelesFromSelections(sire.genes||{});
+  const damAlleles = allelesFromSelections(dam.genes||{});
+  const babyAlleles = allelesFromSelections(snake.genes||{});
+  const issues = [];
+  Object.keys(babyAlleles).forEach(locus=>{
+    if(!sireAlleles[locus] && !damAlleles[locus]) return;
+    const p1 = sireAlleles[locus] || ['WT','WT'];
+    const p2 = damAlleles[locus] || ['WT','WT'];
+    const possiblePairs = crossLocus(p1, p2).map(o=>o.pair.slice().sort().join('+'));
+    const babyPair = babyAlleles[locus].slice().sort().join('+');
+    if(!possiblePairs.includes(babyPair)){
+      const geneNames = GENES.filter(g=>g.locus===locus).map(g=>g.name).join('/');
+      issues.push(geneNames || locus);
+    }
+  });
+  return issues.length ? issues : null;
+}
+
 function geneWarning(g){
   if(!g || !g.warning) return undefined;
   return (currentLang==='en') ? (g.warningEn || g.warning) : g.warning;
@@ -4837,6 +5065,79 @@ function phenotypeForLocusPair(locus, pair){
   const warnings = [geneWarning(gA), geneWarning(gB)].filter(Boolean);
   if(compoundName) return {label:compoundName, visual:true, geneIds:[a,b], warning: warnings.join(' ') || undefined};
   return {label:gA.name+' + '+gB.name+' (combo)', visual:true, geneIds:[a,b], warning: warnings.join(' ') || undefined};
+}
+
+/* ==================== PLANIFICATEUR DE PAIRING PAR OBJECTIF ==================== */
+// Réutilise le même moteur que le calculateur (allelesFromSelections, crossLocus,
+// phenotypeForLocusPair) — aucune logique génétique dupliquée, juste appliquée à TOUS les
+// couples mâle×femelle de la collection au lieu d'une seule paire choisie manuellement.
+function pairGoalProbability(sireGenes, damGenes, targetGeneIds){
+  const sireAlleles = allelesFromSelections(sireGenes||{});
+  const damAlleles = allelesFromSelections(damGenes||{});
+  const targetsByLocus = {};
+  targetGeneIds.forEach(gid=>{
+    const g = GENES.find(x=>x.id===gid);
+    if(!g) return;
+    targetsByLocus[g.locus] = targetsByLocus[g.locus] || [];
+    targetsByLocus[g.locus].push(gid);
+  });
+  let combinedProb = 1;
+  for(const locus in targetsByLocus){
+    const p1 = sireAlleles[locus] || ['WT','WT'];
+    const p2 = damAlleles[locus] || ['WT','WT'];
+    const neededIds = targetsByLocus[locus];
+    let locusProb = 0;
+    crossLocus(p1, p2).forEach(o=>{
+      const pheno = phenotypeForLocusPair(locus, o.pair);
+      if(pheno && pheno.visual && neededIds.every(id=>pheno.geneIds.includes(id))) locusProb += o.prob;
+    });
+    combinedProb *= locusProb;
+  }
+  return combinedProb;
+}
+function findBestPairings(targetGeneIds){
+  const males = savedSnakes.filter(s=>s.sex==='male' && s.status!=='sold');
+  const females = savedSnakes.filter(s=>s.sex==='female' && s.status!=='sold');
+  const results = [];
+  males.forEach(m=>{
+    females.forEach(f=>{
+      const prob = pairGoalProbability(m.genes, f.genes, targetGeneIds);
+      if(prob>0) results.push({sire:m, dam:f, prob});
+    });
+  });
+  return results.sort((a,b)=>b.prob-a.prob);
+}
+function renderPairingPlanner(){
+  const isEn = currentLang==='en';
+  const targetIds = Object.keys(state.objectif).filter(k=>!isFreewayKey(k));
+  const wrap = document.getElementById('pairing-planner-results');
+  if(!wrap) return;
+  if(targetIds.length===0){
+    wrap.innerHTML = '<div class="empty">'+(isEn?'Select at least one target gene above.':'Sélectionne au moins un gène cible ci-dessus.')+'</div>';
+    return;
+  }
+  const results = findBestPairings(targetIds);
+  if(results.length===0){
+    wrap.innerHTML = '<div class="empty">'+(isEn?'No pairing in your current collection can currently produce this combination.':'Aucun accouplement dans ta collection actuelle ne peut produire cette combinaison pour l\'instant.')+'</div>';
+    return;
+  }
+  wrap.innerHTML = results.slice(0,10).map(r=>{
+    const pct = (r.prob*100).toFixed(2).replace(/\.00$/,'');
+    return '<div class="sale-row">'+
+      '<div class="sale-name">'+escapeHtml(r.sire.name)+' × '+escapeHtml(r.dam.name)+'<small>'+pct+'% '+(isEn?'chance per egg':'de chance par œuf')+'</small></div>'+
+      '<button class="sc-btn accent" onclick="loadPlannerPairIntoCalculator(\''+r.sire.id+'\',\''+r.dam.id+'\')">'+(isEn?'Open in calculator':'Ouvrir dans le calculateur')+'</button>'+
+    '</div>';
+  }).join('');
+}
+function loadPlannerPairIntoCalculator(sireId, damId){
+  const sire = savedSnakes.find(s=>s.id===sireId);
+  const dam = savedSnakes.find(s=>s.id===damId);
+  if(!sire || !dam) return;
+  state.male = {...sire.genes};
+  state.female = {...dam.genes};
+  renderTags('male'); renderTags('female');
+  showTab('calc');
+  runCross();
 }
 
 function updateSexNote(){
@@ -5284,6 +5585,10 @@ function openLogbook(id){
   ).join('') + '<button class="sc-btn danger" onclick="setListingStatus(\''+id+'\',\'sold\')">'+t('markSoldBtn')+'</button>';
   const statusDetailHtml = s.status==='sold'
     ? mrow(t('buyerLabel'), escapeHtml(s.buyer||'—')) + mrow(t('saleDateLabel'), s.soldDate||'—')
+      + '<div class="modal-row"><span>'+(isEn?'Carrier':'Transporteur')+'</span><span><input type="text" class="price-input" style="width:120px;" value="'+escapeHtml(s.shippingCarrier||'')+'" placeholder="'+(isEn?'e.g. Canada Post':'ex. Postes Canada')+'" onchange="setShippingInfo(\''+id+'\',\'carrier\',this.value)"/></span></div>'
+      + '<div class="modal-row"><span>'+(isEn?'Tracking #':'N° de suivi')+'</span><span><input type="text" class="price-input" style="width:140px;" value="'+escapeHtml(s.shippingTracking||'')+'" onchange="setShippingInfo(\''+id+'\',\'tracking\',this.value)"/></span></div>'
+      + '<div class="modal-row"><span>'+(isEn?'Ship date':'Date d\'envoi')+'</span><span><input type="date" class="price-input" style="width:140px;" value="'+(s.shippingDate||'')+'" onchange="setShippingInfo(\''+id+'\',\'date\',this.value)"/></span></div>'
+      + (s.shippingTracking ? '<div class="modal-row"><span></span><span><label style="font-size:11px;color:var(--ink-dim);"><input type="checkbox" '+(s.shippingDelivered?'checked':'')+' onchange="setShippingInfo(\''+id+'\',\'delivered\',this.checked)"/> '+(isEn?'Delivered':'Livré')+'</label></span></div>' : '')
     : '<div class="modal-row"><span>'+t('askedPriceLabel')+'</span><span><input type="number" class="price-input" style="width:90px;" value="'+(s.askingPrice||'')+'" placeholder="0" onchange="setAskingPrice(\''+id+'\', this.value)"/> $</span></div>';
 
   const weightsHtml = s.health.weights.length
@@ -5392,6 +5697,8 @@ function openLogbook(id){
         '<button class="sex-btn'+(s.preyType==='live'?' active':'')+'" onclick="setPreyType(\''+id+'\', \'live\')">🐭 '+t('preyTypeLive')+'</button>'+
       '</div>'+
     '</div>'+
+    '<div class="modal-row"><span>'+(isEn?'Cost per meal':'Coût par repas')+'</span><span><input type="number" class="price-input" style="width:70px;" min="0" step="0.25" value="'+(s.feedCost!=null?s.feedCost:'')+'" placeholder="0" onchange="setFeedCost(\''+id+'\', this.value)"/> $</span></div>'+
+    (feedCount(s)>0 ? '<div class="modal-row"><span>'+(isEn?'Cumulative feeding cost (estimate)':'Coût de nourriture cumulé (estimé)')+'</span><span style="color:var(--gold);font-weight:600;">'+cumulativeFeedCost(s).toFixed(2)+' $</span></div>' : '')+
     '<div class="modal-section">'+
       '<div class="community-folder'+(helpFolderWasOpen?'':' collapsed')+'" id="'+helpFolderId+'">'+
         '<button class="community-folder-header" onclick="toggleCommunityFolder(\''+helpFolderId+'\')">'+
@@ -5530,11 +5837,17 @@ function openLogbook(id){
       '<button class="sc-btn accent" onclick="exportSnakeSheet(\''+id+'\')">'+t('exportSheetBtn')+'</button>'+
       '<button class="sc-btn" onclick="exportSnakeSheet(\''+id+'\', true)">'+t('exportVetSheetBtn')+'</button>'+
       '<button class="sc-btn'+(s.publicToken?' danger':'')+'" onclick="togglePublicShare(\''+id+'\')">'+(s.publicToken?(currentLang==='en'?'🚫 Disable public link':'🚫 Retirer le lien public'):(currentLang==='en'?'🔗 Enable public link':'🔗 Activer un lien public'))+'</button>'+
+      '<button class="sc-btn'+(s.transferToken?' danger':'')+'" onclick="toggleTransferShare(\''+id+'\')">'+(s.transferToken?(currentLang==='en'?'🚫 Disable transfer link':'🚫 Retirer le lien de transfert'):(currentLang==='en'?'📦 Full record transfer link':'📦 Lien de transfert du dossier complet'))+'</button>'+
     '</div>'+
     (s.publicToken ? '<div style="margin-top:10px;padding:10px 12px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;">'+
       '<div style="font-size:10.5px;color:var(--ink-dim);margin-bottom:6px;">'+(currentLang==='en'?'Anyone with this link can view name, sex, genetics, pedigree and photos — never price, buyer, or location.':'Quiconque a ce lien peut voir le nom, le sexe, la génétique, le pedigree et les photos — jamais le prix, l\'acheteur ou l\'emplacement.')+'</div>'+
       '<div style="word-break:break-all;font-family:\'Courier New\',monospace;font-size:11px;color:var(--gold);">'+escapeHtml(publicShareUrl(s.publicToken))+'</div>'+
       '<button class="sc-btn" style="margin-top:8px;" onclick="copyPublicShareUrl(\''+id+'\')">📋 '+(currentLang==='en'?'Copy link':'Copier le lien')+'</button>'+
+    '</div>' : '')+
+    (s.transferToken ? '<div style="margin-top:10px;padding:10px 12px;background:var(--bg-panel-2);border:1px solid var(--rust);border-radius:8px;">'+
+      '<div style="font-size:10.5px;color:var(--ink-dim);margin-bottom:6px;">'+(currentLang==='en'?'Meant for the new owner at the moment of sale — includes full health history (weights, sheds, vet visits). Still never price, buyer, or your location.':'Pensé pour le nouveau propriétaire au moment de la vente — inclut l\'historique de santé complet (poids, mues, visites vétérinaires). Toujours jamais le prix, l\'acheteur ou ton emplacement.')+'</div>'+
+      '<div style="word-break:break-all;font-family:\'Courier New\',monospace;font-size:11px;color:var(--gold);">'+escapeHtml(transferShareUrl(s.transferToken))+'</div>'+
+      '<button class="sc-btn" style="margin-top:8px;" onclick="copyTransferShareUrl(\''+id+'\')">📋 '+(currentLang==='en'?'Copy link':'Copier le lien')+'</button>'+
     '</div>' : '')+
     '<div id="logbook-qr" style="display:none;margin-top:12px;"></div></div>';
 
@@ -5572,9 +5885,44 @@ function copyPublicShareUrl(id){
   }
 }
 
+// Transfert de dossier complet à l'acheteur (25 août) — distinct du lien public ci-dessus : celui-ci
+// inclut l'historique de santé complet (poids, mues, visites vétérinaires, etc.), pensé pour être
+// remis au nouveau propriétaire au moment de la vente, pas pour naviguer un curieux sur Facebook.
+// Toujours exclu : prix, nom de l'acheteur, emplacement dans le rack.
+function transferShareUrl(token){
+  return location.origin + location.pathname + '?transfer=' + token;
+}
+function toggleTransferShare(id){
+  if(!requireAuthOrPrompt()) return;
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const isEn = currentLang==='en';
+  if(s.transferToken){
+    if(!confirm(isEn?'Disable the transfer link? Anyone who already has it will no longer be able to view this record.':'Retirer le lien de transfert ? Quiconque l\'a déjà ne pourra plus consulter ce dossier.')) return;
+    s.transferToken = null;
+  } else {
+    s.transferToken = (typeof crypto!=='undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('trf_'+Date.now()+'_'+Math.random().toString(36).slice(2,10));
+  }
+  storage.save(savedSnakes);
+  openLogbook(id);
+}
+function copyTransferShareUrl(id){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s || !s.transferToken) return;
+  const url = transferShareUrl(s.transferToken);
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(()=>showToast('🔗 '+(currentLang==='en'?'Link copied.':'Lien copié.'), 'success')).catch(()=>{});
+  }
+}
+
+// QR de bac orienté vitesse pour l'éleveur (25 août) : encode une URL (?snake=<id>) plutôt
+// que du texte brut. Scanné pendant que tu es connecté sur ce téléphone, ça ouvre l'app et saute
+// direct à la fiche/journal de l'animal — voir routeToScannedSnake() plus bas pour la réception.
+// Distinct du lien public (?public=<jeton>) : ceci exige d'être connecté à SON PROPRE compte,
+// aucune donnée n'est exposée à un visiteur externe qui scannerait sans être connecté.
 function buildQrData(s){
-  return 'LOCUS — Fiche reptile\nNom: '+s.name+'\nSexe: '+(s.sex==='male'?t('sexMale'):t('sexFemale'))+
-    '\nGénétique: '+summarizeGenes(s.genes)+'\nID: '+s.id;
+  return location.origin + location.pathname + '?snake=' + encodeURIComponent(s.id);
 }
 function qrImageUrl(data, size){
   return 'https://api.qrserver.com/v1/create-qr-code/?size='+size+'x'+size+'&data='+encodeURIComponent(data);
@@ -5587,7 +5935,7 @@ function toggleQrCode(id){
   const box = document.getElementById('logbook-qr');
   if(box.style.display==='block'){ box.style.display='none'; return; }
   box.innerHTML = '<div class="qr-box"><img src="'+qrImageUrl(buildQrData(s),220)+'" width="220" height="220" alt="QR Code '+escapeHtml(s.name)+'"/>'+
-    '<div class="qr-caption">Scanner pour identifier ce reptile — '+escapeHtml(s.name)+'</div></div>';
+    '<div class="qr-caption">Scanner pour ouvrir directement la fiche — '+escapeHtml(s.name)+'</div></div>';
   box.style.display = 'block';
 }
 
@@ -5674,7 +6022,7 @@ function logAction(id, type){
   const isEn = currentLang==='en';
   const today = new Date().toISOString().slice(0,10);
   if(type==='fed'){ openFedModal(id); return; }
-  else if(type==='refused'){ s.health.consecutiveRefusals = (s.health.consecutiveRefusals||0)+1; s.health.events.push({date:today, type:'refused'}); storage.save(savedSnakes); showToast('⚠ '+(isEn?'Refusal noted for ':'Refus noté pour ')+s.name+'.'); }
+  else if(type==='refused'){ openRefusedModal(id); return; }
   else if(type==='shed'){ openShedModal(id); return; }
   else if(type==='weigh'){ openWeighModal(id); return; }
   else if(type==='length'){ openLengthModal(id); return; }
@@ -5704,8 +6052,19 @@ function confirmFed(id, quantity){
   s.health.consecutiveRefusals = 0;
   s.health.events.push({date:today, type:'fed', quantity});
   storage.save(savedSnakes);
+  let stockMsg = '';
+  if(s.preySpecies && s.preySize){
+    const key = feederStockKey(s.preySpecies, s.preySize);
+    if(feederStock[key]!=null){
+      feederStock[key] = Math.max(0, feederStock[key]-1);
+      saveElevage();
+      if(feederStock[key] <= FEEDER_LOW_STOCK_THRESHOLD){
+        stockMsg = isEn ? ' ⚠ Low stock: '+feederStock[key]+' left.' : ' ⚠ Stock bas : '+feederStock[key]+' restant(s).';
+      }
+    }
+  }
   closeQuickModal();
-  showToast('🍽 '+s.name+(isEn?' ate':' a mangé')+(quantity==='partial'?(isEn?' (partial).':' (partiellement).'):'.'), 'success');
+  showToast('🍽 '+s.name+(isEn?' ate':' a mangé')+(quantity==='partial'?(isEn?' (partial).':' (partiellement).'):'.')+stockMsg, 'success');
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
   renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderFirstSnakeTip();
 }
@@ -5823,6 +6182,56 @@ function confirmShed(id){
   showToast('✨ '+s.name+(isEn?' shed — ':' a mué — ')+shedQualityLabel(quality), quality==='complete'?'success':undefined);
   renderFirstSnakeTip();
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
+}
+
+// Raison de refus catégorisée (25 août) — au lieu de juste noter "refusé" sans contexte, choisir
+// parmi des raisons courantes permet de repérer un patron dans le temps (ex. refuse toujours en
+// période de mue). "unknown" reste l'option par défaut — jamais forcer une raison qu'on n'est pas sûr.
+const REFUSAL_REASONS = ['unknown','shed_upcoming','stress','breeding_season','recent_move','other'];
+function refusalReasonLabel(reason){
+  const isEn = currentLang==='en';
+  const labels = {
+    unknown: isEn?'Not sure / no obvious reason':'Pas sûr / pas de raison évidente',
+    shed_upcoming: isEn?'Upcoming shed':'Mue à venir',
+    stress: isEn?'Stress / recent disturbance':'Stress / dérangement récent',
+    breeding_season: isEn?'Breeding season':'Saison de reproduction',
+    recent_move: isEn?'Recent move / rehousing':'Déménagement / changement de bac récent',
+    other: isEn?'Other (see note)':'Autre (voir note)'
+  };
+  return labels[reason] || labels.unknown;
+}
+function openRefusedModal(id){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  showQuickModal((isEn?'Refusal — ':'Refus — ')+s.name,
+    '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:6px;">'+(isEn?'Likely reason':'Raison probable')+'</label>'+
+    '<select id="refused-reason-input" style="width:100%;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:\'Courier New\',monospace;font-size:14px;padding:9px 10px;margin-bottom:12px;">'+
+      REFUSAL_REASONS.map(r=>'<option value="'+r+'">'+refusalReasonLabel(r)+'</option>').join('')+
+    '</select>'+
+    '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:6px;">'+(isEn?'Note (optional)':'Note (optionnelle)')+'</label>'+
+    '<input type="text" id="refused-note-input" style="width:100%;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:\'Courier New\',monospace;font-size:14px;padding:9px 10px;"/>'+
+    '<button class="save-btn" style="margin-top:16px;width:100%;" onclick="confirmRefused(\''+id+'\')">'+(isEn?'Save refusal':'Enregistrer le refus')+'</button>'
+  );
+}
+function confirmRefused(id){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const reasonEl = document.getElementById('refused-reason-input');
+  const noteEl = document.getElementById('refused-note-input');
+  const reason = reasonEl ? reasonEl.value : 'unknown';
+  const note = noteEl ? noteEl.value.trim() : '';
+  const today = new Date().toISOString().slice(0,10);
+  s.health.consecutiveRefusals = (s.health.consecutiveRefusals||0)+1;
+  s.health.events.push({date:today, type:'refused', reason, note});
+  storage.save(savedSnakes);
+  closeQuickModal();
+  showToast('⚠ '+(isEn?'Refusal noted for ':'Refus noté pour ')+s.name+' — '+refusalReasonLabel(reason)+'.');
+  if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
+  renderRackGrid(); renderTerrariumList(); renderTourGrid();
 }
 
 // Journal de nettoyage/entretien du terrarium — par reptile, même pattern que le journal
@@ -5970,8 +6379,8 @@ const DEFAULT_LAYOUT = { hideRacks:false, hideTerrariums:false, order:'racks-fir
 function loadElevage(){
   try{
     const raw = localStorage.getItem(ELEVAGE_KEY);
-    return raw ? JSON.parse(raw) : { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[] };
-  }catch(e){ console.warn('LOCUS: lecture élevage impossible', e); return { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[] }; }
+    return raw ? JSON.parse(raw) : { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{} };
+  }catch(e){ console.warn('LOCUS: lecture élevage impossible', e); return { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{} }; }
 }
 function saveElevage(){
   trackLocalChanges('racks', racks);
@@ -5980,7 +6389,7 @@ function saveElevage(){
   trackLocalChanges('expenses', expenses);
   trackLocalChanges('customers', customers);
   try{
-    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, pairings, layout, clutches, expenses, customers, customEvents, projects }));
+    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock }));
     storageWriteFailed = false;
   }catch(e){
     console.warn('LOCUS: écriture élevage impossible', e);
@@ -5997,6 +6406,10 @@ let customEvents = elevageData.customEvents || [];
 // génétique précis (ex. « Bumblebee project »). Stocké comme customEvents : local dans
 // locus_elevage_v1, synchronisé au cloud via app_state.projects (voir syncPushAll/syncPullAll).
 let projects = elevageData.projects || [];
+// Inventaire de proies (25 août) — stock par catégorie ("mouse|Weanling", "rat|Small", etc.),
+// décompté automatiquement à chaque repas loggé si l'animal a un preySpecies/preySize renseigné.
+// Global à la collection (pas par animal) : un seul congélateur, peu importe combien de bouches à nourrir.
+let feederStock = elevageData.feederStock || {};
 let racks = elevageData.racks;
 // Migration : anciennes sauvegardes qui n'avaient qu'un seul rack uniforme (rackDims) —
 // converties une seule fois vers le nouveau modèle multi-racks, aucune perte de données.
@@ -6080,7 +6493,8 @@ function snakeToRow(s){
     prey_size: s.preySize||null, prey_type: s.preyType||'frozen', asking_price: s.askingPrice||null, listed_date: s.listedDate||null,
     listing_url: s.listingUrl||null, buyer: s.buyer||null, sold_date: s.soldDate||null, sold_price: s.soldPrice||null,
     quarantine: s.quarantine||{active:false,startDate:null,durationDays:60}, custom_tags: s.customTags||[], species: s.species||'ball_python',
-    paid_via_stripe: !!s.paidViaStripe, care_params: s.careParams||{}, public_token: s.publicToken||null
+    paid_via_stripe: !!s.paidViaStripe, care_params: s.careParams||{}, public_token: s.publicToken||null, feed_cost: s.feedCost||null, transfer_token: s.transferToken||null,
+    shipping_carrier: s.shippingCarrier||null, shipping_tracking: s.shippingTracking||null, shipping_date: s.shippingDate||null, shipping_delivered: !!s.shippingDelivered
   };
 }
 function rowToSnake(r){
@@ -6092,7 +6506,8 @@ function rowToSnake(r){
     askingPrice: r.asking_price, listedDate: r.listed_date, listingUrl: r.listing_url,
     buyer: r.buyer, soldDate: r.sold_date, soldPrice: r.sold_price, createdAt: r.created_at ? Date.parse(r.created_at) : Date.now(),
     quarantine: r.quarantine || {active:false,startDate:null,durationDays:60}, customTags: r.custom_tags || [], species: r.species || 'ball_python',
-    paidViaStripe: !!r.paid_via_stripe, careParams: r.care_params || {}, publicToken: r.public_token || null, updatedAt: r.updated_at ? Date.parse(r.updated_at) : 0
+    paidViaStripe: !!r.paid_via_stripe, careParams: r.care_params || {}, publicToken: r.public_token || null, feedCost: r.feed_cost!=null ? r.feed_cost : null, transferToken: r.transfer_token || null,
+    shippingCarrier: r.shipping_carrier || null, shippingTracking: r.shipping_tracking || null, shippingDate: r.shipping_date || null, shippingDelivered: !!r.shipping_delivered, updatedAt: r.updated_at ? Date.parse(r.updated_at) : 0
   };
 }
 
@@ -6132,7 +6547,7 @@ async function syncPushAll(forceAll){
       const dirty = itemsToPush('customers', customers, forceAll);
       if(dirty.length) await sb.from('customers').upsert(dirty.map(cu=>({ id:cu.id, user_id:currentUser.id, data:cu })));
     }
-    await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects });
+    await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock });
     const profile = loadProfile();
     await sb.from('profiles').upsert({ user_id:currentUser.id, breeder_name: profile.breederName||null, email: profile.email||null, phone: profile.phone||null });
     ['snakes','racks','pairings','clutches','expenses','customers'].forEach(kind=> dirtySyncIds[kind].clear());
@@ -6189,6 +6604,7 @@ async function syncPullAll(){
     if(stateRes.data && stateRes.data.layout) layout = stateRes.data.layout;
     if(stateRes.data && stateRes.data.custom_events) customEvents = mergeById(customEvents, stateRes.data.custom_events);
     if(stateRes.data && stateRes.data.projects) projects = mergeById(projects, stateRes.data.projects);
+    if(stateRes.data && stateRes.data.feeder_stock) feederStock = stateRes.data.feeder_stock;
     if(stateRes.data && stateRes.data.dismissed_banners){
       const mergedBanners = [...new Set([...loadDismissedBanners(), ...stateRes.data.dismissed_banners])];
       saveDismissedBanners(mergedBanners);
@@ -6620,6 +7036,12 @@ function ensureSnakeMeta(s){
   if(s.species===undefined) s.species = 'ball_python'; // tous les reptiles créés avant cette fonctionnalité étaient forcément des python royal
   if(!s.careParams) s.careParams = { tempWarm:null, tempCool:null, humidity:null, cycleNotes:'' }; // paramètres d'élevage par espèce — surtout utile hors python royal, qui n'a pas de fiche husbandry intégrée
   if(s.publicToken===undefined) s.publicToken = null; // jeton aléatoire pour le lien public en lecture seule — null = partage désactivé
+  if(s.feedCost===undefined) s.feedCost = null; // coût estimé par repas, entré par l'éleveur — sert au calcul du coût cumulé estimé
+  if(s.transferToken===undefined) s.transferToken = null; // jeton pour le lien de transfert complet à l'acheteur — null = désactivé
+  if(s.shippingCarrier===undefined) s.shippingCarrier = null;
+  if(s.shippingTracking===undefined) s.shippingTracking = null;
+  if(s.shippingDate===undefined) s.shippingDate = null;
+  if(s.shippingDelivered===undefined) s.shippingDelivered = false;
 }
 // Calcule l'état de quarantaine d'un reptile : jours écoulés, jours restants, et si la période
 // recommandée est atteinte. Ne force jamais la sortie de quarantaine — l'éleveur décide.
@@ -6760,6 +7182,26 @@ const PREY_SIZES = {
   mouse: ['Pinky','Fuzzy','Hopper','Weanling','Adult'],
   rat: ['Pinky','Fuzzy','Weanling','Small','Medium','Large','X-Large','Jumbo'],
 };
+
+/* Coût de nourriture cumulé (estimé) — 25 août. On ne connaît pas le prix payé pour chaque proie
+   individuelle (pas de saisie par repas), donc l'estimation est simple et transparente : le coût
+   par repas que l'éleveur entre lui-même, multiplié par le nombre d'événements "nourri" déjà loggés
+   pour cet animal. Toujours présenté comme une estimation, jamais comme un chiffre exact. */
+function feedCount(s){
+  return (s.health && s.health.events) ? s.health.events.filter(e=>e.type==='fed').length : 0;
+}
+function cumulativeFeedCost(s){
+  return feedCount(s) * (s.feedCost || 0);
+}
+function setFeedCost(id, value){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const val = parseFloat(value);
+  s.feedCost = (!isNaN(val) && val>=0) ? val : null;
+  storage.save(savedSnakes);
+  openLogbook(id);
+}
 
 function updatePreySpecies(id, species){
   const s = savedSnakes.find(x=>x.id===id);
@@ -6914,6 +7356,63 @@ function renderFoodView(){
       '<button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">'+t('fillPreyBtn')+'</button>';
     missingWrap.appendChild(row);
   });
+
+  renderFeederStockList();
+  renderFeederStockSizeOptions();
+}
+
+/* Inventaire de proies (25 août) — stock global par catégorie "espèce|taille", décompté
+   automatiquement à chaque repas loggé (voir confirmFed()). Seuil d'alerte bas fixé à 5,
+   volontairement simple plutôt que configurable pour l'instant. */
+const FEEDER_LOW_STOCK_THRESHOLD = 5;
+function feederStockKey(species, size){ return species+'|'+size; }
+function renderFeederStockSizeOptions(){
+  const speciesSel = document.getElementById('feeder-stock-species');
+  const sizeSel = document.getElementById('feeder-stock-size');
+  if(!speciesSel || !sizeSel) return;
+  const species = speciesSel.value;
+  sizeSel.innerHTML = PREY_SIZES[species].map(sz=>'<option value="'+sz+'">'+sz+'</option>').join('');
+}
+function setFeederStock(){
+  const isEn = currentLang==='en';
+  const species = document.getElementById('feeder-stock-species').value;
+  const size = document.getElementById('feeder-stock-size').value;
+  const qtyInput = document.getElementById('feeder-stock-qty');
+  const qty = parseInt(qtyInput.value, 10);
+  if(!size || isNaN(qty) || qty<0){ showToast(isEn?'Enter a valid quantity.':'Entre une quantité valide.', 'error'); return; }
+  feederStock[feederStockKey(species,size)] = qty;
+  qtyInput.value = '';
+  saveElevage();
+  renderFeederStockList();
+  showToast('🧊 '+(isEn?'Stock updated.':'Stock mis à jour.'), 'success');
+}
+function adjustFeederStock(key, delta){
+  feederStock[key] = Math.max(0, (feederStock[key]||0) + delta);
+  saveElevage();
+  renderFeederStockList();
+}
+function renderFeederStockList(){
+  const wrap = document.getElementById('feeder-stock-list');
+  if(!wrap) return;
+  const isEn = currentLang==='en';
+  const entries = Object.entries(feederStock).filter(([k,v])=>v>0 || v===0);
+  if(!entries.length){
+    wrap.innerHTML = '<div class="empty">'+(isEn?'No stock entered yet.':'Aucun stock entré pour l\'instant.')+'</div>';
+    return;
+  }
+  wrap.innerHTML = entries.sort((a,b)=>a[0].localeCompare(b[0])).map(([key,qty])=>{
+    const [species,size] = key.split('|');
+    const speciesLabel = species==='mouse' ? 'Mouse' : 'Rat';
+    const low = qty <= FEEDER_LOW_STOCK_THRESHOLD;
+    return '<div class="expense-cat-row"'+(low?' style="border:1px solid var(--rust);border-radius:8px;padding:6px 8px;"':'')+'>'+
+      '<div class="expense-cat-label">'+(species==='mouse'?'🐁':'🐀')+' '+size+' '+speciesLabel+(low?' ⚠':'')+'</div>'+
+      '<div style="display:flex;align-items:center;gap:8px;">'+
+        '<button class="sc-btn" style="padding:2px 10px;" onclick="adjustFeederStock(\''+key+'\', -1)">−</button>'+
+        '<span style="font-family:\'Courier New\',monospace;min-width:24px;text-align:center;'+(low?'color:var(--rust);font-weight:700;':'')+'">'+qty+'</span>'+
+        '<button class="sc-btn" style="padding:2px 10px;" onclick="adjustFeederStock(\''+key+'\', 1)">+</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
 }
 const foodHorizonSelectEl = document.getElementById('food-horizon-select');
 if(foodHorizonSelectEl){
@@ -6952,11 +7451,13 @@ function showSubtab(sub){
   document.getElementById('sub-tour').style.display = sub==='tour' ? '' : 'none';
   document.getElementById('sub-calendar').style.display = sub==='calendar' ? '' : 'none';
   document.getElementById('sub-nourriture').style.display = sub==='nourriture' ? '' : 'none';
+  document.getElementById('sub-objectif').style.display = sub==='objectif' ? '' : 'none';
   document.querySelectorAll('.subtab-btn').forEach(b=>b.classList.toggle('active', b.dataset.sub===sub));
   if(sub==='racks'){ renderRackGrid(); renderTerrariumList(); }
   if(sub==='tour'){ renderTourGrid(); renderTourLayoutPrefs(); }
   if(sub==='calendar'){ renderPairingForm(); renderTimeline(); renderHealthLog(); renderProjects(); }
   if(sub==='nourriture'){ renderFoodView(); }
+  if(sub==='objectif'){ renderTags('objectif'); }
 }
 
 /* ---- Racks & Terrariums ---- */
@@ -7307,7 +7808,7 @@ function applyTourAction(action){
     if(!snake) return;
     ensureSnakeMeta(snake);
     if(action==='fed'){ snake.health.consecutiveRefusals = 0; snake.health.events.push({date:today, type:'fed'}); }
-    else if(action==='refused'){ snake.health.consecutiveRefusals = (snake.health.consecutiveRefusals||0)+1; snake.health.events.push({date:today, type:'refused'}); }
+    else if(action==='refused'){ snake.health.consecutiveRefusals = (snake.health.consecutiveRefusals||0)+1; snake.health.events.push({date:today, type:'refused', reason:'unknown'}); }
     else if(action==='shed'){ snake.health.events.push({date:today, type:'shed'}); }
   });
   storage.save(savedSnakes);
@@ -8400,13 +8901,52 @@ function undoHatchCreation(clutchId, createdIds){
 
 /* ==================== Sexage, statut de vente, photos, annonce ==================== */
 
+/* Preuve automatique de porteur (het) — 25 août. Un bébé visuel confirmé pour un gène récessif
+   prouve mathématiquement que les DEUX parents portent au moins un exemplaire du gène. On met à
+   jour leur fiche automatiquement, sans jamais écraser un statut déjà plus fort ou déjà confirmé
+   (visuel, ou porteur déjà certain) — seulement les cas "rien" ou "possible het" sont améliorés. */
+function proveHetFromVisualBaby(babySnake){
+  if(!babySnake.sireId || !babySnake.damId) return [];
+  const sire = savedSnakes.find(x=>x.id===babySnake.sireId);
+  const dam = savedSnakes.find(x=>x.id===babySnake.damId);
+  const proven = [];
+  [sire, dam].forEach(parent=>{
+    if(!parent) return;
+    Object.keys(babySnake.genes||{}).forEach(geneId=>{
+      const gene = GENES.find(g=>g.id===geneId);
+      if(!gene || gene.type!=='recessive') return;
+      const babyNorm = normalizeGeneEntry(babySnake.genes[geneId]);
+      if(babyNorm.possible || babyNorm.status!=='visual') return;
+      const parentRaw = parent.genes ? parent.genes[geneId] : undefined;
+      const parentNorm = normalizeGeneEntry(parentRaw);
+      if(parentRaw && !parentNorm.possible && (parentNorm.status==='visual' || parentNorm.status==='het')) return;
+      parent.genes = parent.genes || {};
+      parent.genes[geneId] = 'het';
+      proven.push({parent, gene});
+    });
+  });
+  return proven;
+}
+
 function confirmGenetics(id){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
+  const issues = checkBabyGeneticsConsistency(s);
   s.genesVerified = true;
+  const proven = proveHetFromVisualBaby(s);
   storage.save(savedSnakes);
   renderSavedList();
-  showToast('✓ Génétique confirmée pour '+s.name+'.', 'success');
+  const provenNames = [...new Set(proven.map(p=>p.gene.name))];
+  const provenMsg = provenNames.length ? (currentLang==='en'
+      ? ' Also auto-confirmed carrier status for '+provenNames.join(', ')+' on the parent(s).'
+      : ' Statut porteur aussi confirmé automatiquement pour '+provenNames.join(', ')+' chez le(s) parent(s).') : '';
+  if(issues){
+    showToast('⚠ '+(currentLang==='en'
+      ? 'Confirmed, but flagged: '+issues.join(', ')+' doesn\'t match what\'s possible from the known parents. Worth double-checking the parent records.'
+      : 'Confirmé, mais signalé : '+issues.join(', ')+' ne correspond pas à ce qui est possible selon les parents connus. À revérifier du côté des fiches parents.')+provenMsg, 'warning');
+  } else {
+    showToast('✓ Génétique confirmée pour '+s.name+'.'+provenMsg, 'success');
+  }
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
 }
 
@@ -8476,6 +9016,20 @@ function confirmSold(id){
   if(document.getElementById('view-ventes') && document.getElementById('view-ventes').style.display!=='none') renderSalesView();
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
   showToast('💰 '+s.name+' vendu à '+buyer+(price?' pour '+price+' $':'')+' !', 'hatch');
+}
+
+// Suivi d'expédition à l'acheteur (25 août) — transporteur, n° de suivi, date d'envoi, livré ou
+// non. Rattaché directement à la fiche vendue, pas un module séparé — simple, pas de nouvelle table.
+function setShippingInfo(id, field, value){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  if(field==='carrier') s.shippingCarrier = value.trim() || null;
+  else if(field==='tracking') s.shippingTracking = value.trim() || null;
+  else if(field==='date') s.shippingDate = value || null;
+  else if(field==='delivered') s.shippingDelivered = !!value;
+  storage.save(savedSnakes);
+  openLogbook(id);
 }
 
 function setAskingPrice(id, value){
@@ -9210,6 +9764,7 @@ function renderDashboard(){
       '<div class="sale-price">'+(d>=0 ? 'J-'+d : '+' +Math.abs(d)+(isEn?'d overdue':'j de retard'))+'</div>';
     hatchWrap.appendChild(row);
   });
+  applyDashCardVisibility();
 }
 
 /* ==================== RECHERCHE UNIFIÉE ==================== */
@@ -10096,6 +10651,27 @@ function initPublicSpeciesGuide(){
   overlay.innerHTML = html || ('<div style="max-width:520px;margin:0 auto;padding:60px 20px;text-align:center;font-family:Verdana,sans-serif;color:var(--ink-dim);">'+(isEn?'Guide not found.':'Fiche introuvable.')+'</div>');
 }
 initPublicSpeciesGuide();
+
+// Accès rapide par QR de bac (?snake=<id>) — pour l'éleveur connecté, pas un visiteur externe :
+// scanner l'étiquette du bac saute direct à la fiche/journal de l'animal, sans chercher dans la
+// liste. Un léger délai de retentative couvre le cas où la synchro cloud n'est pas encore finie
+// au moment du chargement (juste après une connexion, par exemple).
+function routeToScannedSnake(attempt){
+  const id = new URLSearchParams(location.search).get('snake');
+  if(!id) return;
+  const s = savedSnakes.find(x=>x.id===id);
+  if(s){
+    showTab('mine');
+    openLogbook(id);
+    return;
+  }
+  if(!attempt){
+    setTimeout(()=>routeToScannedSnake(1), 1800);
+  } else {
+    showToast('🔍 '+(currentLang==='en'?'Reptile not found in this account — make sure you\'re logged in.':'Reptile introuvable dans ce compte — vérifie que tu es bien connecté.'), 'warning');
+  }
+}
+routeToScannedSnake();
 
 
 
