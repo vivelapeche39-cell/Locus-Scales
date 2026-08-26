@@ -994,6 +994,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
     <div id="onboarding-banner-firstsnake" class="onboarding-banner" style="display:none;"></div>
     <div class="specimen" id="panel-draft">
       <div class="specimen-head"><h2 id="draft-title" data-i18n="newReptileTitle">Nouveau reptile</h2><span class="corner-mark" data-i18n="ficheLabel">FICHE</span></div>
+      <div id="guest-save-notice" style="display:none;background:rgba(201,151,62,.12);border:1px solid var(--gold);border-radius:8px;padding:8px 12px;margin-bottom:14px;font-size:11.5px;color:var(--ink);"></div>
       <div class="sex-toggle">
         <button class="sex-btn active" data-v="male" data-i18n="sexMale" onclick="setDraftSex('male')">Mâle</button>
         <button class="sex-btn" data-v="female" data-i18n="sexFemale" onclick="setDraftSex('female')">Femelle</button>
@@ -1754,7 +1755,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.25';
+const APP_VERSION = '2026.08.25.29';
 (function checkForNewVersion(){
   try{
     if(sessionStorage.getItem('locus_version_reloaded')){ sessionStorage.removeItem('locus_version_reloaded'); return; }
@@ -1981,6 +1982,7 @@ async function backfillMissingPhotoUrls(){
 }
 function updateAuthUI(){
   const isEn = currentLang==='en';
+  updateGuestSaveNotice();
   const statusEl = document.getElementById('auth-status');
   const formEl = document.getElementById('auth-form-fields');
   const signoutBtn = document.getElementById('auth-signout-btn');
@@ -2018,6 +2020,19 @@ function updateAuthUI(){
 // ce qui touche à l'enregistrement d'un reptile, puisque le stockage est maintenant
 // systématiquement cloud). Retourne false + ouvre le modal de connexion avec un message
 // clair si personne n'est connecté, pour éviter toute confusion sur ce qui a été sauvegardé.
+// Avis anti-frustration (25 août) — évite qu'un visiteur remplisse tout le formulaire d'ajout
+// de reptile pour découvrir seulement au clic "Enregistrer" qu'un compte est requis. Affiché
+// AVANT qu'il commence à remplir, pas après. Appelé au chargement, à la connexion/déconnexion.
+function updateGuestSaveNotice(){
+  const el = document.getElementById('guest-save-notice');
+  if(!el) return;
+  if(currentUser){ el.style.display = 'none'; return; }
+  const isEn = currentLang==='en';
+  el.style.display = 'block';
+  el.textContent = isEn
+    ? '👤 You can fill this out freely, but a free account is needed to save it — you\'ll be prompted when you click Save.'
+    : '👤 Tu peux remplir ceci librement, mais un compte gratuit est nécessaire pour l\'enregistrer — on te le demandera au clic sur Enregistrer.';
+}
 function requireAuthOrPrompt(){
   if(currentUser) return true;
   openAuthModal();
@@ -6824,9 +6839,9 @@ function cloudMirrorSnakes(){ if(sb && currentUser && !cloudSyncInProgress) sync
 function exportBackup(){
   if(!requireAuthOrPrompt()) return;
   const payload = {
-    app:'LOCUS', version:1, exportedAt:new Date().toISOString(),
+    app:'LOCUS', version:2, exportedAt:new Date().toISOString(),
     snakes: savedSnakes,
-    elevage: { racks, pairings, layout, clutches, expenses, customers, customEvents }
+    elevage: { racks, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock }
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
@@ -6861,6 +6876,8 @@ document.getElementById('import-file-input').addEventListener('change', (e)=>{
     expenses = el.expenses || [];
     customers = el.customers || [];
     customEvents = el.customEvents || [];
+    projects = el.projects || [];
+    feederStock = el.feederStock || {};
     saveElevage();
 
     // Rafraîchit tout ce qui pourrait être visible
@@ -6872,6 +6889,7 @@ document.getElementById('import-file-input').addEventListener('change', (e)=>{
     if(document.getElementById('block-racks')) renderLayoutPrefs();
     if(document.getElementById('block-tour-racks')) renderTourLayoutPrefs();
     if(document.getElementById('clutch-list')){ renderClutchForm(); renderClutches(); }
+    if(document.getElementById('feeder-stock-list')) renderFeederStockList();
 
     e.target.value = '';
     alert('Sauvegarde importée : '+savedSnakes.length+' reptile(s), '+pairings.length+' accouplement(s).');
@@ -8437,6 +8455,29 @@ const HUSBANDRY_FAQ = [
          '<li>Replace every 6-12 months even if the bulb still lights up — UV output drops over time without any visible change.</li>'+
        '</ul>'+
        '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Honest limitation: this is a comfort/enrichment decision, not a vital need — no real risk in skipping it if the rest of your husbandry is solid.</p>'},
+    {qFr:'Quelle source de chaleur choisir ?', qEn:'Which heat source should I choose?',
+     aFr:'<p><b style="color:var(--gold);">Les types principaux :</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li><b>Tapis chauffant (UTH)</b> — le plus commun, économique, chauffe par en dessous.</li>'+
+         '<li><b>Ampoule/lampe (halogène)</b> — chaleur + lumière, bon pour un point de bronzage.</li>'+
+         '<li><b>Céramique (CHE)</b> — chaleur sans lumière, bon pour la nuit/maintien ambiant.</li>'+
+         '<li><b>Panneau radiant (RHP)</b> — distribue la chaleur uniformément, plus efficace, coût plus élevé.</li>'+
+         '<li><b>Projecteur à chaleur profonde (DHP)</b> — pénètre plus profondément, le plus proche biologiquement du bronzage naturel.</li>'+
+       '</ul>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Ce qui change selon le type d\'enclos :</b> dans un bac fermé (rack), un câble chauffant (heat tape) seul peut souvent suffire — l\'enclos est petit et fermé, retient bien la chaleur. Dans un terrarium ouvert, c\'est non négociable : ça prend à la fois un tapis chauffant ET une lampe chauffante. La température ambiante du terrarium doit refléter la température idéale globale, pas juste un point chaud isolé — un terrarium en verre perd beaucoup plus de chaleur qu\'un bac fermé.</p>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Débat actuel, pas tranché :</b> une discussion grandissante dans la communauté remet en question si UTH/CHE/RHP seuls suffisent vraiment comme unique source de chaleur — le DHP gagne en popularité justement parce qu\'il reproduirait mieux l\'effet biologique du vrai soleil plutôt que juste chauffer la surface/l\'air.</p>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Sécurité non négociable peu importe le type : toujours un thermostat — jamais brancher directement sans contrôle, risque de brûlure grave. Sonde placée dans la cachette chaude au niveau du serpent (sur le substrat), jamais collée sur la source de chaleur elle-même.</p>',
+     aEn:'<p><b style="color:var(--gold);">The main types:</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li><b>Heat mat (UTH)</b> — the most common, affordable, heats from underneath.</li>'+
+         '<li><b>Bulb/lamp (halogen)</b> — heat + light, good for a basking spot.</li>'+
+         '<li><b>Ceramic (CHE)</b> — heat without light, good for night/ambient maintenance.</li>'+
+         '<li><b>Radiant heat panel (RHP)</b> — distributes heat evenly, more efficient, higher cost.</li>'+
+         '<li><b>Deep heat projector (DHP)</b> — penetrates deeper, closest biologically to natural basking.</li>'+
+       '</ul>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">What changes based on enclosure type:</b> in a closed tub (rack), a heat cable/tape alone can often be enough — the enclosure is small and closed, retaining heat well. In an open terrarium, it\'s non-negotiable: you need both a heat mat AND a heat lamp. The terrarium\'s ambient temperature needs to reflect the overall ideal temperature, not just an isolated hot spot — a glass terrarium loses far more heat than a closed tub.</p>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Ongoing, unsettled debate:</b> a growing discussion in the community questions whether UTH/CHE/RHP alone are really adequate as a sole heat source — the DHP is gaining popularity precisely because it may better replicate the biological effect of real sunlight rather than just heating the surface/air.</p>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Non-negotiable safety regardless of type: always use a thermostat — never plug a heat source directly into an outlet without control, real risk of serious burns. Probe placed inside the warm hide at the snake\'s level (on the substrate), never taped onto the heat source itself.</p>'},
     {qFr:'Faut-il nettoyer souvent l\'enclos ?', qEn:'How often should I clean the enclosure?',
      aFr:'<b style="color:var(--gold);">Nettoyage ponctuel</b> dès qu\'une souillure ou un excrément est visible — à retirer immédiatement, pas à laisser attendre le nettoyage complet. <b style="color:var(--gold);">Nettoyage complet</b> généralement toutes les 4-6 semaines pour un enclos à substrat classique (changement complet du substrat, désinfection du bac et des accessoires). Un terrarium bioactif suit une logique différente — l\'équipe de nettoyage (isopodes/collemboles) gère une bonne partie du travail en continu, donc moins de nettoyage complet nécessaire, mais le nettoyage ponctuel reste de mise au besoin.',
      aEn:'<b style="color:var(--gold);">Spot cleaning</b> as soon as any waste or droppings are visible — remove right away, don\'t wait for a full clean. <b style="color:var(--gold);">Full cleaning</b> generally every 4-6 weeks for an enclosure with standard substrate (full substrate change, disinfecting the tub and accessories). A bioactive terrarium works differently — the cleanup crew (isopods/springtails) handles a good chunk of the work continuously, so less full cleaning is needed, but spot cleaning still applies as needed.'},
@@ -8503,6 +8544,21 @@ const HUSBANDRY_FAQ = [
     {qFr:'Pourquoi certaines combinaisons sont dangereuses ?', qEn:'Why are some combinations dangerous?',
      aFr:'Certaines formes homozygotes (« super ») causent des malformations ou de la microphtalmie (ex. Super Cinnamon, Super Black Pastel). LOCUS avertit visuellement ces combinaisons à risque.',
      aEn:'Some homozygous ("super") forms cause malformations or microphthalmia (e.g. Super Cinnamon, Super Black Pastel). LOCUS visually flags these risky combinations.'},
+    {qFr:'Un kink, c\'est génétique ou causé par l\'incubation ?', qEn:'Is a kink genetic or caused by incubation?',
+     aFr:'<p>Les deux causes existent, et pour un individu donné, on peut souvent pas trancher avec certitude laquelle est responsable — même des éleveurs très rigoureux avec une incubation stable rapportent parfois des kinks « sortis de nulle part ».</p>'+
+       '<ul style="margin:10px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li><b style="color:var(--gold);">Génétique :</b> Super Cinnamon/Super Black Pastel (déjà signalés dans les avertissements de gènes de LOCUS), Caramel Albino, et Super Sable ont un taux de kinking plus élevé documenté.</li>'+
+         '<li><b style="color:var(--gold);">Incubation :</b> fluctuations ou pics de température, surtout durant les deux premiers tiers de l\'incubation — au-dessus d\'environ 92°F (33°C) ou trop instable — peut causer une malformation spinale même chez un bébé génétiquement normal.</li>'+
+       '</ul>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Sévérité très variable :</b> léger (bout de queue recourbé) sans impact réel, jusqu\'à sévère (nuit à la digestion ou empêche l\'éclosion), pouvant nécessiter une euthanasie dans les cas extrêmes.</p>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Recommandation pratique de la communauté : peu importe la cause suspectée, la majorité des éleveurs choisissent de ne pas reproduire un individu kinké — on peut pas exclure une composante génétique, et un kink peut lui-même nuire à la capacité de reproduction/ponte.</p>',
+     aEn:'<p>Both causes exist, and for a given individual, it\'s often impossible to say with certainty which one is responsible — even very careful breeders with stable incubation sometimes report kinks that seem to come out of nowhere.</p>'+
+       '<ul style="margin:10px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li><b style="color:var(--gold);">Genetic:</b> Super Cinnamon/Super Black Pastel (already flagged in LOCUS\'s gene warnings), Caramel Albino, and Super Sable have a documented higher kinking rate.</li>'+
+         '<li><b style="color:var(--gold);">Incubation:</b> temperature fluctuations or spikes, especially during the first two-thirds of incubation — above roughly 92°F (33°C) or too unstable — can cause spinal malformation even in a genetically normal baby.</li>'+
+       '</ul>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Severity varies a lot:</b> mild (a slightly curved tail tip) with no real impact, up to severe (interferes with digestion or prevents hatching), which can require euthanasia in extreme cases.</p>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Community practical guidance: regardless of the suspected cause, most breeders choose not to breed a kinked individual — a genetic component can\'t be ruled out, and a kink can itself interfere with breeding/laying ability.</p>'},
     {qFr:'Comment authentifier la génétique d\'un serpent acheté ?', qEn:'How do I verify the genetics of a snake I\'m buying?',
      aFr:'Demande le pedigree/la lignée au vendeur, privilégie les éleveurs transparents et réputés, et méfie-toi d\'un gène « possible »/non confirmé présenté comme certain.',
      aEn:'Ask the seller for pedigree/lineage, favor transparent and reputable breeders, and be wary of a "possible"/unconfirmed gene being presented as certain.'},
