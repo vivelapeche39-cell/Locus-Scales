@@ -359,6 +359,10 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
 .gsr-empty{padding:14px;font-size:12px;color:var(--ink-dim);font-family:'Courier New',monospace;}
 
 .hamburger-btn{background:transparent;border:1px solid var(--line);border-radius:12px;width:42px;height:42px;font-size:18px;color:var(--ink);cursor:pointer;flex-shrink:0;margin-right:4px;}
+.lang-toggle-top{display:flex;flex-shrink:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-right:8px;}
+.lang-pill{background:transparent;border:none;color:var(--ink-dim);font-family:'Courier New',monospace;font-size:11px;font-weight:700;padding:0 10px;height:42px;cursor:pointer;}
+.lang-pill.active{background:var(--gold);color:#1a1409;}
+.lang-pill:not(.active):hover{background:var(--bg-panel-2);}
 .hamburger-btn:hover{border-color:var(--gold);}
 
 .app-menu-overlay{position:fixed;inset:0;background:rgba(10,8,6,.6);z-index:150;display:none;}
@@ -842,6 +846,10 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
       </g>
     </svg>
     <button class="hamburger-btn" onclick="openAppMenu()" title="Menu" aria-label="Menu">☰</button>
+    <div class="lang-toggle-top">
+      <button class="lang-pill" id="lang-pill-fr" onclick="setLangTop('fr')">FR</button>
+      <button class="lang-pill" id="lang-pill-en" onclick="setLangTop('en')">EN</button>
+    </div>
     <div>
       <div class="wordmark">LOCUS<span class="dot">.</span><span class="wordmark-scales">Scales</span></div>
       <div class="tag" data-i18n="appTag">Gestion d'élevage — Python royal (Ball Python)</div>
@@ -1746,7 +1754,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.13';
+const APP_VERSION = '2026.08.25.25';
 (function checkForNewVersion(){
   try{
     if(sessionStorage.getItem('locus_version_reloaded')){ sessionStorage.removeItem('locus_version_reloaded'); return; }
@@ -3900,17 +3908,30 @@ function applyTranslations(){
 /* ---- Configuration ---- */
 const APP_CONFIG_KEY = 'locus_config_v1';
 function loadAppConfig(){
-  try{ const raw = localStorage.getItem(APP_CONFIG_KEY); return raw ? JSON.parse(raw) : { lang:'fr' }; }
-  catch(e){ return { lang:'fr' }; }
+  try{ const raw = localStorage.getItem(APP_CONFIG_KEY); return raw ? JSON.parse(raw) : { lang:'en' }; }
+  catch(e){ return { lang:'en' }; }
 }
-function setAppLanguage(lang){
+function applyLanguageChange(lang){
   const cfg = loadAppConfig();
   cfg.lang = lang;
   currentLang = lang;
   try{ localStorage.setItem(APP_CONFIG_KEY, JSON.stringify(cfg)); }catch(e){}
   applyTranslations();
+  updateTopLangToggle();
+}
+function setAppLanguage(lang){
+  applyLanguageChange(lang);
   showToast(lang==='en' ? '🇬🇧 English selected.' : '🇫🇷 Français sélectionné.', 'success');
   openConfigModal();
+}
+function setLangTop(lang){
+  applyLanguageChange(lang);
+}
+function updateTopLangToggle(){
+  const frBtn = document.getElementById('lang-pill-fr');
+  const enBtn = document.getElementById('lang-pill-en');
+  if(frBtn) frBtn.classList.toggle('active', currentLang==='fr');
+  if(enBtn) enBtn.classList.toggle('active', currentLang==='en');
 }
 /* ---- Conditions d'utilisation ---- */
 function openTermsModal(){
@@ -6591,8 +6612,9 @@ markSynced('pairings', pairings);
 markSynced('clutches', clutches);
 markSynced('expenses', expenses);
 markSynced('customers', customers);
-currentLang = loadAppConfig().lang || 'fr';
+currentLang = loadAppConfig().lang || 'en';
 applyTranslations();
+updateTopLangToggle();
 updateHeaderBadge();
 applyPersonalizationUI();
 renderDashboard();
@@ -8318,6 +8340,109 @@ const HUSBANDRY_FAQ = [
     {qFr:'Proie vivante ou congelée-décongelée ?', qEn:'Live prey or frozen-thawed?',
      aFr:'Congelée-décongelée est fortement recommandée : plus sécuritaire pour le serpent (aucun risque de morsure de la proie) et considérée plus éthique. Le vivant devrait rester l\'exception, toujours supervisé.',
      aEn:'Frozen-thawed is strongly recommended: safer for the snake (no risk of being bitten by prey) and considered more ethical. Live feeding should stay the exception, always supervised.'},
+    {qFr:'Assist feed / force feed — quand et comment ?', qEn:'Assist feed / force feed — when and how?',
+     aFr:'<p><b style="color:var(--gold);">Le point le plus important :</b> forcer un adulte en bonne santé qui a déjà mangé par le passé et qui traverse juste un jeûne normal (mue, saison de reproduction, saisonnier) est déconseillé — ça règle pas la vraie cause et ajoute du stress à un animal qui a des réserves suffisantes pour attendre.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">Les trois niveaux, du moins au plus invasif :</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li><b>Assist feed</b> — guider délicatement la proie vers la bouche, laisser le serpent la prendre lui-même. Le moins stressant.</li>'+
+         '<li><b>Force feed</b> (proie entière) — pousser physiquement la proie. Vrai risque de blessure si mal fait.</li>'+
+         '<li><b>Gavage/tube feeding</b> — un tube souple livre la nourriture directement à l\'estomac, généralement fait par un vétérinaire.</li>'+
+       '</ul>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Quand ça devient justifié :</b> nouveau-nés/bébés (marge beaucoup plus mince qu\'un adulte, qui peut jeûner des mois sans problème), ou signes objectifs de déclin (perte de poids sévère, déshydratation, léthargie) — pas juste « n\'a pas mangé depuis X semaines ». Limite de temps pour un bébé en assist feed : après 6-8 semaines sans progrès vers l\'alimentation volontaire, direction vétérinaire — il y a probablement une cause sous-jacente (parasites, infection respiratoire, problème congénital).</p>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Avant d\'en arriver là, à essayer :</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li>Varier le type de proie (souris vs rat, vivant vs fraîchement tué) — surtout pour un pinky rat, qui représente aucun danger pour le serpent, le laisser une nuit dans le bac en vivant peut déclencher l\'instinct de prédateur.</li>'+
+         '<li>S\'assurer que le serpent est bien hydraté et que toute source de stress est limitée au maximum.</li>'+
+         '<li>Le placer dans un endroit sombre, loin des mouvements humains — éviter le salon ou la cuisine par exemple.</li>'+
+         '<li>Vérifier tous les paramètres (température, humidité) avant même de retenter un repas.</li>'+
+         '<li>Attendre la prochaine mue avant de retenter, si une mue est à venir.</li>'+
+         '<li>Surveiller le poids de près, mais limiter les tentatives de repas à un maximum d\'une fois par semaine — retenter trop souvent ajoute du stress sans aider.</li>'+
+       '</ul>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Signal d\'arrêt : si le serpent se débat violemment et que la proie rentre pas facilement, arrêter immédiatement — aucune tentative vaut le risque d\'une blessure permanente. Le force feed et le gavage comportent un vrai risque technique ; consulte un vétérinaire reptile avant de tenter au-delà de l\'assist feed simple.</p>',
+     aEn:'<p><b style="color:var(--gold);">The most important point:</b> forcing a healthy adult that has eaten before and is simply going through a normal fast (shed, breeding season, seasonal) is discouraged — it doesn\'t address the real cause and adds stress to an animal that has enough reserves to wait it out.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">The three levels, least to most invasive:</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li><b>Assist feed</b> — gently guide the prey toward the mouth, let the snake take it itself. The least stressful.</li>'+
+         '<li><b>Force feed</b> (whole prey) — physically push the prey in. Real risk of injury if done poorly.</li>'+
+         '<li><b>Tube/gavage feeding</b> — a flexible tube delivers food directly to the stomach, generally done by a vet.</li>'+
+       '</ul>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">When it becomes justified:</b> neonates/babies (much narrower margin than an adult, which can fast for months without issue), or objective signs of decline (severe weight loss, dehydration, lethargy) — not just "hasn\'t eaten in X weeks." Time limit for assist-feeding a baby: after 6-8 weeks with no progress toward voluntary eating, head to a vet — there\'s likely an underlying cause (parasites, respiratory infection, congenital issue).</p>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">To try before going that far:</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li>Vary the prey type (mouse vs rat, live vs freshly killed) — especially for a rat pinky, which poses no danger to the snake, leaving it live in the tub overnight can trigger predator instinct.</li>'+
+         '<li>Make sure the snake is well hydrated and that every source of stress is minimized.</li>'+
+         '<li>Place it somewhere dark, away from human movement — avoid the living room or kitchen, for example.</li>'+
+         '<li>Check every parameter (temperature, humidity) before even trying a meal again.</li>'+
+         '<li>Wait for the next shed before retrying, if one is coming up.</li>'+
+         '<li>Watch weight closely, but limit feeding attempts to once a week maximum — trying too often adds stress without helping.</li>'+
+       '</ul>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Stop signal: if the snake thrashes violently and the prey isn\'t going in smoothly, stop immediately — no attempt is worth risking a permanent injury. Force feeding and tube feeding carry real technical risk; consult an exotics vet before attempting anything beyond simple assist feeding.</p>'},
+    {qFr:'Mon serpent s\'est échappé, que faire ?', qEn:'My snake escaped, what do I do?',
+     aFr:'<p><b style="color:var(--gold);">Prévention d\'abord :</b> confirme visuellement la présence de chaque reptile au moins 1x/jour — c\'est le meilleur moyen de détecter une évasion tôt plutôt que des jours plus tard. La cause la plus fréquente reste un loquet mal fermé.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">Réflexes immédiats :</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li>Garde ton calme — un python royal fatigue vite un humain patient, il finit généralement par se re-cacher plutôt que fuir loin.</li>'+
+         '<li>Ferme la porte de la pièce où il a été vu en dernier, scelle sous la porte (serviette roulée).</li>'+
+         '<li>Consulte le journal de nourrissage pour savoir depuis quand il n\'a pas mangé — ça donne une idée du temps réellement écoulé.</li>'+
+         '<li>Laisse son terrarium ouvert, lampe chauffante allumée — il retourne parfois de lui-même vers la seule source de chaleur familière.</li>'+
+       '</ul>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Où chercher en premier :</b> le serpent quitte rarement la pièce, et reste généralement très proche de son environnement immédiat — derrière le bac, entre le mur et le rack, dans les fentes serrées à proximité. Commence par le mètre carré exact autour du terrarium, de façon exhaustive, avant d\'élargir progressivement plutôt que l\'inverse. Cherche au niveau du sol en premier (les ball pythons grimpent peu), de nuit si possible (plus actifs), lumières éteintes à la lampe de poche (les yeux réfléchissent). Referme chaque zone complétée avant d\'élargir.</p>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Indices et pièges maison :</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li>Cherche des excréments dans les zones suspectées — signe qu\'il est resté un moment au même endroit.</li>'+
+         '<li>Place un bol d\'eau dans la zone suspectée.</li>'+
+         '<li>Piège sonore : du matériel qui bruisse (sac de plastique, papier d\'aluminium froissé) dans les endroits inaccessibles, pour l\'entendre bouger la nuit.</li>'+
+         '<li>Marqueurs de mouvement : une fine couche de farine ou un ruban dans les passages étroits, pour confirmer une zone à cibler après coup.</li>'+
+         '<li>Piège chaleur + proie : baisse la température ambiante, crée un point chaud (boîte + source de chaleur douce) et dépose une proie chaude à l\'intérieur — la chaleur et l\'odeur attirent en même temps.</li>'+
+       '</ul>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Si toujours introuvable après une semaine :</b> rassure-toi, un serpent adulte peut survivre des mois sans manger si les conditions sont bonnes. Augmente légèrement la température ambiante, ajoute bol d\'eau et proies fraîches régulièrement pour maximiser les chances qu\'il se manifeste.</p>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Mieux vaut un serpent en fuite vivant que mort — évite toute méthode agressive ou piège qui risquerait de le blesser. En dernier recours, contacte les organismes de sauvetage reptile locaux et avertis les voisins avec une photo.</p>',
+     aEn:'<p><b style="color:var(--gold);">Prevention first:</b> visually confirm every reptile\'s presence at least once a day — the best way to catch an escape early instead of days later. The most common cause remains a latch that wasn\'t fully closed.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">Immediate steps:</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li>Stay calm — a ball python tires out a patient human quickly, and usually re-hides rather than fleeing far.</li>'+
+         '<li>Close the door of the room it was last seen in, seal the gap under the door (rolled towel).</li>'+
+         '<li>Check the feeding log to see how long it\'s been since its last meal — gives you a sense of the real time elapsed.</li>'+
+         '<li>Leave its enclosure open with the heat lamp on — it sometimes returns on its own to the one familiar heat source.</li>'+
+       '</ul>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Where to look first:</b> the snake rarely leaves the room, and usually stays very close to its immediate surroundings — behind the tub, between the wall and the rack, in tight gaps nearby. Start with the exact square meter around the enclosure, exhaustively, before widening the search gradually rather than the other way around. Search at floor level first (ball pythons climb little), at night if possible (more active), lights off with a flashlight (eyes reflect). Seal off each area once fully checked before expanding.</p>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Clues and homemade traps:</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li>Look for droppings in suspected areas — a sign it stayed in one spot for a while.</li>'+
+         '<li>Place a water bowl in the suspected area.</li>'+
+         '<li>Sound trap: rustly material (plastic bag, crumpled foil) in inaccessible spots, to hear it move at night.</li>'+
+         '<li>Movement markers: a thin layer of flour or a ribbon across narrow passages, to confirm a zone to target afterward.</li>'+
+         '<li>Heat + prey trap: lower the room temperature, create a warm spot (box + gentle heat source) and place a warm prey item inside — heat and scent attract at the same time.</li>'+
+       '</ul>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">If still not found after a week:</b> take heart — an adult snake can go months without eating if conditions are decent. Raise the room temperature slightly, add a water bowl and fresh prey regularly to maximize the odds it shows itself.</p>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">A loose snake found alive beats one found dead — avoid any aggressive method or trap that could hurt it. As a last resort, contact local reptile rescue organizations and alert neighbors with a photo.</p>'},
+    {qFr:'Faut-il un éclairage UVB ?', qEn:'Do I need UVB lighting?',
+     aFr:'<p><b style="color:var(--gold);">Le constat de base :</b> non, un python royal survit très bien sans UVB — contrairement aux dragons barbus ou iguanes, il tire déjà assez de vitamine D3 de son alimentation carnée. Ça, c\'est établi, pas débattu.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">Où ça devient un vrai débat :</b> de plus en plus de sources husbandry avancées avancent qu\'un UVB faible apporte des bénéfices au-delà de la vitamine D3 — les serpents perçoivent effectivement la lumière UV (contrairement à nous), et certains éleveurs rapportent un comportement plus naturel et un système immunitaire potentiellement renforcé. Rien de tout ça n\'est une nécessité de survie, mais la tendance penche de plus en plus vers « pourquoi pas, si c\'est bien fait » plutôt que « inutile ».</p>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Si t\'en installes un :</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li>Un tube T5 HO à faible intensité, pas une ampoule spiralée (moins efficace pour livrer les UV).</li>'+
+         '<li>Viser un indice UV autour de 2.0-3.0 dans la zone de bronzage.</li>'+
+         '<li>Jamais à travers du verre ou du plastique — ça bloque complètement les UV.</li>'+
+         '<li>Remplacer aux 6-12 mois même si l\'ampoule fonctionne encore — l\'intensité UV baisse avec le temps, sans que ça paraisse visuellement.</li>'+
+       '</ul>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Limite honnête : c\'est une décision de confort/enrichissement, pas un besoin vital — aucun risque réel à s\'en passer si le reste de la husbandry est bien fait.</p>',
+     aEn:'<p><b style="color:var(--gold);">The basic fact:</b> no, a ball python does perfectly fine without UVB — unlike bearded dragons or iguanas, it already gets enough vitamin D3 from its carnivorous diet. That part is settled, not debated.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">Where it becomes a real debate:</b> a growing number of advanced husbandry sources argue that low-level UVB offers benefits beyond vitamin D3 — snakes can actually perceive UV light (unlike us), and some keepers report more natural behavior and a potentially stronger immune response. None of this is a survival necessity, but the trend increasingly leans toward "why not, if done properly" rather than "pointless."</p>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">If you do install one:</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li>A low-intensity T5 HO tube, not a coil bulb (less effective at delivering UV).</li>'+
+         '<li>Aim for a UV index around 2.0-3.0 in the basking area.</li>'+
+         '<li>Never through glass or plastic — it completely blocks UV.</li>'+
+         '<li>Replace every 6-12 months even if the bulb still lights up — UV output drops over time without any visible change.</li>'+
+       '</ul>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Honest limitation: this is a comfort/enrichment decision, not a vital need — no real risk in skipping it if the rest of your husbandry is solid.</p>'},
+    {qFr:'Faut-il nettoyer souvent l\'enclos ?', qEn:'How often should I clean the enclosure?',
+     aFr:'<b style="color:var(--gold);">Nettoyage ponctuel</b> dès qu\'une souillure ou un excrément est visible — à retirer immédiatement, pas à laisser attendre le nettoyage complet. <b style="color:var(--gold);">Nettoyage complet</b> généralement toutes les 4-6 semaines pour un enclos à substrat classique (changement complet du substrat, désinfection du bac et des accessoires). Un terrarium bioactif suit une logique différente — l\'équipe de nettoyage (isopodes/collemboles) gère une bonne partie du travail en continu, donc moins de nettoyage complet nécessaire, mais le nettoyage ponctuel reste de mise au besoin.',
+     aEn:'<b style="color:var(--gold);">Spot cleaning</b> as soon as any waste or droppings are visible — remove right away, don\'t wait for a full clean. <b style="color:var(--gold);">Full cleaning</b> generally every 4-6 weeks for an enclosure with standard substrate (full substrate change, disinfecting the tub and accessories). A bioactive terrarium works differently — the cleanup crew (isopods/springtails) handles a good chunk of the work continuously, so less full cleaning is needed, but spot cleaning still applies as needed.'},
+    {qFr:'De combien de cachettes a-t-il besoin ?', qEn:'How many hides does it need?',
+     aFr:'Minimum deux — une côté chaud, une côté froid — pour qu\'il puisse se cacher sans avoir à choisir entre sécurité et confort thermique. Un bol d\'eau assez grand pour s\'y tremper au complet est aussi essentiel (utile aussi pour repérer un problème de mites). Les éléments de texture (branches, plantes artificielles ou vivantes) sont pas obligatoires, mais dans la nature un python royal reste majoritairement sous couvert — une bonne couverture de feuillage stimule son activité naturelle même de jour, plutôt qu\'un enclos à aire ouverte qui le pousse à rester caché par manque de confort.',
+     aEn:'Minimum two — one on the warm side, one on the cool side — so it can hide without having to choose between safety and thermal comfort. A water bowl large enough to fully soak in is also essential (also useful for spotting a mite problem early). Textural elements (branches, artificial or live plants) aren\'t mandatory, but in the wild a ball python stays mostly under cover — good foliage coverage encourages natural daytime activity, rather than an open layout that just pushes it to stay hidden out of discomfort.'},
   ]},
   { id:'comportement', icon:'🤝', titleFr:'Manipulation & comportement', titleEn:'Handling & behavior', items:[
     {qFr:'Pourquoi il se roule en boule ?', qEn:'Why does it curl into a ball?',
@@ -8327,14 +8452,27 @@ const HUSBANDRY_FAQ = [
      aFr:'24 à 48 heures, pour éviter le risque de régurgitation.',
      aEn:'24 to 48 hours, to avoid the risk of regurgitation.'},
     {qFr:'Est-ce normal qu\'il soit agressif ou qu\'il morde ?', qEn:'Is it normal for it to be aggressive or bite?',
-     aFr:'Le python royal est généralement docile ; les morsures sont rares et souvent liées à une odeur de nourriture sur les mains ou à du stress — ce n\'est pas typique de l\'espèce.',
-     aEn:'Ball pythons are generally docile; bites are rare and usually tied to food scent on hands or stress — not typical for the species.'},
+     aFr:'<p>Le python royal est généralement docile — tout ce qui a des dents peut techniquement mordre (même un humain le peut), c\'est pas un trait de caractère propre à l\'espèce. Deux vraies causes : confusion alimentaire (odeur de proie ou d\'un autre animal sur les mains, de loin la plus fréquente) ou stress/défense (mue en cours, femelle qui vient de pondre, mâle en reproduction, manipulation répétée à un endroit qu\'il évite clairement). Aucune différence d\'agressivité entre les morphs, contrairement à une croyance répandue.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">Approche et prévention :</b> approcher par le flanc ou par-derrière plutôt que de face — une approche frontale, avec ta main comparée à sa tête, est l\'équivalent pour lui d\'une voiture qui s\'approche rapidement. Mouvement ni brusque ni hésitant, confiant et fluide, comme prendre une télécommande. Se laver les mains avant toute manipulation, utiliser des pinces pour nourrir, jamais manipuler juste avant/après un repas.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">Si ça arrive :</b> généralement comparable à un vaccin — désagréable, la surprise marque plus que la douleur elle-même. Nettoyer la plaie, surveiller les signes d\'infection. Une morsure répétée reste un signal à prendre au sérieux (stress ou husbandry sous-jacent), pas juste « un mauvais caractère ».</p>',
+     aEn:'<p>Ball pythons are generally docile — anything with teeth can technically bite (even a human can), it\'s not a trait specific to the species. Two real causes: food confusion (prey or another animal\'s scent on your hands, by far the most common) or stress/defense (shedding in progress, a female that just laid eggs, a male during breeding season, repeated handling in a spot it clearly avoids). No difference in aggression between morphs, despite a common belief otherwise.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">Approach and prevention:</b> approach from the side or from behind rather than head-on — a frontal approach, with your hand compared to its head, is the equivalent for it of a car approaching quickly. Movement that\'s neither abrupt nor hesitant, confident and fluid, like picking up a remote control. Wash your hands before any handling, use tongs to feed, never handle right before/after a meal.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">If it happens:</b> generally comparable to a vaccine shot — unpleasant, the surprise registers more than the pain itself. Clean the wound, watch for signs of infection. A repeated bite is still worth taking seriously (stress or underlying husbandry issue), not just "a bad temperament."</p>'},
     {qFr:'Comment différencier un mâle d\'une femelle ?', qEn:'How do I tell males from females?',
      aFr:'Les éperons (spurs) sont souvent plus visibles chez le mâle, qui est aussi généralement plus petit. Le sondage (probing) ou le poppage par un professionnel reste la méthode fiable pour confirmer.',
      aEn:'Spurs are often more visible on males, which also tend to be smaller. Probing or popping by a professional remains the reliable method to confirm sex.'},
     {qFr:'Combien de temps le laisser tranquille après l\'achat ?', qEn:'How long should I leave it alone after bringing it home?',
      aFr:'1 à 2 semaines d\'acclimatation avant toute manipulation ; offrir le premier repas seulement après cette période.',
      aEn:'1-2 weeks of acclimation before any handling; offer the first meal only after that period.'},
+    {qFr:'Pourquoi il gratte/pousse constamment sur les vitres ?', qEn:'Why does it constantly push/scratch at the glass?',
+     aFr:'Souvent un signe de stress ou d\'inconfort environnemental (température/humidité mal ajustée, manque de cachettes sécurisantes, enclos trop exposé) plutôt qu\'une simple curiosité. Distinct de l\'exploration normale d\'un jeune animal qui découvre un nouvel enclos — la différence, c\'est la répétition et l\'intensité dans le temps.',
+     aEn:'Often a sign of stress or environmental discomfort (poorly tuned temperature/humidity, lack of secure hides, too-exposed enclosure) rather than simple curiosity. Distinct from the normal exploration of a young animal discovering a new enclosure — the difference is repetition and intensity over time.'},
+    {qFr:'Pourquoi il musque ou défèque quand on le manipule ?', qEn:'Why does it musk or defecate when handled?',
+     aFr:'Une réponse de stress/défense normale, pas un signe de maladie ou de mauvais caractère — un mécanisme de défense naturel face à un prédateur perçu. Devient généralement moins fréquent à mesure que l\'animal s\'habitue à la manipulation régulière.',
+     aEn:'A normal stress/defense response, not a sign of illness or bad temperament — a natural defense mechanism against a perceived predator. Usually becomes less frequent as the animal gets used to regular handling.'},
+    {qFr:'Pourquoi il reste caché toute la journée ?', qEn:'Why does it stay hidden all day?',
+     aFr:'Comportement nocturne/crépusculaire normal — dans la nature, il chasse à la tombée du jour et reste sous couvert le jour, notamment parce que certains de ses prédateurs naturels sont des oiseaux de proie : rester invisible d\'en haut est une stratégie de survie, pas un caprice. Pas un signe de problème en soi, sauf combiné à d\'autres signaux (refus de manger, léthargie même la nuit). Astuce pratique : un serpent peut être plus actif de jour si on lui offre des zones plus sombres et une lampe céramique (émet de la chaleur sans lumière visible) plutôt qu\'incandescente — moins il se sent exposé, plus il ose bouger en plein jour.',
+     aEn:'Normal nocturnal/crepuscular behavior — in the wild, it hunts at dusk and stays under cover during the day, partly because some of its natural predators are birds of prey: staying invisible from above is a survival strategy, not a quirk. Not a problem on its own, unless combined with other signals (refusing food, lethargy even at night). Practical tip: a snake can be more active during the day if given darker zones and a ceramic heat emitter (produces heat without visible light) instead of an incandescent bulb — the less exposed it feels, the more it dares to move in daylight.'},
   ]},
   { id:'genetique', icon:'🧬', titleFr:'Génétique & morphs', titleEn:'Genetics & morphs', items:[
     {qFr:'Différence entre dominant, codominant et récessif ?', qEn:'Difference between dominant, co-dominant, and recessive?',
@@ -8346,6 +8484,19 @@ const HUSBANDRY_FAQ = [
     {qFr:'C\'est quoi un « het » ?', qEn:'What\'s a "het"?',
      aFr:'Un hétérozygote — porteur invisible d\'un gène récessif, transmis en moyenne à 50% de la progéniture si le parent est accouplé.',
      aEn:'A heterozygote — an invisible carrier of a recessive gene, passed on to an average of 50% of offspring when that parent is bred.'},
+    {qFr:'Poss het, 50%, 66% — comment ça marche vraiment ?', qEn:'Poss het, 50%, 66% — how does this actually work?',
+     aFr:'<p><b style="color:var(--gold);">La confusion la plus fréquente, et la règle simple qui la règle :</b> seul un parent <b>confirmé</b> 100% het compte dans le calcul. Un parent « possible het » (pas confirmé lui-même) est essentiellement ignoré tant qu\'il reste pas confirmé — on peut jamais l\'additionner à un autre statut incertain pour en tirer un pourcentage.</p>'+
+       '<ul style="margin:10px 0 0 18px;padding:0;line-height:1.8;">'+
+         '<li><b>1 seul parent confirmé 100% het</b> (peu importe le statut de l\'autre parent) → chaque bébé non-visuel a <b>50%</b> de chance d\'être porteur.</li>'+
+         '<li><b>Les DEUX parents confirmés 100% het</b> → chaque bébé non-visuel a <b>66%</b> de chance d\'être porteur (ratio 1 visuel : 2 het : 1 normal dans une portée het × het — le visuel est retiré du calcul puisqu\'il est déjà confirmé, ce qui fait monter la proportion de porteurs parmi les bébés restants).</li>'+
+       '</ul>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Le piège à retenir :</b> tant que les DEUX parents sont pas confirmés 100% het, on peut jamais annoncer 66% — c\'est automatiquement 50% (ou rien du tout si aucun parent confirmé). Un « poss het » reste une probabilité, jamais une garantie — vendre ou présenter ça comme un fait confirmé est trompeur. Le seul moyen de lever le doute : un accouplement-test qui produit un visuel du gène en question, ou un test ADN si disponible.</p>',
+     aEn:'<p><b style="color:var(--gold);">The most common confusion, and the simple rule that settles it:</b> only a <b>confirmed</b> 100% het parent counts in the calculation. A "possible het" parent (not itself confirmed) is essentially ignored until it becomes confirmed — you can never add it to another uncertain status to derive a percentage.</p>'+
+       '<ul style="margin:10px 0 0 18px;padding:0;line-height:1.8;">'+
+         '<li><b>Only ONE parent confirmed 100% het</b> (regardless of the other parent\'s status) → each non-visual baby has a <b>50%</b> chance of being a carrier.</li>'+
+         '<li><b>BOTH parents confirmed 100% het</b> → each non-visual baby has a <b>66%</b> chance of being a carrier (a 1 visual : 2 het : 1 normal ratio in a het × het clutch — the visual is removed from the count since it\'s already confirmed, which raises the carrier proportion among the remaining babies).</li>'+
+       '</ul>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">The trap to remember:</b> until BOTH parents are confirmed 100% het, you can never announce 66% — it\'s automatically 50% (or nothing at all if no parent is confirmed). A "poss het" remains a probability, never a guarantee — selling or presenting it as a confirmed fact is misleading. The only way to remove the doubt: a test breeding that produces a visual of that gene, or a DNA test if available.</p>'},
     {qFr:'Le Spider/Woma causent le wobble — c\'est grave ?', qEn:'Do Spider/Woma cause wobble — is it serious?',
      aFr:'Le wobble est un syndrome neurologique (tremblement de tête, difficulté d\'orientation) bien documenté surtout chez Spider, et fait débat éthique dans la communauté. LOCUS affiche un avertissement visible sur ces gènes individuellement.',
      aEn:'Wobble is a neurological syndrome (head tremor, disorientation) well documented especially in Spider, and is an ongoing ethical debate in the community. LOCUS shows a visible warning on these genes individually.'},
@@ -8372,20 +8523,75 @@ const HUSBANDRY_FAQ = [
     {qFr:'Faut-il refroidir (brumation) pour stimuler la reproduction ?', qEn:'Do I need to cool (brumate) to stimulate breeding?',
      aFr:'Pratique débattue dans la communauté python royal — généralement moins nécessaire que chez d\'autres espèces. Certains éleveurs varient légèrement photopériode/température plutôt qu\'une vraie brumation. À faire seulement avec une bonne connaissance du sujet — mal exécutée, ça comporte un risque pour la santé de l\'animal.',
      aEn:'A debated practice in the ball python community — generally less necessary than in other species. Some breeders slightly vary photoperiod/temperature rather than doing a true brumation. Only attempt this with solid knowledge of the subject — done poorly, it carries a real health risk.'},
+    {qFr:'Quels paramètres d\'incubation exactement ?', qEn:'What are the exact incubation parameters?',
+     aFr:'<b style="color:var(--gold);">Température :</b> 88-92°F (31-33°C). <b style="color:var(--gold);">Humidité :</b> élevée, autour de 90-100%, souvent gérée par un substrat comme la vermiculite ou la perlite humide plutôt qu\'un simple contrôle d\'air ambiant. <b style="color:var(--gold);">Durée :</b> environ 55-60 jours, plus court vers le haut de cette plage de température. <b style="color:var(--gold);">Mythe à corriger :</b> contrairement à plusieurs tortues et à l\'alligator, la température d\'incubation n\'affecte ni le sexe ni les traits visuels du python royal — le sexe est déterminé génétiquement (système chromosomique), indépendamment de l\'incubateur, et les morphs restent déterminés par l\'hérédité, pas par la température.',
+     aEn:'<b style="color:var(--gold);">Temperature:</b> 88-92°F (31-33°C). <b style="color:var(--gold);">Humidity:</b> high, around 90-100%, often managed with a substrate like moist vermiculite or perlite rather than simple ambient air control. <b style="color:var(--gold);">Duration:</b> roughly 55-60 days, shorter toward the higher end of that temperature range. <b style="color:var(--gold);">Myth to correct:</b> unlike several turtles and the alligator, incubation temperature affects neither the sex nor the visual traits of a ball python — sex is genetically determined (chromosomal system), independent of the incubator, and morphs remain determined by heredity, not temperature.'},
+    {qFr:'Combien de temps laisser reposer une femelle entre deux pontes ?', qEn:'How long should a female rest between clutches?',
+     aFr:'Généralement une saison de repos complète (environ un an) est recommandée, pour permettre à la femelle de reconstituer ses réserves de graisse et récupérer physiquement. Le poids et la condition corporelle post-ponte restent de meilleurs indicateurs que le calendrier seul — une femelle encore maigre après la ponte a besoin de plus de temps, peu importe combien de mois se sont écoulés.',
+     aEn:'A full resting season (roughly a year) is generally recommended, so the female can rebuild her fat reserves and physically recover. Post-lay weight and body condition remain better indicators than the calendar alone — a female still thin after laying needs more time, regardless of how many months have passed.'},
   ]},
   { id:'sante', icon:'🩺', titleFr:'Santé', titleEn:'Health', items:[
     {qFr:'Comment reconnaître une infection respiratoire ?', qEn:'How do I recognize a respiratory infection?',
      aFr:'Respiration bruyante ou sifflante, bulles de mucus au nez/bouche, tête relevée pour respirer plus facilement. Consulte un vétérinaire reptile rapidement.',
      aEn:'Noisy or wheezy breathing, mucus bubbles at the nose/mouth, head held up to breathe more easily. See an exotics vet promptly.'},
     {qFr:'C\'est quoi le mite et comment s\'en débarrasser ?', qEn:'What are mites and how do I get rid of them?',
-     aFr:'Un acarien de serpent (petit point noir mobile sur la peau). Le traitement demande un nettoyage complet de l\'enclos et des produits spécialisés — mieux vaut consulter un vétérinaire ou une ressource spécialisée que d\'improviser.',
-     aEn:'A snake mite (small dark moving speck on the skin). Treatment requires a full enclosure clean-out and specialized products — better to consult a vet or a specialized resource than to improvise.'},
+     aFr:'<p>Un acarien de serpent (<i>Ophionyssus natricis</i>), un parasite qui se nourrit de sang. Le cycle d\'incubation de l\'œuf tourne autour de 72h — c\'est pour ça qu\'un seul traitement suffit presque jamais, les œufs éclosent vite et se cachent dans le substrat.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">Signes à surveiller :</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li>Le serpent passe beaucoup de temps trempé dans son bol d\'eau — souvent le premier signal.</li>'+
+         '<li>Petits points noirs ou rougeâtres mobiles, surtout autour des yeux, des fosses thermosensibles, et près du cloaque.</li>'+
+         '<li>Petits points sur tes mains après manipulation ou nettoyage de l\'enclos.</li>'+
+         '<li>Traces poussiéreuses dans l\'eau du bol (mites noyées).</li>'+
+       '</ul>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Protocole de traitement (méthode éprouvée par un éleveur) :</b></p>'+
+       '<ol style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li>Tremper le serpent dans l\'eau environ 20 minutes, s\'assurer qu\'il boit pendant ce temps.</li>'+
+         '<li>Tremper ensuite dans une solution d\'eau et de savon à vaisselle doux.</li>'+
+         '<li>Sécher sommairement — laisser volontairement une fine couche de savon sur l\'animal (les mites qui éclosent le lendemain meurent au contact du savon résiduel).</li>'+
+         '<li>Le lendemain : tremper 5 minutes pour retirer le film de savon, rincer.</li>'+
+         '<li>Retremper environ 20 minutes.</li>'+
+         '<li>Répéter le processus au complet sur plusieurs jours — le cycle de 72h de l\'œuf exige plusieurs passages, pas un seul.</li>'+
+         '<li>Nettoyer l\'entièreté du terrarium — les œufs se retrouvent dans le substrat, pas juste sur l\'animal.</li>'+
+       '</ol>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Trouver la cause :</b> une mite apparaît jamais de nulle part — il y a forcément une cause extérieure. Vérifie : achat récent de substrat en animalerie, visite d\'un show de reptiles, manipulation d\'autres reptiles récemment. Lave-toi les mains vigoureusement entre chaque manipulation si tu dois manipuler d\'autres reptiles (les tiens ou ceux de quelqu\'un d\'autre).</p>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Contrôle biologique — une option à long terme :</b> <i>Stratiolaelaps scimitus</i> (anciennement <i>Hypoaspis miles</i>) est un acarien prédateur, non toxique pour les reptiles, qui chasse activement les mites et leurs œufs dans le substrat. Compatible avec un terrarium bioactif ou semi-bioactif sur le long terme — mais à introduire de façon réfléchie, puisqu\'il peut aussi s\'attaquer aux collemboles (springtails), un pilier de base de l\'équipe de nettoyage bioactive. Attention au nom exact à l\'achat : <i>Hypoaspis aculeifer</i> (parfois vendu sous « Hypoaspis A ») est une espèce similaire mais non recommandée pour cet usage.</p>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Limite honnête : un lien entre mites et transmission d\'autres maladies est parfois mentionné, mais reste débattu — pas fermement établi scientifiquement. Ne jamais improviser un traitement chimique maison à pleine concentration ; consulte un vétérinaire reptile avant tout produit appliqué directement sur l\'animal.</p>',
+     aEn:'<p>A snake mite (<i>Ophionyssus natricis</i>), a blood-feeding parasite. The egg\'s incubation cycle runs around 72 hours — which is why a single treatment almost never suffices; eggs hatch fast and hide in the substrate.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">Signs to watch for:</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li>The snake spends a lot of time soaking in its water bowl — often the first sign.</li>'+
+         '<li>Small dark or reddish moving specks, especially around the eyes, heat pits, and near the vent.</li>'+
+         '<li>Small dots on your hands after handling or cleaning the enclosure.</li>'+
+         '<li>Dusty specks in the water bowl (drowned mites).</li>'+
+       '</ul>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Treatment protocol (method proven by a breeder):</b></p>'+
+       '<ol style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li>Soak the snake in water for about 20 minutes, make sure it drinks during this time.</li>'+
+         '<li>Then soak in a mild dish-soap and water solution.</li>'+
+         '<li>Dry off briefly — deliberately leave a thin film of soap on the animal (mites hatching the next day die on contact with the residual soap).</li>'+
+         '<li>The next day: soak 5 minutes to remove the soap film, rinse.</li>'+
+         '<li>Soak again for about 20 minutes.</li>'+
+         '<li>Repeat the full process over several days — the egg\'s 72h cycle requires multiple passes, not just one.</li>'+
+         '<li>Clean the entire enclosure — eggs end up in the substrate, not just on the animal.</li>'+
+       '</ol>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Find the cause:</b> mites never appear out of nowhere — there\'s always an outside source. Check: recent substrate purchase from a pet store, a reptile show visit, recent handling of other reptiles. Wash your hands thoroughly between handling sessions if you need to handle other reptiles (yours or someone else\'s).</p>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Biological control — a long-term option:</b> <i>Stratiolaelaps scimitus</i> (formerly <i>Hypoaspis miles</i>) is a predatory mite, non-toxic to reptiles, that actively hunts mites and their eggs in the substrate. Compatible with a bioactive or semi-bioactive terrarium long-term — but introduce it thoughtfully, since it can also prey on springtails, a core part of the bioactive cleanup crew. Watch the exact name when buying: <i>Hypoaspis aculeifer</i> (sometimes sold as "Hypoaspis A") is a similar but non-recommended species for this use.</p>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Honest limitation: a link between mites and transmission of other diseases is sometimes mentioned, but remains debated — not firmly established scientifically. Never improvise a full-strength homemade chemical treatment; consult an exotics vet before applying any product directly to the animal.</p>'},
     {qFr:'Perte de poids ou d\'appétit — quand s\'inquiéter ?', qEn:'Weight or appetite loss — when to worry?',
      aFr:'Un jeûne occasionnel est normal. Une perte de poids progressive ou prolongée, ou de la léthargie, sont des signaux à surveiller — pèse régulièrement (LOCUS a un suivi de poids intégré par reptile).',
      aEn:'Occasional fasting is normal. Progressive or prolonged weight loss, or lethargy, are signals worth watching — weigh regularly (LOCUS has built-in per-snake weight tracking).'},
     {qFr:'Mue incomplète — pourquoi et quoi faire ?', qEn:'Incomplete shed — why, and what to do?',
      aFr:'Souvent lié à une humidité insuffisante. Un bain tiède et une humidité accrue aident ; retire délicatement les résidus de peau au besoin. Si ça se répète souvent, consulte un vétérinaire.',
      aEn:'Often linked to insufficient humidity. A warm soak and increased humidity help; gently remove leftover skin if needed. If it keeps happening, consult a vet.'},
+    {qFr:'Capuchon oculaire retenu — quoi faire ?', qEn:'Retained eye cap — what do I do?',
+     aFr:'Un œil qui reste opaque/blanchâtre après une mue par ailleurs complète — la « lunette » protectrice de l\'œil qui décolle pas avec le reste de la peau. Causes courantes : humidité insuffisante, déshydratation, ou parfois lié aux mites. Trempe dans l\'eau tiède 15-20 minutes pour ramollir, puis essaie de le déloger très délicatement avec une compresse humide (jamais de pince — risque de blesser l\'œil) ; le sens généralement suggéré suit celui de la mue naturelle, du museau vers le corps. Si toujours coincé après une mue de plus, consulte un vétérinaire reptile plutôt que d\'insister.',
+     aEn:'An eye that stays cloudy/whitish after an otherwise complete shed — the protective "spectacle" that doesn\'t release with the rest of the skin. Common causes: insufficient humidity, dehydration, or sometimes linked to mites. Soak in warm water for 15-20 minutes to soften, then very gently try to loosen it with a damp cloth (never tweezers — risk of injuring the eye); the direction usually suggested follows the natural shed pattern, from snout toward body. If still stuck after one more shed, see an exotics vet rather than persisting.'},
+    {qFr:'Pourriture des écailles ou cloques — c\'est quoi ?', qEn:'Scale rot or blisters — what is it?',
+     aFr:'Généralement causée par un substrat trop humide et mal ventilé, ou un contact prolongé avec de l\'humidité stagnante. Signes : cloques, décoloration, texture anormale des écailles, souvent sur le ventre. Nécessite une consultation vétérinaire rapide — peut évoluer vers une infection plus sérieuse si négligé.',
+     aEn:'Usually caused by substrate that\'s too damp and poorly ventilated, or prolonged contact with stagnant moisture. Signs: blisters, discoloration, abnormal scale texture, often on the belly. Needs prompt veterinary attention — can progress to a more serious infection if ignored.'},
+    {qFr:'Signes de déshydratation ?', qEn:'Signs of dehydration?',
+     aFr:'Peau qui plisse ou se rétracte quand pincée délicatement, mues incomplètes répétées, léthargie. Prévention de base : bol d\'eau toujours plein et propre, humidité ambiante adéquate.',
+     aEn:'Skin that wrinkles or doesn\'t spring back when gently pinched, repeated incomplete sheds, lethargy. Basic prevention: a water bowl always full and clean, adequate ambient humidity.'},
     {qFr:'Il a régurgité — quoi faire ?', qEn:'It regurgitated — what now?',
      aFr:'Attends au moins 10 à 14 jours avant de retenter un repas, à température légèrement plus basse et avec une proie plus petite qu\'avant. Une régurgitation isolée est souvent liée à une manipulation trop rapprochée du repas ou une température inadéquate ; si ça se reproduit, consulte un vétérinaire reptile.',
      aEn:'Wait at least 10 to 14 days before offering food again, at a slightly lower temperature and with prey smaller than before. A one-off regurgitation is often linked to handling too soon after feeding or an unsuitable temperature; if it happens again, consult an exotics vet.'},
@@ -8400,6 +8606,27 @@ const HUSBANDRY_FAQ = [
     {qFr:'Combien ça coûte réellement ?', qEn:'What\'s the real cost?',
      aFr:'Variable selon le morph — d\'environ 50$ pour un normal à plusieurs milliers pour des combos rares — plus le setup initial (terrarium, chauffage, accessoires) et l\'entretien annuel (nourriture, électricité). Le module Fiscal/Valeur de LOCUS aide à suivre ces coûts.',
      aEn:'Varies by morph — from around $50 for a normal to several thousand for rare combos — plus initial setup (enclosure, heating, accessories) and yearly upkeep (food, electricity). LOCUS\'s Fiscal/Value module helps track these costs.'},
+    {qFr:'Comment bien mettre un nouvel arrivant en quarantaine ?', qEn:'How do I properly quarantine a new arrival?',
+     aFr:'<p><b style="color:var(--gold);">Durée :</b> généralement 30 à 90 jours minimum avant de l\'introduire dans la même pièce que le reste de la collection — le bas de cette fourchette pour un animal d\'un éleveur fiable et transparent, le haut pour une source incertaine.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">Configuration recommandée :</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li>Une pièce complètement séparée du reste de la collection — les mites et pathogènes voyagent facilement par l\'air/les mains, pas juste par contact direct. Si impossible, au minimum le plus loin possible, caché par un rideau ou une serviette pour limiter le stress visuel.</li>'+
+         '<li>Un bac simple plutôt qu\'un enclos ouvert — limite le stress et facilite l\'observation.</li>'+
+         '<li>Essuie-tout comme substrat plutôt qu\'un substrat conventionnel — permet de voir clairement les selles et l\'urine pour repérer un signe de parasite ou de sang.</li>'+
+         '<li>Manipuler l\'animal en quarantaine en dernier, jamais avant de s\'occuper du reste de la collection, et se laver les mains après.</li>'+
+       '</ul>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Quoi inspecter :</b> yeux clairs, pas de bulles/mucus au nez ou à la bouche, aucune trace noire sur le museau, corps ferme sans pli de déshydratation, aucun point mobile noir/rougeâtre (mites), odeur générale normale, aucune trace de blessure. Prendre le temps de bien inspecter au complet, pas juste un coup d\'œil rapide.</p>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">La quarantaine, c\'est pas juste un compte de jours : attendre aussi que l\'animal ait mué, mangé, et fait ses besoins normalement avant de considérer la période terminée — ces trois signes confirment un fonctionnement sain, peu importe le nombre de jours écoulés.</p>',
+     aEn:'<p><b style="color:var(--gold);">Duration:</b> generally 30 to 90 days minimum before introducing it to the same room as the rest of the collection — the low end for an animal from a reliable, transparent breeder, the high end for an uncertain source.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">Recommended setup:</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li>A room fully separate from the rest of the collection — mites and pathogens travel easily through the air/hands, not just direct contact. If not possible, at least as far away as possible, screened off with a curtain or towel to limit visual stress.</li>'+
+         '<li>A simple tub rather than an open enclosure — limits stress and makes observation easier.</li>'+
+         '<li>Paper towel as substrate rather than conventional substrate — lets you clearly see stool and urine to spot signs of parasites or blood.</li>'+
+         '<li>Handle the quarantined animal last, never before tending to the rest of the collection, and wash your hands afterward.</li>'+
+       '</ul>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">What to inspect:</b> clear eyes, no mucus bubbles at the nose or mouth, no black marks on the snout, firm body with no dehydration wrinkles, no dark/reddish moving specks (mites), normal general odor, no signs of injury. Take the time for a full, thorough check, not just a quick glance.</p>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Quarantine isn\'t just a day count: also wait until the animal has shed, eaten, and defecated normally before considering the period over — these three signs confirm healthy function, regardless of how many days have passed.</p>'},
   ]},
 ];
 
