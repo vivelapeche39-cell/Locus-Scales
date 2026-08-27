@@ -1755,7 +1755,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.29';
+const APP_VERSION = '2026.08.25.34';
 (function checkForNewVersion(){
   try{
     if(sessionStorage.getItem('locus_version_reloaded')){ sessionStorage.removeItem('locus_version_reloaded'); return; }
@@ -2526,16 +2526,25 @@ document.addEventListener('keydown', (e)=>{
 // même avec accès à tout, on peut choisir de ne pas tout voir.
 const PERSONALIZATION_KEY = 'locus_personalization_v1';
 const PERSONALIZATION_FEATURES = [
-  { key:'racks', sub:'racks', fr:'Racks & Terrariums', en:'Racks & Enclosures' },
-  { key:'tour', sub:'tour', fr:'Mode Tournée', en:'Tour Mode' },
-  { key:'calendar', sub:'calendar', fr:'Calendrier de reproduction', en:'Breeding calendar' },
-  { key:'nourriture', sub:'nourriture', fr:'Nourriture', en:'Feeding' },
-  { key:'incubation', fr:'Incubation', en:'Incubation' },
-  { key:'listings', vsub:'listings', fr:'Annonces & MorphMarket', en:'Listings & MorphMarket' },
-  { key:'clients', vsub:'clients', fr:'Clients', en:'Clients' },
-  { key:'waitlist', vsub:'waitlist', fr:'Liste d\'attente', en:'Waitlist' },
-  { key:'fiscal', legal:'fiscal', fr:'Fiscal', en:'Taxes' },
-  { key:'valeur', legal:'valeur', fr:'Valeur & assurance', en:'Value & insurance' },
+  { key:'racks', sub:'racks', icon:'🏠', group:'elevage', fr:'Racks & Terrariums', en:'Racks & Enclosures' },
+  { key:'tour', sub:'tour', icon:'🚶', group:'elevage', fr:'Mode Tournée', en:'Tour Mode' },
+  { key:'calendar', sub:'calendar', icon:'📅', group:'elevage', fr:'Calendrier de reproduction', en:'Breeding calendar' },
+  { key:'nourriture', sub:'nourriture', icon:'🍽', group:'elevage', fr:'Nourriture', en:'Feeding' },
+  { key:'objectif', sub:'objectif', icon:'🎯', group:'elevage', fr:'Objectif (planificateur)', en:'Goal (planner)' },
+  { key:'incubation', icon:'🥚', group:'elevage', fr:'Incubation', en:'Incubation' },
+  { key:'listings', vsub:'listings', icon:'🏷️', group:'ventes', fr:'Annonces & MorphMarket', en:'Listings & MorphMarket' },
+  { key:'clients', vsub:'clients', icon:'👤', group:'ventes', fr:'Clients', en:'Clients' },
+  { key:'waitlist', vsub:'waitlist', icon:'📋', group:'ventes', fr:'Liste d\'attente', en:'Waitlist' },
+  { key:'fiscal', legal:'fiscal', icon:'🧾', group:'rapports', fr:'Fiscal', en:'Taxes' },
+  { key:'valeur', legal:'valeur', icon:'💰', group:'rapports', fr:'Valeur & assurance', en:'Value & insurance' },
+  { key:'calc', maintab:'calc', icon:'🧬', group:'outils', fr:'Calculateur génétique', en:'Genetic calculator' },
+  { key:'communaute', maintab:'utilitaire', icon:'💬', group:'outils', fr:'Communauté & outils', en:'Community & tools' },
+];
+const PERSONALIZATION_GROUPS = [
+  { id:'elevage', fr:'🏠 Élevage', en:'🏠 Breeding' },
+  { id:'ventes', fr:'💰 Ventes', en:'💰 Sales' },
+  { id:'rapports', fr:'📊 Rapports', en:'📊 Reports' },
+  { id:'outils', fr:'🛠️ Onglets principaux', en:'🛠️ Main tabs' },
 ];
 
 // Tableau de bord personnalisable (25 août) — simple show/hide par carte, pas de réordonnancement
@@ -2622,9 +2631,10 @@ function applyPersonalizationUI(){
     if(f.sub){ const btn = document.querySelector('.subtab-btn[data-sub="'+f.sub+'"]'); if(btn) btn.style.display = personalizationPrefs[f.key] ? '' : 'none'; }
     if(f.vsub){ const btn = document.querySelector('.subtab-btn[data-vsub="'+f.vsub+'"]'); if(btn) btn.style.display = personalizationPrefs[f.key] ? '' : 'none'; }
     if(f.legal){ const btn = document.querySelector('.legal-tab-btn[data-legal="'+f.legal+'"]'); if(btn) btn.style.display = personalizationPrefs[f.key] ? '' : 'none'; }
+    if(f.maintab){ const btn = document.querySelector('.tab-btn[data-tab="'+f.maintab+'"]'); if(btn) btn.style.display = personalizationPrefs[f.key] ? '' : 'none'; }
   });
   // Les onglets principaux Élevage/Ventes ne se cachent que si TOUTES leurs sous-sections le sont.
-  const elevageOn = ['racks','tour','calendar','nourriture'].some(k=>personalizationPrefs[k]);
+  const elevageOn = ['racks','tour','calendar','nourriture','objectif'].some(k=>personalizationPrefs[k]);
   const ventesOn = ['listings','clients','waitlist'].some(k=>personalizationPrefs[k]);
   const elevageBtn = document.querySelector('.tab-btn[data-tab="elevage"]');
   const ventesBtn = document.querySelector('.tab-btn[data-tab="ventes"]');
@@ -2637,7 +2647,7 @@ function applyPersonalizationUI(){
   const activeTab = document.querySelector('.tab-btn.active');
   if(activeTab){
     const t = activeTab.dataset.tab;
-    if((t==='elevage' && !elevageOn) || (t==='ventes' && !ventesOn) || (t==='incubation' && !personalizationPrefs.incubation)) showTab('dash');
+    if((t==='elevage' && !elevageOn) || (t==='ventes' && !ventesOn) || (t==='incubation' && !personalizationPrefs.incubation) || (t==='calc' && !personalizationPrefs.calc) || (t==='utilitaire' && !personalizationPrefs.communaute)) showTab('dash');
   }
   const activeSub = document.querySelector('#view-elevage .subtab-btn.active');
   if(activeSub && activeSub.dataset.sub && personalizationPrefs[activeSub.dataset.sub]===false && elevageOn){
@@ -2665,12 +2675,39 @@ function renderPersonalizationSettings(){
   const isEn = currentLang==='en';
   const wrap = document.getElementById('personalization-settings');
   if(!wrap) return;
-  wrap.innerHTML = PERSONALIZATION_FEATURES.map(f=>
-    '<label style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;">'+
-      '<input type="checkbox" '+(personalizationPrefs[f.key]?'checked':'')+' onchange="togglePersonalizationFeature(\''+f.key+'\')" style="width:18px;height:18px;flex-shrink:0;accent-color:var(--gold);"/>'+
-      '<span style="font-size:12px;">'+(isEn?f.en:f.fr)+'</span>'+
-    '</label>'
-  ).join('');
+  wrap.innerHTML = PERSONALIZATION_GROUPS.map(g=>{
+    const items = PERSONALIZATION_FEATURES.filter(f=>f.group===g.id);
+    if(!items.length) return '';
+    return '<div style="margin-bottom:14px;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'+
+        '<span style="font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.5px;">'+(isEn?g.en:g.fr)+'</span>'+
+        '<span style="font-size:10px;">'+
+          '<a href="#" onclick="setGroupPersonalization(\''+g.id+'\', true); return false;" style="color:var(--gold);text-decoration:underline;">'+(isEn?'All on':'Tout activer')+'</a>'+
+          ' · '+
+          '<a href="#" onclick="setGroupPersonalization(\''+g.id+'\', false); return false;" style="color:var(--ink-dim);text-decoration:underline;">'+(isEn?'All off':'Tout désactiver')+'</a>'+
+        '</span>'+
+      '</div>'+
+      items.map(f=>
+        '<label style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;">'+
+          '<input type="checkbox" '+(personalizationPrefs[f.key]?'checked':'')+' onchange="togglePersonalizationFeature(\''+f.key+'\')" style="width:18px;height:18px;flex-shrink:0;accent-color:var(--gold);"/>'+
+          '<span style="font-size:12px;">'+f.icon+' '+(isEn?f.en:f.fr)+'</span>'+
+        '</label>'
+      ).join('')+
+    '</div>';
+  }).join('') + '<button class="sc-btn" style="margin-top:6px;width:100%;" onclick="resetAllPersonalization()">🔄 '+(isEn?'Reset everything to visible':'Tout réafficher')+'</button>';
+}
+function resetAllPersonalization(){
+  PERSONALIZATION_FEATURES.forEach(f=> personalizationPrefs[f.key] = true);
+  savePersonalization();
+  applyPersonalizationUI();
+  renderPersonalizationSettings();
+  showToast(currentLang==='en' ? '✓ Everything is visible again.' : '✓ Tout est réaffiché.', 'success');
+}
+function setGroupPersonalization(groupId, value){
+  PERSONALIZATION_FEATURES.filter(f=>f.group===groupId).forEach(f=> personalizationPrefs[f.key] = value);
+  savePersonalization();
+  applyPersonalizationUI();
+  renderPersonalizationSettings();
 }
 
 const PROFILE_KEY = 'locus_profile_v1';
@@ -8478,6 +8515,33 @@ const HUSBANDRY_FAQ = [
        '<p style="margin-top:12px;"><b style="color:var(--gold);">What changes based on enclosure type:</b> in a closed tub (rack), a heat cable/tape alone can often be enough — the enclosure is small and closed, retaining heat well. In an open terrarium, it\'s non-negotiable: you need both a heat mat AND a heat lamp. The terrarium\'s ambient temperature needs to reflect the overall ideal temperature, not just an isolated hot spot — a glass terrarium loses far more heat than a closed tub.</p>'+
        '<p style="margin-top:12px;"><b style="color:var(--gold);">Ongoing, unsettled debate:</b> a growing discussion in the community questions whether UTH/CHE/RHP alone are really adequate as a sole heat source — the DHP is gaining popularity precisely because it may better replicate the biological effect of real sunlight rather than just heating the surface/air.</p>'+
        '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Non-negotiable safety regardless of type: always use a thermostat — never plug a heat source directly into an outlet without control, real risk of serious burns. Probe placed inside the warm hide at the snake\'s level (on the substrate), never taped onto the heat source itself.</p>'},
+    {qFr:'Mes outils de mesure sont-ils vraiment précis ?', qEn:'Are my measurement tools actually accurate?',
+     aFr:'<p><b style="color:var(--gold);">Les types, du moins au plus fiable :</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li><b>Hygromètre analogique (à cadran)</b> — précision typique ±10%RH, souvent le pire choix, à éviter comme seule référence.</li>'+
+         '<li><b>Hygromètre numérique</b> — précision typique ±2-5%RH, nettement meilleur.</li>'+
+         '<li><b>Sonde numérique (câble)</b> — pour la température ambiante/de l\'air, capteur placé directement dans la zone, précision typique ±2°F.</li>'+
+         '<li><b>Pistolet infrarouge</b> — mesure la surface instantanément, précis pour un point chaud, mais inutilisable à travers le verre/plastique (donne une fausse lecture de la surface du verre, pas de l\'intérieur) et sensible aux surfaces brillantes/réfléchissantes qui faussent la lecture.</li>'+
+       '</ul>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Comment vérifier soi-même, gratuitement, sans faire confiance à l\'étiquette :</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li><b>Thermomètre :</b> plonger la sonde dans un verre d\'eau glacée (glaçons + eau, bien brassé), attendre 2-3 minutes — devrait lire 32°F (0°C) à ±2°F près.</li>'+
+         '<li><b>Hygromètre — le « test du sel » :</b> une petite quantité de sel de table légèrement humidifié (pas dissous) dans un contenant hermétique avec l\'hygromètre à l\'intérieur, scellé 8-24h. L\'air se stabilise naturellement à 75% d\'humidité relative — si l\'appareil affiche autre chose après ce délai, on connaît son écart réel. C\'est pas juste un truc de forum : c\'est la norme scientifique officielle ASTM E104, utilisée pour calibrer des instruments professionnels.</li>'+
+       '</ul>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">L\'erreur la plus commune : les cadrans/jauges inclus gratuitement avec certains kits de terrarium à l\'achat sont notoirement peu fiables — vaut mieux les remplacer par un vrai appareil séparé plutôt que de s\'y fier.</p>',
+     aEn:'<p><b style="color:var(--gold);">The types, least to most reliable:</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li><b>Analog hygrometer (dial)</b> — typical accuracy ±10%RH, often the worst choice, avoid as your only reference.</li>'+
+         '<li><b>Digital hygrometer</b> — typical accuracy ±2-5%RH, noticeably better.</li>'+
+         '<li><b>Digital probe (cable)</b> — for ambient/air temperature, sensor placed directly in the zone, typical accuracy ±2°F.</li>'+
+         '<li><b>Infrared gun</b> — measures surface instantly, accurate for a hot spot, but unusable through glass/plastic (gives a false reading of the glass surface, not the inside) and sensitive to shiny/reflective surfaces that skew the reading.</li>'+
+       '</ul>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">How to check for yourself, for free, without trusting the label:</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li><b>Thermometer:</b> dip the probe in a glass of ice water (ice + water, well stirred), wait 2-3 minutes — should read 32°F (0°C) within ±2°F.</li>'+
+         '<li><b>Hygrometer — the "salt test":</b> a small amount of table salt lightly dampened (not dissolved) in a sealed container with the hygrometer inside, sealed for 8-24h. The air naturally stabilizes at 75% relative humidity — if the device shows something else after that time, you know its real deviation. This isn\'t just a forum trick: it\'s the official ASTM E104 scientific standard, used to calibrate professional instruments.</li>'+
+       '</ul>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">The most common mistake: the gauges included free with some terrarium kits at purchase are notoriously unreliable — better to replace them with a proper standalone device than to trust them.</p>'},
     {qFr:'Faut-il nettoyer souvent l\'enclos ?', qEn:'How often should I clean the enclosure?',
      aFr:'<b style="color:var(--gold);">Nettoyage ponctuel</b> dès qu\'une souillure ou un excrément est visible — à retirer immédiatement, pas à laisser attendre le nettoyage complet. <b style="color:var(--gold);">Nettoyage complet</b> généralement toutes les 4-6 semaines pour un enclos à substrat classique (changement complet du substrat, désinfection du bac et des accessoires). Un terrarium bioactif suit une logique différente — l\'équipe de nettoyage (isopodes/collemboles) gère une bonne partie du travail en continu, donc moins de nettoyage complet nécessaire, mais le nettoyage ponctuel reste de mise au besoin.',
      aEn:'<b style="color:var(--gold);">Spot cleaning</b> as soon as any waste or droppings are visible — remove right away, don\'t wait for a full clean. <b style="color:var(--gold);">Full cleaning</b> generally every 4-6 weeks for an enclosure with standard substrate (full substrate change, disinfecting the tub and accessories). A bioactive terrarium works differently — the cleanup crew (isopods/springtails) handles a good chunk of the work continuously, so less full cleaning is needed, but spot cleaning still applies as needed.'},
@@ -8505,6 +8569,20 @@ const HUSBANDRY_FAQ = [
     {qFr:'Combien de temps le laisser tranquille après l\'achat ?', qEn:'How long should I leave it alone after bringing it home?',
      aFr:'1 à 2 semaines d\'acclimatation avant toute manipulation ; offrir le premier repas seulement après cette période.',
      aEn:'1-2 weeks of acclimation before any handling; offer the first meal only after that period.'},
+    {qFr:'Quels sont les signes avant-coureurs de la mue ?', qEn:'What are the early warning signs of shedding?',
+     aFr:'<p>Coloration bleutée/opaque des yeux — le signe le plus fiable, apparaît généralement 7-10 jours avant la mue. Ternissement général de la peau/couleur juste avant que les yeux bleuissent, parfois un rosé/décoloration du ventre en parallèle. Comportement : plus retiré, moins actif, appétit souvent réduit ou refus complet — normal durant cette période.</p>'+
+       '<p style="margin-top:10px;">Après la phase « bleue » : les yeux redeviennent clairs quelques jours avant la mue elle-même — c\'est le signal que la mue est imminente (24-48h).</p>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Pendant la phase bleue : éviter la manipulation si possible (vision réduite, plus stressé/défensif), et éviter de nourrir (refus fréquent, risque de régurgitation).</p>',
+     aEn:'<p>Cloudy/bluish eyes — the most reliable sign, usually appearing 7-10 days before shedding. General dulling of the skin/color just before the eyes turn blue, sometimes a pinkish/discolored belly in parallel. Behavior: more withdrawn, less active, often reduced appetite or complete refusal — normal during this period.</p>'+
+       '<p style="margin-top:10px;">After the "blue" phase: the eyes clear up again a few days before the actual shed — the signal that it\'s imminent (24-48h).</p>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">During the blue phase: avoid handling if possible (reduced vision, more stressed/defensive), and avoid feeding (frequent refusal, risk of regurgitation).</p>'},
+    {qFr:'Quelle fréquence de manipulation pour un adulte établi ?', qEn:'How often should I handle an established adult?',
+     aFr:'<p>Généralement 1 à 3 fois par semaine, sessions de 15-30 minutes, jamais plus d\'une fois par jour. Toujours attendre 48-72h après un repas avant de manipuler — c\'est le vrai facteur qui détermine la fréquence réelle, pas juste un chiffre fixe.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">Le meilleur conseil, au-delà du chiffre :</b> le meilleur moment pour manipuler, c\'est quand l\'animal sort de sa cachette par lui-même. Si tu dois retirer sa cachette et le forcer à sortir, c\'est probablement pas un bon moment — l\'animal tolère la manipulation, mais l\'apprécie pas forcément. L\'empathie, se mettre à la place de l\'animal et respecter ses limites, sera toujours le meilleur conseil.</p>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Si tu dois détruire ou déconstruire son habitat pour le faire prendre à tes amis, c\'est généralement pas le meilleur signe de respect envers ton animal.</p>',
+     aEn:'<p>Generally 1 to 3 times a week, sessions of 15-30 minutes, never more than once a day. Always wait 48-72h after a meal before handling — that\'s the real factor determining the actual frequency, not just a fixed number.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">The best advice, beyond the number:</b> the best time to handle is when the animal comes out of its hide on its own. If you have to remove its hide and force it out, it\'s probably not a good time — the animal tolerates handling but doesn\'t necessarily enjoy it. Empathy, putting yourself in the animal\'s place and respecting its limits, will always be the best advice.</p>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">If you have to tear apart or dismantle its habitat to make it come out for your friends, that\'s generally not the best sign of respect toward your animal.</p>'},
     {qFr:'Pourquoi il gratte/pousse constamment sur les vitres ?', qEn:'Why does it constantly push/scratch at the glass?',
      aFr:'Souvent un signe de stress ou d\'inconfort environnemental (température/humidité mal ajustée, manque de cachettes sécurisantes, enclos trop exposé) plutôt qu\'une simple curiosité. Distinct de l\'exploration normale d\'un jeune animal qui découvre un nouvel enclos — la différence, c\'est la répétition et l\'intensité dans le temps.',
      aEn:'Often a sign of stress or environmental discomfort (poorly tuned temperature/humidity, lack of secure hides, too-exposed enclosure) rather than simple curiosity. Distinct from the normal exploration of a young animal discovering a new enclosure — the difference is repetition and intensity over time.'},
