@@ -40,7 +40,7 @@
 <meta property="og:title" content="LOCUS Scales"/>
 <meta property="og:description" content="Gestion d'élevage complète pour le python royal — génétique, ventes, incubation et administration."/>
 <meta property="og:type" content="website"/>
-<meta property="og:image" content="https://app.locusscales.com/assets/og-image.png"/>
+<meta property="og:image" content="https://app.locusscales.com/og-image.png"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
 <meta name="twitter:card" content="summary_large_image"/>
@@ -1762,7 +1762,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.51';
+const APP_VERSION = '2026.08.25.52';
 (function checkForNewVersion(){
   try{
     if(sessionStorage.getItem('locus_version_reloaded')){ sessionStorage.removeItem('locus_version_reloaded'); return; }
