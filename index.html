@@ -1649,7 +1649,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
     <p data-i18n="mmImportDesc">Tu utilises déjà MorphMarket (Animal Manager) ? Exporte ta collection en CSV depuis là-bas, puis importe-la ici directement — pas besoin de tout ressaisir à la main. La génétique est extraite du titre/traits de chaque annonce et reste marquée « à vérifier » jusqu'à confirmation.</p>
     <input type="file" id="mm-csv-file-input" accept=".csv,.tsv,text/csv,text/tab-separated-values" style="display:none;"/>
     <div class="reg-links">
-      <button class="sc-btn accent" onclick="if(requireAuthOrPrompt()) document.getElementById('mm-csv-file-input').click()">🔄 <span data-i18n="mmImportBtn">Importer un export MorphMarket</span></button>
+      <button class="sc-btn accent" onclick="if(!hasAccess('morphmarketImportCsv')){ showToast('🔒 '+(currentLang==='en'?'Illimité tier feature.':'Fonction du palier Illimité.'), 'error'); } else if(requireAuthOrPrompt()) document.getElementById('mm-csv-file-input').click()">🔄 <span data-i18n="mmImportBtn">Importer un export MorphMarket</span></button>
     </div>
   </div>
 
@@ -1761,7 +1761,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.43';
+const APP_VERSION = '2026.08.25.49';
 (function checkForNewVersion(){
   try{
     if(sessionStorage.getItem('locus_version_reloaded')){ sessionStorage.removeItem('locus_version_reloaded'); return; }
@@ -1776,6 +1776,41 @@ const APP_VERSION = '2026.08.25.43';
       .catch(()=>{});
   }catch(e){}
 })();
+
+/* ---------------- PALIERS TARIFAIRES : fondations (27 août 2026) ----------------
+   Système complet mais DÉSACTIVÉ — tant que TIERS_ENABLED reste false, hasAccess() répond
+   toujours true peu importe le palier réel, donc AUCUN changement pour les utilisateurs actuels.
+   Permet de brancher les vérifications à travers l'app une fonction à la fois, sans jamais
+   rien casser. Interrupteur à tourner à true seulement une fois tout testé et prêt à activer.
+   Structure des paliers : voir memoire-maitresse.md section 4. */
+const TIERS_ENABLED = false;
+const TIER_RANK = { gratuit:0, passionne:1, premiere_ponte:1, illimite:2 };
+// Fonctionnalités réservées à Illimité uniquement (exclues même de Première ponte) — liste tirée
+// de la structure de paliers décidée le 25 août. À étendre au fil des sessions futures.
+const ILLIMITE_ONLY_FEATURES = [
+  'objectifPlanner', 'bulkListingPrices', 'morphmarketImportCsv', 'shipping',
+  'fertility', 'multiGenProjects', 'seasonComparison', 'outcomesView', 'icsExport', 'fiscalSummary'
+];
+function currentUserTier(){
+  if(typeof isAdminUser!=='undefined' && isAdminUser) return 'illimite'; // admin = accès complet peu importe le champ tier
+  return (typeof userTier!=='undefined' && userTier) || 'gratuit';
+}
+// Vérification centrale — chaque fonction qui devra un jour être restreinte par palier appelle
+// hasAccess('cleFonction') avant de s'exécuter/s'afficher. Tant que TIERS_ENABLED est false,
+// retourne toujours true : aucun effet réel avant l'activation volontaire de l'interrupteur.
+function hasAccess(featureKey){
+  if(!TIERS_ENABLED) return true;
+  if(!ILLIMITE_ONLY_FEATURES.includes(featureKey)) return true; // pas dans la liste = accessible à tous les paliers payants+
+  return currentUserTier()==='illimite';
+}
+const TIER_LIMITS = { gratuit: 3, passionne: 20, premiere_ponte: 10, illimite: null };
+function canAddAnotherSnake(){
+  if(!TIERS_ENABLED) return true;
+  const limit = TIER_LIMITS[currentUserTier()];
+  if(limit==null) return true;
+  const activeCount = savedSnakes.filter(s=>s.status!=='sold').length;
+  return activeCount < limit;
+}
 
 /* ---------------- SUPABASE : client + auth ---------------- */
 // Placée tout en haut du script à dessein : plusieurs fonctions appelées tôt (dashboard, etc.)
@@ -4770,6 +4805,11 @@ function updateDraftSpeciesVisibility(){
 }
 function saveDraft(){
   if(!requireAuthOrPrompt()) return;
+  if(!editingId && !canAddAnotherSnake()){
+    const isEn = currentLang==='en';
+    alert(isEn ? 'You\'ve reached the animal limit for your tier. Upgrade to add more.' : 'Tu as atteint la limite d\'animaux de ton palier. Passe à un palier supérieur pour en ajouter plus.');
+    return;
+  }
   const nameInput = document.getElementById('draft-name');
   const name = nameInput.value.trim() || 'Sans nom';
   const isBallPython = document.getElementById('draft-is-ball-python').checked;
@@ -5011,6 +5051,7 @@ function batchToggleTerrarium(){
 }
 function batchSetPrice(){
   const isEn = currentLang==='en';
+  if(!hasAccess('bulkListingPrices')){ showToast('🔒 '+(isEn?'Illimité tier feature.':'Fonction du palier Illimité.'), 'error'); return; }
   if(batchSelectedIds.size===0) return;
   const inp = document.getElementById('batch-price-input');
   const val = inp ? parseFloat(inp.value) : NaN;
@@ -5347,11 +5388,19 @@ function findBestPairings(targetGeneIds){
   });
   return results.sort((a,b)=>b.prob-a.prob);
 }
+// Message "verrouillé" réutilisé partout où hasAccess() bloque une fonction Illimité —
+// un seul endroit à ajuster si le style/texte change plus tard.
+function lockedFeatureHtml(){
+  const isEn = currentLang==='en';
+  return '<div class="empty">🔒 '+(isEn?'Illimité tier feature.':'Fonction du palier Illimité.')+'</div>';
+}
+
 function renderPairingPlanner(){
   const isEn = currentLang==='en';
-  const targetIds = Object.keys(state.objectif).filter(k=>!isFreewayKey(k));
   const wrap = document.getElementById('pairing-planner-results');
   if(!wrap) return;
+  if(!hasAccess('objectifPlanner')){ wrap.innerHTML = lockedFeatureHtml(); return; }
+  const targetIds = Object.keys(state.objectif).filter(k=>!isFreewayKey(k));
   if(targetIds.length===0){
     wrap.innerHTML = '<div class="empty">'+(isEn?'Select at least one target gene above.':'Sélectionne au moins un gène cible ci-dessus.')+'</div>';
     return;
@@ -5826,10 +5875,12 @@ function openLogbook(id){
   ).join('') + '<button class="sc-btn danger" onclick="setListingStatus(\''+id+'\',\'sold\')">'+t('markSoldBtn')+'</button>';
   const statusDetailHtml = s.status==='sold'
     ? mrow(t('buyerLabel'), escapeHtml(s.buyer||'—')) + mrow(t('saleDateLabel'), s.soldDate||'—')
-      + '<div class="modal-row"><span>'+(isEn?'Carrier':'Transporteur')+'</span><span><input type="text" class="price-input" style="width:120px;" value="'+escapeHtml(s.shippingCarrier||'')+'" placeholder="'+(isEn?'e.g. Canada Post':'ex. Postes Canada')+'" onchange="setShippingInfo(\''+id+'\',\'carrier\',this.value)"/></span></div>'
+      + (hasAccess('shipping') ? (
+        '<div class="modal-row"><span>'+(isEn?'Carrier':'Transporteur')+'</span><span><input type="text" class="price-input" style="width:120px;" value="'+escapeHtml(s.shippingCarrier||'')+'" placeholder="'+(isEn?'e.g. Canada Post':'ex. Postes Canada')+'" onchange="setShippingInfo(\''+id+'\',\'carrier\',this.value)"/></span></div>'
       + '<div class="modal-row"><span>'+(isEn?'Tracking #':'N° de suivi')+'</span><span><input type="text" class="price-input" style="width:140px;" value="'+escapeHtml(s.shippingTracking||'')+'" onchange="setShippingInfo(\''+id+'\',\'tracking\',this.value)"/></span></div>'
       + '<div class="modal-row"><span>'+(isEn?'Ship date':'Date d\'envoi')+'</span><span><input type="date" class="price-input" style="width:140px;" value="'+(s.shippingDate||'')+'" onchange="setShippingInfo(\''+id+'\',\'date\',this.value)"/></span></div>'
       + (s.shippingTracking ? '<div class="modal-row"><span></span><span><label style="font-size:11px;color:var(--ink-dim);"><input type="checkbox" '+(s.shippingDelivered?'checked':'')+' onchange="setShippingInfo(\''+id+'\',\'delivered\',this.checked)"/> '+(isEn?'Delivered':'Livré')+'</label></span></div>' : '')
+      ) : '<div class="modal-row"><span>'+(isEn?'Shipping':'Expédition')+'</span><span style="color:var(--ink-dim);">🔒 '+(isEn?'Illimité':'Illimité')+'</span></div>')
     : '<div class="modal-row"><span>'+t('askedPriceLabel')+'</span><span><input type="number" class="price-input" style="width:90px;" value="'+(s.askingPrice||'')+'" placeholder="0" onchange="setAskingPrice(\''+id+'\', this.value)"/> $</span></div>';
 
   const weightsHtml = s.health.weights.length
@@ -6081,6 +6132,7 @@ function openLogbook(id){
     '<div class="modal-section"><h3>'+t('reproductionTitle')+'</h3>'+pairingsHtml+'</div>'+
     (function(){
       if(s.sex!=='female') return '';
+      if(!hasAccess('fertility')) return '';
       const fert = computeFemaleFertility(id);
       if(!fert) return '';
       const seasonRows = Object.keys(fert.bySeason).sort().map(year=>{
@@ -6098,6 +6150,7 @@ function openLogbook(id){
     })()+
     (function(){
       if(s.sex!=='male') return '';
+      if(!hasAccess('fertility')) return '';
       const fert = computeMaleFertility(id);
       if(!fert) return '';
       const seasonRows = Object.keys(fert.bySeason).sort().map(year=>{
@@ -7543,6 +7596,7 @@ function escapeICSText(str){
 }
 function exportICS(){
   const isEn = currentLang==='en';
+  if(!hasAccess('icsExport')){ showToast('🔒 '+(isEn?'Illimité tier feature.':'Fonction du palier Illimité.'), 'error'); return; }
   const toICSDate = (dateStr)=> dateStr.replace(/-/g,'');
   const dtstamp = new Date().toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
   const lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//LOCUS Scales//Calendar Export//FR','CALSCALE:GREGORIAN'];
@@ -8193,6 +8247,7 @@ function addPairing(){
 // Projets multi-générations — voir la note au chargement de `projects` pour le stockage/la synchro.
 function addProject(){
   const isEn = currentLang==='en';
+  if(!hasAccess('multiGenProjects')){ showToast('🔒 '+(isEn?'Illimité tier feature.':'Fonction du palier Illimité.'), 'error'); return; }
   const nameEl = document.getElementById('project-name-input');
   const goalEl = document.getElementById('project-goal-input');
   const name = nameEl.value.trim();
@@ -8400,6 +8455,10 @@ const SAVAIS_TU_FACTS = [
     en:'"Morph" and "phase" are both English terms borrowed as-is — the ball python hobby developed mostly in English-speaking communities, so the technical vocabulary stayed in English even among French-speaking breeders. "Morph" refers to a predictably/genetically inherited trait (Pastel, Piebald, etc.) — the technically correct term for ball pythons. "Phase" historically comes from a variation tied to a natural population (e.g. the corn snake Okeetee). In practice, a lot of people use both interchangeably in everyday speech ("phase Pastel") — not a serious mistake, just a nuance worth knowing.' },
   { fr:'Le python royal le plus vieux jamais enregistré est une femelle du Saint Louis Zoo (Missouri) — environ 62-63 ans, morte en 2021. Le fait le plus marquant : elle a pondu une ponte d\'œufs viable à 61 ans, sans aucun contact avec un mâle depuis plus de 15 ans. Deux œufs ont éclos, un bébé a survécu. Les chercheurs enquêtaient sur deux explications possibles : la parthénogenèse (reproduction sans mâle) ou un stockage de sperme pendant 15+ ans — les deux sont des phénomènes réels documentés chez d\'autres espèces de reptiles. Un autre record distinct : un mâle avec dossier de naissance officiel a vécu 47 ans au Zoo de Philadelphie. En comparaison, la durée de vie moyenne en captivité tourne autour de 20-30 ans, parfois 40+ ans avec de bons soins.',
     en:'The oldest ball python ever recorded is a female from the Saint Louis Zoo (Missouri) — roughly 62-63 years old, who died in 2021. The most striking part: she laid a viable clutch of eggs at 61, with no contact with a male for over 15 years. Two eggs hatched, one baby survived. Researchers looked into two possible explanations: parthenogenesis (reproduction without a male) or 15+ years of stored sperm — both are real, documented phenomena in other reptile species. A separate record: a male with an official birth record lived 47 years at the Philadelphia Zoo. For comparison, average captive lifespan runs around 20-30 years, sometimes 40+ with good care.' },
+  { fr:'Dans la nature, le python royal vient d\'une large bande d\'Afrique de l\'Ouest et centrale — du Sénégal et du Mali jusqu\'à l\'Ouganda et le Soudan. Il habite les savanes, prairies et forêts peu denses, souvent près de zones agricoles. Il passe ses journées caché dans des terriers de mammifères abandonnés, des termitières abandonnées, ou des bûches creuses — jamais à découvert le jour — et peut même entrer en dormance estivale durant les mois les plus secs. C\'est un chasseur à l\'affût : plutôt que de poursuivre sa proie, il choisit une cachette et attend patiemment, guidé surtout par l\'organe de Jacobson (langue fourchue) plus que par la vue dans le noir. Son menu naturel : principalement de petits mammifères (rats, souris, musaraignes), occasionnellement des oiseaux. Et lui-même reste une proie — rapaces, mammifères carnivores plus gros, et même d\'autres serpents (dont le cobra noir) s\'attaquent surtout aux jeunes individus, les adultes ayant peu de vrais prédateurs.'+
+    ' Petit bonus culturel : le nom anglais "royal python" viendrait d\'une légende voulant que Cléopâtre en portait un comme bijou vivant — une rumeur jamais confirmée historiquement (ce qui EST bien documenté, ce sont ses vrais bijoux en forme de serpent, probablement inspirés du cobra égyptien). Chez le peuple Igbo du Nigeria moderne, le python royal est vénéré comme symbole de la terre elle-même — une petite cérémonie funéraire est même tenue s\'il est tué accidentellement.',
+    en:'In the wild, the ball python comes from a wide band of West and Central Africa — from Senegal and Mali to Uganda and Sudan. It lives in savannas, grasslands, and lightly wooded forests, often near farmland. It spends its days hidden in abandoned mammal burrows, abandoned termite mounds, or hollow logs — never out in the open during the day — and can even go into a summer dormancy during the driest months. It\'s an ambush hunter: rather than chasing prey, it picks a hiding spot and waits patiently, guided mostly by its Jacobson\'s organ (forked tongue) more than eyesight in the dark. Its natural menu: mostly small mammals (rats, mice, shrews), occasionally birds. And it\'s prey itself — birds of prey, larger carnivorous mammals, and even other snakes (including the black cobra) mostly target young individuals, since adults have few real predators.'+
+    ' Small cultural bonus: the name "royal python" is said to come from a legend that Cleopatra wore one as living jewelry — a rumor never confirmed historically (what IS well documented is her real snake-shaped jewelry, likely inspired by the Egyptian cobra). Among the Igbo people of modern-day Nigeria, the ball python is revered as a symbol of the earth itself — a small funeral is even held if one is accidentally killed.' },
 ];
 
 const HUSBANDRY_FAQ = [
@@ -8653,6 +8712,19 @@ const HUSBANDRY_FAQ = [
      aEn:'Normal nocturnal/crepuscular behavior — in the wild, it hunts at dusk and stays under cover during the day, partly because some of its natural predators are birds of prey: staying invisible from above is a survival strategy, not a quirk. Not a problem on its own, unless combined with other signals (refusing food, lethargy even at night). Practical tip: a snake can be more active during the day if given darker zones and a ceramic heat emitter (produces heat without visible light) instead of an incandescent bulb — the less exposed it feels, the more it dares to move in daylight.'},
   ]},
   { id:'genetique', icon:'🧬', titleFr:'Génétique & morphs', titleEn:'Genetics & morphs', items:[
+    {qFr:'C\'est quoi la différence entre un python et un boa ?', qEn:'What\'s the difference between a python and a boa?',
+     aFr:'<p><b style="color:var(--gold);">La vraie distinction — la reproduction :</b> le python pond des œufs (ovipare), la femelle s\'enroule autour pour les couver, parfois en générant de la chaleur par micro-contractions musculaires. Le boa donne naissance à des petits déjà formés (ovovivipare) — les œufs se développent à l\'intérieur de la mère. Quelques exceptions rares pondent quand même des œufs (boa de Round Island).</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">Classification et géographie :</b> deux familles distinctes — Pythonidae (python) et Boidae (boa), chacune sous sa propre super-famille (Pythonoidea et Booidea). Python = Ancien Monde (Afrique, Asie, Australie). Boa = Nouveau Monde principalement (Amériques), avec quelques exceptions (boas des sables en Afrique/Asie).</p>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Historiquement, le python était classé comme une simple sous-famille à l\'intérieur des Boidae — la séparation en deux familles distinctes est une classification plus récente. Fait surprenant : génétiquement, le python serait en fait plus proche des « sunbeam snakes » (Xenopeltis) que des boas, malgré la ressemblance physique frappante entre les deux.</p>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Différences physiques (souvent invisibles à l\'œil nu) :</b> le python a un os supplémentaire au crâne (prémaxillaire) qui porte des dents — le boa en a pas, ou très réduit. Le python a généralement plus de dents. Les deux ont des fossettes thermosensibles, mais placées un peu différemment.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">Ce qu\'ils ont en commun :</b> aucun venin (constricteurs), deux poumons (trait « primitif », la plupart des serpents en ont juste un), éperons pelviens (vestiges de pattes arrière ancestrales, utilisés pendant l\'accouplement).</p>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Exception qui casse la règle générale « python = plus gros » : l\'anaconda EST un boa (sous-famille Boinae, même groupe que le boa constricteur classique) — pourtant c\'est le serpent le plus lourd au monde.</p>',
+     aEn:'<p><b style="color:var(--gold);">The real distinction — reproduction:</b> pythons lay eggs (oviparous), and the female coils around them to incubate, sometimes generating heat through tiny muscle contractions. Boas give birth to fully formed young (ovoviviparous) — the eggs develop inside the mother. A few rare exceptions still lay eggs (Round Island boa).</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">Classification and geography:</b> two distinct families — Pythonidae (pythons) and Boidae (boas), each under its own superfamily (Pythonoidea and Booidea). Pythons = Old World (Africa, Asia, Australia). Boas = mostly New World (the Americas), with some exceptions (sand boas in Africa/Asia).</p>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Historically, pythons were classified as a simple subfamily within Boidae — splitting them into two distinct families is a more recent classification. Surprising fact: genetically, pythons are actually closer to "sunbeam snakes" (Xenopeltis) than to boas, despite the striking physical resemblance between the two.</p>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Physical differences (often invisible to the naked eye):</b> pythons have an extra skull bone (premaxilla) that carries teeth — boas lack it, or it\'s greatly reduced. Pythons generally have more teeth. Both have heat-sensing pits, but placed slightly differently.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">What they have in common:</b> no venom (constrictors), two lungs ("primitive" trait, most snakes have just one), pelvic spurs (vestiges of ancestral hind legs, used during mating).</p>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">The exception that breaks the general "python = bigger" rule: the anaconda IS a boa (subfamily Boinae, same group as the classic boa constrictor) — yet it\'s the heaviest snake in the world.</p>'},
     {qFr:'Différence entre dominant, codominant et récessif ?', qEn:'Difference between dominant, co-dominant, and recessive?',
      aFr:'Dominant : un seul allèle suffit à exprimer le trait visuel. Codominant : un allèle donne un look distinct, deux allèles (forme « super ») donnent un look encore différent. Récessif : il faut deux copies (homozygote) pour voir le trait ; une seule copie rend porteur invisible (« het »).',
      aEn:'Dominant: one allele is enough to show the visual trait. Co-dominant: one allele gives a distinct look, two alleles (the "super" form) give a further-different look. Recessive: two copies (homozygous) are needed to see the trait; one copy makes an invisible carrier ("het").'},
@@ -9311,6 +9383,7 @@ function renderSeasonComparison(){
   const isEn = currentLang==='en';
   const wrap = document.getElementById('season-comparison-list');
   if(!wrap) return;
+  if(!hasAccess('seasonComparison')){ wrap.innerHTML = lockedFeatureHtml(); return; }
   const stats = computeSeasonStats();
   wrap.innerHTML = stats.length ? '' : '<div class="empty">'+(isEn?'Not enough data yet to compare seasons.':'Pas assez de données pour comparer des saisons pour l\'instant.')+'</div>';
   stats.forEach(y=>{
@@ -10779,6 +10852,12 @@ function exportBudgetExcel(){
 }
 
 function renderFiscalView(){
+  const isEn = currentLang==='en';
+  if(!hasAccess('fiscalSummary')){
+    const wrap = document.getElementById('fiscal-sales-list');
+    if(wrap) wrap.innerHTML = lockedFeatureHtml();
+    return;
+  }
   populateExpenseCategorySelect();
   renderPairingROI();
   renderSeasonComparison();
@@ -11019,6 +11098,7 @@ function renderOutcomesView(){
   const isEn = currentLang==='en';
   const wrap = document.getElementById('outcomes-view');
   if(!wrap) return;
+  if(!hasAccess('outcomesView')){ wrap.innerHTML = lockedFeatureHtml(); return; }
   const data = computeOutcomesData();
   if(data.length===0){ wrap.innerHTML=''; return; }
   const totals = Object.create(null);
@@ -11166,12 +11246,14 @@ function renderHealthLog(){
 // réservée au drapeau is_admin sur profiles). Distincte de HUSBANDRY_FAQ (contenu officiel/sourcé
 // par LOCUS) — celle-ci est du contenu généré par la communauté, publié seulement après révision.
 let isAdminUser = false;
+let userTier = 'gratuit'; // palier tarifaire du compte connecté — voir hasAccess() tout en haut du fichier
 async function checkAdminStatus(){
-  if(!currentUser || !sb){ isAdminUser = false; return false; }
+  if(!currentUser || !sb){ isAdminUser = false; userTier = 'gratuit'; return false; }
   try{
-    const { data, error } = await sb.from('profiles').select('is_admin').eq('user_id', currentUser.id).single();
+    const { data, error } = await sb.from('profiles').select('is_admin, tier').eq('user_id', currentUser.id).single();
     isAdminUser = !error && data && data.is_admin === true;
-  }catch(e){ isAdminUser = false; }
+    userTier = (!error && data && data.tier) || 'gratuit';
+  }catch(e){ isAdminUser = false; userTier = 'gratuit'; }
   return isAdminUser;
 }
 async function renderCommunityFaq(){
