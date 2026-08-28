@@ -883,6 +883,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
   </div>
 
   <div id="view-dash">
+    <div id="beta-banner" class="onboarding-banner" style="display:none;"></div>
     <div id="welcome-hero" class="welcome-hero" style="display:none;"></div>
     <div class="dash-greeting" id="dash-greeting"></div>
     <div id="dash-species-filter-wrap" style="display:none;margin-bottom:14px;"></div>
@@ -1761,7 +1762,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.49';
+const APP_VERSION = '2026.08.25.51';
 (function checkForNewVersion(){
   try{
     if(sessionStorage.getItem('locus_version_reloaded')){ sessionStorage.removeItem('locus_version_reloaded'); return; }
@@ -10354,6 +10355,27 @@ function dismissWelcome(){
   dismissBanner('welcome');
   document.getElementById('welcome-hero').style.display = 'none';
 }
+function isBetaBannerDismissed(){ return isBannerDismissed('beta_test'); }
+function dismissBetaBanner(){
+  dismissBanner('beta_test');
+  document.getElementById('beta-banner').style.display = 'none';
+}
+function renderBetaBanner(){
+  const isEn = currentLang==='en';
+  const el = document.getElementById('beta-banner');
+  if(!el) return;
+  if(isBetaBannerDismissed()){ el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  el.innerHTML = '<span class="ob-icon">🧪</span>'+
+    '<div class="ob-body">'+
+      '<span class="ob-title">'+(isEn?'Beta testing phase':'Phase de test bêta')+'</span>'+
+      (isEn
+        ? 'The app is currently in beta — free during this period. A paid tier system will roll out later, always announced ahead of the official launch date — no surprises. For the best experience, creating an account is recommended — no future payment obligation attached. Found a bug? Reporting it helps polish the app before the real launch.'
+        : 'Application actuellement en phase de test — gratuite pendant cette période. Un système de paliers payants sera mis en place plus tard, avec annonce à l\'avance avant la date officielle du lancement — jamais de surprise. Pour profiter au maximum des fonctions, la création d\'un compte est préférable — aucune obligation de paiement plus tard pour autant. Un bug trouvé? Le signaler aide à peaufiner l\'app avant le vrai lancement.')+
+      '<div style="margin-top:8px;"><button class="sc-btn accent" onclick="openBugReportModal()">🐛 '+(isEn?'Report a bug':'Signaler un bug')+'</button></div>'+
+    '</div>'+
+    '<button class="ob-close" onclick="dismissBetaBanner()" aria-label="Fermer">×</button>';
+}
 function renderWelcomeHero(){
   const isEn = currentLang==='en';
   const hero = document.getElementById('welcome-hero');
@@ -10380,6 +10402,7 @@ function setDashSpeciesFilter(v){
 function renderDashboard(){
   const isEn = currentLang==='en';
   savedSnakes.forEach(ensureSnakeMeta);
+  renderBetaBanner();
   renderWelcomeHero();
 
   const hour = new Date().getHours();
