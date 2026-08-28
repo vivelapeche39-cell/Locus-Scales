@@ -869,7 +869,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
   <div id="onboarding-banner" class="onboarding-banner" style="display:none;"></div>
 
   <div class="global-search-wrap">
-    <input type="text" id="global-search-input" class="global-search-input" placeholder="🔍 Recherche unifiée — nom, gène, provenance, client…" autocomplete="off"/>
+    <input type="text" id="global-search-input" class="global-search-input" data-i18n-placeholder="globalSearchPlaceholder" placeholder="🔍 Recherche unifiée — nom, gène, provenance, client…" autocomplete="off"/>
     <div id="global-search-results" class="global-search-results"></div>
   </div>
 
@@ -1315,6 +1315,12 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
     <div class="subtab-bar" style="display:flex;gap:8px;margin-bottom:18px;">
       <button class="subtab-btn active" data-usub="communaute" data-i18n="subCommunaute" onclick="showUtilitaireSubtab('communaute')">💬 Communauté</button>
       <button class="subtab-btn" data-usub="outils" data-i18n="subOutils" onclick="showUtilitaireSubtab('outils')">🛠 Outils</button>
+      <button class="subtab-btn" data-usub="savais-tu" data-i18n="subSavaisTu" onclick="showUtilitaireSubtab('savais-tu')">💡 Le saviez-vous</button>
+    </div>
+
+    <div id="usub-savais-tu" style="display:none;">
+      <p style="font-size:11.5px;color:var(--ink-dim);line-height:1.6;margin:0 0 18px;" data-i18n="savaisTuIntro">Des faits, précisions et petites curiosités du monde reptile qui rentrent nulle part ailleurs — au fil du temps.</p>
+      <div id="savais-tu-list"></div>
     </div>
 
     <div id="usub-communaute">
@@ -1755,7 +1761,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.34';
+const APP_VERSION = '2026.08.25.43';
 (function checkForNewVersion(){
   try{
     if(sessionStorage.getItem('locus_version_reloaded')){ sessionStorage.removeItem('locus_version_reloaded'); return; }
@@ -3069,6 +3075,8 @@ const I18N = {
     tabUtilitaire: '🛠️ Utilitaire',
     subCommunaute: '💬 Communauté',
     subOutils: '🛠 Outils',
+    subSavaisTu: '💡 Le saviez-vous',
+    savaisTuIntro: 'Des faits, précisions et petites curiosités du monde reptile qui rentrent nulle part ailleurs — au fil du temps.',
     toolTempTitle: 'Convertisseur de température',
     toolTempHint: 'Entre une valeur dans l\'une ou l\'autre case — l\'autre se calcule automatiquement.',
     toolDimTitle: 'Convertisseur de dimensions (terrarium)',
@@ -3117,6 +3125,7 @@ const I18N = {
     specimenFemale: 'Reproductrice — Femelle',
     loadBtn: 'Charger…',
     searchGenePlaceholder: 'Rechercher un gène (ex. Pastel, Mojave, Piebald)…',
+    globalSearchPlaceholder: '🔍 Recherche unifiée — nom, gène, provenance, client…',
     resultsTitle: 'Résultats',
     punnettTitle: 'Carré de Punnett',
     calcEmptyState: 'Sélectionne les gènes des deux parents, puis lance le calcul.',
@@ -3315,7 +3324,7 @@ const I18N = {
     addDefecationBtn: '+ Ajouter l\'observation',
     careJournalTourTitle: 'Journal des soins (Mode Tournée)',
     reproductionTitle: 'Reproduction',
-    ovulationEstLay: 'Ovulation __DATE__ → ponte estimée __EST__',
+    ovulationEstLay: 'Ovulation __DATE__ → ponte estimée entre le __ESTMIN__ et le __ESTMAX__',
     ovulationNotConfirmedShort: 'Ovulation non confirmée',
     noMatingRecorded: 'Aucun accouplement enregistré',
     listingAutoTitle: 'Annonce MorphMarket (générée automatiquement)',
@@ -3481,6 +3490,8 @@ const I18N = {
     tabUtilitaire: '🛠️ Utility',
     subCommunaute: '💬 Community',
     subOutils: '🛠 Tools',
+    subSavaisTu: '💡 Did you know?',
+    savaisTuIntro: 'Facts, nuances, and little curiosities from the reptile world that don\'t really fit anywhere else — added over time.',
     toolTempTitle: 'Temperature converter',
     toolTempHint: 'Enter a value in either field — the other calculates automatically.',
     toolDimTitle: 'Dimension converter (enclosure)',
@@ -3529,6 +3540,7 @@ const I18N = {
     specimenFemale: 'Dam — Female',
     loadBtn: 'Load…',
     searchGenePlaceholder: 'Search a gene (e.g. Pastel, Mojave, Piebald)…',
+    globalSearchPlaceholder: '🔍 Unified search — name, gene, origin, client…',
     resultsTitle: 'Results',
     punnettTitle: 'Punnett Square',
     calcEmptyState: 'Select genes for both parents, then run the calculation.',
@@ -3727,7 +3739,7 @@ const I18N = {
     addDefecationBtn: '+ Add observation',
     careJournalTourTitle: 'Care journal (Round Mode)',
     reproductionTitle: 'Reproduction',
-    ovulationEstLay: 'Ovulation __DATE__ → estimated lay __EST__',
+    ovulationEstLay: 'Ovulation __DATE__ → estimated lay between __ESTMIN__ and __ESTMAX__',
     ovulationNotConfirmedShort: 'Ovulation not confirmed',
     noMatingRecorded: 'No pairing recorded',
     listingAutoTitle: 'MorphMarket listing (auto-generated)',
@@ -4739,6 +4751,16 @@ function expectedWeightRange(ageMonths){
     }
   }
   return null;
+}
+
+// Recommandation de proie basée sur le poids actuel — réutilise la même charte/logique que
+// l'outil communautaire (PYTHON_WEIGHT_CHART, preyPercentRange), pas une deuxième source de vérité.
+function preyRecommendationForWeight(weight){
+  const isEn = currentLang==='en';
+  const entry = PYTHON_WEIGHT_CHART.find(r => weight>=r.min && (r.max===null || weight<r.max)) || PYTHON_WEIGHT_CHART[PYTHON_WEIGHT_CHART.length-1];
+  const pct = preyPercentRange(weight);
+  const preyMin = Math.round(weight*pct.min), preyMax = Math.round(weight*pct.max);
+  return { label: isEn?entry.en:entry.fr, preyMin, preyMax };
 }
 
 function updateDraftSpeciesVisibility(){
@@ -5849,18 +5871,46 @@ function openLogbook(id){
 
   // Repère de croissance — python royal seulement, demande une date de naissance à précision
   // suffisante (jour ou mois) et au moins une pesée. Fourchette large et indicative, pas un standard.
+  // Seuils d'alerte (25 août) : au-delà de 20% hors fourchette = signal plus marqué (obésité/maigreur),
+  // pas juste "en dessous/au-dessus" — évite de traiter une légère variation comme une urgence.
   let growthCompareHtml = '';
   if((s.species||'ball_python')==='ball_python' && s.health.weights.length){
     const ageM = ageInMonths(s.birthDate);
     const range = ageM!=null ? expectedWeightRange(ageM) : null;
     if(range){
       const latest = [...s.health.weights].sort((a,b)=>b.date.localeCompare(a.date))[0].value;
-      const status = latest<range.min ? 'below' : latest>range.max ? 'above' : 'within';
-      const statusColor = status==='within' ? 'var(--sage)' : 'var(--gold)';
-      const statusText = currentLang==='en'
-        ? (status==='within' ? '✅ Within the typical range for this age' : status==='below' ? '⬇ Below the typical range for this age' : '⬆ Above the typical range for this age')
-        : (status==='within' ? '✅ Dans la fourchette typique pour cet âge' : status==='below' ? '⬇ Sous la fourchette typique pour cet âge' : '⬆ Au-dessus de la fourchette typique pour cet âge');
+      const alertLowThreshold = range.min*0.8, alertHighThreshold = range.max*1.3;
+      let status, statusColor, statusText;
+      if(latest < alertLowThreshold){
+        status='underweight-alert'; statusColor='var(--rust)';
+        statusText = currentLang==='en' ? '🚨 Significantly underweight for this age' : '🚨 Significativement maigre pour cet âge';
+      } else if(latest < range.min){
+        status='below'; statusColor='var(--gold)';
+        statusText = currentLang==='en' ? '⬇ Below the typical range for this age' : '⬇ Sous la fourchette typique pour cet âge';
+      } else if(latest > alertHighThreshold){
+        status='obesity-alert'; statusColor='var(--rust)';
+        statusText = currentLang==='en' ? '🚨 Significantly overweight for this age' : '🚨 Significativement en surpoids pour cet âge';
+      } else if(latest > range.max){
+        status='above'; statusColor='var(--gold)';
+        statusText = currentLang==='en' ? '⬆ Above the typical range for this age' : '⬆ Au-dessus de la fourchette typique pour cet âge';
+      } else {
+        status='within'; statusColor='var(--sage)';
+        statusText = currentLang==='en' ? '✅ Within the typical range for this age' : '✅ Dans la fourchette typique pour cet âge';
+      }
+      const preyRec = (status==='above'||status==='obesity-alert')
+        ? preyRecommendationForWeight(range.max)
+        : preyRecommendationForWeight(latest);
+      const preyRecLabel = (status==='above'||status==='obesity-alert')
+        ? (currentLang==='en'?'🐭 Recommended prey (sized down — target weight for age)':'🐭 Proie recommandée (réduite — poids cible pour l\'âge)')
+        : (currentLang==='en'?'🐭 Recommended prey (current weight)':'🐭 Proie recommandée (poids actuel)');
       growthCompareHtml = '<div class="modal-row"><span style="color:'+statusColor+';">'+statusText+'</span><span>'+range.min+'-'+range.max+'g</span></div>'+
+        '<div class="modal-row"><span>'+preyRecLabel+'</span><span>'+preyRec.preyMin+'-'+preyRec.preyMax+'g — '+preyRec.label+'</span></div>'+
+        ((status==='above'||status==='obesity-alert') ? '<p class="husbandry-health-note" style="margin-top:6px;">'+(currentLang==='en'
+          ? 'Sizing prey to the current (elevated) weight would only reinforce the trend — this recommendation targets the top of the typical range for this age instead. Spacing out feedings can also help more than shrinking prey alone.'
+          : 'Recommander une proie basée sur le poids actuel (déjà élevé) ne ferait que renforcer la tendance — cette recommandation vise plutôt le haut de la fourchette typique pour cet âge. Espacer les repas peut aider davantage que juste réduire la taille de la proie.')+'</p>' : '')+
+        ((status==='obesity-alert'||status==='underweight-alert') ? '<p class="husbandry-health-note" style="margin-top:6px;color:var(--rust);">'+(currentLang==='en'
+          ? '🚨 A significant, sustained deviation is worth discussing with a reptile vet — this reference alone can\'t diagnose anything, but it\'s a signal worth not ignoring.'
+          : '🚨 Un écart significatif et soutenu vaut la peine d\'en parler à un vétérinaire reptile — ce repère seul peut rien diagnostiquer, mais c\'est un signal à pas ignorer.')+'</p>' : '')+
         '<p class="husbandry-health-note" style="margin-top:6px;">'+(currentLang==='en'
           ? '⚠ Rough community-sourced reference only, not a medical standard — genetics, sex (females often end up larger), and feeding schedule cause huge individual variation.'
           : '⚠ Repère indicatif basé sur des chiffres communément cités, pas un standard médical — la génétique, le sexe (les femelles finissent souvent plus grosses) et le calendrier de nourrissage causent une énorme variation individuelle.')+
@@ -5882,7 +5932,7 @@ function openLogbook(id){
   const pairingsHtml = myPairings.length
     ? myPairings.map(p=>{
         const partner = savedSnakes.find(x=>x.id===(p.maleId===id?p.femaleId:p.maleId));
-        const status = p.ovulationConfirmed ? t('ovulationEstLay').replace('__DATE__', p.ovulationDate).replace('__EST__', addDays(p.ovulationDate,45)) : t('ovulationNotConfirmedShort');
+        const status = p.ovulationConfirmed ? t('ovulationEstLay').replace('__DATE__', p.ovulationDate).replace('__ESTMIN__', addDays(p.ovulationDate,40)).replace('__ESTMAX__', addDays(p.ovulationDate,50)) : t('ovulationNotConfirmedShort');
         return mrow('× '+escapeHtml(partner?partner.name:'?')+' — '+p.pairedDate, status);
       }).join('')
     : '<div class="modal-row"><span>'+t('noMatingRecorded')+'</span></div>';
@@ -8343,6 +8393,15 @@ function renderPreyChart(){
 // Fiches de référence husbandry générale (pas de l'app) — organisées par dossier repliable,
 // distinctes de la FAQ (openFaqModal) qui elle couvre l'usage de l'app LOCUS.
 // Contenu général reconnu par la communauté d'éleveurs — pas un avis vétérinaire.
+// "Le saviez-vous" (25 août) — faits/curiosités qui rentrent nulle part ailleurs, format court,
+// distinct de la FAQ (pas une question qu'on pose, juste un fait qu'on découvre). Grandit au fil du temps.
+const SAVAIS_TU_FACTS = [
+  { fr:'« Morph » et « phase » sont tous les deux des termes anglais empruntés tels quels — le hobby du python royal s\'est développé surtout dans des communautés anglophones, donc le vocabulaire technique est resté en anglais même chez les éleveurs francophones. « Morph » désigne un trait hérité de façon prévisible/génétique (Pastel, Piebald, etc.) — c\'est le terme techniquement correct pour le python royal. « Phase » vient historiquement d\'une variation liée à une population naturelle (ex. le corn snake Okeetee). Dans les faits, beaucoup de monde utilise les deux de façon interchangeable dans l\'usage courant (« phase Pastel ») — pas une erreur grave, juste une nuance à connaître.',
+    en:'"Morph" and "phase" are both English terms borrowed as-is — the ball python hobby developed mostly in English-speaking communities, so the technical vocabulary stayed in English even among French-speaking breeders. "Morph" refers to a predictably/genetically inherited trait (Pastel, Piebald, etc.) — the technically correct term for ball pythons. "Phase" historically comes from a variation tied to a natural population (e.g. the corn snake Okeetee). In practice, a lot of people use both interchangeably in everyday speech ("phase Pastel") — not a serious mistake, just a nuance worth knowing.' },
+  { fr:'Le python royal le plus vieux jamais enregistré est une femelle du Saint Louis Zoo (Missouri) — environ 62-63 ans, morte en 2021. Le fait le plus marquant : elle a pondu une ponte d\'œufs viable à 61 ans, sans aucun contact avec un mâle depuis plus de 15 ans. Deux œufs ont éclos, un bébé a survécu. Les chercheurs enquêtaient sur deux explications possibles : la parthénogenèse (reproduction sans mâle) ou un stockage de sperme pendant 15+ ans — les deux sont des phénomènes réels documentés chez d\'autres espèces de reptiles. Un autre record distinct : un mâle avec dossier de naissance officiel a vécu 47 ans au Zoo de Philadelphie. En comparaison, la durée de vie moyenne en captivité tourne autour de 20-30 ans, parfois 40+ ans avec de bons soins.',
+    en:'The oldest ball python ever recorded is a female from the Saint Louis Zoo (Missouri) — roughly 62-63 years old, who died in 2021. The most striking part: she laid a viable clutch of eggs at 61, with no contact with a male for over 15 years. Two eggs hatched, one baby survived. Researchers looked into two possible explanations: parthenogenesis (reproduction without a male) or 15+ years of stored sperm — both are real, documented phenomena in other reptile species. A separate record: a male with an official birth record lived 47 years at the Philadelphia Zoo. For comparison, average captive lifespan runs around 20-30 years, sometimes 40+ with good care.' },
+];
+
 const HUSBANDRY_FAQ = [
   { id:'entretien', icon:'🌡️', titleFr:'Entretien de base', titleEn:'Basic care', items:[
     {qFr:'Quelle température idéale ?', qEn:'What\'s the ideal temperature?',
@@ -8663,11 +8722,73 @@ const HUSBANDRY_FAQ = [
     {qFr:'Combien de temps laisser reposer une femelle entre deux pontes ?', qEn:'How long should a female rest between clutches?',
      aFr:'Généralement une saison de repos complète (environ un an) est recommandée, pour permettre à la femelle de reconstituer ses réserves de graisse et récupérer physiquement. Le poids et la condition corporelle post-ponte restent de meilleurs indicateurs que le calendrier seul — une femelle encore maigre après la ponte a besoin de plus de temps, peu importe combien de mois se sont écoulés.',
      aEn:'A full resting season (roughly a year) is generally recommended, so the female can rebuild her fat reserves and physically recover. Post-lay weight and body condition remain better indicators than the calendar alone — a female still thin after laying needs more time, regardless of how many months have passed.'},
+    {qFr:'C\'est quoi la dystocie (rétention d\'œufs) ?', qEn:'What is dystocia (egg binding)?',
+     aFr:'<p>La femelle forme des œufs mais est incapable de les pondre — comparable à un accouchement bloqué chez un mammifère. Peut arriver même sans mâle (œufs non fertilisés produits quand même).</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">Signes à surveiller :</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li>Enflure persistante dans la moitié arrière du corps, même après une ponte partielle — parfois difficile à voir chez un python bien musclé.</li>'+
+         '<li>Efforts de ponte visibles (contractions, position d\'accouchement) sans production d\'œuf.</li>'+
+         '<li>Agitation inhabituelle, signes d\'inconfort, léthargie, perte d\'appétit.</li>'+
+       '</ul>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Piège à connaître : une femelle peut être egg-bound pendant des jours sans montrer de signe évident — surveillance rapprochée essentielle durant toute période gravide.</p>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Causes courantes :</b> mauvaise husbandry (température/humidité inadéquates, manque d\'un endroit sombre/humide pour pondre), déshydratation, femelle trop jeune/trop vieille/pas en bonne condition, reproduction excessive du même animal.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">Une urgence, pas à observer en attendant :</b> contrairement à d\'autres signes où l\'observation avant d\'agir est raisonnable, la dystocie doit être traitée comme une urgence vétérinaire — risque de dommage permanent au tractus reproducteur, ou la mort. Diagnostic confirmé par radiographie ; traitement selon le cas (hydratation/température corrigées, ocytocine si aucune obstruction, chirurgie si nécessaire).</p>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Bonne nouvelle si prise à temps : si la cause (souvent un manque d\'endroit approprié pour pondre) est corrigée avant un dommage permanent, la femelle peut pondre normalement la fois suivante.</p>',
+     aEn:'<p>The female forms eggs but is unable to lay them — comparable to a blocked birth in a mammal. Can happen even without a male present (unfertilized eggs are still produced).</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">Signs to watch for:</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li>Persistent swelling in the rear half of the body, even after a partial lay — sometimes hard to see in a well-muscled python.</li>'+
+         '<li>Visible laying efforts (contractions, laying posture) with no egg produced.</li>'+
+         '<li>Unusual restlessness, signs of discomfort, lethargy, loss of appetite.</li>'+
+       '</ul>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Trap to know about: a female can be egg-bound for days without showing any obvious sign — close monitoring is essential throughout any gravid period.</p>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Common causes:</b> poor husbandry (inadequate temperature/humidity, no dark/moist place to lay), dehydration, a female too young/too old/not in good condition, excessive breeding of the same animal.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">An emergency, not a wait-and-see situation:</b> unlike other signs where observing before acting is reasonable, dystocia should be treated as a veterinary emergency — risk of permanent damage to the reproductive tract, or death. Diagnosis confirmed by X-ray; treatment depends on the case (corrected hydration/temperature, oxytocin if no obstruction, surgery if needed).</p>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Good news if caught in time: if the cause (often a lack of a proper laying spot) is corrected before permanent damage occurs, the female can typically lay normally the next time.</p>'},
   ]},
   { id:'sante', icon:'🩺', titleFr:'Santé', titleEn:'Health', items:[
+    {qFr:'Comment choisir un bon vétérinaire reptile ?', qEn:'How do I choose a good reptile vet?',
+     aFr:'<p><b style="color:var(--gold);">Où chercher, dans l\'ordre :</b> ta communauté reptile locale (groupe Facebook, société herpétologique) — souvent la meilleure source, basée sur de vraies expériences. L\'ARAV (Association of Reptilian and Amphibian Veterinarians) a un outil "Find a Vet" par région. Ta clinique habituelle chien/chat connaît souvent une clinique reptile à proximité, même si elle en fait pas elle-même.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">Le vrai piège à éviter :</b> "accepte les exotiques" ou "voit des reptiles" peut vouloir dire n\'importe quoi — d\'un vétérinaire qui prend un cas occasionnel sans vraiment savoir quoi faire, jusqu\'à une équipe complète avec équipement spécialisé. Les mots seuls garantissent rien.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">Questions concrètes à poser avant de choisir :</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li>Combien de reptiles (idéalement de serpents précisément) voient-ils par semaine?</li>'+
+         '<li>Ont-ils l\'équipement adapté (balance qui pèse en grammes, pas juste en kg)?</li>'+
+         '<li>Y a-t-il plus d\'un vétérinaire sur place, au cas où le tien est pas disponible?</li>'+
+         '<li>Où réfèrent-ils les cas urgents/compliqués, si jamais?</li>'+
+       '</ul>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Un vrai bon signal, même sans expérience étendue : un vétérinaire prêt à faire des appels/consultations pour apprendre — signe d\'intérêt et de soin, surtout utile en région rurale où le choix est limité. Un bon vétérinaire reptile est un professionnel médical, pas nécessairement un expert en husbandry — si ses connaissances sur les paramètres d\'élevage sont un peu dépassées, c\'est pas nécessairement disqualifiant tant que le côté médical est solide.</p>'+
+       '<p style="margin-top:10px;">Ne pas attendre une urgence : planifie un premier examen de routine dès l\'acquisition d\'un nouvel animal, pour avoir déjà une relation établie le jour où ça compte vraiment.</p>',
+     aEn:'<p><b style="color:var(--gold);">Where to look, in order:</b> your local reptile community (Facebook group, herpetological society) — often the best source, based on real experiences. ARAV (Association of Reptilian and Amphibian Veterinarians) has a "Find a Vet" tool by region. Your regular dog/cat clinic often knows of a nearby reptile clinic, even if they don\'t handle reptiles themselves.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">The real trap to avoid:</b> "exotics welcome" or "sees reptiles" can mean anything — from a vet who occasionally takes a case without really knowing what to do, to a full team with specialized equipment. Words alone guarantee nothing.</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">Concrete questions to ask before choosing:</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li>How many reptiles (ideally snakes specifically) do they see per week?</li>'+
+         '<li>Do they have proper equipment (a scale that weighs in grams, not just kg)?</li>'+
+         '<li>Is there more than one vet on staff, in case yours isn\'t available?</li>'+
+         '<li>Where do they refer urgent/complicated cases, if ever?</li>'+
+       '</ul>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">A good sign, even without extensive experience: a vet willing to make calls/consults to learn — a sign of interest and care, especially useful in rural areas with limited choice. A good reptile vet is a medical professional, not necessarily a husbandry expert — if their knowledge of care parameters is a bit outdated, that\'s not necessarily disqualifying as long as the medical side is solid.</p>'+
+       '<p style="margin-top:10px;">Don\'t wait for an emergency: schedule a first routine exam as soon as you get a new animal, so you already have an established relationship the day it really matters.</p>'},
     {qFr:'Comment reconnaître une infection respiratoire ?', qEn:'How do I recognize a respiratory infection?',
-     aFr:'Respiration bruyante ou sifflante, bulles de mucus au nez/bouche, tête relevée pour respirer plus facilement. Consulte un vétérinaire reptile rapidement.',
-     aEn:'Noisy or wheezy breathing, mucus bubbles at the nose/mouth, head held up to breathe more easily. See an exotics vet promptly.'},
+     aFr:'<p><b style="color:var(--gold);">Signes progressifs, du léger au sévère :</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li>Précoces/subtils : sifflement léger, écoulement nasal, léthargie.</li>'+
+         '<li>Qui s\'aggravent : respiration bouche ouverte, gonflement, refus de manger, salive excessive (bulles à la bouche).</li>'+
+       '</ul>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Distinction utile : la salivation seule (sans autres signes) peut juste être une réaction de manipulation trop rapprochée d\'un repas — pas automatiquement une infection.</p>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Très contagieux</b> entre serpents — se transmet par contact rapproché et environnement partagé. Isoler l\'animal touché immédiatement (même logique que la quarantaine d\'un nouvel arrivant).</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">Causes courantes :</b> humidité/température inadéquates, mauvaise hygiène (moisissure, mites), surpeuplement/stress. Peut être bactérien, fongique, ou lié à des parasites — le traitement diffère selon la cause.</p>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Non traité, peut évoluer vers une septicémie (infection généralisée du sang), potentiellement fatale — agir tôt plutôt que d\'attendre. Toujours une consultation vétérinaire, antibiotiques uniquement sur prescription.</p>',
+     aEn:'<p><b style="color:var(--gold);">Progressive signs, mild to severe:</b></p>'+
+       '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.7;">'+
+         '<li>Early/subtle: mild wheezing, nasal discharge, lethargy.</li>'+
+         '<li>Worsening: open-mouth breathing, swelling, refusing food, excess saliva (bubbles at the mouth).</li>'+
+       '</ul>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Useful distinction: salivation alone (with no other signs) can just be a reaction to handling too soon after a meal — not automatically an infection.</p>'+
+       '<p style="margin-top:12px;"><b style="color:var(--gold);">Highly contagious</b> between snakes — spreads through close contact and shared environments. Isolate the affected animal immediately (same logic as quarantining a new arrival).</p>'+
+       '<p style="margin-top:10px;"><b style="color:var(--gold);">Common causes:</b> inadequate humidity/temperature, poor hygiene (mold, mites), overcrowding/stress. Can be bacterial, fungal, or parasite-related — treatment differs by cause.</p>'+
+       '<p style="margin-top:10px;font-style:italic;color:var(--ink-dim);font-size:11px;">Left untreated, it can progress to septicemia (bloodstream infection), potentially fatal — act early rather than waiting. Always see a vet; antibiotics only by prescription.</p>'},
     {qFr:'C\'est quoi le mite et comment s\'en débarrasser ?', qEn:'What are mites and how do I get rid of them?',
      aFr:'<p>Un acarien de serpent (<i>Ophionyssus natricis</i>), un parasite qui se nourrit de sang. Le cycle d\'incubation de l\'œuf tourne autour de 72h — c\'est pour ça qu\'un seul traitement suffit presque jamais, les œufs éclosent vite et se cachent dans le substrat.</p>'+
        '<p style="margin-top:10px;"><b style="color:var(--gold);">Signes à surveiller :</b></p>'+
@@ -9892,8 +10013,18 @@ let salesSortBy = 'name';
 function showUtilitaireSubtab(sub){
   document.getElementById('usub-communaute').style.display = sub==='communaute' ? '' : 'none';
   document.getElementById('usub-outils').style.display = sub==='outils' ? '' : 'none';
+  document.getElementById('usub-savais-tu').style.display = sub==='savais-tu' ? '' : 'none';
   document.querySelectorAll('#view-utilitaire .subtab-btn').forEach(b=>b.classList.toggle('active', b.dataset.usub===sub));
   if(sub==='outils'){ renderPreBuyCalculator(); renderSpeciesGuidesList(); renderCommunityFaqAdmin(); }
+  if(sub==='savais-tu'){ renderSavaisTu(); }
+}
+function renderSavaisTu(){
+  const isEn = currentLang==='en';
+  const wrap = document.getElementById('savais-tu-list');
+  if(!wrap) return;
+  wrap.innerHTML = SAVAIS_TU_FACTS.map(f=>
+    '<div class="community-folder" style="margin-bottom:12px;"><div style="padding:14px 16px;font-size:12.5px;line-height:1.7;">💡 '+(isEn?f.en:f.fr)+'</div></div>'
+  ).join('');
 }
 
 function showVentesSubtab(sub){
@@ -10949,14 +11080,14 @@ function renderTimeline(){
     if(p.ovulationConfirmed && p.ovulationDate){
       const today = new Date().toISOString().slice(0,10);
       const stepsData = [
-        [t('stepPairing'), p.pairedDate],
-        [t('stepOvulationConfirmed'), p.ovulationDate],
-        [t('stepPreLayShed'), addDays(p.ovulationDate,15)],
-        [t('stepEstimatedLay'), addDays(p.ovulationDate,45)],
-        [t('stepEstimatedHatch'), addDays(p.ovulationDate,105)]
+        [t('stepPairing'), p.pairedDate, p.pairedDate],
+        [t('stepOvulationConfirmed'), p.ovulationDate, p.ovulationDate],
+        [t('stepPreLayShed'), addDays(p.ovulationDate,15), addDays(p.ovulationDate,15)],
+        [t('stepEstimatedLay'), addDays(p.ovulationDate,40), addDays(p.ovulationDate,40)+' – '+addDays(p.ovulationDate,50)],
+        [t('stepEstimatedHatch'), addDays(p.ovulationDate,95), addDays(p.ovulationDate,95)+' – '+addDays(p.ovulationDate,110)]
       ];
       const nextDate = stepsData.map(s=>s[1]).filter(d=>d>=today).sort()[0];
-      steps = stepsData.map(([label,date])=>'<div class="tstep'+(date===nextDate?' next':'')+'"><b>'+label+'</b>'+date+'</div>').join('');
+      steps = stepsData.map(([label,sortDate,displayDate])=>'<div class="tstep'+(sortDate===nextDate?' next':'')+'"><b>'+label+'</b>'+displayDate+'</div>').join('');
     } else {
       steps = '<div class="tstep"><b>'+t('stepPairing')+'</b>'+p.pairedDate+'</div><div class="tstep">'+t('ovulationUnconfirmedNote')+'</div>';
     }
