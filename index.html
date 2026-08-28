@@ -230,8 +230,11 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
 .community-folder-body{padding:18px 16px;}
 .husbandry-qa{margin-bottom:14px;}
 .husbandry-qa:last-child{margin-bottom:0;}
-.husbandry-qa .q{font-weight:600;color:var(--gold);font-size:12px;margin-bottom:4px;}
-.husbandry-qa .a{font-size:11.5px;color:var(--ink-dim);line-height:1.6;}
+.husbandry-qa .q{font-weight:600;color:var(--gold);font-size:12px;margin-bottom:4px;cursor:pointer;display:flex;align-items:center;gap:6px;}
+.husbandry-qa .q .qa-arrow{font-size:10px;color:var(--ink-dim);transition:transform .15s ease;flex-shrink:0;}
+.husbandry-qa.collapsed .q .qa-arrow{transform:rotate(-90deg);}
+.husbandry-qa .a{font-size:11.5px;color:var(--ink-dim);line-height:1.6;padding-left:16px;}
+.husbandry-qa.collapsed .a{display:none;}
 .husbandry-health-note{background:rgba(201,151,62,.10);border:1px solid rgba(201,151,62,.35);border-radius:8px;padding:8px 10px;font-size:10.5px;color:var(--ink-dim);margin-top:4px;}
 .onboarding-banner .ob-icon{font-size:20px;flex-shrink:0;}
 .onboarding-banner .ob-body{flex:1;}
@@ -1762,7 +1765,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.52';
+const APP_VERSION = '2026.08.25.54';
 (function checkForNewVersion(){
   try{
     if(sessionStorage.getItem('locus_version_reloaded')){ sessionStorage.removeItem('locus_version_reloaded'); return; }
@@ -8451,15 +8454,28 @@ function renderPreyChart(){
 // Contenu général reconnu par la communauté d'éleveurs — pas un avis vétérinaire.
 // "Le saviez-vous" (25 août) — faits/curiosités qui rentrent nulle part ailleurs, format court,
 // distinct de la FAQ (pas une question qu'on pose, juste un fait qu'on découvre). Grandit au fil du temps.
-const SAVAIS_TU_FACTS = [
-  { fr:'« Morph » et « phase » sont tous les deux des termes anglais empruntés tels quels — le hobby du python royal s\'est développé surtout dans des communautés anglophones, donc le vocabulaire technique est resté en anglais même chez les éleveurs francophones. « Morph » désigne un trait hérité de façon prévisible/génétique (Pastel, Piebald, etc.) — c\'est le terme techniquement correct pour le python royal. « Phase » vient historiquement d\'une variation liée à une population naturelle (ex. le corn snake Okeetee). Dans les faits, beaucoup de monde utilise les deux de façon interchangeable dans l\'usage courant (« phase Pastel ») — pas une erreur grave, juste une nuance à connaître.',
-    en:'"Morph" and "phase" are both English terms borrowed as-is — the ball python hobby developed mostly in English-speaking communities, so the technical vocabulary stayed in English even among French-speaking breeders. "Morph" refers to a predictably/genetically inherited trait (Pastel, Piebald, etc.) — the technically correct term for ball pythons. "Phase" historically comes from a variation tied to a natural population (e.g. the corn snake Okeetee). In practice, a lot of people use both interchangeably in everyday speech ("phase Pastel") — not a serious mistake, just a nuance worth knowing.' },
-  { fr:'Le python royal le plus vieux jamais enregistré est une femelle du Saint Louis Zoo (Missouri) — environ 62-63 ans, morte en 2021. Le fait le plus marquant : elle a pondu une ponte d\'œufs viable à 61 ans, sans aucun contact avec un mâle depuis plus de 15 ans. Deux œufs ont éclos, un bébé a survécu. Les chercheurs enquêtaient sur deux explications possibles : la parthénogenèse (reproduction sans mâle) ou un stockage de sperme pendant 15+ ans — les deux sont des phénomènes réels documentés chez d\'autres espèces de reptiles. Un autre record distinct : un mâle avec dossier de naissance officiel a vécu 47 ans au Zoo de Philadelphie. En comparaison, la durée de vie moyenne en captivité tourne autour de 20-30 ans, parfois 40+ ans avec de bons soins.',
-    en:'The oldest ball python ever recorded is a female from the Saint Louis Zoo (Missouri) — roughly 62-63 years old, who died in 2021. The most striking part: she laid a viable clutch of eggs at 61, with no contact with a male for over 15 years. Two eggs hatched, one baby survived. Researchers looked into two possible explanations: parthenogenesis (reproduction without a male) or 15+ years of stored sperm — both are real, documented phenomena in other reptile species. A separate record: a male with an official birth record lived 47 years at the Philadelphia Zoo. For comparison, average captive lifespan runs around 20-30 years, sometimes 40+ with good care.' },
-  { fr:'Dans la nature, le python royal vient d\'une large bande d\'Afrique de l\'Ouest et centrale — du Sénégal et du Mali jusqu\'à l\'Ouganda et le Soudan. Il habite les savanes, prairies et forêts peu denses, souvent près de zones agricoles. Il passe ses journées caché dans des terriers de mammifères abandonnés, des termitières abandonnées, ou des bûches creuses — jamais à découvert le jour — et peut même entrer en dormance estivale durant les mois les plus secs. C\'est un chasseur à l\'affût : plutôt que de poursuivre sa proie, il choisit une cachette et attend patiemment, guidé surtout par l\'organe de Jacobson (langue fourchue) plus que par la vue dans le noir. Son menu naturel : principalement de petits mammifères (rats, souris, musaraignes), occasionnellement des oiseaux. Et lui-même reste une proie — rapaces, mammifères carnivores plus gros, et même d\'autres serpents (dont le cobra noir) s\'attaquent surtout aux jeunes individus, les adultes ayant peu de vrais prédateurs.'+
-    ' Petit bonus culturel : le nom anglais "royal python" viendrait d\'une légende voulant que Cléopâtre en portait un comme bijou vivant — une rumeur jamais confirmée historiquement (ce qui EST bien documenté, ce sont ses vrais bijoux en forme de serpent, probablement inspirés du cobra égyptien). Chez le peuple Igbo du Nigeria moderne, le python royal est vénéré comme symbole de la terre elle-même — une petite cérémonie funéraire est même tenue s\'il est tué accidentellement.',
-    en:'In the wild, the ball python comes from a wide band of West and Central Africa — from Senegal and Mali to Uganda and Sudan. It lives in savannas, grasslands, and lightly wooded forests, often near farmland. It spends its days hidden in abandoned mammal burrows, abandoned termite mounds, or hollow logs — never out in the open during the day — and can even go into a summer dormancy during the driest months. It\'s an ambush hunter: rather than chasing prey, it picks a hiding spot and waits patiently, guided mostly by its Jacobson\'s organ (forked tongue) more than eyesight in the dark. Its natural menu: mostly small mammals (rats, mice, shrews), occasionally birds. And it\'s prey itself — birds of prey, larger carnivorous mammals, and even other snakes (including the black cobra) mostly target young individuals, since adults have few real predators.'+
-    ' Small cultural bonus: the name "royal python" is said to come from a legend that Cleopatra wore one as living jewelry — a rumor never confirmed historically (what IS well documented is her real snake-shaped jewelry, likely inspired by the Egyptian cobra). Among the Igbo people of modern-day Nigeria, the ball python is revered as a symbol of the earth itself — a small funeral is even held if one is accidentally killed.' },
+// "Le saviez-vous" (25 août, restructuré 27 août en catégories — même principe de branches que
+// HUSBANDRY_FAQ, chaque sujet avec son propre titre). Distinct de la FAQ : format fait/curiosité,
+// pas question/réponse.
+const SAVAIS_TU_CATEGORIES = [
+  { id:'vocabulaire', icon:'📖', titleFr:'Vocabulaire & terminologie', titleEn:'Vocabulary & terminology', items:[
+    { titleFr:'Morph ou phase ?', titleEn:'Morph or phase?',
+      fr:'« Morph » et « phase » sont tous les deux des termes anglais empruntés tels quels — le hobby du python royal s\'est développé surtout dans des communautés anglophones, donc le vocabulaire technique est resté en anglais même chez les éleveurs francophones. « Morph » désigne un trait hérité de façon prévisible/génétique (Pastel, Piebald, etc.) — c\'est le terme techniquement correct pour le python royal. « Phase » vient historiquement d\'une variation liée à une population naturelle (ex. le corn snake Okeetee). Dans les faits, beaucoup de monde utilise les deux de façon interchangeable dans l\'usage courant (« phase Pastel ») — pas une erreur grave, juste une nuance à connaître.',
+      en:'"Morph" and "phase" are both English terms borrowed as-is — the ball python hobby developed mostly in English-speaking communities, so the technical vocabulary stayed in English even among French-speaking breeders. "Morph" refers to a predictably/genetically inherited trait (Pastel, Piebald, etc.) — the technically correct term for ball pythons. "Phase" historically comes from a variation tied to a natural population (e.g. the corn snake Okeetee). In practice, a lot of people use both interchangeably in everyday speech ("phase Pastel") — not a serious mistake, just a nuance worth knowing.' },
+  ]},
+  { id:'records', icon:'🏆', titleFr:'Records & histoire', titleEn:'Records & history', items:[
+    { titleFr:'Le python royal le plus vieux jamais enregistré', titleEn:'The oldest ball python ever recorded',
+      fr:'Une femelle du Saint Louis Zoo (Missouri) — environ 62-63 ans, morte en 2021. Le fait le plus marquant : elle a pondu une ponte d\'œufs viable à 61 ans, sans aucun contact avec un mâle depuis plus de 15 ans. Deux œufs ont éclos, un bébé a survécu. Les chercheurs enquêtaient sur deux explications possibles : la parthénogenèse (reproduction sans mâle) ou un stockage de sperme pendant 15+ ans — les deux sont des phénomènes réels documentés chez d\'autres espèces de reptiles. Un autre record distinct : un mâle avec dossier de naissance officiel a vécu 47 ans au Zoo de Philadelphie. En comparaison, la durée de vie moyenne en captivité tourne autour de 20-30 ans, parfois 40+ ans avec de bons soins.',
+      en:'A female from the Saint Louis Zoo (Missouri) — roughly 62-63 years old, who died in 2021. The most striking part: she laid a viable clutch of eggs at 61, with no contact with a male for over 15 years. Two eggs hatched, one baby survived. Researchers looked into two possible explanations: parthenogenesis (reproduction without a male) or 15+ years of stored sperm — both are real, documented phenomena in other reptile species. A separate record: a male with an official birth record lived 47 years at the Philadelphia Zoo. For comparison, average captive lifespan runs around 20-30 years, sometimes 40+ with good care.' },
+  ]},
+  { id:'nature', icon:'🌍', titleFr:'Dans la nature', titleEn:'In the wild', items:[
+    { titleFr:'Habitat, chasse et prédateurs naturels', titleEn:'Habitat, hunting, and natural predators',
+      fr:'Dans la nature, le python royal vient d\'une large bande d\'Afrique de l\'Ouest et centrale — du Sénégal et du Mali jusqu\'à l\'Ouganda et le Soudan. Il habite les savanes, prairies et forêts peu denses, souvent près de zones agricoles. Il passe ses journées caché dans des terriers de mammifères abandonnés, des termitières abandonnées, ou des bûches creuses — jamais à découvert le jour — et peut même entrer en dormance estivale durant les mois les plus secs. C\'est un chasseur à l\'affût : plutôt que de poursuivre sa proie, il choisit une cachette et attend patiemment, guidé surtout par l\'organe de Jacobson (langue fourchue) plus que par la vue dans le noir. Son menu naturel : principalement de petits mammifères (rats, souris, musaraignes), occasionnellement des oiseaux. Et lui-même reste une proie — rapaces, mammifères carnivores plus gros, et même d\'autres serpents (dont le cobra noir) s\'attaquent surtout aux jeunes individus, les adultes ayant peu de vrais prédateurs.',
+      en:'In the wild, the ball python comes from a wide band of West and Central Africa — from Senegal and Mali to Uganda and Sudan. It lives in savannas, grasslands, and lightly wooded forests, often near farmland. It spends its days hidden in abandoned mammal burrows, abandoned termite mounds, or hollow logs — never out in the open during the day — and can even go into a summer dormancy during the driest months. It\'s an ambush hunter: rather than chasing prey, it picks a hiding spot and waits patiently, guided mostly by its Jacobson\'s organ (forked tongue) more than eyesight in the dark. Its natural menu: mostly small mammals (rats, mice, shrews), occasionally birds. And it\'s prey itself — birds of prey, larger carnivorous mammals, and even other snakes (including the black cobra) mostly target young individuals, since adults have few real predators.' },
+    { titleFr:'Cléopâtre et le python royal — légende ou fait?', titleEn:'Cleopatra and the ball python — legend or fact?',
+      fr:'Le nom anglais "royal python" viendrait d\'une légende voulant que Cléopâtre en portait un comme bijou vivant — une rumeur jamais confirmée historiquement (ce qui EST bien documenté, ce sont ses vrais bijoux en forme de serpent, probablement inspirés du cobra égyptien). Chez le peuple Igbo du Nigeria moderne, le python royal est vénéré comme symbole de la terre elle-même — une petite cérémonie funéraire est même tenue s\'il est tué accidentellement.',
+      en:'The name "royal python" is said to come from a legend that Cleopatra wore one as living jewelry — a rumor never confirmed historically (what IS well documented is her real snake-shaped jewelry, likely inspired by the Egyptian cobra). Among the Igbo people of modern-day Nigeria, the ball python is revered as a symbol of the earth itself — a small funeral is even held if one is accidentally killed.' },
+  ]},
 ];
 
 const HUSBANDRY_FAQ = [
@@ -8958,22 +8974,37 @@ const HUSBANDRY_FAQ = [
   ]},
 ];
 
+function toggleHusbandryQa(id){
+  const el = document.getElementById(id);
+  if(el) el.classList.toggle('collapsed');
+}
 function renderHusbandryFaq(){
   const isEn = currentLang==='en';
   const container = document.getElementById('husbandry-faq-container');
   if(!container) return;
-  // Préserve l'état ouvert/fermé de chaque dossier s'il existe déjà (ex: changement de langue).
+  // Préserve l'état ouvert/fermé de chaque dossier ET de chaque question s'ils existent déjà.
   const openState = {};
+  const qaOpenState = {};
   HUSBANDRY_FAQ.forEach(cat=>{
     const el = document.getElementById('folder-faq-'+cat.id);
     if(el) openState[cat.id] = !el.classList.contains('collapsed');
+    cat.items.forEach((it,i)=>{
+      const qid = 'qa-'+cat.id+'-'+i;
+      const qel = document.getElementById(qid);
+      if(qel) qaOpenState[qid] = !qel.classList.contains('collapsed');
+    });
   });
   container.innerHTML = HUSBANDRY_FAQ.map(cat=>{
     const folderId = 'folder-faq-'+cat.id;
     const isOpen = !!openState[cat.id];
-    const itemsHtml = cat.items.map(it=>
-      '<div class="husbandry-qa"><div class="q">'+(isEn?it.qEn:it.qFr)+'</div><div class="a">'+(isEn?it.aEn:it.aFr)+'</div></div>'
-    ).join('');
+    const itemsHtml = cat.items.map((it,i)=>{
+      const qid = 'qa-'+cat.id+'-'+i;
+      const qaOpen = !!qaOpenState[qid];
+      return '<div class="husbandry-qa'+(qaOpen?'':' collapsed')+'" id="'+qid+'">'+
+        '<div class="q" onclick="toggleHusbandryQa(\''+qid+'\')"><span class="qa-arrow">▾</span>'+(isEn?it.qEn:it.qFr)+'</div>'+
+        '<div class="a">'+(isEn?it.aEn:it.aFr)+'</div>'+
+      '</div>';
+    }).join('');
     return '<div class="community-folder'+(isOpen?'':' collapsed')+'" id="'+folderId+'">'+
       '<button class="community-folder-header" onclick="toggleCommunityFolder(\''+folderId+'\')">'+
         '<span class="folder-icon">▾</span><span>'+cat.icon+' '+(isEn?cat.titleEn:cat.titleFr)+'</span>'+
@@ -10096,9 +10127,28 @@ function renderSavaisTu(){
   const isEn = currentLang==='en';
   const wrap = document.getElementById('savais-tu-list');
   if(!wrap) return;
-  wrap.innerHTML = SAVAIS_TU_FACTS.map(f=>
-    '<div class="community-folder" style="margin-bottom:12px;"><div style="padding:14px 16px;font-size:12.5px;line-height:1.7;">💡 '+(isEn?f.en:f.fr)+'</div></div>'
-  ).join('');
+  const openState = {};
+  SAVAIS_TU_CATEGORIES.forEach(cat=>{
+    const el = document.getElementById('folder-savaistu-'+cat.id);
+    if(el) openState[cat.id] = !el.classList.contains('collapsed');
+  });
+  wrap.innerHTML = SAVAIS_TU_CATEGORIES.map(cat=>{
+    const folderId = 'folder-savaistu-'+cat.id;
+    const isOpen = !!openState[cat.id];
+    const itemsHtml = cat.items.map((it,i)=>{
+      const qid = 'savaistu-'+cat.id+'-'+i;
+      return '<div class="husbandry-qa" id="'+qid+'">'+
+        '<div class="q" onclick="toggleHusbandryQa(\''+qid+'\')"><span class="qa-arrow">▾</span>💡 '+(isEn?it.titleEn:it.titleFr)+'</div>'+
+        '<div class="a">'+(isEn?it.en:it.fr)+'</div>'+
+      '</div>';
+    }).join('');
+    return '<div class="community-folder'+(isOpen?'':' collapsed')+'" id="'+folderId+'">'+
+      '<button class="community-folder-header" onclick="toggleCommunityFolder(\''+folderId+'\')">'+
+        '<span class="folder-icon">▾</span><span>'+cat.icon+' '+(isEn?cat.titleEn:cat.titleFr)+'</span>'+
+      '</button>'+
+      '<div class="community-folder-body">'+itemsHtml+'</div>'+
+    '</div>';
+  }).join('');
 }
 
 function showVentesSubtab(sub){
