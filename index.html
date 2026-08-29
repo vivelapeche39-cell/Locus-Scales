@@ -1782,7 +1782,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.78';
+const APP_VERSION = '2026.08.25.79';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2156,12 +2156,12 @@ async function handleAuthSignIn(){
   // suite à partir de la réponse de connexion elle-même, sans dépendre du timing du listener.
   if(res.data && res.data.session && res.data.session.user) currentUser = res.data.session.user;
   else if(res.data && res.data.user) currentUser = res.data.user;
-  showToast('🔍 après connexion → currentUser réglé:'+(!!currentUser)+' res.data keys:'+(res.data?Object.keys(res.data).join(','):'aucune'), 'success');
-  showToast('🔍 avant updateAuthUI', 'success');
-  try{ updateAuthUI(); }catch(e){ console.warn('LOCUS: updateAuthUI a échoué', e); showToast('🔍 updateAuthUI EXCEPTION: '+e.message, 'error'); }
-  showToast('🔍 après updateAuthUI, avant syncWithCloud', 'success');
+  showDebugToast('🔍 après connexion → currentUser réglé:'+(!!currentUser)+' res.data keys:'+(res.data?Object.keys(res.data).join(','):'aucune'));
+  showDebugToast('🔍 avant updateAuthUI');
+  try{ updateAuthUI(); }catch(e){ console.warn('LOCUS: updateAuthUI a échoué', e); showDebugToast('🔍 updateAuthUI EXCEPTION: '+e.message); }
+  showDebugToast('🔍 après updateAuthUI, avant syncWithCloud');
   syncWithCloud().then(()=>backfillMissingPhotoUrls());
-  showToast('🔍 syncWithCloud() appelée (ligne juste après)', 'success');
+  showDebugToast('🔍 syncWithCloud() appelée (ligne juste après)');
 }
 async function handleAuthSignUp(){
   const isEn = currentLang==='en';
@@ -6914,7 +6914,7 @@ function mergeById(localArr, cloudArr){
 async function syncWithCloud(){
   // Diagnostic temporaire (29 août, incident en cours) — à retirer une fois le vrai blocage trouvé.
   // Rend visible EXACTEMENT ce que syncWithCloud() voit à son entrée, sans besoin d'outils dev.
-  showToast('🔍 sync() → sb:'+(!!sb)+' user:'+(!!currentUser)+' lock:'+cloudSyncInProgress, 'success');
+  showDebugToast('🔍 sync() → sb:'+(!!sb)+' user:'+(!!currentUser)+' lock:'+cloudSyncInProgress);
   if(!sb || !currentUser) return;
   // Filet de sécurité (29 août) — si le verrou est resté pris plus de 15 secondes, on considère que
   // la tentative précédente est morte silencieusement (pendaison réseau ou autre) plutôt que
@@ -6927,9 +6927,9 @@ async function syncWithCloud(){
   cloudSyncInProgress = true;
   cloudSyncStartedAt = Date.now();
   try{
-    showToast('🔍 requête snakes en cours…', 'success');
+    showDebugToast('🔍 requête snakes en cours…');
     let { data: cloudSnakes, error } = await sb.from('snakes').select('id').limit(1);
-    showToast('🔍 réponse reçue → erreur:'+(error?error.message:'aucune')+' data:'+JSON.stringify(cloudSnakes), 'success');
+    showDebugToast('🔍 réponse reçue → erreur:'+(error?error.message:'aucune')+' data:'+JSON.stringify(cloudSnakes));
     // Filet de sécurité (29 août) — un 401 observé une seule fois juste après une connexion fraîche :
     // le token venait tout juste d'être émis et n'avait pas encore fini de se propager côté SDK au
     // moment de cette première requête. Plutôt que d'abandonner en silence (l'utilisateur ne voit
@@ -10619,6 +10619,21 @@ function showToast(message, type){
     el.classList.remove('show');
     setTimeout(()=> el.remove(), 350);
   }, 4200);
+}
+// Diagnostic temporaire (29 août, incident en cours) — mêmes toasts, mais qui restent affichés
+// jusqu'à ce qu'on tape dessus pour les fermer, plutôt que de disparaître après 4.2s. Nécessaire
+// car les toasts normaux, appelés en succession rapide, disparaissent tous en même temps avant
+// qu'une capture d'écran puisse tous les attraper. À retirer une fois le vrai blocage trouvé.
+function showDebugToast(message){
+  const stack = document.getElementById('toast-stack');
+  if(!stack) return;
+  const el = document.createElement('div');
+  el.className = 'toast toast-success';
+  el.style.cursor = 'pointer';
+  el.textContent = message+' (touche pour fermer)';
+  el.onclick = ()=>{ el.classList.remove('show'); setTimeout(()=>el.remove(), 350); };
+  stack.appendChild(el);
+  requestAnimationFrame(()=> el.classList.add('show'));
 }
 
 // Badge vivant du header : priorité à la prochaine éclosion (excitant, actionnable),
