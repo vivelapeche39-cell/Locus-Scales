@@ -1782,7 +1782,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.88';
+const APP_VERSION = '2026.08.25.89';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2399,7 +2399,7 @@ const STORAGE_KEY = 'locus_snakes_v1';
 let storageWriteFailed = false; // vrai dès qu'une écriture localStorage échoue (quota dépassé, mode privé, etc.)
 
 // ==================== Suivi des modifications locales (sync cloud ciblée) ====================
-// Avant, syncPushAll() repoussait TOUT le tableau vers Supabase à chaque sauvegarde, même pour un
+// Avant, pushAllUserData() repoussait TOUT le tableau vers Supabase à chaque sauvegarde, même pour un
 // changement sur une seule fiche — ça écrasait sans condition tout changement fait ailleurs entre-temps
 // (ex. un webhook Stripe qui marque une vente confirmée pendant que le navigateur repousse sa vieille
 // copie par-dessus). Ce bloc doit être déclaré tôt dans le script (avant storage.save()) pour éviter
@@ -2410,7 +2410,7 @@ function contentSignature(item){
   return JSON.stringify(item, (k,v)=> k==='updatedAt' ? undefined : v);
 }
 // Compare chaque élément à sa dernière version connue ; si le contenu a changé, lui donne un nouvel
-// horodatage local et le marque à pousser vers le cloud au prochain syncPushAll().
+// horodatage local et le marque à pousser vers le cloud au prochain pushAllUserData().
 function trackLocalChanges(kind, arr){
   const snap = lastSyncSnapshot[kind];
   (arr||[]).forEach(item=>{
@@ -2450,7 +2450,7 @@ const storage = {
       storageWriteFailed = true;
     }
     updateStorageBanner();
-    if(typeof cloudMirrorSnakes==='function') cloudMirrorSnakes();
+    if(typeof mirrorSnakesRemote==='function') mirrorSnakesRemote();
   }
 };
 
@@ -2818,7 +2818,7 @@ function saveProfileData(){
     phone: document.getElementById('profile-phone-input').value.trim(),
   };
   try{ localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); }catch(e){}
-  if(sb && currentUser) syncPushAll(); // pousse le profil au cloud sans attendre la prochaine sauvegarde d'un reptile
+  if(sb && currentUser) pushAllUserData(); // pousse le profil au cloud sans attendre la prochaine sauvegarde d'un reptile
   closeQuickModal();
   showToast('Profil enregistré.', 'success');
 }
@@ -6847,7 +6847,7 @@ function saveElevage(){
     storageWriteFailed = true;
   }
   updateStorageBanner();
-  if(typeof cloudMirrorSnakes==='function') cloudMirrorSnakes();
+  if(typeof mirrorSnakesRemote==='function') mirrorSnakesRemote();
 }
 let elevageData = loadElevage();
 let { pairings, layout, clutches, expenses, customers } = elevageData;
@@ -6855,7 +6855,7 @@ let { pairings, layout, clutches, expenses, customers } = elevageData;
 let customEvents = elevageData.customEvents || [];
 // Projets multi-générations — regroupe des accouplements sur plusieurs saisons vers un objectif
 // génétique précis (ex. « Bumblebee project »). Stocké comme customEvents : local dans
-// locus_elevage_v1, synchronisé au cloud via app_state.projects (voir syncPushAll/syncPullAll).
+// locus_elevage_v1, synchronisé au cloud via app_state.projects (voir pushAllUserData/pullAllUserData).
 let projects = elevageData.projects || [];
 // Inventaire de proies (25 août) — stock par catégorie ("mouse|Weanling", "rat|Small", etc.),
 // décompté automatiquement à chaque repas loggé si l'animal a un preySpecies/preySize renseigné.
@@ -6893,8 +6893,8 @@ renderDashboard();
    localStorage reste la source de vérité immédiate pour l'affichage ; le cloud est mis à jour
    en arrière-plan à chaque sauvegarde tant qu'un utilisateur est connecté (voir syncPushSnakes/syncPushElevage
    appelés depuis storage.save() et saveElevage()). */
-let cloudSyncInProgress = false;
-let cloudSyncStartedAt = 0;
+let dataRefreshInProgress = false;
+let dataRefreshStartedAt = 0;
 
 // Fusionne deux tableaux d'objets par leur champ `id` — la version la plus récente l'emporte,
 // comparée par horodatage (`updatedAt`), peu importe si elle vient du local ou du cloud. Avant, le
@@ -6916,18 +6916,18 @@ function mergeById(localArr, cloudArr){
 async function refreshUserDataMirror(){
   // Diagnostic temporaire (29 août, incident en cours) — alert() plutôt que toast : bloque l'écran,
   // impossible à cacher par une barre d'outils ou un souci de CSS. À retirer une fois le vrai blocage trouvé.
-  debugPanel('🔍 ENTRÉE refreshUserDataMirror — sb:'+(!!sb)+' user:'+(!!currentUser)+' lock:'+cloudSyncInProgress);
+  debugPanel('🔍 ENTRÉE refreshUserDataMirror — sb:'+(!!sb)+' user:'+(!!currentUser)+' lock:'+dataRefreshInProgress);
   if(!sb || !currentUser) return;
   // Filet de sécurité (29 août) — si le verrou est resté pris plus de 15 secondes, on considère que
   // la tentative précédente est morte silencieusement (pendaison réseau ou autre) plutôt que
   // vraiment "en cours", et on le libère de force pour ne jamais bloquer toute une session future.
-  if(cloudSyncInProgress){
-    const stuckSince = Date.now() - (cloudSyncStartedAt||0);
+  if(dataRefreshInProgress){
+    const stuckSince = Date.now() - (dataRefreshStartedAt||0);
     if(stuckSince < 15000) return;
     console.warn('LOCUS: verrou de sync forcé après blocage de '+stuckSince+'ms');
   }
-  cloudSyncInProgress = true;
-  cloudSyncStartedAt = Date.now();
+  dataRefreshInProgress = true;
+  dataRefreshStartedAt = Date.now();
   try{
     debugPanel('🔍 AVANT la requête snakes');
     let { data: cloudSnakes, error } = await sb.from('snakes').select('id').limit(1);
@@ -6949,14 +6949,14 @@ async function refreshUserDataMirror(){
     const localHasData = savedSnakes.length > 0 || racks.length > 1 || pairings.length > 0 || clutches.length > 0 || customEvents.length > 0;
 
     if(cloudHasData){
-      await syncPullAll();
+      await pullAllUserData();
       showToast('☁️ '+(currentLang==='en'?'Data synced from the cloud.':'Données synchronisées depuis le cloud.'), 'success');
     } else if(localHasData){
-      await syncPushAll(true); // 1ère connexion : rien n'est encore marqué "modifié", faut tout pousser
+      await pushAllUserData(true); // 1ère connexion : rien n'est encore marqué "modifié", faut tout pousser
       showToast('☁️ '+(currentLang==='en'?'Local data sent to the cloud.':'Données locales envoyées vers le cloud.'), 'success');
     }
   } finally {
-    cloudSyncInProgress = false;
+    dataRefreshInProgress = false;
   }
 }
 
@@ -6999,7 +6999,7 @@ function itemsToPush(kind, arr, forceAll){
   const ids = dirtySyncIds[kind];
   return (arr||[]).filter(item=>item && item.id!=null && ids.has(item.id));
 }
-async function syncPushAll(forceAll){
+async function pushAllUserData(forceAll){
   if(!sb || !currentUser) return;
   try{
     if(savedSnakes.length){
@@ -7036,7 +7036,7 @@ async function syncPushAll(forceAll){
   }
 }
 
-async function syncPullAll(){
+async function pullAllUserData(){
   if(!sb || !currentUser) return;
   try{
     const [snakesRes, racksRes, pairingsRes, clutchesRes, expensesRes, customersRes, stateRes, profileRes] = await Promise.all([
@@ -7051,7 +7051,7 @@ async function syncPullAll(){
     ]);
     // markSynced() est appelé sur la version brute venant du cloud (pas sur le résultat fusionné) :
     // si le local avait une version plus récente non encore poussée, on veut qu'elle reste marquée
-    // "à pousser" au prochain syncPushAll() plutôt que d'être prise à tort pour déjà synchronisée.
+    // "à pousser" au prochain pushAllUserData() plutôt que d'être prise à tort pour déjà synchronisée.
     if(snakesRes.data){
       const cloudSnakes = snakesRes.data.map(rowToSnake);
       savedSnakes = mergeById(savedSnakes, cloudSnakes);
@@ -7107,13 +7107,13 @@ async function syncPullAll(){
     if(document.getElementById('racks-container')) renderRackGrid();
     if(document.getElementById('terrarium-list')) renderTerrariumList();
     if(document.getElementById('tour-grid')) renderTourGrid();
-    await syncPushAll(); // pousse tout ce qui reste local-only (jamais encore synchronisé) après la fusion
+    await pushAllUserData(); // pousse tout ce qui reste local-only (jamais encore synchronisé) après la fusion
   }catch(e){ console.warn('LOCUS: échec récupération depuis le cloud', e); }
 }
 
 // Mirroring en arrière-plan : après chaque sauvegarde locale, pousse aussi vers le cloud
 // si un utilisateur est connecté. Fire-and-forget (ne bloque jamais l'UI locale).
-function cloudMirrorSnakes(){ if(sb && currentUser && !cloudSyncInProgress) syncPushAll(); }
+function mirrorSnakesRemote(){ if(sb && currentUser && !dataRefreshInProgress) pushAllUserData(); }
 
 
 /* ==================== Sauvegarde : export / import JSON complet ==================== */
@@ -10642,7 +10642,7 @@ async function testFonctionNeutreAsync(){
 // SANS l'appel sb.from('snakes')... : isole si c'est le CONTENU du corps (motif d'appel Supabase)
 // plutôt que le nom qui fait neutraliser toute la fonction par un bloqueur.
 async function testFonctionD(){
-  debugPanel('🔍 INTÉRIEUR test D — sb:'+(!!sb)+' user:'+(!!currentUser)+' lock:'+cloudSyncInProgress);
+  debugPanel('🔍 INTÉRIEUR test D — sb:'+(!!sb)+' user:'+(!!currentUser)+' lock:'+dataRefreshInProgress);
   await new Promise(r=>setTimeout(r,10));
   debugPanel('🔍 test D — après le délai (pas de vrai appel réseau)');
 }
@@ -10705,7 +10705,7 @@ function isBannerDismissed(name){ return loadDismissedBanners().includes(name); 
 function dismissBanner(name){
   const list = loadDismissedBanners();
   if(!list.includes(name)){ list.push(name); saveDismissedBanners(list); }
-  if(sb && currentUser) syncPushAll(); // pousse la fermeture au cloud sans attendre la prochaine sauvegarde d'un reptile
+  if(sb && currentUser) pushAllUserData(); // pousse la fermeture au cloud sans attendre la prochaine sauvegarde d'un reptile
 }
 function isWelcomeDismissed(){ return isBannerDismissed('welcome'); }
 function dismissWelcome(){
