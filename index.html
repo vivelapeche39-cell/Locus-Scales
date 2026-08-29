@@ -1782,7 +1782,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.81';
+const APP_VERSION = '2026.08.25.82';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2156,8 +2156,8 @@ async function handleAuthSignIn(){
   // suite à partir de la réponse de connexion elle-même, sans dépendre du timing du listener.
   if(res.data && res.data.session && res.data.session.user) currentUser = res.data.session.user;
   else if(res.data && res.data.user) currentUser = res.data.user;
-  try{ updateAuthUI(); }catch(e){ console.warn('LOCUS: updateAuthUI a échoué', e); alert('🔍 updateAuthUI EXCEPTION: '+e.message); }
-  alert('🔍 JUSTE AVANT d\'appeler syncWithCloud() — currentUser:'+(!!currentUser));
+  try{ updateAuthUI(); }catch(e){ console.warn('LOCUS: updateAuthUI a échoué', e); debugPanel('🔍 updateAuthUI EXCEPTION: '+e.message); }
+  debugPanel('🔍 JUSTE AVANT syncWithCloud() — currentUser:'+(!!currentUser));
   syncWithCloud().then(()=>backfillMissingPhotoUrls());
 }
 async function handleAuthSignUp(){
@@ -6911,7 +6911,7 @@ function mergeById(localArr, cloudArr){
 async function syncWithCloud(){
   // Diagnostic temporaire (29 août, incident en cours) — alert() plutôt que toast : bloque l'écran,
   // impossible à cacher par une barre d'outils ou un souci de CSS. À retirer une fois le vrai blocage trouvé.
-  alert('🔍 ENTRÉE syncWithCloud — sb:'+(!!sb)+' user:'+(!!currentUser)+' lock:'+cloudSyncInProgress);
+  debugPanel('🔍 ENTRÉE syncWithCloud — sb:'+(!!sb)+' user:'+(!!currentUser)+' lock:'+cloudSyncInProgress);
   if(!sb || !currentUser) return;
   // Filet de sécurité (29 août) — si le verrou est resté pris plus de 15 secondes, on considère que
   // la tentative précédente est morte silencieusement (pendaison réseau ou autre) plutôt que
@@ -6924,9 +6924,9 @@ async function syncWithCloud(){
   cloudSyncInProgress = true;
   cloudSyncStartedAt = Date.now();
   try{
-    alert('🔍 AVANT la requête snakes');
+    debugPanel('🔍 AVANT la requête snakes');
     let { data: cloudSnakes, error } = await sb.from('snakes').select('id').limit(1);
-    alert('🔍 APRÈS la requête → erreur:'+(error?JSON.stringify(error):'aucune')+' data:'+JSON.stringify(cloudSnakes));
+    debugPanel('🔍 APRÈS la requête → erreur:'+(error?JSON.stringify(error):'aucune')+' data:'+JSON.stringify(cloudSnakes));
     // Filet de sécurité (29 août) — un 401 observé une seule fois juste après une connexion fraîche :
     // le token venait tout juste d'être émis et n'avait pas encore fini de se propager côté SDK au
     // moment de cette première requête. Plutôt que d'abandonner en silence (l'utilisateur ne voit
@@ -10616,6 +10616,20 @@ function showToast(message, type){
     el.classList.remove('show');
     setTimeout(()=> el.remove(), 350);
   }, 4200);
+}
+// Diagnostic temporaire (29 août, incident en cours) — panneau UNIQUE (pas une pile, pas un dialogue
+// natif) qui se met à jour sur place à chaque appel. Contourne à la fois le souci d'empilement des
+// toasts ET une possible protection anti-spam de Safari qui bloquerait des alert() en succession
+// rapide. Rouge/jaune vif, plein centre — impossible à manquer. À retirer une fois le blocage trouvé.
+function debugPanel(message){
+  let panel = document.getElementById('locus-debug-panel');
+  if(!panel){
+    panel = document.createElement('div');
+    panel.id = 'locus-debug-panel';
+    panel.style.cssText = 'position:fixed;top:6%;left:10px;right:10px;max-height:88vh;overflow-y:auto;z-index:99999;background:#ff0000;color:#ffffff;padding:16px;border-radius:12px;font-size:13px;font-weight:bold;border:4px solid #ffff00;box-shadow:0 0 30px rgba(0,0,0,0.8);white-space:pre-wrap;';
+    document.body.appendChild(panel);
+  }
+  panel.textContent += (panel.textContent?'\n\n':'')+message;
 }
 // Diagnostic temporaire (29 août, incident en cours) — mêmes toasts, mais qui restent affichés
 // jusqu'à ce qu'on tape dessus pour les fermer, plutôt que de disparaître après 4.2s. Ancrés en
