@@ -1782,7 +1782,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.80';
+const APP_VERSION = '2026.08.25.81';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2156,12 +2156,9 @@ async function handleAuthSignIn(){
   // suite à partir de la réponse de connexion elle-même, sans dépendre du timing du listener.
   if(res.data && res.data.session && res.data.session.user) currentUser = res.data.session.user;
   else if(res.data && res.data.user) currentUser = res.data.user;
-  showDebugToast('🔍 après connexion → currentUser réglé:'+(!!currentUser)+' res.data keys:'+(res.data?Object.keys(res.data).join(','):'aucune'));
-  showDebugToast('🔍 avant updateAuthUI');
-  try{ updateAuthUI(); }catch(e){ console.warn('LOCUS: updateAuthUI a échoué', e); showDebugToast('🔍 updateAuthUI EXCEPTION: '+e.message); }
-  showDebugToast('🔍 après updateAuthUI, avant syncWithCloud');
+  try{ updateAuthUI(); }catch(e){ console.warn('LOCUS: updateAuthUI a échoué', e); alert('🔍 updateAuthUI EXCEPTION: '+e.message); }
+  alert('🔍 JUSTE AVANT d\'appeler syncWithCloud() — currentUser:'+(!!currentUser));
   syncWithCloud().then(()=>backfillMissingPhotoUrls());
-  showDebugToast('🔍 syncWithCloud() appelée (ligne juste après)');
 }
 async function handleAuthSignUp(){
   const isEn = currentLang==='en';
@@ -6912,9 +6909,9 @@ function mergeById(localArr, cloudArr){
 }
 
 async function syncWithCloud(){
-  // Diagnostic temporaire (29 août, incident en cours) — à retirer une fois le vrai blocage trouvé.
-  // Rend visible EXACTEMENT ce que syncWithCloud() voit à son entrée, sans besoin d'outils dev.
-  showDebugToast('🔍 sync() → sb:'+(!!sb)+' user:'+(!!currentUser)+' lock:'+cloudSyncInProgress);
+  // Diagnostic temporaire (29 août, incident en cours) — alert() plutôt que toast : bloque l'écran,
+  // impossible à cacher par une barre d'outils ou un souci de CSS. À retirer une fois le vrai blocage trouvé.
+  alert('🔍 ENTRÉE syncWithCloud — sb:'+(!!sb)+' user:'+(!!currentUser)+' lock:'+cloudSyncInProgress);
   if(!sb || !currentUser) return;
   // Filet de sécurité (29 août) — si le verrou est resté pris plus de 15 secondes, on considère que
   // la tentative précédente est morte silencieusement (pendaison réseau ou autre) plutôt que
@@ -6927,9 +6924,9 @@ async function syncWithCloud(){
   cloudSyncInProgress = true;
   cloudSyncStartedAt = Date.now();
   try{
-    showDebugToast('🔍 requête snakes en cours…');
+    alert('🔍 AVANT la requête snakes');
     let { data: cloudSnakes, error } = await sb.from('snakes').select('id').limit(1);
-    showDebugToast('🔍 réponse reçue → erreur:'+(error?error.message:'aucune')+' data:'+JSON.stringify(cloudSnakes));
+    alert('🔍 APRÈS la requête → erreur:'+(error?JSON.stringify(error):'aucune')+' data:'+JSON.stringify(cloudSnakes));
     // Filet de sécurité (29 août) — un 401 observé une seule fois juste après une connexion fraîche :
     // le token venait tout juste d'être émis et n'avait pas encore fini de se propager côté SDK au
     // moment de cette première requête. Plutôt que d'abandonner en silence (l'utilisateur ne voit
