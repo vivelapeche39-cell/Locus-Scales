@@ -1782,7 +1782,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.79';
+const APP_VERSION = '2026.08.25.80';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -10621,19 +10621,24 @@ function showToast(message, type){
   }, 4200);
 }
 // Diagnostic temporaire (29 août, incident en cours) — mêmes toasts, mais qui restent affichés
-// jusqu'à ce qu'on tape dessus pour les fermer, plutôt que de disparaître après 4.2s. Nécessaire
-// car les toasts normaux, appelés en succession rapide, disparaissent tous en même temps avant
-// qu'une capture d'écran puisse tous les attraper. À retirer une fois le vrai blocage trouvé.
+// jusqu'à ce qu'on tape dessus pour les fermer, plutôt que de disparaître après 4.2s. Ancrés en
+// HAUT de l'écran (pas en bas comme les toasts normaux) et inséré en premier (le plus récent toujours
+// visible tout en haut) — la barre d'outils Safari en bas de l'écran cachait les messages les plus
+// récents empilés vers le bas, rendant le diagnostic précédent inutilisable. À retirer une fois le
+// vrai blocage trouvé.
 function showDebugToast(message){
-  const stack = document.getElementById('toast-stack');
-  if(!stack) return;
+  let stack = document.getElementById('debug-toast-stack');
+  if(!stack){
+    stack = document.createElement('div');
+    stack.id = 'debug-toast-stack';
+    stack.style.cssText = 'position:fixed;top:8px;left:8px;right:8px;z-index:9999;display:flex;flex-direction:column;gap:6px;';
+    document.body.appendChild(stack);
+  }
   const el = document.createElement('div');
-  el.className = 'toast toast-success';
-  el.style.cursor = 'pointer';
+  el.style.cssText = 'background:#1a1409;border:2px solid #C9973E;color:#f0e6d2;padding:10px 12px;border-radius:10px;font-size:13px;cursor:pointer;';
   el.textContent = message+' (touche pour fermer)';
-  el.onclick = ()=>{ el.classList.remove('show'); setTimeout(()=>el.remove(), 350); };
-  stack.appendChild(el);
-  requestAnimationFrame(()=> el.classList.add('show'));
+  el.onclick = ()=> el.remove();
+  stack.insertBefore(el, stack.firstChild);
 }
 
 // Badge vivant du header : priorité à la prochaine éclosion (excitant, actionnable),
