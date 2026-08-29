@@ -1782,7 +1782,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.77';
+const APP_VERSION = '2026.08.25.78';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2062,8 +2062,8 @@ function updateAuthUI(){
   const headerBtn = document.getElementById('auth-btn');
   if(headerBtn){
     if(currentUser){
-      headerBtn.textContent = '👤 '+currentUser.email.split('@')[0];
-      headerBtn.title = (isEn?'Signed in: ':'Connecté : ')+currentUser.email;
+      headerBtn.textContent = '👤 '+((currentUser.email||'').split('@')[0] || (isEn?'Account':'Compte'));
+      headerBtn.title = (isEn?'Signed in: ':'Connecté : ')+(currentUser.email||'');
     } else {
       headerBtn.textContent = isEn ? "Sign up" : "S'inscrire";
       headerBtn.title = isEn ? 'Breeder account' : 'Compte éleveur';
@@ -2157,8 +2157,11 @@ async function handleAuthSignIn(){
   if(res.data && res.data.session && res.data.session.user) currentUser = res.data.session.user;
   else if(res.data && res.data.user) currentUser = res.data.user;
   showToast('🔍 après connexion → currentUser réglé:'+(!!currentUser)+' res.data keys:'+(res.data?Object.keys(res.data).join(','):'aucune'), 'success');
-  updateAuthUI();
+  showToast('🔍 avant updateAuthUI', 'success');
+  try{ updateAuthUI(); }catch(e){ console.warn('LOCUS: updateAuthUI a échoué', e); showToast('🔍 updateAuthUI EXCEPTION: '+e.message, 'error'); }
+  showToast('🔍 après updateAuthUI, avant syncWithCloud', 'success');
   syncWithCloud().then(()=>backfillMissingPhotoUrls());
+  showToast('🔍 syncWithCloud() appelée (ligne juste après)', 'success');
 }
 async function handleAuthSignUp(){
   const isEn = currentLang==='en';
