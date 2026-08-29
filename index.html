@@ -1777,7 +1777,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.67';
+const APP_VERSION = '2026.08.25.68';
 (function checkForNewVersion(){
   try{
     if(sessionStorage.getItem('locus_version_reloaded')){ sessionStorage.removeItem('locus_version_reloaded'); return; }
@@ -7034,6 +7034,8 @@ async function syncPullAll(){
     saveElevage();
     renderSavedList();
     if(document.getElementById('racks-container')) renderRackGrid();
+    if(document.getElementById('terrarium-list')) renderTerrariumList();
+    if(document.getElementById('tour-grid')) renderTourGrid();
     await syncPushAll(); // pousse tout ce qui reste local-only (jamais encore synchronisé) après la fusion
   }catch(e){ console.warn('LOCUS: échec récupération depuis le cloud', e); }
 }
