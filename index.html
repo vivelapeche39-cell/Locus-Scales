@@ -1113,6 +1113,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
       <div class="elevage-search">
         <input type="text" id="elevage-search-input" data-i18n-placeholder="elevageSearchPlaceholder" placeholder="🔍 Rechercher un nom ou un gène… (filtre les terrariums, surligne les bacs)" autocomplete="off"/>
       </div>
+      <button class="sc-btn" id="racks-show-all-btn" style="margin-bottom:14px;" onclick="showAllRacksTerrariums()">🔄 <span data-i18n="showAllSectionsBtn">Tout réafficher</span></button>
       <div id="racks-terrariums-wrap">
         <div class="elevage-block" id="block-racks">
           <div class="section-line-head">
@@ -1148,6 +1149,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
         <button class="tour-action-btn" onclick="selectByPreyType('live')" data-i18n="selectLiveBtn">🐭 Tout le vivant</button>
       </div>
       <div id="health-alerts"></div>
+      <button class="sc-btn" id="tour-show-all-btn" style="margin-bottom:14px;" onclick="showAllRacksTerrariums()">🔄 <span data-i18n="showAllSectionsBtn">Tout réafficher</span></button>
       <div id="tour-wrap">
         <div class="elevage-block" id="block-tour-racks">
           <div class="section-line-head">
@@ -1157,7 +1159,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
           <div id="tour-grid" class="rack-grid"></div>
         </div>
         <div class="elevage-block" id="block-tour-terrariums">
-          <div class="results-hdr" style="margin-top:0;"><h2 style="font-size:16px;" data-i18n="tourTerrariumsTitle">Terrariums</h2><div style="display:flex;align-items:center;gap:8px;"><button class="rack-row-select" id="tour-select-terra" data-i18n="selectAllTerraBtn">Sél. tous</button><div class="section-line-ctrls" id="tour-terra-line-ctrls"></div></div></div>
+          <div class="results-hdr section-line-head" style="margin-top:0;"><h2 style="font-size:16px;" data-i18n="tourTerrariumsTitle">Terrariums</h2><div style="display:flex;align-items:center;gap:8px;"><button class="rack-row-select" id="tour-select-terra" data-i18n="selectAllTerraBtn">Sél. tous</button><div class="section-line-ctrls" id="tour-terra-line-ctrls"></div></div></div>
           <div id="tour-terrariums" class="terrarium-list"></div>
         </div>
       </div>
@@ -1774,7 +1776,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.63';
+const APP_VERSION = '2026.08.25.65';
 (function checkForNewVersion(){
   try{
     if(sessionStorage.getItem('locus_version_reloaded')){ sessionStorage.removeItem('locus_version_reloaded'); return; }
@@ -3462,6 +3464,7 @@ const I18N = {
     actionRefused: 'Refus',
     actionWeigh: 'Peser',
     deselectBtn: 'Désélectionner',
+    showAllSectionsBtn: 'Tout réafficher',
     quickSelectPreyLabel: 'Sélection rapide par proie :',
     selectFrozenBtn: '❄️ Tout le décongelé',
     selectLiveBtn: '🐭 Tout le vivant',
@@ -3884,6 +3887,7 @@ const I18N = {
     actionRefused: 'Refused',
     actionWeigh: 'Weigh',
     deselectBtn: 'Deselect',
+    showAllSectionsBtn: 'Show everything again',
     quickSelectPreyLabel: 'Quick select by prey:',
     selectFrozenBtn: '❄️ All frozen-thawed',
     selectLiveBtn: '🐭 All live',
@@ -7288,6 +7292,21 @@ function renderLineCtrls(targetId, collapsed, isFirst, isLast, onToggle, onMove)
   btnToggle.onclick = onToggle;
   if(!isFirst) btnUp.onclick = ()=>onMove('up');
   if(!isLast) btnDown.onclick = ()=>onMove('down');
+}
+
+// Filet de sécurité (28 août) — un bouton toujours visible, jamais lui-même repliable, qui réaffiche
+// les 4 sections (Racks/Terrariums, mode normal ET Mode Tournée) d'un coup peu importe leur état.
+// Existe en plus des chevrons individuels : le petit chevron reste facile à manquer, ce bouton ne l'est pas.
+function showAllRacksTerrariums(){
+  const isEn = currentLang==='en';
+  layout.hideRacks = false;
+  layout.hideTerrariums = false;
+  layout.tourHideRacks = false;
+  layout.tourHideTerrariums = false;
+  saveElevage();
+  if(document.getElementById('block-racks')) renderLayoutPrefs();
+  if(document.getElementById('block-tour-racks')) renderTourLayoutPrefs();
+  showToast('✓ '+(isEn?'Everything is visible again.':'Tout est réaffiché.'), 'success');
 }
 
 function renderLayoutPrefs(){
