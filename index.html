@@ -1782,7 +1782,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.84';
+const APP_VERSION = '2026.08.25.85';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4250,6 +4250,7 @@ function openConfigModal(){
       '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); openStorageDetails();">💾 '+(isEn?'Storage space':'Espace de stockage')+'</button>'+
       '<button class="sc-btn" style="width:100%;" onclick="exportBackup();">📤 '+(isEn?'Export my backup':'Exporter ma sauvegarde')+'</button>'+
       '<button class="sc-btn accent" style="width:100%;" onclick="debugPanel(\'🔍 Bouton manuel touché\'); syncWithCloud();">🔄 Synchroniser maintenant (test)</button>'+
+      '<button class="sc-btn accent" style="width:100%;background:#4a7c3a;" onclick="debugPanel(\'🔍 Bouton test B touché\'); testFonctionNeutre();">🧪 Test B (nom neutre)</button>'+
       '<button class="sc-btn" style="width:100%;" onclick="const p=document.getElementById(\'locus-debug-panel\'); if(p) p.remove();">🗑️ Vider le panneau de diagnostic</button>'+
     '</div>'+
     '<p style="font-size:9.5px;color:var(--ink-dim);text-align:center;margin:16px 0 0;font-family:\'Courier New\',monospace;">'+(isEn?'Version':'Version')+' '+APP_VERSION+'</p>'
@@ -10623,6 +10624,13 @@ function showToast(message, type){
 // natif) qui se met à jour sur place à chaque appel. Contourne à la fois le souci d'empilement des
 // toasts ET une possible protection anti-spam de Safari qui bloquerait des alert() en succession
 // rapide. Rouge/jaune vif, plein centre — impossible à manquer. À retirer une fois le blocage trouvé.
+// Test B temporaire (29 août, incident en cours) — nom volontairement neutre et sans rapport
+// (aucun mot "sync"/"cloud") pour écarter l'hypothèse qu'un bloqueur de pub ou une extension Safari
+// neutralise spécifiquement une fonction selon son nom. Fait exactement la même première étape que
+// syncWithCloud() : rien de plus. À retirer une fois le vrai blocage trouvé.
+function testFonctionNeutre(){
+  debugPanel('🔍 INTÉRIEUR test B — sb:'+(!!sb)+' user:'+(!!currentUser));
+}
 function debugPanel(message){
   let panel = document.getElementById('locus-debug-panel');
   if(!panel){
