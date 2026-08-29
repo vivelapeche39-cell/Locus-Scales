@@ -1782,7 +1782,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.83';
+const APP_VERSION = '2026.08.25.84';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4250,6 +4250,7 @@ function openConfigModal(){
       '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); openStorageDetails();">💾 '+(isEn?'Storage space':'Espace de stockage')+'</button>'+
       '<button class="sc-btn" style="width:100%;" onclick="exportBackup();">📤 '+(isEn?'Export my backup':'Exporter ma sauvegarde')+'</button>'+
       '<button class="sc-btn accent" style="width:100%;" onclick="debugPanel(\'🔍 Bouton manuel touché\'); syncWithCloud();">🔄 Synchroniser maintenant (test)</button>'+
+      '<button class="sc-btn" style="width:100%;" onclick="const p=document.getElementById(\'locus-debug-panel\'); if(p) p.remove();">🗑️ Vider le panneau de diagnostic</button>'+
     '</div>'+
     '<p style="font-size:9.5px;color:var(--ink-dim);text-align:center;margin:16px 0 0;font-family:\'Courier New\',monospace;">'+(isEn?'Version':'Version')+' '+APP_VERSION+'</p>'
   );
@@ -10630,7 +10631,10 @@ function debugPanel(message){
     panel.style.cssText = 'position:fixed;top:6%;left:10px;right:10px;max-height:88vh;overflow-y:auto;z-index:99999;background:#ff0000;color:#ffffff;padding:16px;border-radius:12px;font-size:13px;font-weight:bold;border:4px solid #ffff00;box-shadow:0 0 30px rgba(0,0,0,0.8);white-space:pre-wrap;';
     document.body.appendChild(panel);
   }
-  panel.textContent += (panel.textContent?'\n\n':'')+message;
+  const line = document.createElement('div');
+  line.style.cssText = 'padding:8px 0;border-bottom:2px solid #ffff00;margin-bottom:8px;';
+  line.textContent = message;
+  panel.insertBefore(line, panel.firstChild);
 }
 // Diagnostic temporaire (29 août, incident en cours) — mêmes toasts, mais qui restent affichés
 // jusqu'à ce qu'on tape dessus pour les fermer, plutôt que de disparaître après 4.2s. Ancrés en
