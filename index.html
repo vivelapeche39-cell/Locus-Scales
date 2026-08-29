@@ -1782,7 +1782,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.76';
+const APP_VERSION = '2026.08.25.77';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2156,6 +2156,7 @@ async function handleAuthSignIn(){
   // suite à partir de la réponse de connexion elle-même, sans dépendre du timing du listener.
   if(res.data && res.data.session && res.data.session.user) currentUser = res.data.session.user;
   else if(res.data && res.data.user) currentUser = res.data.user;
+  showToast('🔍 après connexion → currentUser réglé:'+(!!currentUser)+' res.data keys:'+(res.data?Object.keys(res.data).join(','):'aucune'), 'success');
   updateAuthUI();
   syncWithCloud().then(()=>backfillMissingPhotoUrls());
 }
@@ -6908,6 +6909,9 @@ function mergeById(localArr, cloudArr){
 }
 
 async function syncWithCloud(){
+  // Diagnostic temporaire (29 août, incident en cours) — à retirer une fois le vrai blocage trouvé.
+  // Rend visible EXACTEMENT ce que syncWithCloud() voit à son entrée, sans besoin d'outils dev.
+  showToast('🔍 sync() → sb:'+(!!sb)+' user:'+(!!currentUser)+' lock:'+cloudSyncInProgress, 'success');
   if(!sb || !currentUser) return;
   // Filet de sécurité (29 août) — si le verrou est resté pris plus de 15 secondes, on considère que
   // la tentative précédente est morte silencieusement (pendaison réseau ou autre) plutôt que
@@ -6920,7 +6924,9 @@ async function syncWithCloud(){
   cloudSyncInProgress = true;
   cloudSyncStartedAt = Date.now();
   try{
+    showToast('🔍 requête snakes en cours…', 'success');
     let { data: cloudSnakes, error } = await sb.from('snakes').select('id').limit(1);
+    showToast('🔍 réponse reçue → erreur:'+(error?error.message:'aucune')+' data:'+JSON.stringify(cloudSnakes), 'success');
     // Filet de sécurité (29 août) — un 401 observé une seule fois juste après une connexion fraîche :
     // le token venait tout juste d'être émis et n'avait pas encore fini de se propager côté SDK au
     // moment de cette première requête. Plutôt que d'abandonner en silence (l'utilisateur ne voit
