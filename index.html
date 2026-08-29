@@ -1137,7 +1137,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
       <div id="onboarding-banner-tour" class="onboarding-banner" style="display:none;"></div>
       <div class="tour-toolbar">
         <span class="tour-count" id="tour-count">0 bac sélectionné</span>
-        <button class="tour-action-btn fed" data-i18n="actionFed" onclick="applyTourAction('fed')">A mangé</button>
+        <button class="tour-action-btn fed" data-i18n="actionFedFrozen" onclick="applyTourAction('fed_frozen')">❄️ A mangé</button>
+        <button class="tour-action-btn fed" data-i18n="actionFedLive" onclick="applyTourAction('fed_live')">🐭 A mangé</button>
         <button class="tour-action-btn shed" data-i18n="actionShed" onclick="applyTourAction('shed')">A mué</button>
         <button class="tour-action-btn refused" data-i18n="actionRefused" onclick="applyTourAction('refused')">Refus</button>
         <button class="tour-action-btn" data-i18n="actionWeigh" onclick="applyTourAction('weigh')">Peser</button>
@@ -1776,7 +1777,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.66';
+const APP_VERSION = '2026.08.25.67';
 (function checkForNewVersion(){
   try{
     if(sessionStorage.getItem('locus_version_reloaded')){ sessionStorage.removeItem('locus_version_reloaded'); return; }
@@ -3459,7 +3460,8 @@ const I18N = {
     objectifHint: 'Choisis le(s) gène(s) visé(s), et l\'app scanne ta collection pour proposer les meilleurs accouplements possibles — classés par probabilité réelle, pas juste par intuition.',
     objectifFindBtn: '🎯 Trouver les meilleures paires',
     objectifResultsTitle: 'Meilleures paires dans ta collection',
-    actionFed: 'A mangé',
+    actionFedFrozen: '❄️ A mangé',
+    actionFedLive: '🐭 A mangé',
     actionShed: 'A mué',
     actionRefused: 'Refus',
     actionWeigh: 'Peser',
@@ -3882,7 +3884,8 @@ const I18N = {
     objectifHint: 'Pick your target gene(s), and the app scans your collection to suggest the best possible pairings — ranked by real probability, not just a hunch.',
     objectifFindBtn: '🎯 Find the best pairs',
     objectifResultsTitle: 'Best pairs in your collection',
-    actionFed: 'Fed',
+    actionFedFrozen: '❄️ Fed',
+    actionFedLive: '🐭 Fed',
     actionShed: 'Shed',
     actionRefused: 'Refused',
     actionWeigh: 'Weigh',
@@ -8279,15 +8282,36 @@ function applyTourAction(action){
     return;
   }
 
+  let fedCount = 0;
+  let stockTouched = false;
+  let lowStockMsgs = [];
   tourSelection.forEach(key=>{
     const snake = snakeFromKey(key);
     if(!snake) return;
     ensureSnakeMeta(snake);
-    if(action==='fed'){ snake.health.consecutiveRefusals = 0; snake.health.events.push({date:today, type:'fed'}); }
+    if(action==='fed_frozen' || action==='fed_live'){
+      const preyType = action==='fed_live' ? 'live' : 'frozen';
+      snake.preyType = preyType; // le dernier type utilisé devient le nouveau défaut affiché (badge, stock)
+      snake.health.consecutiveRefusals = 0;
+      snake.health.events.push({date:today, type:'fed', preyType});
+      fedCount++;
+      if(snake.preySpecies && snake.preySize){
+        const key2 = feederStockKey(snake.preySpecies, snake.preySize);
+        if(feederStock[key2]!=null){
+          feederStock[key2] = Math.max(0, feederStock[key2]-1);
+          stockTouched = true;
+          if(feederStock[key2] <= FEEDER_LOW_STOCK_THRESHOLD) lowStockMsgs.push(snake.preySpecies+' '+snake.preySize+' ('+feederStock[key2]+')');
+        }
+      }
+    }
     else if(action==='refused'){ snake.health.consecutiveRefusals = (snake.health.consecutiveRefusals||0)+1; snake.health.events.push({date:today, type:'refused', reason:'unknown'}); }
     else if(action==='shed'){ snake.health.events.push({date:today, type:'shed'}); }
   });
   storage.save(savedSnakes);
+  if(stockTouched) saveElevage();
+  if(lowStockMsgs.length){
+    showToast('⚠ '+(isEn?'Low stock: ':'Stock bas : ')+[...new Set(lowStockMsgs)].join(', '), 'warning');
+  }
   tourSelection.clear();
   renderTourGrid();
 }
