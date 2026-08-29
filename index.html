@@ -1782,7 +1782,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.73';
+const APP_VERSION = '2026.08.25.74';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4235,7 +4235,8 @@ function openConfigModal(){
       '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); openNotifSettings();">🔔 '+(isEn?'Notifications':'Notifications')+'</button>'+
       '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); openStorageDetails();">💾 '+(isEn?'Storage space':'Espace de stockage')+'</button>'+
       '<button class="sc-btn" style="width:100%;" onclick="exportBackup();">📤 '+(isEn?'Export my backup':'Exporter ma sauvegarde')+'</button>'+
-    '</div>'
+    '</div>'+
+    '<p style="font-size:9.5px;color:var(--ink-dim);text-align:center;margin:16px 0 0;font-family:\'Courier New\',monospace;">'+(isEn?'Version':'Version')+' '+APP_VERSION+'</p>'
   );
 }
 
