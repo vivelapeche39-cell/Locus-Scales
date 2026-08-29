@@ -1777,7 +1777,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.68';
+const APP_VERSION = '2026.08.25.69';
 (function checkForNewVersion(){
   try{
     if(sessionStorage.getItem('locus_version_reloaded')){ sessionStorage.removeItem('locus_version_reloaded'); return; }
@@ -2018,7 +2018,10 @@ if(sb){
   sb.auth.onAuthStateChange((event, session) => {
     currentUser = session ? session.user : null;
     updateAuthUI();
-    if(event === 'SIGNED_IN'){
+    // Couvre les deux cas : une vraie connexion manuelle (SIGNED_IN) ET la restauration d'une
+    // session déjà active au chargement de la page (INITIAL_SESSION, ex. après avoir fermé et
+    // rouvert le navigateur) — les deux doivent déclencher une synchronisation.
+    if((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && currentUser){
       syncWithCloud().then(()=>backfillMissingPhotoUrls());
     }
   });
@@ -2133,6 +2136,11 @@ async function handleAuthSignIn(){
   if(!res.ok){ showAuthError(res.error); return; }
   closeAuthModal();
   showToast('🔐 '+(isEn?'Signed in successfully.':'Connecté avec succès.'), 'success');
+  // Déclenchement explicite (28 août) — ne dépend plus uniquement de l'événement 'SIGNED_IN' du
+  // listener onAuthStateChange, qui peut ne pas se redéclencher de façon fiable lors d'une
+  // déconnexion suivie d'une reconnexion rapide dans la même session. cloudSyncInProgress évite
+  // un double appel si le listener a déjà démarré la sync de son côté au même moment.
+  syncWithCloud().then(()=>backfillMissingPhotoUrls());
 }
 async function handleAuthSignUp(){
   const isEn = currentLang==='en';
