@@ -1782,7 +1782,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.86';
+const APP_VERSION = '2026.08.25.87';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4251,6 +4251,7 @@ function openConfigModal(){
       '<button class="sc-btn" style="width:100%;" onclick="exportBackup();">📤 '+(isEn?'Export my backup':'Exporter ma sauvegarde')+'</button>'+
       '<button class="sc-btn accent" style="width:100%;" onclick="debugPanel(\'🔍 Bouton manuel touché\'); refreshUserDataMirror();">🔄 Synchroniser maintenant (test)</button>'+
       '<button class="sc-btn accent" style="width:100%;background:#4a7c3a;" onclick="debugPanel(\'🔍 Bouton test B touché\'); testFonctionNeutre();">🧪 Test B (nom neutre)</button>'+
+      '<button class="sc-btn accent" style="width:100%;background:#3a6c8a;" onclick="debugPanel(\'🔍 Bouton test C touché\'); testFonctionNeutreAsync();">🧪 Test C (async, nom neutre)</button>'+
       '<button class="sc-btn" style="width:100%;" onclick="const p=document.getElementById(\'locus-debug-panel\'); if(p) p.remove();">🗑️ Vider le panneau de diagnostic</button>'+
     '</div>'+
     '<p style="font-size:9.5px;color:var(--ink-dim);text-align:center;margin:16px 0 0;font-family:\'Courier New\',monospace;">'+(isEn?'Version':'Version')+' '+APP_VERSION+'</p>'
@@ -10630,6 +10631,11 @@ function showToast(message, type){
 // refreshUserDataMirror() : rien de plus. À retirer une fois le vrai blocage trouvé.
 function testFonctionNeutre(){
   debugPanel('🔍 INTÉRIEUR test B — sb:'+(!!sb)+' user:'+(!!currentUser));
+}
+async function testFonctionNeutreAsync(){
+  debugPanel('🔍 INTÉRIEUR test C (async) — sb:'+(!!sb)+' user:'+(!!currentUser));
+  await new Promise(r=>setTimeout(r,10));
+  debugPanel('🔍 test C — APRÈS un await');
 }
 function debugPanel(message){
   let panel = document.getElementById('locus-debug-panel');
