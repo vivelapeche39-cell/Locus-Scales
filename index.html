@@ -1782,7 +1782,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.74';
+const APP_VERSION = '2026.08.25.76';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2149,10 +2149,14 @@ async function handleAuthSignIn(){
   if(!res.ok){ showAuthError(res.error); return; }
   closeAuthModal();
   showToast('🔐 '+(isEn?'Signed in successfully.':'Connecté avec succès.'), 'success');
-  // Déclenchement explicite (28 août) — ne dépend plus uniquement de l'événement 'SIGNED_IN' du
-  // listener onAuthStateChange, qui peut ne pas se redéclencher de façon fiable lors d'une
-  // déconnexion suivie d'une reconnexion rapide dans la même session. cloudSyncInProgress évite
-  // un double appel si le listener a déjà démarré la sync de son côté au même moment.
+  // Vraie cause trouvée (29 août) : le listener onAuthStateChange met currentUser à jour de façon
+  // ASYNCHRONE, pas forcément avant que ce code-ci continue après le "await sbSignIn(...)" — donc
+  // appeler syncWithCloud() ici pouvait tomber sur currentUser encore null et abandonner en silence
+  // (retour immédiat sur la garde), sans jamais réessayer. On règle currentUser nous-mêmes tout de
+  // suite à partir de la réponse de connexion elle-même, sans dépendre du timing du listener.
+  if(res.data && res.data.session && res.data.session.user) currentUser = res.data.session.user;
+  else if(res.data && res.data.user) currentUser = res.data.user;
+  updateAuthUI();
   syncWithCloud().then(()=>backfillMissingPhotoUrls());
 }
 async function handleAuthSignUp(){
@@ -2165,6 +2169,15 @@ async function handleAuthSignUp(){
   if(!res.ok){ showAuthError(res.error); return; }
   showAuthError('');
   showToast('✅ '+(isEn?'Account created — check your inbox if confirmation is required.':'Compte créé — vérifie ta boîte courriel si une confirmation est requise.'), 'success');
+  // Même correctif que handleAuthSignIn (29 août) — mais ici on ne règle currentUser QUE si une
+  // vraie session existe déjà (res.data.session). Si la confirmation par courriel est activée sur
+  // ce projet Supabase, il peut y avoir un objet user sans session active tant que non confirmé —
+  // dans ce cas, rester en mode local est correct, pas une régression.
+  if(res.data && res.data.session && res.data.session.user){
+    currentUser = res.data.session.user;
+    updateAuthUI();
+    syncWithCloud();
+  }
 }
 async function handleAuthSignOut(){
   const isEn = currentLang==='en';
@@ -6875,6 +6888,7 @@ renderDashboard();
    en arrière-plan à chaque sauvegarde tant qu'un utilisateur est connecté (voir syncPushSnakes/syncPushElevage
    appelés depuis storage.save() et saveElevage()). */
 let cloudSyncInProgress = false;
+let cloudSyncStartedAt = 0;
 
 // Fusionne deux tableaux d'objets par leur champ `id` — la version la plus récente l'emporte,
 // comparée par horodatage (`updatedAt`), peu importe si elle vient du local ou du cloud. Avant, le
@@ -6894,8 +6908,17 @@ function mergeById(localArr, cloudArr){
 }
 
 async function syncWithCloud(){
-  if(!sb || !currentUser || cloudSyncInProgress) return;
+  if(!sb || !currentUser) return;
+  // Filet de sécurité (29 août) — si le verrou est resté pris plus de 15 secondes, on considère que
+  // la tentative précédente est morte silencieusement (pendaison réseau ou autre) plutôt que
+  // vraiment "en cours", et on le libère de force pour ne jamais bloquer toute une session future.
+  if(cloudSyncInProgress){
+    const stuckSince = Date.now() - (cloudSyncStartedAt||0);
+    if(stuckSince < 15000) return;
+    console.warn('LOCUS: verrou de sync forcé après blocage de '+stuckSince+'ms');
+  }
   cloudSyncInProgress = true;
+  cloudSyncStartedAt = Date.now();
   try{
     let { data: cloudSnakes, error } = await sb.from('snakes').select('id').limit(1);
     // Filet de sécurité (29 août) — un 401 observé une seule fois juste après une connexion fraîche :
@@ -6996,7 +7019,10 @@ async function syncPushAll(forceAll){
     const profile = loadProfile();
     await sb.from('profiles').upsert({ user_id:currentUser.id, breeder_name: profile.breederName||null, email: profile.email||null, phone: profile.phone||null });
     ['snakes','racks','pairings','clutches','expenses','customers'].forEach(kind=> dirtySyncIds[kind].clear());
-  }catch(e){ console.warn('LOCUS: échec envoi vers le cloud', e); }
+  }catch(e){
+    console.warn('LOCUS: échec envoi vers le cloud', e);
+    showToast('⚠️ '+(currentLang==='en'?'Cloud sync (upload) failed — try signing out and back in.':'Envoi vers le cloud échoué — essaie de te déconnecter puis reconnecter.'), 'error');
+  }
 }
 
 async function syncPullAll(){
