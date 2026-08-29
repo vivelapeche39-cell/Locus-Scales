@@ -1782,7 +1782,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.72';
+const APP_VERSION = '2026.08.25.73';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -6896,8 +6896,20 @@ async function syncWithCloud(){
   if(!sb || !currentUser || cloudSyncInProgress) return;
   cloudSyncInProgress = true;
   try{
-    const { data: cloudSnakes, error } = await sb.from('snakes').select('id').limit(1);
-    if(error){ console.warn('LOCUS: sync cloud impossible', error); return; }
+    let { data: cloudSnakes, error } = await sb.from('snakes').select('id').limit(1);
+    // Filet de sécurité (29 août) — un 401 observé une seule fois juste après une connexion fraîche :
+    // le token venait tout juste d'être émis et n'avait pas encore fini de se propager côté SDK au
+    // moment de cette première requête. Plutôt que d'abandonner en silence (l'utilisateur ne voit
+    // alors ni erreur ni données), on réessaie une fois après une courte pause.
+    if(error && (error.code==='PGRST301' || String(error.message||'').includes('401') || String(error.code)==='401')){
+      await new Promise(r=>setTimeout(r, 900));
+      ({ data: cloudSnakes, error } = await sb.from('snakes').select('id').limit(1));
+    }
+    if(error){
+      console.warn('LOCUS: sync cloud impossible', error);
+      showToast('⚠️ '+(currentLang==='en'?'Cloud sync failed — try signing out and back in.':'Synchronisation cloud échouée — essaie de te déconnecter puis reconnecter.'), 'error');
+      return;
+    }
     const cloudHasData = cloudSnakes && cloudSnakes.length > 0;
     const localHasData = savedSnakes.length > 0 || racks.length > 1 || pairings.length > 0 || clutches.length > 0 || customEvents.length > 0;
 
