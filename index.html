@@ -1782,7 +1782,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.98';
+const APP_VERSION = '2026.08.25.99';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -6916,12 +6916,7 @@ function mergeById(localArr, cloudArr){
 
 let variableJamaisRenommee = false;
 async function executerRequeteDonnees(){
-  debugPanel('🔍 TEST MINIMAL — aucune variable référencée');
-  debugPanel('🔍 étape 0 — variable toute neuve: '+variableJamaisRenommee);
-  debugPanel('🔍 étape 1(permuté) — estOccupe seul: '+estOccupe);
-  debugPanel('🔍 étape 2(permuté) — sb seul: '+(!!sb));
-  debugPanel('🔍 étape 3(permuté) — currentUser seul: '+(!!currentUser));
-  debugPanel('🔍 ENTRÉE executerRequeteDonnees — sb:'+(!!sb)+' user:'+(!!currentUser)+' lock:'+estOccupe);
+  debugPanel('🔍 TOUT-EN-UN — neuve:'+variableJamaisRenommee+' | estOccupe:'+estOccupe+' | sb:'+(!!sb)+' | user:'+(!!currentUser));
   if(!sb || !currentUser) return;
   // Filet de sécurité (29 août) — si le verrou est resté pris plus de 15 secondes, on considère que
   // la tentative précédente est morte silencieusement (pendaison réseau ou autre) plutôt que
