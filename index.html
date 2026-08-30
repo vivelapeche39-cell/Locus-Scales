@@ -258,6 +258,16 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
 
 /* Onglet Ventes */
 .sale-list{display:flex;flex-direction:column;gap:8px;}
+/* Mini-grille d'animaux réutilisable (30 août) — 3 par rangée, pour toute liste où chaque ligne
+   représente UN reptile précis (proie non renseignée, à vendre, mue/pesée à faire, etc.) plutôt
+   qu'une donnée non-animale (client, dépense, résumé financier) qui reste en liste verticale. */
+.mini-animal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+.mini-animal-card{background:var(--bg-panel);border:1px solid var(--line);border-radius:10px;padding:8px 7px;display:flex;flex-direction:column;gap:3px;}
+.mini-animal-card .mac-name{font-family:Georgia,'Times New Roman',serif;font-size:11px;font-weight:600;line-height:1.2;color:var(--ink);}
+.mini-animal-card .mac-sub{font-size:8.5px;color:var(--ink-dim);line-height:1.3;}
+.mini-animal-card .sc-btn{width:100%;font-size:8.5px;padding:5px 3px;margin-top:3px;}
+.mini-animal-card .sc-status{font-size:7px;padding:1px 5px;margin:0;}
+.mini-animal-card .sc-more-select{width:100%;font-size:8.5px;padding:5px 3px;margin-top:3px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:14px;color:var(--ink-dim);text-align:center;}
 .sale-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;padding:12px 16px;}
 .sale-name{flex:1 1 180px;font-size:13.5px;font-weight:600;}
 .sale-name small{display:block;font-weight:400;color:var(--ink-dim);font-family:'Courier New',monospace;font-size:10.5px;margin-top:3px;}
@@ -1800,7 +1810,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.08';
+const APP_VERSION = '2026.08.26.09';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5966,6 +5976,14 @@ function escapeHtml(str){
     .replace(/"/g,'&quot;')
     .replace(/'/g,'&#39;');
 }
+// Mini-carte animale réutilisable (30 août) — utilisée dans toute liste où chaque ligne représente
+// UN reptile précis (proie non renseignée, à vendre, mue/pesée à faire...). subline peut contenir
+// du HTML déjà échappé ; name est échappé ici pour éviter de le faire à chaque appel.
+function miniAnimalCardHtml(name, sublineHtml, actionHtml){
+  return '<div class="mini-animal-card"><div class="mac-name">'+escapeHtml(name)+'</div>'+
+    (sublineHtml ? '<div class="mac-sub">'+sublineHtml+'</div>' : '')+
+    (actionHtml||'')+'</div>';
+}
 
 function mrow(label, value){ return '<div class="modal-row"><span>'+label+'</span><span>'+value+'</span></div>'; }
 
@@ -7926,14 +7944,14 @@ function renderFoodView(){
   }
 
   const missingWrap = document.getElementById('prey-missing-list');
-  missingWrap.innerHTML = withoutPrey.length===0 ? '<div class="empty">✅ '+(isEn?'All reptiles with a meal due have their prey filled in.':'Tous les reptiles avec un repas prévu ont leur proie renseignée.')+'</div>' : '';
-  withoutPrey.forEach(s=>{
-    const row = document.createElement('div');
-    row.className = 'sale-row';
-    row.innerHTML = '<div class="sale-name">'+escapeHtml(s.name)+'<small>'+(isEn?'Meal due ':'Repas prévu le ')+nextFeedingDate(s)+'</small></div>'+
-      '<button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">'+t('fillPreyBtn')+'</button>';
-    missingWrap.appendChild(row);
-  });
+  missingWrap.className = withoutPrey.length ? 'mini-animal-grid' : '';
+  missingWrap.innerHTML = withoutPrey.length===0
+    ? '<div class="empty">✅ '+(isEn?'All reptiles with a meal due have their prey filled in.':'Tous les reptiles avec un repas prévu ont leur proie renseignée.')+'</div>'
+    : withoutPrey.map(s=>miniAnimalCardHtml(
+        s.name,
+        (isEn?'Meal due ':'Repas prévu le ')+nextFeedingDate(s),
+        '<button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">'+t('fillPreyBtn')+'</button>'
+      )).join('');
 
   renderFeederStockList();
   renderFeederStockSizeOptions();
@@ -10619,29 +10637,32 @@ function renderSalesView(){
   else list = [...list].sort((a,b)=>a.name.localeCompare(b.name));
 
   const wrap = document.getElementById('sales-list');
+  wrap.className = list.length ? 'mini-animal-grid' : '';
   wrap.innerHTML = list.length ? '' : '<div class="empty">'+t('noReptileCategory')+'</div>';
   list.forEach(s=>{
     const priceTxt = s.status==='sold'
       ? (s.soldPrice ? s.soldPrice+t('soldToLabel')+(s.buyer||'?')+')' : t('soldPriceUnknown'))
       : (s.askingPrice ? s.askingPrice+t('askedPriceSuffix') : t('noPriceSet'));
-    const row = document.createElement('div');
-    row.className = 'sale-row';
-    row.innerHTML =
-      '<div class="sale-name">'+escapeHtml(s.name)+'<small>'+summarizeGenes(s.genes)+'</small></div>'+
-      '<span class="sc-status '+s.status+'" style="flex-shrink:0;">'+saleStatusLabel(s.status)+'</span>'+
-      '<div class="sale-price">'+priceTxt+'</div>'+
-      '<div class="sale-actions">'+
-        '<button class="sc-btn" data-act="open" data-id="'+s.id+'">'+t('ficheBtn')+'</button>'+
-        '<button class="sc-btn accent" data-act="listing" data-id="'+s.id+'">'+t('annonceBtn')+'</button>'+
-        (s.listingUrl ? '<a class="sc-btn" href="'+s.listingUrl+'" target="_blank" rel="noopener">'+t('viewMorphMarketBtn')+'</a>' : '<button class="sc-btn" data-act="link" data-id="'+s.id+'">'+t('linkMorphMarketBtn')+'</button>')+
-      '</div>';
-    wrap.appendChild(row);
+    const card = document.createElement('div');
+    card.className = 'mini-animal-card';
+    card.innerHTML =
+      '<div class="mac-name">'+escapeHtml(s.name)+'</div>'+
+      '<span class="sc-status '+s.status+'" style="align-self:flex-start;">'+saleStatusLabel(s.status)+'</span>'+
+      '<div class="mac-sub">'+priceTxt+'</div>'+
+      '<button class="sc-btn accent" data-act="open" data-id="'+s.id+'">'+t('ficheBtn')+'</button>'+
+      '<select class="sc-more-select" data-id="'+s.id+'">'+
+        '<option value="">⋯ '+(currentLang==='en'?'More':'Plus')+'</option>'+
+        '<option value="listing">'+t('annonceBtn')+'</option>'+
+        (s.listingUrl ? '' : '<option value="link">'+t('linkMorphMarketBtn')+'</option>')+
+      '</select>'+
+      (s.listingUrl ? '<a class="sc-btn" style="width:100%;text-align:center;margin-top:3px;" href="'+s.listingUrl+'" target="_blank" rel="noopener">'+t('viewMorphMarketBtn')+'</a>' : '');
+    wrap.appendChild(card);
   });
-  wrap.querySelectorAll('.sc-btn[data-act]').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const act = btn.dataset.act, id = btn.dataset.id;
-      if(act==='open') openLogbook(id);
-      else if(act==='listing'){ openLogbook(id); setTimeout(()=>showListingPreview(id), 60); }
+  wrap.querySelectorAll('.sc-more-select').forEach(sel=>{
+    sel.addEventListener('change', ()=>{
+      const act = sel.value, id = sel.dataset.id;
+      sel.value = '';
+      if(act==='listing'){ openLogbook(id); setTimeout(()=>showListingPreview(id), 60); }
       else if(act==='link'){
         const s = savedSnakes.find(x=>x.id===id);
         const url = prompt(t('morphMarketUrlPrompt')+s.name+' :', s.listingUrl||'');
@@ -10650,6 +10671,12 @@ function renderSalesView(){
         storage.save(savedSnakes);
         renderSalesView();
       }
+    });
+  });
+  wrap.querySelectorAll('.sc-btn[data-act]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const act = btn.dataset.act, id = btn.dataset.id;
+      if(act==='open') openLogbook(id);
     });
   });
 }
@@ -10854,11 +10881,11 @@ function renderDashboard(){
     todayWrap.innerHTML = '<div class="empty">🎉 '+(isEn?'Nothing needs special attention right now.':'Rien de particulier à surveiller pour l\'instant.')+'</div>';
   } else {
     todayWrap.innerHTML =
-      (shedSoon.length ? '<div class="feed-day-group"><div class="feed-day-label">🐍 '+(isEn?'Shed expected soon':'Mue prévue bientôt')+' — '+shedSoon.length+'</div><div class="sale-list">'+
-        shedSoon.map(x=>'<div class="sale-row"><div class="sale-name">'+escapeHtml(x.snake.name)+'<small>~'+x.date+'</small></div><button class="sc-btn accent" onclick="openLogbook(\''+x.snake.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button></div>').join('')+
+      (shedSoon.length ? '<div class="feed-day-group"><div class="feed-day-label">🐍 '+(isEn?'Shed expected soon':'Mue prévue bientôt')+' — '+shedSoon.length+'</div><div class="mini-animal-grid">'+
+        shedSoon.map(x=>miniAnimalCardHtml(x.snake.name, '~'+x.date, '<button class="sc-btn accent" onclick="openLogbook(\''+x.snake.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button>')).join('')+
       '</div></div>' : '')+
-      (weighDue.length ? '<div class="feed-day-group"><div class="feed-day-label">⚖ '+(isEn?'Weigh-in due':'Pesée à faire')+' — '+weighDue.length+'</div><div class="sale-list">'+
-        weighDue.slice(0,10).map(s=>{ const d = daysSinceLastWeigh(s); return '<div class="sale-row"><div class="sale-name">'+escapeHtml(s.name)+'<small>'+(d===null?(isEn?'never weighed':'jamais pesé'):(isEn?d+'d ago':'il y a '+d+'j'))+'</small></div><button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button></div>'; }).join('')+
+      (weighDue.length ? '<div class="feed-day-group"><div class="feed-day-label">⚖ '+(isEn?'Weigh-in due':'Pesée à faire')+' — '+weighDue.length+'</div><div class="mini-animal-grid">'+
+        weighDue.slice(0,10).map(s=>{ const d = daysSinceLastWeigh(s); return miniAnimalCardHtml(s.name, (d===null?(isEn?'never weighed':'jamais pesé'):(isEn?d+'d ago':'il y a '+d+'j')), '<button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button>'); }).join('')+
         (weighDue.length>10 ? '<div style="font-size:10.5px;color:var(--ink-dim);padding:6px 4px;">'+(isEn?'+'+(weighDue.length-10)+' more':'+'+(weighDue.length-10)+' de plus')+'</div>' : '')+
       '</div></div>' : '')+
       (clutchesToCheck.length ? '<div class="feed-day-group"><div class="feed-day-label">🥚 '+(isEn?'Clutches to watch closely':'Pontes à surveiller de près')+' — '+clutchesToCheck.length+'</div><div class="sale-list">'+
@@ -10887,9 +10914,8 @@ function renderDashboard(){
       const snakesForDay = groups[dateStr];
       return '<div class="feed-day-group">'+
         '<div class="feed-day-label">'+dayLabel(dateStr)+' — '+snakesForDay.length+(isEn?' reptile'+(snakesForDay.length>1?'s':''):' reptile'+(snakesForDay.length>1?'s':''))+'</div>'+
-        '<div class="sale-list">'+snakesForDay.map(s=>
-          '<div class="sale-row"><div class="sale-name">'+escapeHtml(s.name)+'</div>'+
-          '<button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button></div>'
+        '<div class="mini-animal-grid">'+snakesForDay.map(s=>
+          miniAnimalCardHtml(s.name, '', '<button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button>')
         ).join('')+
       '</div></div>';
     }).join('');
