@@ -921,6 +921,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
     <div class="dash-grid" id="dash-alert-grid"></div>
     <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" id="dash-today-title">🌤️ <span data-i18n="todayWidgetTitle">Aujourd'hui — à surveiller</span></h2></div>
     <div id="dash-today-widget"></div>
+    <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" data-i18n="lastNextMealTitle">🍽 Dernier repas / Prochain repas</h2></div>
+    <div id="dash-lastnext-list"></div>
     <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" data-i18n="feedingCalendarTitle">📅 Calendrier de nourrissage — 7 prochains jours</h2></div>
     <div id="dash-feeding-list"></div>
     <div class="results-hdr" style="margin-top:22px;"><h2 style="font-size:16px;" data-i18n="nextHatchesTitle">🥚 Prochaines éclosions</h2></div>
@@ -1810,7 +1812,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.09';
+const APP_VERSION = '2026.08.26.11';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3178,6 +3180,10 @@ const I18N = {
     tabDash: '📋 Tableau de bord',
     todayWidgetTitle: 'Aujourd\'hui — à surveiller',
     feedingCalendarTitle: '📅 Calendrier de nourrissage — 7 prochains jours',
+    lastNextMealTitle: '🍽 Dernier repas / Prochain repas',
+    neverFedLabel: 'Jamais nourri',
+    lastMealLabel: 'Dernier : ',
+    nextMealLabel: 'Prochain : ',
     nextHatchesTitle: '🥚 Prochaines éclosions',
     facebookBannerTitle: 'Rejoins-nous sur Facebook',
     facebookBannerSubtitle: 'Annonces, nouveautés et communauté d\'éleveurs — LOCUS Scales',
@@ -3603,6 +3609,10 @@ const I18N = {
     tabDash: '📋 Dashboard',
     todayWidgetTitle: 'Today — worth a look',
     feedingCalendarTitle: '📅 Feeding calendar — next 7 days',
+    lastNextMealTitle: '🍽 Last meal / Next meal',
+    neverFedLabel: 'Never fed',
+    lastMealLabel: 'Last: ',
+    nextMealLabel: 'Next: ',
     nextHatchesTitle: '🥚 Upcoming hatches',
     facebookBannerTitle: 'Join us on Facebook',
     facebookBannerSubtitle: 'Announcements, updates, and a breeder community — LOCUS Scales',
@@ -7039,6 +7049,16 @@ async function synchroniserAvecServeur(){
     }
   } finally {
     estOccupe = false;
+    // Filet de sécurité (30 août) — pullAllUserData a déjà son propre rafraîchissement garanti
+    // (voir son bloc finally), mais le chemin "push" (localHasData vrai, remoteHasData faux) n'en
+    // avait aucun : rien ne rafraîchissait alors Racks/Terrariums/Mode Tournée après un push, même
+    // si les données étaient déjà correctes en mémoire depuis le chargement local initial. On
+    // rafraîchit ici systématiquement, peu importe quel chemin (push, pull, ou aucun des deux) a
+    // été emprunté plus haut, pour ne plus jamais dépendre de la bonne branche pour voir l'écran à jour.
+    renderSavedList();
+    if(document.getElementById('racks-container')) renderRackGrid();
+    if(document.getElementById('terrarium-list')) renderTerrariumList();
+    if(document.getElementById('tour-grid')) renderTourGrid();
   }
 }
 
@@ -7748,6 +7768,13 @@ function daysSinceLastFed(s){
   const fedEvents = (s.health.events||[]).filter(e=>e.type==='fed').sort((a,b)=>b.date.localeCompare(a.date));
   if(!fedEvents.length) return null;
   return Math.floor((Date.now() - new Date(fedEvents[0].date+'T00:00:00').getTime()) / 86400000);
+}
+// Dernier événement "fed" complet (date + type de proie si connu) — utilisé par le widget tableau
+// de bord "Dernier repas / Prochain repas" (30 août), pensé pour repérer d'un coup d'œil un double
+// tap accidentel sur "A mangé" en Mode Tournée (date d'aujourd'hui déjà présente = signal d'alerte).
+function lastFedInfo(s){
+  const fedEvents = (s.health.events||[]).filter(e=>e.type==='fed').sort((a,b)=>b.date.localeCompare(a.date));
+  return fedEvents.length ? fedEvents[0] : null;
 }
 const HEALTH_FLAG_DAYS_SINCE_FED = 21; // jours sans repas réussi avant de signaler "à surveiller" — ajustable ici seulement
 function isFeedingFlagged(s){
@@ -10895,6 +10922,22 @@ function renderDashboard(){
 
   // Calendrier de nourrissage : projette la prochaine date de repas de CHAQUE reptile
   // (intervalle personnalisé ou générique) et groupe par jour sur les 7 prochains jours.
+  // Dernier repas / Prochain repas, côte à côte pour chaque reptile (30 août) — permet de repérer
+  // d'un coup d'œil un double tap accidentel sur "A mangé" (date du dernier repas = aujourd'hui alors
+  // que ce n'était pas prévu) sans avoir à ouvrir chaque fiche une par une.
+  const lastNextWrap = document.getElementById('dash-lastnext-list');
+  if(lastNextWrap){
+    lastNextWrap.className = dashSnakes.length ? 'mini-animal-grid' : '';
+    lastNextWrap.innerHTML = dashSnakes.length===0 ? '<div class="empty">'+(isEn?'No reptile registered yet.':'Aucun reptile enregistré pour l\'instant.')+'</div>' :
+      dashSnakes.map(s=>{
+        const last = lastFedInfo(s);
+        const preyIcon = last && last.preyType ? (last.preyType==='live'?' 🐭':' ❄️') : '';
+        const lastTxt = last ? (last.date+preyIcon) : t('neverFedLabel');
+        const sub = t('lastMealLabel')+lastTxt+'<br>'+t('nextMealLabel')+nextFeedingDate(s);
+        return miniAnimalCardHtml(s.name, sub, '<button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button>');
+      }).join('');
+  }
+
   const feedWrap = document.getElementById('dash-feeding-list');
   const todayStr = new Date().toISOString().slice(0,10);
   const horizon = addDays(todayStr, 7);
