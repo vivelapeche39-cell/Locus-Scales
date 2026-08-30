@@ -1812,7 +1812,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.11';
+const APP_VERSION = '2026.08.26.12';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5977,6 +5977,22 @@ function resetActual(){
 // casser l'affichage ou, pire, exécuter du code si jamais l'app synchronise entre utilisateurs
 // un jour (catalogue communautaire, multi-appareils). Ne change jamais la donnée stockée,
 // seulement ce qui est affiché.
+// Diagnostic temporaire (30 août, incident en cours) — panneau minimal fixe en haut de l'écran,
+// insère chaque nouveau message en PREMIER (le plus récent toujours visible tout en haut, jamais
+// caché par la barre d'outils du navigateur ni besoin de défiler). À retirer une fois la cause trouvée.
+function debugMini(message){
+  let panel = document.getElementById('locus-debug-mini');
+  if(!panel){
+    panel = document.createElement('div');
+    panel.id = 'locus-debug-mini';
+    panel.style.cssText = 'position:fixed;top:4px;left:4px;right:4px;z-index:99999;background:#c0392b;color:#fff;padding:8px 10px;border-radius:8px;font-size:10px;font-family:monospace;max-height:60vh;overflow-y:auto;white-space:pre-wrap;border:2px solid #ffe680;';
+    document.body.appendChild(panel);
+  }
+  const line = document.createElement('div');
+  line.style.cssText = 'padding:4px 0;border-bottom:1px solid rgba(255,255,255,.3);';
+  line.textContent = new Date().toLocaleTimeString()+' — '+message;
+  panel.insertBefore(line, panel.firstChild);
+}
 function escapeHtml(str){
   if(str===null || str===undefined) return '';
   return String(str)
@@ -8102,6 +8118,7 @@ function snakeTooltip(s){
 
 function renderRackGrid(){
   const container = document.getElementById('racks-container');
+  debugMini('racks: racks.length='+racks.length+' savedSnakes='+savedSnakes.length);
   container.innerHTML = '';
   racks.forEach(rack=>{
     const unit = document.createElement('div');
@@ -8274,6 +8291,8 @@ function renderTerrariumList(){
   const wrap = document.getElementById('terrarium-list');
   savedSnakes.forEach(ensureSnakeMeta);
   const list = savedSnakes.filter(s=>s.placement.mode==='terrarium' && matchesSearch(s, elevageSearchTerm));
+  // Diagnostic temporaire (30 août, incident en cours) — à retirer une fois la cause trouvée.
+  debugMini('terrarium: savedSnakes='+savedSnakes.length+' list='+list.length+' hideTerra='+layout.hideTerrariums+' tourHideTerra='+layout.tourHideTerrariums+' search="'+elevageSearchTerm+'"');
   wrap.innerHTML = list.length ? '' : '<div class="empty">'+(elevageSearchTerm?t('noTerrariumReptilesSearch'):t('noTerrariumReptiles'))+'</div>';
   list.forEach(s=>{
     const chip = document.createElement('div');
@@ -8307,6 +8326,7 @@ function snakeFromKey(key){
 function renderTourGrid(){
   const isEn = currentLang==='en';
   const grid = document.getElementById('tour-grid');
+  debugMini('tour: racks.length='+racks.length+' savedSnakes='+savedSnakes.length+' terrariumSnakes='+savedSnakes.filter(s=>s.placement&&s.placement.mode==='terrarium').length);
   grid.innerHTML = '';
   racks.forEach(rack=>{
     const unit = document.createElement('div');
