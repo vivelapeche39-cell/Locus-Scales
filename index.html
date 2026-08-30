@@ -1812,7 +1812,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.19';
+const APP_VERSION = '2026.08.26.20';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -7786,13 +7786,23 @@ function isFeedingFlagged(s){
 // Seuils centralisés ici : à modifier uniquement à cet endroit si l'éleveur veut ajuster les paliers.
 const FEEDING_THRESHOLDS = [ {max:5, status:'green'}, {max:8, status:'yellow'}, {max:9, status:'orange'} ];
 function feedingStatus(s){
-  const relevant = s.health.events.filter(e=>e.type==='fed'||e.type==='refused').sort((a,b)=>a.date.localeCompare(b.date));
-  if(relevant.length===0) return 'red'; // jamais nourri depuis l'enregistrement = à surveiller
-  const last = relevant[relevant.length-1];
-  if(last.type==='refused') return 'red'; // dernier événement = un refus -> alerte immédiate
-  const days = Math.floor((Date.now() - new Date(last.date+'T00:00:00').getTime()) / 86400000);
-  const tier = FEEDING_THRESHOLDS.find(tr=>days<=tr.max);
-  return tier ? tier.status : 'red';
+  let etape = 'debut';
+  try{
+    etape = 'filter/sort';
+    const relevant = s.health.events.filter(e=>e.type==='fed'||e.type==='refused').sort((a,b)=>a.date.localeCompare(b.date));
+    if(relevant.length===0) return 'red'; // jamais nourri depuis l'enregistrement = à surveiller
+    etape = 'last';
+    const last = relevant[relevant.length-1];
+    if(last.type==='refused') return 'red'; // dernier événement = un refus -> alerte immédiate
+    etape = 'days';
+    const days = Math.floor((Date.now() - new Date(last.date+'T00:00:00').getTime()) / 86400000);
+    etape = 'tier-find';
+    const tier = FEEDING_THRESHOLDS.find(tr=>days<=tr.max);
+    etape = 'return';
+    return tier ? tier.status : 'red';
+  }catch(e){
+    throw new Error('[étape:'+etape+'] '+e.message);
+  }
 }
 const FEEDING_LABELS_FR = { green:'🟩 A mangé récemment', yellow:'🟨 Repas bientôt dû', orange:'🟧 Repas dû', red:'🟥 En retard / refus' };
 const FEEDING_LABELS_EN = { green:'🟩 Fed recently', yellow:'🟨 Meal due soon', orange:'🟧 Meal due', red:'🟥 Overdue / refused' };
