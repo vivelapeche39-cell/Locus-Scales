@@ -758,7 +758,16 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
   /* Mes reptiles */
   .draft-name{width:calc(100% - 28px);margin:12px 14px 0;font-size:16px;}
   .pedigree-row{margin:10px 14px 0;}
-  .saved-grid{grid-template-columns:1fr;gap:10px;margin-top:16px;}
+  .saved-grid{grid-template-columns:repeat(3,1fr);gap:7px;margin-top:16px;}
+  .saved-card{padding:8px 7px;border-radius:10px;}
+  .saved-card .sc-head{flex-direction:column;align-items:flex-start;gap:3px;margin-bottom:5px;}
+  .saved-card .sc-name{font-size:11px;line-height:1.2;}
+  .saved-card .sc-name img{width:22px;height:22px;margin-right:4px;}
+  .saved-card .sc-sex,.saved-card .sc-status{font-size:7px;padding:1px 5px;margin-left:0;margin-right:3px;}
+  .saved-card .sc-genes{font-size:9px;line-height:1.35;min-height:0;}
+  .saved-card .sc-actions{gap:4px;margin-top:8px;flex-direction:column;}
+  .saved-card .sc-actions .sc-btn{width:100%;font-size:9px;padding:6px 4px;text-align:center;}
+  .saved-card .sc-more-select{width:100%;font-size:9px;padding:5px 3px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:14px;color:var(--ink-dim);text-align:center;}
   .sc-actions{gap:5px;}
   .sc-btn{padding:7px 10px;font-size:10.5px;}
 
@@ -1791,7 +1800,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.06';
+const APP_VERSION = '2026.08.26.07';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5268,23 +5277,34 @@ function renderSavedList(){
       priceLine+
       '<div class="sc-actions">'+
         '<button class="sc-btn accent" data-act="logbook" data-id="'+s.id+'">📋 '+(isEn?'Logbook':'Journal de bord')+'</button>'+
-        (!s.sex ? '<button class="sc-btn accent" data-act="sex" data-id="'+s.id+'">⚥ '+(isEn?'Sex it':'Sexer')+'</button>' : '')+
-        '<button class="sc-btn" data-act="male" data-id="'+s.id+'"'+(s.sex!=='male'?' disabled style="opacity:.35;cursor:not-allowed;"':'')+'>→ '+(isEn?'Load as male':'Charger comme mâle')+'</button>'+
-        '<button class="sc-btn" data-act="female" data-id="'+s.id+'"'+(s.sex!=='female'?' disabled style="opacity:.35;cursor:not-allowed;"':'')+'>→ '+(isEn?'Load as female':'Charger comme femelle')+'</button>'+
-        '<button class="sc-btn" data-act="terrarium" data-id="'+s.id+'">'+(s.placement.mode==='terrarium'?(isEn?'Switch to Rack':'Passer en Rack'):(isEn?'Switch to Terrarium':'Passer en Terrarium'))+'</button>'+
-        '<button class="sc-btn" data-act="edit" data-id="'+s.id+'">'+(isEn?'Edit':'Modifier')+'</button>'+
-        '<button class="sc-btn danger" data-act="delete" data-id="'+s.id+'">'+(isEn?'Delete':'Supprimer')+'</button>'+
+        '<select class="sc-more-select" data-id="'+s.id+'">'+
+          '<option value="">⋯ '+(isEn?'More':'Plus')+'</option>'+
+          (!s.sex ? '<option value="sex">⚥ '+(isEn?'Sex it':'Sexer')+'</option>' : '')+
+          (s.sex!=='male' ? '<option value="male">→ '+(isEn?'Load as male':'Charger comme mâle')+'</option>' : '')+
+          (s.sex!=='female' ? '<option value="female">→ '+(isEn?'Load as female':'Charger comme femelle')+'</option>' : '')+
+          '<option value="terrarium">'+(s.placement.mode==='terrarium'?(isEn?'Switch to Rack':'Passer en Rack'):(isEn?'Switch to Terrarium':'Passer en Terrarium'))+'</option>'+
+          '<option value="edit">'+(isEn?'Edit':'Modifier')+'</option>'+
+          '<option value="delete">'+(isEn?'Delete':'Supprimer')+'</option>'+
+        '</select>'+
       '</div>';
     grid.appendChild(card);
   });
   grid.querySelectorAll('.sc-btn:not([disabled])').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const act = btn.dataset.act, id = btn.dataset.id;
+      if(act==='logbook') openLogbook(id);
+    });
+  });
+  // Menu compact "⋯" (30 août) — regroupe Sexer/Charger/Rack-Terrarium/Modifier/Supprimer dans un
+  // seul <select> plutôt que 5 boutons séparés, pour que la carte reste lisible en grille de 3.
+  grid.querySelectorAll('.sc-more-select').forEach(sel=>{
+    sel.addEventListener('change', ()=>{
+      const act = sel.value, id = sel.dataset.id;
+      if(!act) return;
       if(act==='delete') deleteSnake(id);
       else if(act==='edit') editSnake(id);
       else if(act==='sex') sexSnake(id);
       else if(act==='terrarium'){ toggleTerrarium(id); renderSavedList(); }
-      else if(act==='logbook') openLogbook(id);
       else { loadSnake(id, act); showTab('calc'); }
     });
   });
