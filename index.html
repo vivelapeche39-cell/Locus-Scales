@@ -1812,7 +1812,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.17';
+const APP_VERSION = '2026.08.26.18';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5729,10 +5729,10 @@ function runCross(){
   // aggregate by display key
   const agg = {};
   distributions.forEach(d=>{
-    const visuals = d.traits.filter(t=>t.visual).map(t=>t.label).sort();
-    const hets = d.traits.filter(t=>!t.visual).map(t=>t.label).sort();
-    const warnings = d.traits.filter(t=>t.warning).map(t=>t.warning);
-    const visualGeneIds = d.traits.filter(t=>t.visual).flatMap(t=>t.geneIds||[]);
+    const visuals = d.traits.filter(tr=>tr.visual).map(tr=>tr.label).sort();
+    const hets = d.traits.filter(tr=>!tr.visual).map(tr=>tr.label).sort();
+    const warnings = d.traits.filter(tr=>tr.warning).map(tr=>tr.warning);
+    const visualGeneIds = d.traits.filter(tr=>tr.visual).flatMap(tr=>tr.geneIds||[]);
     CROSS_WARNINGS.forEach(cw=>{
       if(cw.ids.every(id=>visualGeneIds.includes(id))) warnings.push(cw.message);
     });
@@ -5876,10 +5876,10 @@ function sampleEgg(){
   const cum = lastDistributions.map(d=>{ acc += d.prob; return {...d, cum:acc}; });
   const roll = Math.random()*acc;
   const picked = cum.find(c=>roll<=c.cum) || cum[cum.length-1];
-  const visuals = picked.traits.filter(t=>t.visual).map(t=>t.label).sort();
-  const hets = picked.traits.filter(t=>!t.visual).map(t=>t.label).sort();
-  const visualGeneIds = picked.traits.filter(t=>t.visual).flatMap(t=>t.geneIds||[]);
-  const warnings = picked.traits.filter(t=>t.warning).map(t=>t.warning);
+  const visuals = picked.traits.filter(tr=>tr.visual).map(tr=>tr.label).sort();
+  const hets = picked.traits.filter(tr=>!tr.visual).map(tr=>tr.label).sort();
+  const visualGeneIds = picked.traits.filter(tr=>tr.visual).flatMap(tr=>tr.geneIds||[]);
+  const warnings = picked.traits.filter(tr=>tr.warning).map(tr=>tr.warning);
   CROSS_WARNINGS.forEach(cw=>{ if(cw.ids.every(id=>visualGeneIds.includes(id))) warnings.push(cw.message); });
   return { name: visuals.length ? visuals.join(' ') : 'Normal', hets, genotype: picked.genotype, warnings: [...new Set(warnings)] };
 }
@@ -7791,7 +7791,7 @@ function feedingStatus(s){
   const last = relevant[relevant.length-1];
   if(last.type==='refused') return 'red'; // dernier événement = un refus -> alerte immédiate
   const days = Math.floor((Date.now() - new Date(last.date+'T00:00:00').getTime()) / 86400000);
-  const tier = FEEDING_THRESHOLDS.find(t=>days<=t.max);
+  const tier = FEEDING_THRESHOLDS.find(tr=>days<=tr.max);
   return tier ? tier.status : 'red';
 }
 const FEEDING_LABELS_FR = { green:'🟩 A mangé récemment', yellow:'🟨 Repas bientôt dû', orange:'🟧 Repas dû', red:'🟥 En retard / refus' };
@@ -8289,8 +8289,8 @@ function renderTerrariumList(){
       // L'erreur exacte s'affiche directement sur la carte fautive au lieu de rester invisible.
       var errChip = document.createElement('div');
       errChip.className = 'terrarium-chip';
-      errChip.style.cssText = 'border-color:#c0392b;background:rgba(192,57,43,.15);font-size:8.5px;width:100%;';
-      errChip.textContent = '⚠ '+s.name+' : '+erreur.message+' | '+(erreur.stack?erreur.stack.split('\n').slice(0,4).join(' >> '):'pas de pile');
+      errChip.style.cssText = 'border-color:#c0392b;background:rgba(192,57,43,.15);';
+      errChip.textContent = '⚠ '+s.name+' : '+erreur.message;
       wrap.appendChild(errChip);
       console.warn('LOCUS: erreur affichage carte terrarium pour '+s.name, erreur);
     }
@@ -8363,8 +8363,8 @@ function renderTourGrid(){
         }catch(erreur){
           // Filet de sécurité (30 août) — voir renderTerrariumList pour l'explication complète.
           cell.className = 'tub';
-          cell.style.cssText = 'border-color:#c0392b;background:rgba(192,57,43,.15);font-size:8.5px;width:100%;';
-          cell.textContent = '⚠ '+(snake?snake.name:'?')+' : '+erreur.message+' | '+(erreur.stack?erreur.stack.split('\n').slice(0,4).join(' >> '):'pas de pile');
+          cell.style.cssText = 'border-color:#c0392b;background:rgba(192,57,43,.15);';
+          cell.textContent = '⚠ '+(snake?snake.name:'?')+' : '+erreur.message;
           console.warn('LOCUS: erreur affichage bac Mode Tournée', erreur);
         }
         rowEl.appendChild(cell);
@@ -8441,8 +8441,8 @@ function renderTourTerrariums(){
       // Filet de sécurité (30 août) — voir renderTerrariumList pour l'explication complète.
       const errChip = document.createElement('div');
       errChip.className = 'terrarium-chip';
-      errChip.style.cssText = 'border-color:#c0392b;background:rgba(192,57,43,.15);font-size:8.5px;width:100%;';
-      errChip.textContent = '⚠ '+s.name+' : '+erreur.message+' | '+(erreur.stack?erreur.stack.split('\n').slice(0,4).join(' >> '):'pas de pile');
+      errChip.style.cssText = 'border-color:#c0392b;background:rgba(192,57,43,.15);';
+      errChip.textContent = '⚠ '+s.name+' : '+erreur.message;
       wrap.appendChild(errChip);
       console.warn('LOCUS: erreur affichage puce terrarium (Mode Tournée) pour '+s.name, erreur);
     }
