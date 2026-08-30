@@ -1812,7 +1812,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.18';
+const APP_VERSION = '2026.08.26.19';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -8289,8 +8289,8 @@ function renderTerrariumList(){
       // L'erreur exacte s'affiche directement sur la carte fautive au lieu de rester invisible.
       var errChip = document.createElement('div');
       errChip.className = 'terrarium-chip';
-      errChip.style.cssText = 'border-color:#c0392b;background:rgba(192,57,43,.15);';
-      errChip.textContent = '⚠ '+s.name+' : '+erreur.message;
+      errChip.style.cssText = 'border-color:#c0392b;background:rgba(192,57,43,.15);font-size:8.5px;';
+      errChip.textContent = '⚠ '+s.name+' : '+erreur.message+' | '+(erreur.stack?erreur.stack.split('\n').slice(0,5).join(' >> '):'pas de pile');
       wrap.appendChild(errChip);
       console.warn('LOCUS: erreur affichage carte terrarium pour '+s.name, erreur);
     }
@@ -8363,8 +8363,8 @@ function renderTourGrid(){
         }catch(erreur){
           // Filet de sécurité (30 août) — voir renderTerrariumList pour l'explication complète.
           cell.className = 'tub';
-          cell.style.cssText = 'border-color:#c0392b;background:rgba(192,57,43,.15);';
-          cell.textContent = '⚠ '+(snake?snake.name:'?')+' : '+erreur.message;
+          cell.style.cssText = 'border-color:#c0392b;background:rgba(192,57,43,.15);font-size:8.5px;';
+          cell.textContent = '⚠ '+(snake?snake.name:'?')+' : '+erreur.message+' | '+(erreur.stack?erreur.stack.split('\n').slice(0,5).join(' >> '):'pas de pile');
           console.warn('LOCUS: erreur affichage bac Mode Tournée', erreur);
         }
         rowEl.appendChild(cell);
@@ -8441,8 +8441,8 @@ function renderTourTerrariums(){
       // Filet de sécurité (30 août) — voir renderTerrariumList pour l'explication complète.
       const errChip = document.createElement('div');
       errChip.className = 'terrarium-chip';
-      errChip.style.cssText = 'border-color:#c0392b;background:rgba(192,57,43,.15);';
-      errChip.textContent = '⚠ '+s.name+' : '+erreur.message;
+      errChip.style.cssText = 'border-color:#c0392b;background:rgba(192,57,43,.15);font-size:8.5px;';
+      errChip.textContent = '⚠ '+s.name+' : '+erreur.message+' | '+(erreur.stack?erreur.stack.split('\n').slice(0,5).join(' >> '):'pas de pile');
       wrap.appendChild(errChip);
       console.warn('LOCUS: erreur affichage puce terrarium (Mode Tournée) pour '+s.name, erreur);
     }
