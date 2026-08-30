@@ -1782,7 +1782,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.89';
+const APP_VERSION = '2026.08.25.92';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2398,7 +2398,7 @@ let draftSex = 'male';
 const STORAGE_KEY = 'locus_snakes_v1';
 let storageWriteFailed = false; // vrai dès qu'une écriture localStorage échoue (quota dépassé, mode privé, etc.)
 
-// ==================== Suivi des modifications locales (sync cloud ciblée) ====================
+// ==================== Suivi des modifications locales (envoi cible vers le serveur) ====================
 // Avant, pushAllUserData() repoussait TOUT le tableau vers Supabase à chaque sauvegarde, même pour un
 // changement sur une seule fiche — ça écrasait sans condition tout changement fait ailleurs entre-temps
 // (ex. un webhook Stripe qui marque une vente confirmée pendant que le navigateur repousse sa vieille
@@ -4253,6 +4253,7 @@ function openConfigModal(){
       '<button class="sc-btn accent" style="width:100%;background:#4a7c3a;" onclick="debugPanel(\'🔍 Bouton test B touché\'); testFonctionNeutre();">🧪 Test B (nom neutre)</button>'+
       '<button class="sc-btn accent" style="width:100%;background:#3a6c8a;" onclick="debugPanel(\'🔍 Bouton test C touché\'); testFonctionNeutreAsync();">🧪 Test C (async, nom neutre)</button>'+
       '<button class="sc-btn accent" style="width:100%;background:#8a3a6c;" onclick="debugPanel(\'🔍 Bouton test D touché\'); testFonctionD();">🧪 Test D (sans appel réseau)</button>'+
+      '<button class="sc-btn accent" style="width:100%;background:#c0392b;" onclick="debugPanel(\'🔍 Bouton test E touché\'); testFonctionE();">🧪 Test E (VRAI appel Supabase, noms neutres)</button>'+
       '<button class="sc-btn" style="width:100%;" onclick="const p=document.getElementById(\'locus-debug-panel\'); if(p) p.remove();">🗑️ Vider le panneau de diagnostic</button>'+
     '</div>'+
     '<p style="font-size:9.5px;color:var(--ink-dim);text-align:center;margin:16px 0 0;font-family:\'Courier New\',monospace;">'+(isEn?'Version':'Version')+' '+APP_VERSION+'</p>'
@@ -4593,7 +4594,7 @@ function resetOnboarding(){
 
 // Bannière "premier reptile" — mini-guide de soins de base affiché dès que le tout premier
 // reptile de l'éleveur est enregistré, jusqu'à ce qu'il la ferme manuellement (voir
-// isBannerDismissed/dismissBanner, définis plus bas, pour le stockage synchronisé au cloud).
+// isBannerDismissed/dismissBanner, définis plus bas, pour le stockage synchronisé à distance).
 function renderFirstSnakeTip(){
   const banner = document.getElementById('onboarding-banner-firstsnake');
   if(!banner) return;
@@ -6855,7 +6856,7 @@ let { pairings, layout, clutches, expenses, customers } = elevageData;
 let customEvents = elevageData.customEvents || [];
 // Projets multi-générations — regroupe des accouplements sur plusieurs saisons vers un objectif
 // génétique précis (ex. « Bumblebee project »). Stocké comme customEvents : local dans
-// locus_elevage_v1, synchronisé au cloud via app_state.projects (voir pushAllUserData/pullAllUserData).
+// locus_elevage_v1, synchronisé au serveur via app_state.projects (voir pushAllUserData/pullAllUserData).
 let projects = elevageData.projects || [];
 // Inventaire de proies (25 août) — stock par catégorie ("mouse|Weanling", "rat|Small", etc.),
 // décompté automatiquement à chaque repas loggé si l'animal a un preySpecies/preySize renseigné.
@@ -6885,7 +6886,7 @@ updateHeaderBadge();
 applyPersonalizationUI();
 renderDashboard();
 
-/* ==================== SUPABASE : synchronisation cloud (étape 3) ====================
+/* ==================== SUPABASE : synchronisation des données (étape 3) ====================
    Déclenchée une seule fois par connexion (SIGNED_IN). Logique :
    - Si le cloud est vide et qu'il y a des données locales -> on POUSSE le local vers le cloud (1ère connexion).
    - Si le cloud contient déjà des données -> on les TIRE et on écrase le local (autre appareil / reconnexion).
@@ -6914,8 +6915,6 @@ function mergeById(localArr, cloudArr){
 }
 
 async function refreshUserDataMirror(){
-  // Diagnostic temporaire (29 août, incident en cours) — alert() plutôt que toast : bloque l'écran,
-  // impossible à cacher par une barre d'outils ou un souci de CSS. À retirer une fois le vrai blocage trouvé.
   debugPanel('🔍 ENTRÉE refreshUserDataMirror — sb:'+(!!sb)+' user:'+(!!currentUser)+' lock:'+dataRefreshInProgress);
   if(!sb || !currentUser) return;
   // Filet de sécurité (29 août) — si le verrou est resté pris plus de 15 secondes, on considère que
@@ -6924,36 +6923,36 @@ async function refreshUserDataMirror(){
   if(dataRefreshInProgress){
     const stuckSince = Date.now() - (dataRefreshStartedAt||0);
     if(stuckSince < 15000) return;
-    console.warn('LOCUS: verrou de sync forcé après blocage de '+stuckSince+'ms');
+    console.warn('LOCUS: verrou forcé après blocage de '+stuckSince+'ms');
   }
   dataRefreshInProgress = true;
   dataRefreshStartedAt = Date.now();
   try{
     debugPanel('🔍 AVANT la requête snakes');
-    let { data: cloudSnakes, error } = await sb.from('snakes').select('id').limit(1);
-    debugPanel('🔍 APRÈS la requête → erreur:'+(error?JSON.stringify(error):'aucune')+' data:'+JSON.stringify(cloudSnakes));
+    let { data: remoteSnakes, error } = await sb.from('snakes').select('id').limit(1);
+    debugPanel('🔍 APRÈS la requête → erreur:'+(error?JSON.stringify(error):'aucune')+' data:'+JSON.stringify(remoteSnakes));
     // Filet de sécurité (29 août) — un 401 observé une seule fois juste après une connexion fraîche :
     // le token venait tout juste d'être émis et n'avait pas encore fini de se propager côté SDK au
     // moment de cette première requête. Plutôt que d'abandonner en silence (l'utilisateur ne voit
     // alors ni erreur ni données), on réessaie une fois après une courte pause.
     if(error && (error.code==='PGRST301' || String(error.message||'').includes('401') || String(error.code)==='401')){
       await new Promise(r=>setTimeout(r, 900));
-      ({ data: cloudSnakes, error } = await sb.from('snakes').select('id').limit(1));
+      ({ data: remoteSnakes, error } = await sb.from('snakes').select('id').limit(1));
     }
     if(error){
-      console.warn('LOCUS: sync cloud impossible', error);
-      showToast('⚠️ '+(currentLang==='en'?'Cloud sync failed — try signing out and back in.':'Synchronisation cloud échouée — essaie de te déconnecter puis reconnecter.'), 'error');
+      console.warn('LOCUS: échec de récupération des données', error);
+      showToast('⚠️ '+(currentLang==='en'?'Data refresh failed — try signing out and back in.':'Récupération des données échouée — essaie de te déconnecter puis reconnecter.'), 'error');
       return;
     }
-    const cloudHasData = cloudSnakes && cloudSnakes.length > 0;
+    const remoteHasData = remoteSnakes && remoteSnakes.length > 0;
     const localHasData = savedSnakes.length > 0 || racks.length > 1 || pairings.length > 0 || clutches.length > 0 || customEvents.length > 0;
 
-    if(cloudHasData){
+    if(remoteHasData){
       await pullAllUserData();
-      showToast('☁️ '+(currentLang==='en'?'Data synced from the cloud.':'Données synchronisées depuis le cloud.'), 'success');
+      showToast('☁️ '+(currentLang==='en'?'Data refreshed from server.':'Données récupérées depuis le serveur.'), 'success');
     } else if(localHasData){
       await pushAllUserData(true); // 1ère connexion : rien n'est encore marqué "modifié", faut tout pousser
-      showToast('☁️ '+(currentLang==='en'?'Local data sent to the cloud.':'Données locales envoyées vers le cloud.'), 'success');
+      showToast('☁️ '+(currentLang==='en'?'Local data sent to server.':'Données locales envoyées au serveur.'), 'success');
     }
   } finally {
     dataRefreshInProgress = false;
@@ -7031,8 +7030,8 @@ async function pushAllUserData(forceAll){
     await sb.from('profiles').upsert({ user_id:currentUser.id, breeder_name: profile.breederName||null, email: profile.email||null, phone: profile.phone||null });
     ['snakes','racks','pairings','clutches','expenses','customers'].forEach(kind=> dirtySyncIds[kind].clear());
   }catch(e){
-    console.warn('LOCUS: échec envoi vers le cloud', e);
-    showToast('⚠️ '+(currentLang==='en'?'Cloud sync (upload) failed — try signing out and back in.':'Envoi vers le cloud échoué — essaie de te déconnecter puis reconnecter.'), 'error');
+    console.warn('LOCUS: échec envoi des données', e);
+    showToast('⚠️ '+(currentLang==='en'?'Data upload failed — try signing out and back in.':'Envoi des données échoué — essaie de te déconnecter puis reconnecter.'), 'error');
   }
 }
 
@@ -7049,39 +7048,39 @@ async function pullAllUserData(){
       sb.from('app_state').select('*').maybeSingle(),
       sb.from('profiles').select('breeder_name, email, phone').maybeSingle()
     ]);
-    // markSynced() est appelé sur la version brute venant du cloud (pas sur le résultat fusionné) :
+    // markSynced() est appelé sur la version brute venant du serveur (pas sur le résultat fusionné) :
     // si le local avait une version plus récente non encore poussée, on veut qu'elle reste marquée
-    // "à pousser" au prochain pushAllUserData() plutôt que d'être prise à tort pour déjà synchronisée.
+    // "à pousser" au prochain pushAllUserData() plutôt que d'être prise à tort pour déjà à jour.
     if(snakesRes.data){
-      const cloudSnakes = snakesRes.data.map(rowToSnake);
-      savedSnakes = mergeById(savedSnakes, cloudSnakes);
-      markSynced('snakes', cloudSnakes);
+      const remoteSnakes = snakesRes.data.map(rowToSnake);
+      savedSnakes = mergeById(savedSnakes, remoteSnakes);
+      markSynced('snakes', remoteSnakes);
       storage.save(savedSnakes);
     }
     if(racksRes.data && racksRes.data.length){
-      const cloudRacks = racksRes.data.map(r=>({ id:r.id, name:r.name, rows:r.rows, updatedAt: r.updated_at?Date.parse(r.updated_at):0 }));
-      racks = mergeById(racks, cloudRacks);
-      markSynced('racks', cloudRacks);
+      const remoteRacks = racksRes.data.map(r=>({ id:r.id, name:r.name, rows:r.rows, updatedAt: r.updated_at?Date.parse(r.updated_at):0 }));
+      racks = mergeById(racks, remoteRacks);
+      markSynced('racks', remoteRacks);
     }
     if(pairingsRes.data){
-      const cloudPairings = pairingsRes.data.map(p=>({...p.data, updatedAt: p.updated_at?Date.parse(p.updated_at):0 }));
-      pairings = mergeById(pairings, cloudPairings);
-      markSynced('pairings', cloudPairings);
+      const remotePairings = pairingsRes.data.map(p=>({...p.data, updatedAt: p.updated_at?Date.parse(p.updated_at):0 }));
+      pairings = mergeById(pairings, remotePairings);
+      markSynced('pairings', remotePairings);
     }
     if(clutchesRes.data){
-      const cloudClutches = clutchesRes.data.map(c=>({...c.data, updatedAt: c.updated_at?Date.parse(c.updated_at):0 }));
-      clutches = mergeById(clutches, cloudClutches);
-      markSynced('clutches', cloudClutches);
+      const remoteClutches = clutchesRes.data.map(c=>({...c.data, updatedAt: c.updated_at?Date.parse(c.updated_at):0 }));
+      clutches = mergeById(clutches, remoteClutches);
+      markSynced('clutches', remoteClutches);
     }
     if(expensesRes.data){
-      const cloudExpenses = expensesRes.data.map(ex=>({ id:ex.id, date:ex.date, category:ex.category, amount:ex.amount, note:ex.note, updatedAt: ex.updated_at?Date.parse(ex.updated_at):0 }));
-      expenses = mergeById(expenses, cloudExpenses);
-      markSynced('expenses', cloudExpenses);
+      const remoteExpenses = expensesRes.data.map(ex=>({ id:ex.id, date:ex.date, category:ex.category, amount:ex.amount, note:ex.note, updatedAt: ex.updated_at?Date.parse(ex.updated_at):0 }));
+      expenses = mergeById(expenses, remoteExpenses);
+      markSynced('expenses', remoteExpenses);
     }
     if(customersRes.data){
-      const cloudCustomers = customersRes.data.map(cu=>({...cu.data, updatedAt: cu.updated_at?Date.parse(cu.updated_at):0 }));
-      customers = mergeById(customers, cloudCustomers);
-      markSynced('customers', cloudCustomers);
+      const remoteCustomers = customersRes.data.map(cu=>({...cu.data, updatedAt: cu.updated_at?Date.parse(cu.updated_at):0 }));
+      customers = mergeById(customers, remoteCustomers);
+      markSynced('customers', remoteCustomers);
     }
     if(stateRes.data && stateRes.data.layout) layout = stateRes.data.layout;
     if(stateRes.data && stateRes.data.custom_events) customEvents = mergeById(customEvents, stateRes.data.custom_events);
@@ -7092,8 +7091,8 @@ async function pullAllUserData(){
       saveDismissedBanners(mergedBanners);
     }
     if(profileRes && profileRes.data && (profileRes.data.breeder_name || profileRes.data.email || profileRes.data.phone)){
-      // Le cloud gagne seulement si un profil y est déjà renseigné — sinon on garde ce qu'il y a en
-      // local (évite d'écraser une saisie locale pas encore poussée par un profil cloud vide).
+      // Le serveur gagne seulement si un profil y est déjà renseigné — sinon on garde ce qu'il y a en
+      // local (évite d'écraser une saisie locale pas encore poussée par un profil distant vide).
       const local = loadProfile();
       const merged = {
         breederName: profileRes.data.breeder_name || local.breederName,
@@ -7107,11 +7106,11 @@ async function pullAllUserData(){
     if(document.getElementById('racks-container')) renderRackGrid();
     if(document.getElementById('terrarium-list')) renderTerrariumList();
     if(document.getElementById('tour-grid')) renderTourGrid();
-    await pushAllUserData(); // pousse tout ce qui reste local-only (jamais encore synchronisé) après la fusion
-  }catch(e){ console.warn('LOCUS: échec récupération depuis le cloud', e); }
+    await pushAllUserData(); // pousse tout ce qui reste local-only (jamais encore poussé) après la fusion
+  }catch(e){ console.warn('LOCUS: échec récupération des données', e); }
 }
 
-// Mirroring en arrière-plan : après chaque sauvegarde locale, pousse aussi vers le cloud
+// Mirroring en arrière-plan : après chaque sauvegarde locale, pousse aussi vers le serveur
 // si un utilisateur est connecté. Fire-and-forget (ne bloque jamais l'UI locale).
 function mirrorSnakesRemote(){ if(sb && currentUser && !dataRefreshInProgress) pushAllUserData(); }
 
@@ -10646,6 +10645,19 @@ async function testFonctionD(){
   await new Promise(r=>setTimeout(r,10));
   debugPanel('🔍 test D — après le délai (pas de vrai appel réseau)');
 }
+// Test E (29 août) — le test le plus décisif : le VRAI appel réseau Supabase (sb.from('snakes')...)
+// mais avec des noms complètement neutres partout, aucune variable/fonction du vrai mécanisme de
+// sync touchée. Isole si c'est le MOTIF D'APPEL Supabase lui-même qui est neutralisé (auquel cas
+// renommer des variables ailleurs ne réglera jamais rien), ou si c'était vraiment les noms d'avant.
+async function testFonctionE(){
+  debugPanel('🔍 INTÉRIEUR test E — début');
+  try{
+    const resultat = await sb.from('snakes').select('id').limit(1);
+    debugPanel('🔍 test E → RÉUSSI, erreur:'+(resultat.error?JSON.stringify(resultat.error):'aucune')+' data:'+JSON.stringify(resultat.data));
+  }catch(erreurCapturee){
+    debugPanel('🔍 test E → EXCEPTION attrapée: '+erreurCapturee.message);
+  }
+}
 function debugPanel(message){
   let panel = document.getElementById('locus-debug-panel');
   if(!panel){
@@ -11801,7 +11813,7 @@ initPublicSpeciesGuide();
 
 // Accès rapide par QR de bac (?snake=<id>) — pour l'éleveur connecté, pas un visiteur externe :
 // scanner l'étiquette du bac saute direct à la fiche/journal de l'animal, sans chercher dans la
-// liste. Un léger délai de retentative couvre le cas où la synchro cloud n'est pas encore finie
+// liste. Un léger délai de retentative couvre le cas où la synchronisation des données n'est pas encore finie
 // au moment du chargement (juste après une connexion, par exemple).
 function routeToScannedSnake(attempt){
   const id = new URLSearchParams(location.search).get('snake');
