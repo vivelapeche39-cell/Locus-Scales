@@ -1782,7 +1782,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.92';
+const APP_VERSION = '2026.08.25.93';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2035,7 +2035,7 @@ if(sb){
     // session déjà active au chargement de la page (INITIAL_SESSION, ex. après avoir fermé et
     // rouvert le navigateur) — les deux doivent déclencher une synchronisation.
     if((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && currentUser){
-      refreshUserDataMirror().then(()=>backfillMissingPhotoUrls());
+      executerRequeteDonnees().then(()=>backfillMissingPhotoUrls());
     }
   });
 }
@@ -2151,14 +2151,14 @@ async function handleAuthSignIn(){
   showToast('🔐 '+(isEn?'Signed in successfully.':'Connecté avec succès.'), 'success');
   // Vraie cause trouvée (29 août) : le listener onAuthStateChange met currentUser à jour de façon
   // ASYNCHRONE, pas forcément avant que ce code-ci continue après le "await sbSignIn(...)" — donc
-  // appeler refreshUserDataMirror() ici pouvait tomber sur currentUser encore null et abandonner en silence
+  // appeler executerRequeteDonnees() ici pouvait tomber sur currentUser encore null et abandonner en silence
   // (retour immédiat sur la garde), sans jamais réessayer. On règle currentUser nous-mêmes tout de
   // suite à partir de la réponse de connexion elle-même, sans dépendre du timing du listener.
   if(res.data && res.data.session && res.data.session.user) currentUser = res.data.session.user;
   else if(res.data && res.data.user) currentUser = res.data.user;
   try{ updateAuthUI(); }catch(e){ console.warn('LOCUS: updateAuthUI a échoué', e); debugPanel('🔍 updateAuthUI EXCEPTION: '+e.message); }
-  debugPanel('🔍 JUSTE AVANT refreshUserDataMirror() — currentUser:'+(!!currentUser));
-  refreshUserDataMirror().then(()=>backfillMissingPhotoUrls());
+  debugPanel('🔍 JUSTE AVANT executerRequeteDonnees() — currentUser:'+(!!currentUser));
+  executerRequeteDonnees().then(()=>backfillMissingPhotoUrls());
 }
 async function handleAuthSignUp(){
   const isEn = currentLang==='en';
@@ -2177,7 +2177,7 @@ async function handleAuthSignUp(){
   if(res.data && res.data.session && res.data.session.user){
     currentUser = res.data.session.user;
     updateAuthUI();
-    refreshUserDataMirror();
+    executerRequeteDonnees();
   }
 }
 async function handleAuthSignOut(){
@@ -2191,7 +2191,7 @@ if(sb){
   sb.auth.getSession().then(({ data:{ session } }) => {
     currentUser = session ? session.user : null;
     updateAuthUI();
-    if(currentUser) refreshUserDataMirror();
+    if(currentUser) executerRequeteDonnees();
   });
 }
 
@@ -4249,7 +4249,7 @@ function openConfigModal(){
       '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); openNotifSettings();">🔔 '+(isEn?'Notifications':'Notifications')+'</button>'+
       '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); openStorageDetails();">💾 '+(isEn?'Storage space':'Espace de stockage')+'</button>'+
       '<button class="sc-btn" style="width:100%;" onclick="exportBackup();">📤 '+(isEn?'Export my backup':'Exporter ma sauvegarde')+'</button>'+
-      '<button class="sc-btn accent" style="width:100%;" onclick="debugPanel(\'🔍 Bouton manuel touché\'); refreshUserDataMirror();">🔄 Synchroniser maintenant (test)</button>'+
+      '<button class="sc-btn accent" style="width:100%;" onclick="debugPanel(\'🔍 Bouton manuel touché\'); executerRequeteDonnees();">🔄 Synchroniser maintenant (test)</button>'+
       '<button class="sc-btn accent" style="width:100%;background:#4a7c3a;" onclick="debugPanel(\'🔍 Bouton test B touché\'); testFonctionNeutre();">🧪 Test B (nom neutre)</button>'+
       '<button class="sc-btn accent" style="width:100%;background:#3a6c8a;" onclick="debugPanel(\'🔍 Bouton test C touché\'); testFonctionNeutreAsync();">🧪 Test C (async, nom neutre)</button>'+
       '<button class="sc-btn accent" style="width:100%;background:#8a3a6c;" onclick="debugPanel(\'🔍 Bouton test D touché\'); testFonctionD();">🧪 Test D (sans appel réseau)</button>'+
@@ -5282,7 +5282,7 @@ renderSavedList();
     const isEn = currentLang==='en';
     showToast(isEn?'Payment received! Syncing the sale status…':'Paiement reçu ! Synchronisation du statut de vente…', 'success');
     window.history.replaceState({}, '', window.location.pathname);
-    if(currentUser) setTimeout(()=>{ try{ refreshUserDataMirror(); }catch(e){} }, 2500);
+    if(currentUser) setTimeout(()=>{ try{ executerRequeteDonnees(); }catch(e){} }, 2500);
   } else if(params.get('stripe_refresh')){
     window.history.replaceState({}, '', window.location.pathname);
   }
@@ -6914,8 +6914,8 @@ function mergeById(localArr, cloudArr){
   return Object.values(byId);
 }
 
-async function refreshUserDataMirror(){
-  debugPanel('🔍 ENTRÉE refreshUserDataMirror — sb:'+(!!sb)+' user:'+(!!currentUser)+' lock:'+dataRefreshInProgress);
+async function executerRequeteDonnees(){
+  debugPanel('🔍 ENTRÉE executerRequeteDonnees — sb:'+(!!sb)+' user:'+(!!currentUser)+' lock:'+dataRefreshInProgress);
   if(!sb || !currentUser) return;
   // Filet de sécurité (29 août) — si le verrou est resté pris plus de 15 secondes, on considère que
   // la tentative précédente est morte silencieusement (pendaison réseau ou autre) plutôt que
@@ -10628,7 +10628,7 @@ function showToast(message, type){
 // Test B temporaire (29 août, incident en cours) — nom volontairement neutre et sans rapport
 // (aucun mot "sync"/"cloud") pour écarter l'hypothèse qu'un bloqueur de pub ou une extension Safari
 // neutralise spécifiquement une fonction selon son nom. Fait exactement la même première étape que
-// refreshUserDataMirror() : rien de plus. À retirer une fois le vrai blocage trouvé.
+// executerRequeteDonnees() : rien de plus. À retirer une fois le vrai blocage trouvé.
 function testFonctionNeutre(){
   debugPanel('🔍 INTÉRIEUR test B — sb:'+(!!sb)+' user:'+(!!currentUser));
 }
@@ -10637,7 +10637,7 @@ async function testFonctionNeutreAsync(){
   await new Promise(r=>setTimeout(r,10));
   debugPanel('🔍 test C — APRÈS un await');
 }
-// Test D (29 août) — même forme générale que refreshUserDataMirror (garde sync/user/lock), mais
+// Test D (29 août) — même forme générale que executerRequeteDonnees (garde sync/user/lock), mais
 // SANS l'appel sb.from('snakes')... : isole si c'est le CONTENU du corps (motif d'appel Supabase)
 // plutôt que le nom qui fait neutraliser toute la fonction par un bloqueur.
 async function testFonctionD(){
