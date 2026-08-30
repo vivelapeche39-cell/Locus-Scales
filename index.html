@@ -1812,7 +1812,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.13';
+const APP_VERSION = '2026.08.26.14';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -8276,13 +8276,24 @@ function renderTerrariumList(){
   const list = savedSnakes.filter(s=>s.placement.mode==='terrarium' && matchesSearch(s, elevageSearchTerm));
   wrap.innerHTML = list.length ? '' : '<div class="empty">'+(elevageSearchTerm?t('noTerrariumReptilesSearch'):t('noTerrariumReptiles'))+'</div>';
   list.forEach(s=>{
-    const chip = document.createElement('div');
-    chip.className = 'terrarium-chip selectable feed-'+feedingStatus(s);
-    chip.setAttribute('data-tooltip', snakeTooltip(s));
-    chip.innerHTML = '<span>'+escapeHtml(s.name)+' ('+(s.sex==='male'?'♂':'♀')+')</span>';
-    chip.addEventListener('click', ()=>openLogbook(s.id));
-    makeKeyboardClickable(chip, t('openSheetOf')+s.name);
-    wrap.appendChild(chip);
+    try{
+      const chip = document.createElement('div');
+      chip.className = 'terrarium-chip selectable feed-'+feedingStatus(s);
+      chip.setAttribute('data-tooltip', snakeTooltip(s));
+      chip.innerHTML = '<span>'+escapeHtml(s.name)+' ('+(s.sex==='male'?'♂':'♀')+')</span>';
+      chip.addEventListener('click', ()=>openLogbook(s.id));
+      makeKeyboardClickable(chip, t('openSheetOf')+s.name);
+      wrap.appendChild(chip);
+    }catch(erreur){
+      // Filet de sécurité (30 août) — une carte qui plante n'empêche plus les autres de s'afficher.
+      // L'erreur exacte s'affiche directement sur la carte fautive au lieu de rester invisible.
+      const errChip = document.createElement('div');
+      errChip.className = 'terrarium-chip';
+      errChip.style.cssText = 'border-color:#c0392b;background:rgba(192,57,43,.15);';
+      errChip.textContent = '⚠ '+s.name+' : '+erreur.message;
+      wrap.appendChild(errChip);
+      console.warn('LOCUS: erreur affichage carte terrarium pour '+s.name, erreur);
+    }
   });
 }
 
@@ -8328,25 +8339,33 @@ function renderTourGrid(){
         const snake = snakeAt(rack.id,row,t);
         const key = tubKey(rack.id,row,t);
         const cell = document.createElement('div');
-        const feedCls = snake ? ' feed-'+feedingStatus(snake) : '';
-        cell.className = 'tub' + (snake?' selectable':' empty') + feedCls + (tourSelection.has(key)?' selected':'');
-        let alertIcon = '';
-        let tag = '';
-        if(snake){
-          ensureSnakeMeta(snake);
-          if(isFeedingFlagged(snake)) alertIcon = '<span class="tub-alert">⚠</span>';
-          else if(weightDropping(snake)) alertIcon = '<span class="tub-alert">📉</span>';
-          if(feedingStatus(snake)!=='green'){
-            const dsf = daysSinceLastFed(snake);
-            tag = dsf!==null ? (dsf+(isEn?'d':'j')) : (isEn?'never fed':'jamais nourri');
+        try{
+          const feedCls = snake ? ' feed-'+feedingStatus(snake) : '';
+          cell.className = 'tub' + (snake?' selectable':' empty') + feedCls + (tourSelection.has(key)?' selected':'');
+          let alertIcon = '';
+          let tag = '';
+          if(snake){
+            ensureSnakeMeta(snake);
+            if(isFeedingFlagged(snake)) alertIcon = '<span class="tub-alert">⚠</span>';
+            else if(weightDropping(snake)) alertIcon = '<span class="tub-alert">📉</span>';
+            if(feedingStatus(snake)!=='green'){
+              const dsf = daysSinceLastFed(snake);
+              tag = dsf!==null ? (dsf+(isEn?'d':'j')) : (isEn?'never fed':'jamais nourri');
+            }
+            cell.setAttribute('data-tooltip', snakeTooltip(snake));
           }
-          cell.setAttribute('data-tooltip', snakeTooltip(snake));
-        }
-        cell.innerHTML = (snake ? '<div class="tub-name">'+escapeHtml(snake.name)+'</div><div class="tub-tag">'+tag+'</div>' : (isEn?'Tub ':'Bac ')+t+(isEn?' — empty':' — vide')) + alertIcon
-          + (snake ? '<span class="tub-prey" data-preytoggle="'+snake.id+'" title="'+(isEn?'Tap to switch live/frozen':'Toucher pour changer vivant/décongelé')+'">'+(snake.preyType==='live'?'🐭':'❄️')+'</span>' : '');
-        if(snake){
-          cell.addEventListener('click', ()=>{ tourSelection.has(key) ? tourSelection.delete(key) : tourSelection.add(key); renderTourGrid(); });
-          makeKeyboardClickable(cell, (tourSelection.has(key)?(isEn?'Deselect ':'Désélectionner '):(isEn?'Select ':'Sélectionner '))+snake.name);
+          cell.innerHTML = (snake ? '<div class="tub-name">'+escapeHtml(snake.name)+'</div><div class="tub-tag">'+tag+'</div>' : (isEn?'Tub ':'Bac ')+t+(isEn?' — empty':' — vide')) + alertIcon
+            + (snake ? '<span class="tub-prey" data-preytoggle="'+snake.id+'" title="'+(isEn?'Tap to switch live/frozen':'Toucher pour changer vivant/décongelé')+'">'+(snake.preyType==='live'?'🐭':'❄️')+'</span>' : '');
+          if(snake){
+            cell.addEventListener('click', ()=>{ tourSelection.has(key) ? tourSelection.delete(key) : tourSelection.add(key); renderTourGrid(); });
+            makeKeyboardClickable(cell, (tourSelection.has(key)?(isEn?'Deselect ':'Désélectionner '):(isEn?'Select ':'Sélectionner '))+snake.name);
+          }
+        }catch(erreur){
+          // Filet de sécurité (30 août) — voir renderTerrariumList pour l'explication complète.
+          cell.className = 'tub';
+          cell.style.cssText = 'border-color:#c0392b;background:rgba(192,57,43,.15);';
+          cell.textContent = '⚠ '+(snake?snake.name:'?')+' : '+erreur.message;
+          console.warn('LOCUS: erreur affichage bac Mode Tournée', erreur);
         }
         rowEl.appendChild(cell);
       }
@@ -8402,21 +8421,31 @@ function renderTourTerrariums(){
   const list = savedSnakes.filter(s=>s.placement.mode==='terrarium');
   wrap.innerHTML = list.length ? '' : '<div class="empty">'+t('noTerrariumReptiles')+'</div>';
   list.forEach(s=>{
-    const key = terraKey(s.id);
-    const chip = document.createElement('div');
-    let alertIcon = '';
-    if(isFeedingFlagged(s)) alertIcon = ' <span class="tc-alert">⚠</span>';
-    else if(weightDropping(s)) alertIcon = ' <span class="tc-alert">📉</span>';
-    chip.className = 'terrarium-chip selectable feed-'+feedingStatus(s) + (tourSelection.has(key)?' selected':'');
-    chip.setAttribute('data-tooltip', snakeTooltip(s));
-    const chipDsf = daysSinceLastFed(s);
-    const chipTag = feedingStatus(s)!=='green' ? (chipDsf!==null ? (isEn?' — '+chipDsf+'d':' — '+chipDsf+'j') : (isEn?' — never fed':' — jamais nourri')) : '';
-    chip.innerHTML = '<span>'+escapeHtml(s.name)+' ('+(s.sex==='male'?'♂':'♀')+')'+chipTag+alertIcon+'</span>'+
-      '<span class="tc-prey" data-preytoggle="'+s.id+'" title="'+(isEn?'Tap to switch live/frozen':'Toucher pour changer vivant/décongelé')+'">'+(s.preyType==='live'?'🐭':'❄️')+'</span>';
-    chip.querySelector('.tc-prey').addEventListener('click', (ev)=>{ ev.stopPropagation(); toggleTourPreyType(s.id); });
-    chip.addEventListener('click', ()=>{ tourSelection.has(key) ? tourSelection.delete(key) : tourSelection.add(key); renderTourGrid(); });
-    makeKeyboardClickable(chip, (tourSelection.has(key)?(isEn?'Deselect ':'Désélectionner '):(isEn?'Select ':'Sélectionner '))+s.name);
-    wrap.appendChild(chip);
+    try{
+      const key = terraKey(s.id);
+      const chip = document.createElement('div');
+      let alertIcon = '';
+      if(isFeedingFlagged(s)) alertIcon = ' <span class="tc-alert">⚠</span>';
+      else if(weightDropping(s)) alertIcon = ' <span class="tc-alert">📉</span>';
+      chip.className = 'terrarium-chip selectable feed-'+feedingStatus(s) + (tourSelection.has(key)?' selected':'');
+      chip.setAttribute('data-tooltip', snakeTooltip(s));
+      const chipDsf = daysSinceLastFed(s);
+      const chipTag = feedingStatus(s)!=='green' ? (chipDsf!==null ? (isEn?' — '+chipDsf+'d':' — '+chipDsf+'j') : (isEn?' — never fed':' — jamais nourri')) : '';
+      chip.innerHTML = '<span>'+escapeHtml(s.name)+' ('+(s.sex==='male'?'♂':'♀')+')'+chipTag+alertIcon+'</span>'+
+        '<span class="tc-prey" data-preytoggle="'+s.id+'" title="'+(isEn?'Tap to switch live/frozen':'Toucher pour changer vivant/décongelé')+'">'+(s.preyType==='live'?'🐭':'❄️')+'</span>';
+      chip.querySelector('.tc-prey').addEventListener('click', (ev)=>{ ev.stopPropagation(); toggleTourPreyType(s.id); });
+      chip.addEventListener('click', ()=>{ tourSelection.has(key) ? tourSelection.delete(key) : tourSelection.add(key); renderTourGrid(); });
+      makeKeyboardClickable(chip, (tourSelection.has(key)?(isEn?'Deselect ':'Désélectionner '):(isEn?'Select ':'Sélectionner '))+s.name);
+      wrap.appendChild(chip);
+    }catch(erreur){
+      // Filet de sécurité (30 août) — voir renderTerrariumList pour l'explication complète.
+      const errChip = document.createElement('div');
+      errChip.className = 'terrarium-chip';
+      errChip.style.cssText = 'border-color:#c0392b;background:rgba(192,57,43,.15);';
+      errChip.textContent = '⚠ '+s.name+' : '+erreur.message;
+      wrap.appendChild(errChip);
+      console.warn('LOCUS: erreur affichage puce terrarium (Mode Tournée) pour '+s.name, erreur);
+    }
   });
   const selBtn = document.getElementById('tour-select-terra');
   if(selBtn) selBtn.onclick = ()=>{ list.forEach(s=>tourSelection.add(terraKey(s.id))); renderTourGrid(); };
