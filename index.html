@@ -1782,7 +1782,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.25.93';
+const APP_VERSION = '2026.08.25.94';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -6915,6 +6915,7 @@ function mergeById(localArr, cloudArr){
 }
 
 async function executerRequeteDonnees(){
+  debugPanel('🔍 TEST MINIMAL — aucune variable référencée');
   debugPanel('🔍 ENTRÉE executerRequeteDonnees — sb:'+(!!sb)+' user:'+(!!currentUser)+' lock:'+dataRefreshInProgress);
   if(!sb || !currentUser) return;
   // Filet de sécurité (29 août) — si le verrou est resté pris plus de 15 secondes, on considère que
