@@ -1812,7 +1812,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.14';
+const APP_VERSION = '2026.08.26.16';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2771,8 +2771,8 @@ function applyPersonalizationUI(){
   // laisser l'éleveur sur un écran devenu inaccessible depuis la barre de navigation.
   const activeTab = document.querySelector('.tab-btn.active');
   if(activeTab){
-    const t = activeTab.dataset.tab;
-    if((t==='elevage' && !elevageOn) || (t==='ventes' && !ventesOn) || (t==='incubation' && !personalizationPrefs.incubation) || (t==='calc' && !personalizationPrefs.calc) || (t==='utilitaire' && !personalizationPrefs.communaute)) showTab('dash');
+    const activeTabName = activeTab.dataset.tab;
+    if((activeTabName==='elevage' && !elevageOn) || (activeTabName==='ventes' && !ventesOn) || (activeTabName==='incubation' && !personalizationPrefs.incubation) || (activeTabName==='calc' && !personalizationPrefs.calc) || (activeTabName==='utilitaire' && !personalizationPrefs.communaute)) showTab('dash');
   }
   const activeSub = document.querySelector('#view-elevage .subtab-btn.active');
   if(activeSub && activeSub.dataset.sub && personalizationPrefs[activeSub.dataset.sub]===false && elevageOn){
@@ -4917,8 +4917,8 @@ function expectedWeightRange(ageMonths){
   for(let i=0;i<pts.length-1;i++){
     const a=pts[i], b=pts[i+1];
     if(ageMonths>=a.m && ageMonths<=b.m){
-      const t=(ageMonths-a.m)/(b.m-a.m);
-      return { min: Math.round(a.min+(b.min-a.min)*t), max: Math.round(a.max+(b.max-a.max)*t) };
+      const ratio=(ageMonths-a.m)/(b.m-a.m);
+      return { min: Math.round(a.min+(b.min-a.min)*ratio), max: Math.round(a.max+(b.max-a.max)*ratio) };
     }
   }
   return null;
@@ -8087,13 +8087,13 @@ function showSubtab(sub){
 var elevageSearchTerm = '';
 function matchesSearch(s, term){
   if(!term) return true;
-  const t = term.toLowerCase();
-  if(s.name.toLowerCase().includes(t)) return true;
-  if(s.provenance && s.provenance.toLowerCase().includes(t)) return true;
+  const q = term.toLowerCase();
+  if(s.name.toLowerCase().includes(q)) return true;
+  if(s.provenance && s.provenance.toLowerCase().includes(q)) return true;
   return Object.keys(s.genes).some(gid=>{
-    if(isFreewayKey(gid)) return freewayLabel(freewayLocusFromKey(gid)).toLowerCase().includes(t);
+    if(isFreewayKey(gid)) return freewayLabel(freewayLocusFromKey(gid)).toLowerCase().includes(q);
     const g = GENES.find(x=>x.id===gid);
-    return g && g.name.toLowerCase().includes(t);
+    return g && g.name.toLowerCase().includes(q);
   });
 }
 function snakeTooltip(s){
@@ -8277,7 +8277,7 @@ function renderTerrariumList(){
   wrap.innerHTML = list.length ? '' : '<div class="empty">'+(elevageSearchTerm?t('noTerrariumReptilesSearch'):t('noTerrariumReptiles'))+'</div>';
   list.forEach(s=>{
     try{
-      const chip = document.createElement('div');
+      var chip = document.createElement('div');
       chip.className = 'terrarium-chip selectable feed-'+feedingStatus(s);
       chip.setAttribute('data-tooltip', snakeTooltip(s));
       chip.innerHTML = '<span>'+escapeHtml(s.name)+' ('+(s.sex==='male'?'♂':'♀')+')</span>';
@@ -8287,7 +8287,7 @@ function renderTerrariumList(){
     }catch(erreur){
       // Filet de sécurité (30 août) — une carte qui plante n'empêche plus les autres de s'afficher.
       // L'erreur exacte s'affiche directement sur la carte fautive au lieu de rester invisible.
-      const errChip = document.createElement('div');
+      var errChip = document.createElement('div');
       errChip.className = 'terrarium-chip';
       errChip.style.cssText = 'border-color:#c0392b;background:rgba(192,57,43,.15);';
       errChip.textContent = '⚠ '+s.name+' : '+erreur.message;
@@ -8332,29 +8332,29 @@ function renderTourGrid(){
       const rowEl = document.createElement('div');
       rowEl.className = 'rack-row';
       const rowKeys = [];
-      for(let t=1;t<=tubCount;t++){ if(snakeAt(rack.id,row,t)) rowKeys.push(tubKey(rack.id,row,t)); }
+      for(let tubIdx=1;tubIdx<=tubCount;tubIdx++){ if(snakeAt(rack.id,row,tubIdx)) rowKeys.push(tubKey(rack.id,row,tubIdx)); }
       const rowFullySelected = rowKeys.length>0 && rowKeys.every(k=>tourSelection.has(k));
       rowEl.innerHTML = '<span class="rack-row-label">'+(isEn?'Row ':'Rangée ')+row+'</span><button class="rack-row-select'+(rowFullySelected?' active':'')+'" data-rack="'+rack.id+'" data-row="'+row+'">'+(rowFullySelected?(isEn?'✓ Selected':'✓ Sélectionnée'):(isEn?'Sel. row':'Sél. rangée'))+'</button>';
-      for(let t=1;t<=tubCount;t++){
-        const snake = snakeAt(rack.id,row,t);
-        const key = tubKey(rack.id,row,t);
-        const cell = document.createElement('div');
+      for(let tubIdx=1;tubIdx<=tubCount;tubIdx++){
+        var snake = snakeAt(rack.id,row,tubIdx);
+        var key = tubKey(rack.id,row,tubIdx);
+        var cell = document.createElement('div');
         try{
-          const feedCls = snake ? ' feed-'+feedingStatus(snake) : '';
+          var feedCls = snake ? ' feed-'+feedingStatus(snake) : '';
           cell.className = 'tub' + (snake?' selectable':' empty') + feedCls + (tourSelection.has(key)?' selected':'');
-          let alertIcon = '';
-          let tag = '';
+          var alertIcon = '';
+          var tag = '';
           if(snake){
             ensureSnakeMeta(snake);
             if(isFeedingFlagged(snake)) alertIcon = '<span class="tub-alert">⚠</span>';
             else if(weightDropping(snake)) alertIcon = '<span class="tub-alert">📉</span>';
             if(feedingStatus(snake)!=='green'){
-              const dsf = daysSinceLastFed(snake);
+              var dsf = daysSinceLastFed(snake);
               tag = dsf!==null ? (dsf+(isEn?'d':'j')) : (isEn?'never fed':'jamais nourri');
             }
             cell.setAttribute('data-tooltip', snakeTooltip(snake));
           }
-          cell.innerHTML = (snake ? '<div class="tub-name">'+escapeHtml(snake.name)+'</div><div class="tub-tag">'+tag+'</div>' : (isEn?'Tub ':'Bac ')+t+(isEn?' — empty':' — vide')) + alertIcon
+          cell.innerHTML = (snake ? '<div class="tub-name">'+escapeHtml(snake.name)+'</div><div class="tub-tag">'+tag+'</div>' : (isEn?'Tub ':'Bac ')+tubIdx+(isEn?' — empty':' — vide')) + alertIcon
             + (snake ? '<span class="tub-prey" data-preytoggle="'+snake.id+'" title="'+(isEn?'Tap to switch live/frozen':'Toucher pour changer vivant/décongelé')+'">'+(snake.preyType==='live'?'🐭':'❄️')+'</span>' : '');
           if(snake){
             cell.addEventListener('click', ()=>{ tourSelection.has(key) ? tourSelection.delete(key) : tourSelection.add(key); renderTourGrid(); });
@@ -8384,7 +8384,7 @@ function renderTourGrid(){
       const rack = getRack(rackId);
       const tubCount = rack.rows[row-1];
       const rowKeys = [];
-      for(let t=1;t<=tubCount;t++){ if(snakeAt(rackId,row,t)) rowKeys.push(tubKey(rackId,row,t)); }
+      for(let tubIdx=1;tubIdx<=tubCount;tubIdx++){ if(snakeAt(rackId,row,tubIdx)) rowKeys.push(tubKey(rackId,row,tubIdx)); }
       const alreadyFull = rowKeys.length>0 && rowKeys.every(k=>tourSelection.has(k));
       if(alreadyFull){
         rowKeys.forEach(k=>tourSelection.delete(k));
@@ -8402,7 +8402,7 @@ function renderTourGrid(){
       let count = 0;
       rack.rows.forEach((tubCount, rowIdx)=>{
         const row = rowIdx+1;
-        for(let t=1;t<=tubCount;t++){ if(snakeAt(rack.id,row,t)){ tourSelection.add(tubKey(rack.id,row,t)); count++; } }
+        for(let tubIdx=1;tubIdx<=tubCount;tubIdx++){ if(snakeAt(rack.id,row,tubIdx)){ tourSelection.add(tubKey(rack.id,row,tubIdx)); count++; } }
       });
       showToast('⚡ "'+rack.name+'" '+(isEn?'selected — ':'sélectionné — ')+count+' reptile(s).', 'success');
       renderTourGrid();
@@ -8422,15 +8422,15 @@ function renderTourTerrariums(){
   wrap.innerHTML = list.length ? '' : '<div class="empty">'+t('noTerrariumReptiles')+'</div>';
   list.forEach(s=>{
     try{
-      const key = terraKey(s.id);
-      const chip = document.createElement('div');
-      let alertIcon = '';
+      var key = terraKey(s.id);
+      var chip = document.createElement('div');
+      var alertIcon = '';
       if(isFeedingFlagged(s)) alertIcon = ' <span class="tc-alert">⚠</span>';
       else if(weightDropping(s)) alertIcon = ' <span class="tc-alert">📉</span>';
       chip.className = 'terrarium-chip selectable feed-'+feedingStatus(s) + (tourSelection.has(key)?' selected':'');
       chip.setAttribute('data-tooltip', snakeTooltip(s));
-      const chipDsf = daysSinceLastFed(s);
-      const chipTag = feedingStatus(s)!=='green' ? (chipDsf!==null ? (isEn?' — '+chipDsf+'d':' — '+chipDsf+'j') : (isEn?' — never fed':' — jamais nourri')) : '';
+      var chipDsf = daysSinceLastFed(s);
+      var chipTag = feedingStatus(s)!=='green' ? (chipDsf!==null ? (isEn?' — '+chipDsf+'d':' — '+chipDsf+'j') : (isEn?' — never fed':' — jamais nourri')) : '';
       chip.innerHTML = '<span>'+escapeHtml(s.name)+' ('+(s.sex==='male'?'♂':'♀')+')'+chipTag+alertIcon+'</span>'+
         '<span class="tc-prey" data-preytoggle="'+s.id+'" title="'+(isEn?'Tap to switch live/frozen':'Toucher pour changer vivant/décongelé')+'">'+(s.preyType==='live'?'🐭':'❄️')+'</span>';
       chip.querySelector('.tc-prey').addEventListener('click', (ev)=>{ ev.stopPropagation(); toggleTourPreyType(s.id); });
@@ -10604,8 +10604,8 @@ function renderClientsView(){
   const wrap = document.getElementById('clients-list');
   let entries = Object.entries(dir);
   if(clientSearchTerm){
-    const t = clientSearchTerm.toLowerCase();
-    entries = entries.filter(([key, data])=> data.displayName.toLowerCase().includes(t));
+    const q = clientSearchTerm.toLowerCase();
+    entries = entries.filter(([key, data])=> data.displayName.toLowerCase().includes(q));
   }
   entries.sort((a,b)=> b[1].sales.length - a[1].sales.length);
 
@@ -11016,25 +11016,25 @@ function renderDashboard(){
 function runGlobalSearch(term){
   const isEn = currentLang==='en';
   const resultsWrap = document.getElementById('global-search-results');
-  const t = term.trim().toLowerCase();
-  if(t.length<2){ resultsWrap.style.display='none'; resultsWrap.innerHTML=''; return; }
+  const q = term.trim().toLowerCase();
+  if(q.length<2){ resultsWrap.style.display='none'; resultsWrap.innerHTML=''; return; }
 
   const snakeMatches = savedSnakes.filter(s=>{
-    if(s.name.toLowerCase().includes(t)) return true;
-    if(s.provenance && s.provenance.toLowerCase().includes(t)) return true;
-    if(s.buyer && s.buyer.toLowerCase().includes(t)) return true;
-    if(s.species && s.species!=='ball_python' && speciesDisplayLabel(s.species).toLowerCase().includes(t)) return true;
+    if(s.name.toLowerCase().includes(q)) return true;
+    if(s.provenance && s.provenance.toLowerCase().includes(q)) return true;
+    if(s.buyer && s.buyer.toLowerCase().includes(q)) return true;
+    if(s.species && s.species!=='ball_python' && speciesDisplayLabel(s.species).toLowerCase().includes(q)) return true;
     return Object.keys(s.genes).some(gid=>{
-      if(isFreewayKey(gid)) return freewayLabel(freewayLocusFromKey(gid)).toLowerCase().includes(t);
+      if(isFreewayKey(gid)) return freewayLabel(freewayLocusFromKey(gid)).toLowerCase().includes(q);
       const g = GENES.find(x=>x.id===gid);
-      return g && g.name.toLowerCase().includes(t);
+      return g && g.name.toLowerCase().includes(q);
     });
   }).slice(0,8);
 
-  const geneMatches = GENES.filter(g=>g.name.toLowerCase().includes(t)).slice(0,5);
+  const geneMatches = GENES.filter(g=>g.name.toLowerCase().includes(q)).slice(0,5);
 
   const clientDir = buildClientDirectory();
-  const clientMatches = Object.entries(clientDir).filter(([key,data])=>data.displayName.toLowerCase().includes(t)).slice(0,5);
+  const clientMatches = Object.entries(clientDir).filter(([key,data])=>data.displayName.toLowerCase().includes(q)).slice(0,5);
 
   let html = '';
   if(snakeMatches.length){
