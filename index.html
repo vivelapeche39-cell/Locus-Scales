@@ -1782,7 +1782,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.03';
+const APP_VERSION = '2026.08.26.04';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -1850,7 +1850,7 @@ const DEFAULT_FEEDING_INTERVAL = 7; // jours — utilisé si l'éleveur n'a pas 
 const SUPABASE_URL = 'https://dkhmqkkmnexqixmkvzjo.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_I2FZIZG6pXqXRfKbHjKPkQ_VLNf9dGk';
 var sb = null;
-let sbInitError = null;
+var sbInitError = null;
 try{
   if(!window.supabase || typeof window.supabase.createClient !== 'function'){
     throw new Error('SDK Supabase non chargé (bloqueur de pub, hors-ligne, ou accès CDN bloqué).');
@@ -2390,12 +2390,12 @@ const CATS_ORDER = Object.entries(CAT_COUNTS).sort((a,b)=>b[1]-a[1]).map(e=>e[0]
 
 /* ---------------- UI BUILD ---------------- */
 const state = { male:{}, female:{}, draft:{}, objectif:{} };
-let draftSex = 'male';
+var draftSex = 'male';
 // Couche d'abstraction persistance : localStorage pour la phase de test.
 // Remplacer plus tard par des appels API (backend) sans toucher le reste du code —
 // seul ce bloc doit changer, tant que load()/save() gardent la même signature.
 const STORAGE_KEY = 'locus_snakes_v1';
-let storageWriteFailed = false; // vrai dès qu'une écriture localStorage échoue (quota dépassé, mode privé, etc.)
+var storageWriteFailed = false; // vrai dès qu'une écriture localStorage échoue (quota dépassé, mode privé, etc.)
 
 // ==================== Suivi des modifications locales (envoi cible vers le serveur) ====================
 // Avant, pushAllUserData() repoussait TOUT le tableau vers Supabase à chaque sauvegarde, même pour un
@@ -2504,10 +2504,10 @@ function closeAppMenu(){ document.getElementById('app-menu-overlay').classList.r
    (connecté ou non), personne (même connecté) ne peut relire les rapports via l'app — voir la
    politique RLS sur bug_reports. La capture d'écran, si fournie, est stockée en base64 directement
    dans la table (pas de bucket Storage séparé — volume attendu trop faible pour le justifier). */
-let bugReportScreenshotData = null;
+var bugReportScreenshotData = null;
 // Comparaison photo avant/après (25 août) — palier PAYANT (pas Gratuit, décision Alex 25 août).
 // Réutilise s.photos déjà existant, aucune nouvelle donnée à stocker.
-let photoCompareSnakeId = null;
+var photoCompareSnakeId = null;
 function openPhotoCompare(id){
   const isEn = currentLang==='en';
   const s = savedSnakes.find(x=>x.id===id);
@@ -2662,7 +2662,7 @@ function loadDashCardPrefs(){
   DASH_CARDS.forEach(c=> prefs[c.key] = true);
   return prefs;
 }
-let dashCardPrefs = loadDashCardPrefs();
+var dashCardPrefs = loadDashCardPrefs();
 function saveDashCardPrefs(){
   try{ localStorage.setItem(DASH_CARDS_KEY, JSON.stringify(dashCardPrefs)); }catch(e){}
 }
@@ -2717,7 +2717,7 @@ function loadPersonalization(){
   PERSONALIZATION_FEATURES.forEach(f=>{ prefs[f.key] = !legacySimplified; });
   return prefs;
 }
-let personalizationPrefs = loadPersonalization();
+var personalizationPrefs = loadPersonalization();
 function savePersonalization(){
   try{ localStorage.setItem(PERSONALIZATION_KEY, JSON.stringify(personalizationPrefs)); }catch(e){}
 }
@@ -3996,7 +3996,7 @@ const I18N = {
   },
 };
 
-let currentLang = 'fr';
+var currentLang = 'fr';
 
 // Renvoie la traduction pour la langue active — retombe sur le français, puis sur
 // la clé elle-même si vraiment rien n'est trouvé (jamais un texte vide affiché).
@@ -4273,9 +4273,9 @@ function openStorageDetails(){
   );
 }
 
-let savedSnakes = storage.load();
+var savedSnakes = storage.load();
 markSynced('snakes', savedSnakes);
-let editingId = null;
+var editingId = null;
 updateStorageBanner();
 
 function defaultStatus(gene){
@@ -4366,7 +4366,7 @@ function buildSearchIndex(){
 }
 const SEARCH_INDEX = buildSearchIndex();
 
-let makerStatus = 'unknown'; // 'unknown' | 'male' | 'female' — s'applique au reproducteur mâle
+var makerStatus = 'unknown'; // 'unknown' | 'male' | 'female' — s'applique au reproducteur mâle
 function activeMakerGene(sex){
   // Trouve, dans les gènes sélectionnés côté "sex", le premier gène marqué sexLinkedMaker dans GENES.
   // Générique : fonctionne pour n'importe quel gène futur portant ce flag, sans toucher cette logique.
@@ -5006,15 +5006,15 @@ function loadSnake(id, targetSex){
   renderTags(targetSex);
 }
 
-let mineSearchTerm = '';
-let mineStatusFilter = 'all';
-let mineSexFilter = 'all';
-let mineVerifiedFilter = 'all';
-let mineTagFilter = 'all';
-let batchSelectMode = false;
-let batchSelectedIds = new Set();
-let mineSortBy = 'created';
-let dashSpeciesFilter = 'all'; // filtre par espèce sur le dashboard — utile seulement si plusieurs espèces cohabitent
+var mineSearchTerm = '';
+var mineStatusFilter = 'all';
+var mineSexFilter = 'all';
+var mineVerifiedFilter = 'all';
+var mineTagFilter = 'all';
+var batchSelectMode = false;
+var batchSelectedIds = new Set();
+var mineSortBy = 'created';
+var dashSpeciesFilter = 'all'; // filtre par espèce sur le dashboard — utile seulement si plusieurs espèces cohabitent
 
 function sortSnakes(list, sortBy){
   const arr = [...list];
@@ -5545,9 +5545,9 @@ function updateSexNote(){
   }
 }
 
-let lastResults = [];
-let lastDistributions = []; // brut, non agrégé — nécessaire pour reconstruire un génotype exact par œuf
-let lastFreewayLoci = []; // loci où un parent est "Freeway" (identité non confirmée) — exclus du calcul
+var lastResults = [];
+var lastDistributions = []; // brut, non agrégé — nécessaire pour reconstruire un génotype exact par œuf
+var lastFreewayLoci = []; // loci où un parent est "Freeway" (identité non confirmée) — exclus du calcul
 
 function activeFreewayLoci(){
   const loci = new Set();
@@ -5557,7 +5557,7 @@ function activeFreewayLoci(){
   return Array.from(loci);
 }
 
-let lastUncertainGenes = []; // gènes marqués "Possible" chez un parent — exclus du calcul, affichés à part
+var lastUncertainGenes = []; // gènes marqués "Possible" chez un parent — exclus du calcul, affichés à part
 function activeUncertainGenes(){
   const list = [];
   ['male','female'].forEach(sex=>{
@@ -5573,7 +5573,7 @@ function activeUncertainGenes(){
   return list;
 }
 
-let lastUnknownTypeGenes = []; // gènes dont le mode de transmission (récessif/dominant/codominant) n'est pas confirmé
+var lastUnknownTypeGenes = []; // gènes dont le mode de transmission (récessif/dominant/codominant) n'est pas confirmé
 function activeUnknownTypeGenes(){
   const list = [];
   ['male','female'].forEach(sex=>{
@@ -5807,7 +5807,7 @@ function sampleEgg(){
   return { name: visuals.length ? visuals.join(' ') : 'Normal', hets, genotype: picked.genotype, warnings: [...new Set(warnings)] };
 }
 
-let lastClutchEggs = []; // dernier tirage affiché — réutilisé par markClutchHatched() pour créer les fiches
+var lastClutchEggs = []; // dernier tirage affiché — réutilisé par markClutchHatched() pour créer les fiches
 
 function simulateClutch(){
   if(lastDistributions.length===0) return;
@@ -5830,9 +5830,9 @@ function simulateClutch(){
   }
 }
 
-let actualCounts = {};
+var actualCounts = {};
 
-let priceByIndex = {};
+var priceByIndex = {};
 
 function renderActualPanel(){
   actualCounts = {};
@@ -5958,7 +5958,7 @@ function deleteVetVisit(id, visitId){
   if(listEl) listEl.innerHTML = renderVetVisitsHtml(s);
 }
 
-let currentLogbookId = null; // suit quelle fiche est ouverte, pour pouvoir la régénérer au changement de langue
+var currentLogbookId = null; // suit quelle fiche est ouverte, pour pouvoir la régénérer au changement de langue
 function openLogbook(id){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
@@ -6765,8 +6765,8 @@ function deleteDefecation(id, defecationId){
 
 // Pesée en lot (Mode Tournée) : enchaîne une mini-modale par reptile sélectionné au lieu
 // d'une chaîne de prompt() — avec indicateur de progression et bouton "Passer" par bête.
-let batchWeighQueue = [];
-let batchWeighIndex = 0;
+var batchWeighQueue = [];
+var batchWeighIndex = 0;
 function startBatchWeigh(snakes, index){
   batchWeighQueue = snakes;
   batchWeighIndex = index;
@@ -6843,19 +6843,19 @@ function saveElevage(){
   updateStorageBanner();
   if(typeof mirrorSnakesRemote==='function') mirrorSnakesRemote();
 }
-let elevageData = loadElevage();
-let { pairings, layout, clutches, expenses, customers } = elevageData;
+var elevageData = loadElevage();
+var { pairings, layout, clutches, expenses, customers } = elevageData;
 (pairings||[]).forEach(p=>{ if(!p.follicleSizes) p.follicleSizes = []; }); // migration : suivi folliculaire ajouté après coup
-let customEvents = elevageData.customEvents || [];
+var customEvents = elevageData.customEvents || [];
 // Projets multi-générations — regroupe des accouplements sur plusieurs saisons vers un objectif
 // génétique précis (ex. « Bumblebee project »). Stocké comme customEvents : local dans
 // locus_elevage_v1, synchronisé au serveur via app_state.projects (voir pushAllUserData/pullAllUserData).
-let projects = elevageData.projects || [];
+var projects = elevageData.projects || [];
 // Inventaire de proies (25 août) — stock par catégorie ("mouse|Weanling", "rat|Small", etc.),
 // décompté automatiquement à chaque repas loggé si l'animal a un preySpecies/preySize renseigné.
 // Global à la collection (pas par animal) : un seul congélateur, peu importe combien de bouches à nourrir.
-let feederStock = elevageData.feederStock || {};
-let racks = elevageData.racks;
+var feederStock = elevageData.feederStock || {};
+var racks = elevageData.racks;
 // Migration : anciennes sauvegardes qui n'avaient qu'un seul rack uniforme (rackDims) —
 // converties une seule fois vers le nouveau modèle multi-racks, aucune perte de données.
 if(!racks && elevageData.rackDims){
@@ -7804,7 +7804,7 @@ function exportICS(){
 /* ==================== Gestion de nourriture : liste de décongélation ==================== */
 // Réutilise nextFeedingDate() déjà construit pour le calendrier du tableau de bord — même logique
 // de projection, juste agrégée par espèce+taille de proie plutôt que listée reptile par reptile.
-let foodHorizonDays = 7;
+var foodHorizonDays = 7;
 function renderFoodView(){
   const isEn = currentLang==='en';
   savedSnakes.forEach(ensureSnakeMeta);
@@ -7954,7 +7954,7 @@ function showSubtab(sub){
 }
 
 /* ---- Racks & Terrariums ---- */
-let elevageSearchTerm = '';
+var elevageSearchTerm = '';
 function matchesSearch(s, term){
   if(!term) return true;
   const t = term.toLowerCase();
@@ -8163,7 +8163,7 @@ document.getElementById('elevage-search-input').addEventListener('input', (e)=>{
 });
 
 /* ---- Mode Tournée ---- */
-let tourSelection = new Set();
+var tourSelection = new Set();
 function terraKey(id){ return 'terra:'+id; }
 function snakeFromKey(key){
   if(key.startsWith('terra:')) return savedSnakes.find(s=>s.id===key.slice(6));
@@ -10117,7 +10117,7 @@ function hatchlingTimeline(birthDate){
 }
 
 // Génère titre + description prêts à coller dans une annonce MorphMarket à partir des données déjà en base.
-let listingLang = 'en'; // langue de l'annonce MorphMarket — anglais par défaut (site anglophone), modifiable par l'utilisateur
+var listingLang = 'en'; // langue de l'annonce MorphMarket — anglais par défaut (site anglophone), modifiable par l'utilisateur
 
 function generateListingText(id, lang){
   lang = lang || listingLang;
@@ -10344,8 +10344,8 @@ async function exportMorphMarketBulk(){
 }
 
 /* ==================== ONGLET VENTES ==================== */
-let salesStatusFilter = 'forsale';
-let salesSortBy = 'name';
+var salesStatusFilter = 'forsale';
+var salesSortBy = 'name';
 
 /* ==================== FICHE CLIENT ==================== */
 // Dérivé automatiquement des ventes existantes (s.buyer/soldPrice/soldDate) — pas de ressaisie.
@@ -10439,7 +10439,7 @@ function buildClientDirectory(){
 
 function findCustomerRecord(key){ return customers.find(c=>normalizedBuyerKey(c.name)===key); }
 
-let clientSearchTerm = '';
+var clientSearchTerm = '';
 function renderClientsView(){
   const dir = buildClientDirectory();
   const wrap = document.getElementById('clients-list');
@@ -10902,7 +10902,7 @@ function loadNotifPrefs(){
 function saveNotifPrefs(prefs){
   try{ localStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify(prefs)); }catch(e){}
 }
-let notifPrefs = loadNotifPrefs();
+var notifPrefs = loadNotifPrefs();
 
 function updateNotifBell(){
   const btn = document.getElementById('notif-bell-btn');
@@ -11102,7 +11102,7 @@ function fiscalYearsAvailable(){
   return Array.from(years).sort().reverse();
 }
 
-let fiscalYear = String(new Date().getFullYear());
+var fiscalYear = String(new Date().getFullYear());
 
 // Export Excel du rapport fiscal (ventes + dépenses) de l'année sélectionnée, avec un
 // onglet résumé. Utilise SheetJS (chargé via CDN) — génère le fichier entièrement côté
@@ -11562,8 +11562,8 @@ function renderHealthLog(){
 // community_faq, RLS : lecture publique si approuvée, écriture propre à l'auteur, modération
 // réservée au drapeau is_admin sur profiles). Distincte de HUSBANDRY_FAQ (contenu officiel/sourcé
 // par LOCUS) — celle-ci est du contenu généré par la communauté, publié seulement après révision.
-let isAdminUser = false;
-let userTier = 'gratuit'; // palier tarifaire du compte connecté — voir hasAccess() tout en haut du fichier
+var isAdminUser = false;
+var userTier = 'gratuit'; // palier tarifaire du compte connecté — voir hasAccess() tout en haut du fichier
 async function checkAdminStatus(){
   if(!currentUser || !sb){ isAdminUser = false; userTier = 'gratuit'; return false; }
   try{
