@@ -1800,7 +1800,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.07';
+const APP_VERSION = '2026.08.26.08';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -7167,12 +7167,19 @@ async function pullAllUserData(){
       try{ localStorage.setItem(PROFILE_KEY, JSON.stringify(merged)); }catch(e){}
     }
     saveElevage();
+    await pushAllUserData(); // pousse tout ce qui reste local-only (jamais encore poussé) après la fusion
+  }catch(e){
+    console.warn('LOCUS: échec récupération des données', e);
+  } finally {
+    // Filet de sécurité (30 août) — TOUJOURS ré-afficher avec l'état actuel de la mémoire, même si
+    // la fusion a échoué à mi-chemin (ex. une seule des 8 requêtes malformée). Avant ce correctif,
+    // une exception n'importe où plus haut empêchait ces 4 lignes de s'exécuter, laissant l'écran
+    // figé sur du vide sans aucun message d'erreur — exactement le symptôme d'instabilité rapporté.
     renderSavedList();
     if(document.getElementById('racks-container')) renderRackGrid();
     if(document.getElementById('terrarium-list')) renderTerrariumList();
     if(document.getElementById('tour-grid')) renderTourGrid();
-    await pushAllUserData(); // pousse tout ce qui reste local-only (jamais encore poussé) après la fusion
-  }catch(e){ console.warn('LOCUS: échec récupération des données', e); }
+  }
 }
 
 // Mirroring en arrière-plan : après chaque sauvegarde locale, pousse aussi vers le serveur
