@@ -1005,7 +1005,60 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
 
   <div id="view-mine" style="display:none;">
     <div id="onboarding-banner-firstsnake" class="onboarding-banner" style="display:none;"></div>
-    <div class="specimen" id="panel-draft">
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+      <button class="sc-btn accent" id="mine-toggle-draft-btn" style="flex:1;min-width:150px;" onclick="toggleDraftPanel()">➕ <span data-i18n="newReptileTitle">Nouveau reptile</span></button>
+      <button class="sc-btn" id="mine-toggle-filters-btn" style="flex:1;min-width:150px;" onclick="toggleFilterPanel()">🔍 <span data-i18n="filtersSortBtn">Filtres & tri</span></button>
+    </div>
+
+    <div id="genetic-health-container"></div>
+    <div id="saved-grid" class="saved-grid"></div>
+
+    <div id="mine-filters-panel" style="display:none;margin-top:22px;">
+      <div class="elevage-search">
+        <input type="text" id="mine-search-input" data-i18n-placeholder="searchMinePlaceholder" placeholder="🔍 Rechercher un reptile par nom ou par gène…" autocomplete="off"/>
+      </div>
+      <div class="mine-filter-bar">
+        <div class="mine-filter-group" id="mine-status-filters">
+          <button class="filter-chip active" data-status="all" data-i18n="filterAll">Tous</button>
+          <button class="filter-chip" data-status="kept" data-i18n="filterKept">Conservé</button>
+          <button class="filter-chip" data-status="forsale" data-i18n="filterForSale">À vendre</button>
+          <button class="filter-chip" data-status="reserved" data-i18n="filterReserved">Réservé</button>
+          <button class="filter-chip" data-status="sold" data-i18n="filterSold">Vendu</button>
+        </div>
+        <div class="mine-filter-group" id="mine-sex-filters">
+          <button class="filter-chip active" data-sex="all" data-i18n="filterMaleFemale">Mâle+Femelle</button>
+          <button class="filter-chip" data-sex="male" data-i18n="sexMale">Mâle</button>
+          <button class="filter-chip" data-sex="female" data-i18n="sexFemale">Femelle</button>
+          <button class="filter-chip" data-sex="unknown" data-i18n="filterUnknownSex">Non sexé</button>
+        </div>
+        <div class="mine-filter-group" id="mine-verified-filters">
+          <button class="filter-chip active" data-verified="all" data-i18n="filterGeneticsAll">Génétique : Tous</button>
+          <button class="filter-chip" data-verified="unverified" data-i18n="filterUnverified">🧬 À vérifier</button>
+          <button class="filter-chip" data-verified="verified" data-i18n="filterVerified">✓ Confirmée</button>
+        </div>
+        <select id="mine-sort-select" class="egg-select">
+          <option value="created" data-i18n="sortCreated">Trier : Plus récent ajouté</option>
+          <option value="name" data-i18n="sortName">Trier : Nom</option>
+          <option value="price" data-i18n="sortPrice">Trier : Prix</option>
+          <option value="age" data-i18n="sortAge">Trier : Âge (plus jeune d'abord)</option>
+          <option value="weight" data-i18n="sortWeight">Trier : Poids</option>
+        </select>
+        <select id="mine-tag-filter" class="egg-select"></select>
+        <button class="sc-btn" id="batch-mode-toggle-btn" onclick="toggleBatchMode()">☑️ <span data-i18n="batchSelectBtn">Sélection multiple</span></button>
+      </div>
+      <div id="batch-action-bar" style="display:none;background:var(--bg-panel-2);border:1px solid var(--gold);border-radius:12px;padding:10px 14px;margin-bottom:14px;gap:8px;flex-wrap:wrap;align-items:center;">
+        <span id="batch-count-label" style="font-family:'Courier New',monospace;font-size:11px;color:var(--gold);font-weight:600;"></span>
+        <button class="sc-btn accent" onclick="batchMarkFed()">🍽 <span data-i18n="batchFeedBtn">Nourrir</span></button>
+        <button class="sc-btn" onclick="batchToggleTerrarium()">🏠 <span data-i18n="batchMoveBtn">Rack ↔ Terrarium</span></button>
+        <input type="number" id="batch-price-input" class="price-input" style="width:80px;" placeholder="Prix $" min="0"/>
+        <button class="sc-btn" onclick="batchSetPrice()">💰 <span data-i18n="batchPriceBtn">Prix en masse</span></button>
+        <button class="sc-btn" onclick="batchSelectAll()"><span data-i18n="batchSelectAllBtn">Tout sélectionner</span></button>
+        <button class="sc-btn danger" onclick="toggleBatchMode()">✕ <span data-i18n="batchCancelBtn">Annuler</span></button>
+      </div>
+    </div>
+
+    <div class="specimen" id="panel-draft" style="display:none;margin-top:22px;">
       <div class="specimen-head"><h2 id="draft-title" data-i18n="newReptileTitle">Nouveau reptile</h2><span class="corner-mark" data-i18n="ficheLabel">FICHE</span></div>
       <div id="guest-save-notice" style="display:none;background:rgba(201,151,62,.12);border:1px solid var(--gold);border-radius:8px;padding:8px 12px;margin-bottom:14px;font-size:11.5px;color:var(--ink);"></div>
       <div class="sex-toggle">
@@ -1058,50 +1111,6 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
         <button class="sc-btn" id="cancel-edit-btn" data-i18n="cancelEditBtn" onclick="cancelEdit()" style="display:none;margin-left:8px;">Annuler la modification</button>
       </div>
     </div>
-
-    <div class="elevage-search" style="margin-top:26px;">
-      <input type="text" id="mine-search-input" data-i18n-placeholder="searchMinePlaceholder" placeholder="🔍 Rechercher un reptile par nom ou par gène…" autocomplete="off"/>
-    </div>
-    <div class="mine-filter-bar">
-      <div class="mine-filter-group" id="mine-status-filters">
-        <button class="filter-chip active" data-status="all" data-i18n="filterAll">Tous</button>
-        <button class="filter-chip" data-status="kept" data-i18n="filterKept">Conservé</button>
-        <button class="filter-chip" data-status="forsale" data-i18n="filterForSale">À vendre</button>
-        <button class="filter-chip" data-status="reserved" data-i18n="filterReserved">Réservé</button>
-        <button class="filter-chip" data-status="sold" data-i18n="filterSold">Vendu</button>
-      </div>
-      <div class="mine-filter-group" id="mine-sex-filters">
-        <button class="filter-chip active" data-sex="all" data-i18n="filterMaleFemale">Mâle+Femelle</button>
-        <button class="filter-chip" data-sex="male" data-i18n="sexMale">Mâle</button>
-        <button class="filter-chip" data-sex="female" data-i18n="sexFemale">Femelle</button>
-        <button class="filter-chip" data-sex="unknown" data-i18n="filterUnknownSex">Non sexé</button>
-      </div>
-      <div class="mine-filter-group" id="mine-verified-filters">
-        <button class="filter-chip active" data-verified="all" data-i18n="filterGeneticsAll">Génétique : Tous</button>
-        <button class="filter-chip" data-verified="unverified" data-i18n="filterUnverified">🧬 À vérifier</button>
-        <button class="filter-chip" data-verified="verified" data-i18n="filterVerified">✓ Confirmée</button>
-      </div>
-      <select id="mine-sort-select" class="egg-select">
-        <option value="created" data-i18n="sortCreated">Trier : Plus récent ajouté</option>
-        <option value="name" data-i18n="sortName">Trier : Nom</option>
-        <option value="price" data-i18n="sortPrice">Trier : Prix</option>
-        <option value="age" data-i18n="sortAge">Trier : Âge (plus jeune d'abord)</option>
-        <option value="weight" data-i18n="sortWeight">Trier : Poids</option>
-      </select>
-      <select id="mine-tag-filter" class="egg-select"></select>
-      <button class="sc-btn" id="batch-mode-toggle-btn" onclick="toggleBatchMode()">☑️ <span data-i18n="batchSelectBtn">Sélection multiple</span></button>
-    </div>
-    <div id="batch-action-bar" style="display:none;background:var(--bg-panel-2);border:1px solid var(--gold);border-radius:12px;padding:10px 14px;margin-bottom:14px;gap:8px;flex-wrap:wrap;align-items:center;">
-      <span id="batch-count-label" style="font-family:'Courier New',monospace;font-size:11px;color:var(--gold);font-weight:600;"></span>
-      <button class="sc-btn accent" onclick="batchMarkFed()">🍽 <span data-i18n="batchFeedBtn">Nourrir</span></button>
-      <button class="sc-btn" onclick="batchToggleTerrarium()">🏠 <span data-i18n="batchMoveBtn">Rack ↔ Terrarium</span></button>
-      <input type="number" id="batch-price-input" class="price-input" style="width:80px;" placeholder="Prix $" min="0"/>
-      <button class="sc-btn" onclick="batchSetPrice()">💰 <span data-i18n="batchPriceBtn">Prix en masse</span></button>
-      <button class="sc-btn" onclick="batchSelectAll()"><span data-i18n="batchSelectAllBtn">Tout sélectionner</span></button>
-      <button class="sc-btn danger" onclick="toggleBatchMode()">✕ <span data-i18n="batchCancelBtn">Annuler</span></button>
-    </div>
-    <div id="genetic-health-container"></div>
-    <div id="saved-grid" class="saved-grid"></div>
   </div>
 
   <div id="view-elevage" style="display:none;">
@@ -1782,7 +1791,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.05';
+const APP_VERSION = '2026.08.26.06';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3237,6 +3246,7 @@ const I18N = {
     valueNote: 'Ajoute un prix estimé (à ta devise) dans chaque ligne ci-dessus. « Valeur attendue » = probabilités × nombre d\'œufs choisi × prix. « Valeur réelle » = ce que tu as coché ci-dessus × prix. Les prix ne sont pas fournis automatiquement — le marché varie trop pour que je les invente, à toi de les entrer.',
     // Phase 2 — Mes reptiles
     newReptileTitle: 'Nouveau reptile',
+    filtersSortBtn: 'Filtres & tri',
     ficheLabel: 'FICHE',
     sexMale: 'Mâle',
     sexFemale: 'Femelle',
@@ -3661,6 +3671,7 @@ const I18N = {
     valueNote: 'Add an estimated price (in your currency) on each row above. "Expected Value" = probability × chosen egg count × price. "Actual Value" = what you checked off above × price. Prices aren\'t provided automatically — the market varies too much for us to guess, you enter them.',
     // Phase 2 — My Reptiles
     newReptileTitle: 'New Reptile',
+    filtersSortBtn: 'Filters & sort',
     ficheLabel: 'RECORD',
     sexMale: 'Male',
     sexFemale: 'Female',
@@ -4938,6 +4949,9 @@ function saveDraft(){
   fillBirthDateForm(null);
   renderSavedList();
   updateDraftFormMode();
+  document.getElementById('panel-draft').style.display = 'none';
+  document.getElementById('mine-toggle-draft-btn').classList.remove('active');
+  document.getElementById('saved-grid').scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 function editSnake(id){
@@ -4960,6 +4974,8 @@ function editSnake(id){
   fillBirthDateForm(snake.birthDate || null);
   updateDraftFormMode();
   showTab('mine');
+  document.getElementById('panel-draft').style.display = '';
+  document.getElementById('mine-toggle-draft-btn').classList.add('active');
   document.getElementById('panel-draft').scrollIntoView({behavior:'smooth', block:'start'});
 }
 
@@ -4973,6 +4989,26 @@ function cancelEdit(){
   renderParentSelects();
   fillBirthDateForm(null);
   updateDraftFormMode();
+  document.getElementById('panel-draft').style.display = 'none';
+  document.getElementById('mine-toggle-draft-btn').classList.remove('active');
+}
+
+// Bascule le bloc "Nouveau reptile" (replié par défaut, 30 août) — garde l'écran épuré, la liste
+// de reptiles reste toujours la première chose visible en entrant dans l'onglet.
+function toggleDraftPanel(){
+  const panel = document.getElementById('panel-draft');
+  const btn = document.getElementById('mine-toggle-draft-btn');
+  const isHidden = panel.style.display === 'none';
+  panel.style.display = isHidden ? '' : 'none';
+  btn.classList.toggle('active', isHidden);
+  if(isHidden) panel.scrollIntoView({behavior:'smooth', block:'start'});
+}
+function toggleFilterPanel(){
+  const panel = document.getElementById('mine-filters-panel');
+  const btn = document.getElementById('mine-toggle-filters-btn');
+  const isHidden = panel.style.display === 'none';
+  panel.style.display = isHidden ? '' : 'none';
+  btn.classList.toggle('active', isHidden);
 }
 
 function updateDraftFormMode(){
