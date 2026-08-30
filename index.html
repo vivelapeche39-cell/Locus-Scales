@@ -1782,7 +1782,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.04';
+const APP_VERSION = '2026.08.26.05';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4248,6 +4248,7 @@ function openConfigModal(){
       '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); openNotifSettings();">🔔 '+(isEn?'Notifications':'Notifications')+'</button>'+
       '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); openStorageDetails();">💾 '+(isEn?'Storage space':'Espace de stockage')+'</button>'+
       '<button class="sc-btn" style="width:100%;" onclick="exportBackup();">📤 '+(isEn?'Export my backup':'Exporter ma sauvegarde')+'</button>'+
+      '<button class="sc-btn" style="width:100%;color:var(--rust);border-color:var(--rust);" onclick="reinitialiserDonneesLocales();">🔄 '+(isEn?'Reset local data (re-download from server)':'Réinitialiser les données locales (retélécharger du serveur)')+'</button>'+
     '</div>'+
     '<p style="font-size:9.5px;color:var(--ink-dim);text-align:center;margin:16px 0 0;font-family:\'Courier New\',monospace;">'+(isEn?'Version':'Version')+' '+APP_VERSION+'</p>'
   );
@@ -6907,6 +6908,27 @@ function mergeById(localArr, cloudArr){
   return Object.values(byId);
 }
 
+// Réinitialisation locale complète (30 août) — vide toutes les clés localStorage de LOCUS puis
+// force un rechargement complet de la page. Après le rechargement, si un compte est connecté,
+// la synchronisation normale au démarrage va retirer les données fraîches depuis le serveur.
+// Pensé pour éviter à l'éleveur de devoir passer par les réglages du navigateur (Safari/Chrome)
+// quand une donnée locale corrompue ou périmée d'une session de test précédente bloque l'affichage.
+function reinitialiserDonneesLocales(){
+  const isEn = currentLang==='en';
+  if(!currentUser){
+    alert(isEn
+      ? 'You must be signed in first — otherwise this device is the only copy of your data, and clearing it would delete your reptiles permanently.'
+      : 'Il faut d\'abord être connecté à un compte — sinon cet appareil est la seule copie de tes données, et les effacer les supprimerait pour de bon.');
+    return;
+  }
+  if(!confirm(isEn
+    ? 'This clears only what\'s stored on THIS device (nothing on the server/your account). If you have a free account, everything comes back automatically after reloading. Continue?'
+    : 'Ceci efface seulement ce qui est stocké sur CET appareil (rien sur le serveur/ton compte). Si tu as un compte gratuit, tout revient automatiquement après le rechargement. Continuer ?')) return;
+  ['locus_snakes_v1','locus_elevage_v1','locus_personalization_v1','locus_dash_cards_v1','locus_profile_v1','locus_config_v1','locus_notif_prefs_v1'].forEach(k=>{
+    try{ localStorage.removeItem(k); }catch(e){}
+  });
+  location.href = location.pathname + '?_reset=' + Date.now();
+}
 async function synchroniserAvecServeur(){
   if(!sb || !currentUser) return;
   if(estOccupe){
