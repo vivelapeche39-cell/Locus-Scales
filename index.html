@@ -1812,7 +1812,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.22';
+const APP_VERSION = '2026.08.26.23';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -1835,6 +1835,111 @@ const APP_VERSION = '2026.08.26.22';
       .catch(()=>{});
   }catch(e){}
 })();
+
+/* ==================== JOURNAL DE DIAGNOSTIC GLOBAL (30 août 2026) ====================
+   Outil permanent, discret, remplace le besoin de captures d'écran répétées lors d'un bug.
+   Capture automatiquement TOUTE erreur JS non gérée (n'importe où dans l'app) ET TOUTE requête
+   réseau vers Supabase (succès et échecs), avec horodatage. Bouton flottant discret en bas à
+   droite (🐛), toujours présent mais n'interfère jamais avec l'usage normal — s'ouvre seulement
+   sur demande. Bouton "Copier tout" pour coller le journal complet directement dans une
+   conversation, au lieu de multiples captures d'écran partielles.
+   Placé tout en haut du script pour capturer les erreurs le plus tôt possible dans le cycle de vie
+   de la page — avant même l'initialisation de Supabase plus bas. */
+var diagLog = [];
+var diagErrorCount = 0;
+function diagPush(type, message){
+  var entry = new Date().toLocaleTimeString('fr-CA')+' ['+type+'] '+message;
+  diagLog.push(entry);
+  if(diagLog.length > 400) diagLog.shift(); // limite mémoire raisonnable pour une longue session
+  if(type==='JS' || type==='PROMESSE' || type==='RESEAU-ECHEC') diagErrorCount++;
+  var badge = document.getElementById('diag-badge');
+  if(badge){ badge.textContent = diagErrorCount>99?'99+':String(diagErrorCount); badge.style.display = diagErrorCount>0?'flex':'none'; }
+  var panel = document.getElementById('diag-panel');
+  if(panel && panel.style.display!=='none') diagRenderPanel();
+}
+window.addEventListener('error', function(e){
+  var msg = (e.error && e.error.stack) ? e.error.stack.split('\n').slice(0,6).join(' → ') : (e.message||'erreur inconnue');
+  diagPush('JS', msg);
+});
+window.addEventListener('unhandledrejection', function(e){
+  var reason = e.reason;
+  var msg = (reason && reason.stack) ? reason.stack.split('\n').slice(0,6).join(' → ') : String(reason);
+  diagPush('PROMESSE', msg);
+});
+// Intercepte fetch pour journaliser tout appel réseau vers Supabase (le SDK Supabase utilise fetch
+// en dessous, donc ceci capture aussi bien les lectures que les écritures, sans toucher au code
+// de synchronisation lui-même).
+(function(){
+  var origFetch = window.fetch;
+  window.fetch = function(){
+    var args = arguments;
+    var urlArg = args[0];
+    var url = (urlArg && urlArg.url) ? urlArg.url : String(urlArg);
+    var t0 = Date.now();
+    return origFetch.apply(this, args).then(function(res){
+      if(url.indexOf('supabase.co')!==-1){
+        var chemin = url.replace(/^https:\/\/[^\/]+/, '');
+        diagPush(res.ok?'RESEAU':'RESEAU-ECHEC', res.status+' ('+(Date.now()-t0)+'ms) '+chemin.slice(0,140));
+      }
+      return res;
+    }).catch(function(err){
+      if(url.indexOf('supabase.co')!==-1){
+        diagPush('RESEAU-ECHEC', url.replace(/^https:\/\/[^\/]+/, '').slice(0,140)+' : '+err.message);
+      }
+      throw err;
+    });
+  };
+})();
+function diagToggle(){
+  var panel = document.getElementById('diag-panel');
+  var isHidden = panel.style.display==='none';
+  panel.style.display = isHidden ? '' : 'none';
+  if(isHidden) diagRenderPanel();
+}
+function diagRenderPanel(){
+  var content = document.getElementById('diag-content');
+  content.textContent = diagLog.length ? diagLog.slice().reverse().join('\n\n') : '(journal vide — aucune erreur ni requête capturée pour l\'instant)';
+}
+function diagClear(){
+  diagLog = [];
+  diagErrorCount = 0;
+  var badge = document.getElementById('diag-badge');
+  if(badge) badge.style.display = 'none';
+  diagRenderPanel();
+}
+function diagCopy(){
+  var text = diagLog.length ? diagLog.join('\n\n') : '(journal vide)';
+  function done(){ showToast('📋 Journal copié — colle-le directement dans la conversation.', 'success'); }
+  function fail(){
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;left:-9999px;top:0;';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    try{ document.execCommand('copy'); done(); }
+    catch(e){ showToast('⚠ Copie automatique impossible — le texte est sélectionné, copie-le manuellement.', 'error'); }
+    document.body.removeChild(ta);
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(fail);
+  } else { fail(); }
+}
+document.addEventListener('DOMContentLoaded', function(){
+  var wrap = document.createElement('div');
+  wrap.innerHTML =
+    '<button id="diag-toggle" onclick="diagToggle()" style="position:fixed;bottom:18px;right:14px;z-index:99997;width:40px;height:40px;border-radius:50%;background:#2a2118;border:1px solid #5a4a30;color:#C9973E;font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:.55;">🐛'+
+      '<span id="diag-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:#c0392b;color:#fff;border-radius:10px;min-width:18px;height:18px;font-size:10px;font-family:monospace;align-items:center;justify-content:center;padding:0 4px;">0</span>'+
+    '</button>'+
+    '<div id="diag-panel" style="display:none;position:fixed;top:5%;left:8px;right:8px;bottom:5%;z-index:99998;background:#141008;border:1px solid #5a4a30;border-radius:14px;padding:12px;display:flex;flex-direction:column;">'+
+      '<div style="display:flex;gap:8px;margin-bottom:10px;flex-shrink:0;">'+
+        '<button onclick="diagCopy()" style="flex:1;padding:10px;border-radius:10px;border:1px solid #C9973E;background:rgba(201,151,62,.15);color:#C9973E;font-family:monospace;font-size:12px;">📋 Copier tout</button>'+
+        '<button onclick="diagClear()" style="padding:10px 14px;border-radius:10px;border:1px solid #5a4a30;background:transparent;color:#a89878;font-family:monospace;font-size:12px;">🗑️</button>'+
+        '<button onclick="diagToggle()" style="padding:10px 14px;border-radius:10px;border:1px solid #5a4a30;background:transparent;color:#a89878;font-family:monospace;font-size:12px;">✕</button>'+
+      '</div>'+
+      '<div id="diag-content" style="flex:1;overflow-y:auto;font-family:monospace;font-size:10.5px;color:#d8cbb0;white-space:pre-wrap;line-height:1.5;"></div>'+
+    '</div>';
+  document.body.appendChild(wrap);
+});
 
 /* ---------------- PALIERS TARIFAIRES : fondations (27 août 2026) ----------------
    Système complet mais DÉSACTIVÉ — tant que TIERS_ENABLED reste false, hasAccess() répond
