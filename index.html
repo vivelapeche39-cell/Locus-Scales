@@ -1812,7 +1812,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.23';
+const APP_VERSION = '2026.08.26.24';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4420,6 +4420,14 @@ function openStorageDetails(){
 }
 
 var savedSnakes = storage.load();
+// tourSelection déclarée ici, très tôt (30 août) — cause racine trouvée via le journal de
+// diagnostic global : la fonction renderTourGrid() peut être appelée depuis une chaîne asynchrone
+// (synchroniserAvecServeur, déclenchée par la restauration de session au chargement), et si cet
+// appel se produit avant que le script principal atteigne la déclaration de tourSelection plus
+// loin dans le fichier, la variable vaut encore undefined à ce moment précis — provoquant
+// "undefined is not an object (evaluating 'tourSelection.has')". La déclarer ici, tout au début
+// aux côtés des autres variables d'état centrales, élimine cette fenêtre de risque au complet.
+var tourSelection = new Set();
 markSynced('snakes', savedSnakes);
 var editingId = null;
 updateStorageBanner();
@@ -7067,7 +7075,7 @@ applyTranslations();
 updateTopLangToggle();
 updateHeaderBadge();
 applyPersonalizationUI();
-renderDashboard();
+// renderDashboard() déplacé à la toute fin du script (30 août) — voir explication détaillée là-bas.
 
 /* ==================== SUPABASE : synchronisation des données (étape 3) ====================
    Déclenchée une seule fois par connexion (SIGNED_IN). Logique :
@@ -7129,11 +7137,17 @@ async function synchroniserAvecServeur(){
   debutOccupation = Date.now();
   try{
     let { data: remoteSnakes, error } = await sb.from('snakes').select('id').limit(1);
-    // Filet de sécurité (29 août) — un 401 observé une seule fois juste après une connexion fraîche :
-    // le token venait tout juste d'être émis et n'avait pas encore fini de se propager côté SDK au
-    // moment de cette première requête. Plutôt que d'abandonner en silence (l'utilisateur ne voit
-    // alors ni erreur ni données), on réessaie une fois après une courte pause.
-    if(error && (error.code==='PGRST301' || String(error.message||'').includes('401') || String(error.code)==='401')){
+    // Filet de sécurité (30 août, révisé) — un 401 observé une seule fois juste après une connexion
+    // fraîche : le token venait tout juste d'être émis et n'avait pas encore fini de se propager
+    // côté SDK au moment de cette première requête. Cause racine trouvée via le journal de
+    // diagnostic : la condition précédente cherchait des motifs précis ('PGRST301', '401') dans le
+    // message d'erreur du client Supabase, mais la vraie forme de l'objet d'erreur pour ce cas
+    // précis ne contenait aucun de ces motifs — la nouvelle tentative ne se déclenchait donc jamais
+    // en pratique. Réessaie maintenant sur N'IMPORTE QUELLE erreur à ce premier essai, sans essayer
+    // de deviner sa forme exacte — le coût d'une tentative de plus est minime, le risque de rester
+    // bloqué sans donnée est bien pire.
+    if(error){
+      console.warn('LOCUS: premier essai échoué, nouvelle tentative dans 900ms', error);
       await new Promise(r=>setTimeout(r, 900));
       ({ data: remoteSnakes, error } = await sb.from('snakes').select('id').limit(1));
     }
@@ -8421,7 +8435,7 @@ document.getElementById('elevage-search-input').addEventListener('input', (e)=>{
 });
 
 /* ---- Mode Tournée ---- */
-var tourSelection = new Set();
+// tourSelection déplacée près du haut du script (30 août) — voir explication à sa nouvelle position.
 function terraKey(id){ return 'terra:'+id; }
 function snakeFromKey(key){
   if(key.startsWith('terra:')) return savedSnakes.find(s=>s.id===key.slice(6));
@@ -12048,6 +12062,19 @@ function routeToScannedSnake(attempt){
   }
 }
 routeToScannedSnake();
+
+// renderDashboard() APPELÉE ICI, à la toute fin du script (30 août) — cause racine trouvée le 30
+// août via le journal de diagnostic global : cet appel était auparavant fait beaucoup plus tôt
+// (juste après le chargement des données locales), avant même que certaines constantes utilisées
+// plus loin dans la chaîne d'affichage (ex. HEALTH_FLAG_DAYS_SINCE_FED, FEEDING_THRESHOLDS,
+// déclarées ~800 lignes plus loin dans le fichier) aient fini de s'initialiser. En JavaScript, une
+// const/let déclarée plus loin dans un script n'existe pas encore avant sa propre ligne (zone
+// temporairement inaccessible / TDZ) — ce n'était PAS un bug propre à un navigateur précis, un
+// utilisateur avec déjà des reptiles enregistrés au chargement le rencontrait sur N'IMPORTE QUEL
+// moteur JS, Chrome comme Safari, dès que le tableau de bord tentait de vérifier ses alertes de
+// santé pour un vrai reptile. La déplacer ici, après que toutes les déclarations du fichier aient
+// eu lieu, élimine cette classe de bug au complet plutôt qu'un seul symptôme à la fois.
+renderDashboard();
 
 
 
