@@ -1812,7 +1812,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.26';
+const APP_VERSION = '2026.08.26.27';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -1893,7 +1893,7 @@ window.addEventListener('unhandledrejection', function(e){
 function diagToggle(){
   var panel = document.getElementById('diag-panel');
   var isHidden = panel.style.display==='none';
-  panel.style.display = isHidden ? '' : 'none';
+  panel.style.display = isHidden ? 'flex' : 'none';
   if(isHidden) diagRenderPanel();
 }
 function diagRenderPanel(){
@@ -1927,7 +1927,7 @@ function diagCopy(){
 document.addEventListener('DOMContentLoaded', function(){
   var wrap = document.createElement('div');
   wrap.innerHTML =
-    '<div id="diag-panel" style="display:none;position:fixed;top:5%;left:8px;right:8px;bottom:5%;z-index:99998;background:#141008;border:1px solid #5a4a30;border-radius:14px;padding:12px;display:flex;flex-direction:column;">'+
+    '<div id="diag-panel" style="display:none;position:fixed;top:5%;left:8px;right:8px;bottom:5%;z-index:99998;background:#141008;border:1px solid #5a4a30;border-radius:14px;padding:12px;flex-direction:column;">'+
       '<div style="display:flex;gap:8px;margin-bottom:10px;flex-shrink:0;">'+
         '<button onclick="diagCopy()" style="flex:1;padding:10px;border-radius:10px;border:1px solid #C9973E;background:rgba(201,151,62,.15);color:#C9973E;font-family:monospace;font-size:12px;">📋 Copier tout</button>'+
         '<button onclick="diagClear()" style="padding:10px 14px;border-radius:10px;border:1px solid #5a4a30;background:transparent;color:#a89878;font-family:monospace;font-size:12px;">🗑️</button>'+
