@@ -891,6 +891,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
     <button class="notif-bell" id="notif-bell-btn" onclick="openNotifSettings()" title="Notifications" aria-label="Notifications">🔔</button>
     <div class="stamp" id="header-live-badge"></div>
     <div style="position:absolute;top:0;right:0;z-index:2;display:flex;gap:8px;align-items:center;">
+      <button class="tab-btn" data-tab="calc" data-i18n="tabCalc" onclick="showTab('calc')" style="white-space:nowrap;font-size:11px;padding:9px 14px;">🧬 Calculateur</button>
       <button class="tab-btn" data-tab="utilitaire" data-i18n="tabUtilitaire" onclick="showTab('utilitaire')" style="white-space:nowrap;font-size:11px;padding:9px 14px;">💬 Communauté</button>
       <button class="sc-btn accent" id="auth-btn" onclick="openAuthModal()" style="white-space:nowrap;font-size:11px;padding:9px 14px;background:var(--gold);color:#1a1409;font-weight:800 !important;border-color:var(--gold);" title="Compte éleveur">S'inscrire</button>
     </div>
@@ -906,7 +907,6 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
 
   <div class="tabs">
     <button class="tab-btn active" data-tab="dash" data-i18n="tabDash" onclick="showTab('dash')">📋 Tableau de bord</button>
-    <button class="tab-btn" data-tab="calc" data-i18n="tabCalc" onclick="showTab('calc')">🧬 Calculateur</button>
     <button class="tab-btn" data-tab="mine" data-i18n="tabMine" onclick="showTab('mine')">🐍 Mes reptiles</button>
     <button class="tab-btn" data-tab="elevage" data-i18n="tabElevage" onclick="showTab('elevage')">🏠 Élevage</button>
     <button class="tab-btn" data-tab="ventes" data-i18n="tabVentes" onclick="showTab('ventes')">🏷️ Ventes</button>
@@ -1106,6 +1106,20 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
         <label style="flex:1;"><span data-i18n="provenanceLabel">Provenance</span> <span style="font-weight:400;color:var(--ink-dim);" data-i18n="provenanceHint">(éleveur d'origine — laisse vide si né chez toi)</span>
           <input type="text" id="draft-provenance" class="pedigree-select" list="provenance-suggestions" style="width:100%;margin-top:4px;" placeholder="Ex. Python of the North, éleveur particulier, animalerie…"/>
           <datalist id="provenance-suggestions"></datalist>
+        </label>
+      </div>
+      <div class="pedigree-row" style="background:rgba(201,151,62,.08);border:1px solid var(--gold);border-radius:10px;padding:10px 12px;margin:12px 18px 0;">
+        <label style="flex:1;"><span data-i18n="preyLabel">Proie</span> <span style="font-weight:400;color:var(--ink-dim);" data-i18n="preyFormHint">(pour la liste de décongélation et le stock de proies — modifiable en tout temps sur la fiche)</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+            <select id="draft-prey-species" class="pedigree-select" style="flex:1;min-width:100px;" onchange="updateDraftPreySizeOptions()">
+              <option value="" data-i18n="preySpeciesEllipsis">Espèce…</option>
+              <option value="mouse">🐁 Mouse</option>
+              <option value="rat">🐀 Rat</option>
+            </select>
+            <select id="draft-prey-size" class="pedigree-select" style="flex:1;min-width:100px;" disabled>
+              <option value="" data-i18n="sizeEllipsis">Taille…</option>
+            </select>
+          </div>
         </label>
       </div>
       <div class="pedigree-row">
@@ -1812,7 +1826,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.28';
+const APP_VERSION = '2026.08.26.30';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3500,6 +3514,7 @@ const I18N = {
     feedingIntervalLabel: 'Intervalle de nourrissage',
     daysWord: 'jours',
     preyLabel: 'Proie',
+    preyFormHint: "(pour la liste de décongélation et le stock de proies — modifiable en tout temps sur la fiche)",
     preySpeciesEllipsis: 'Espèce…',
     preyTypeFrozen: 'Décongelé',
     preyTypeLive: 'Vivant',
@@ -3929,6 +3944,7 @@ const I18N = {
     feedingIntervalLabel: 'Feeding interval',
     daysWord: 'days',
     preyLabel: 'Prey',
+    preyFormHint: '(used for the Thaw List and Feeder Stock — editable anytime from the animal\'s page)',
     preySpeciesEllipsis: 'Species…',
     preyTypeFrozen: 'Frozen-thawed',
     preyTypeLive: 'Live',
@@ -5075,18 +5091,23 @@ function saveDraft(){
   const damId = document.getElementById('draft-dam').value || null;
   const birthDate = readBirthDateFromForm();
   const provenance = document.getElementById('draft-provenance').value.trim() || null;
+  const preySpecies = document.getElementById('draft-prey-species').value || null;
+  const preySize = document.getElementById('draft-prey-size').value || null;
   if(editingId){
     const snake = savedSnakes.find(s=>s.id===editingId);
     snake.name = name; snake.sex = draftSex; snake.genes = {...state.draft}; snake.sireId = sireId; snake.damId = damId; snake.birthDate = birthDate; snake.provenance = provenance; snake.species = species;
+    snake.preySpecies = preySpecies; snake.preySize = preySize;
     editingId = null;
   } else {
-    savedSnakes.push({ id: 'snk_'+Date.now(), name, sex: draftSex, genes: {...state.draft}, sireId, damId, birthDate, provenance, species });
+    savedSnakes.push({ id: 'snk_'+Date.now(), name, sex: draftSex, genes: {...state.draft}, sireId, damId, birthDate, provenance, species, preySpecies, preySize, preyType:'frozen' });
   }
   state.draft = {};
   nameInput.value = '';
   document.getElementById('draft-provenance').value = '';
   document.getElementById('draft-is-ball-python').checked = true;
   document.getElementById('draft-species-other').value = '';
+  document.getElementById('draft-prey-species').value = '';
+  updateDraftPreySizeOptions();
   updateDraftSpeciesVisibility();
   setDraftSex('male');
   renderTags('draft');
@@ -5110,6 +5131,9 @@ function editSnake(id){
   document.getElementById('draft-is-ball-python').checked = isBallPython;
   document.getElementById('draft-species-other').value = isBallPython ? '' : species;
   updateDraftSpeciesVisibility();
+  document.getElementById('draft-prey-species').value = snake.preySpecies || '';
+  updateDraftPreySizeOptions();
+  if(snake.preySpecies && snake.preySize) document.getElementById('draft-prey-size').value = snake.preySize;
   setDraftSex(snake.sex);
   renderTags('draft');
   renderParentSelects();
@@ -5128,6 +5152,8 @@ function cancelEdit(){
   state.draft = {};
   document.getElementById('draft-name').value = '';
   document.getElementById('draft-provenance').value = '';
+  document.getElementById('draft-prey-species').value = '';
+  updateDraftPreySizeOptions();
   setDraftSex('male');
   renderTags('draft');
   renderParentSelects();
@@ -6164,6 +6190,10 @@ function openLogbook(id){
   if(!s) return;
   currentLogbookId = id;
   ensureSnakeMeta(s);
+  // isEn manquant ici avant le 31 août — bug latent qui plantait tout l'affichage de la fiche
+  // dès qu'un reptile avait 2+ photos OU était marqué vendu (branches qui référencent isEn sans
+  // qu'il soit jamais déclaré dans cette fonction). Trouvé en corrigeant la visibilité du champ Proie.
+  const isEn = currentLang==='en';
   document.getElementById('logbook-title').textContent = s.name;
   const placeLabel = s.placement.mode==='rack' ? t('rackLocationLabel').replace('__ROW__', s.placement.row).replace('__TUB__', s.placement.tub) : t('terrariumLocationLabel');
   const sexLbl = s.sex==='male'?t('sexMale'):s.sex==='female'?t('sexFemale'):t('sexUnknown');
@@ -6303,8 +6333,9 @@ function openLogbook(id){
     '</div>'+
     '<div class="modal-row" style="margin-top:10px;"><span>'+t('nextMealLabel')+'</span><span>'+nextFeedingDate(s)+'</span></div>'+
     '<div class="modal-row"><span>'+t('feedingIntervalLabel')+'</span><span><input type="number" class="price-input" style="width:60px;" min="1" value="'+(s.feedingIntervalDays||'')+'" placeholder="'+DEFAULT_FEEDING_INTERVAL+'" onchange="setFeedingInterval(\''+id+'\', this.value)"/> '+t('daysWord')+'</span></div>'+
-    '<div style="padding:8px 0;border-bottom:1px dashed var(--line);">'+
-      '<span style="font-size:12.5px;display:block;margin-bottom:8px;">'+t('preyLabel')+'</span>'+
+    '<div class="modal-section" style="background:rgba(201,151,62,.08);border:1px solid var(--gold);border-radius:10px;padding:12px;margin-top:14px;'+((!s.preySpecies||!s.preySize)?'box-shadow:0 0 0 1px rgba(201,151,62,.35);':'')+'">'+
+      '<h3 style="margin-top:0;">🍽 '+t('preyLabel')+(!s.preySpecies||!s.preySize ? ' <span style="color:var(--gold);font-size:11px;">⚠ '+(isEn?'not set':'non renseignée')+'</span>' : '')+'</h3>'+
+      '<p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 10px;">'+(isEn?'Species and size drive the Thaw List and Feeder Stock decrement.':'Espèce et taille alimentent la Liste de décongélation et le décompte du Stock de proies.')+'</p>'+
       preySuggestionHtml+
       '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">'+
         '<select onchange="updatePreySpecies(\''+id+'\', this.value)" style="flex:1;min-width:100px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:\'Courier New\',monospace;font-size:11.5px;padding:8px;">'+
@@ -7956,6 +7987,24 @@ function setFeedCost(id, value){
   s.feedCost = (!isNaN(val) && val>=0) ? val : null;
   storage.save(savedSnakes);
   openLogbook(id);
+}
+
+// Formulaire d'ajout/édition — reconstruit les options de taille selon l'espèce de proie choisie.
+// PREY_SIZES est déclaré plus loin dans le fichier ; safe ici car appelée seulement via onchange,
+// donc toujours après que le script complet ait fini de s'exécuter une première fois (pas de TDZ).
+function updateDraftPreySizeOptions(){
+  const speciesSelect = document.getElementById('draft-prey-species');
+  const sizeSelect = document.getElementById('draft-prey-size');
+  if(!speciesSelect || !sizeSelect) return;
+  const species = speciesSelect.value;
+  if(!species){
+    sizeSelect.innerHTML = '<option value="">'+t('sizeEllipsis')+'</option>';
+    sizeSelect.disabled = true;
+    return;
+  }
+  sizeSelect.disabled = false;
+  sizeSelect.innerHTML = '<option value="">'+t('sizeEllipsis')+'</option>'+
+    PREY_SIZES[species].map(sz=>'<option value="'+sz+'">'+sz+'</option>').join('');
 }
 
 function updatePreySpecies(id, species){
