@@ -889,10 +889,9 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
     <input type="file" id="csv-file-input" accept=".csv,text/csv" style="display:none;"/>
     <button class="notif-bell" id="storage-indicator-btn" onclick="openStorageDetails()" title="Espace de stockage utilisé" aria-label="Espace de stockage utilisé">💾</button>
     <button class="notif-bell" id="notif-bell-btn" onclick="openNotifSettings()" title="Notifications" aria-label="Notifications">🔔</button>
-    <div class="stamp" id="header-live-badge"></div>
+    <button class="tab-btn" data-tab="utilitaire" data-i18n="tabUtilitaire" onclick="showTab('utilitaire')" style="white-space:nowrap;font-size:11px;padding:9px 14px;">🛠️ Utilitaire</button>
     <div style="position:absolute;top:0;right:0;z-index:2;display:flex;gap:8px;align-items:center;">
       <button class="tab-btn" data-tab="calc" data-i18n="tabCalc" onclick="showTab('calc')" style="white-space:nowrap;font-size:11px;padding:9px 14px;">🧬 Calculateur</button>
-      <button class="tab-btn" data-tab="utilitaire" data-i18n="tabUtilitaire" onclick="showTab('utilitaire')" style="white-space:nowrap;font-size:11px;padding:9px 14px;">💬 Communauté</button>
       <button class="sc-btn accent" id="auth-btn" onclick="openAuthModal()" style="white-space:nowrap;font-size:11px;padding:9px 14px;background:var(--gold);color:#1a1409;font-weight:800 !important;border-color:var(--gold);" title="Compte éleveur">S'inscrire</button>
     </div>
   </div>
@@ -1826,7 +1825,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.30';
+const APP_VERSION = '2026.08.26.31';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
