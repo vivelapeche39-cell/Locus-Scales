@@ -1827,7 +1827,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.32';
+const APP_VERSION = '2026.08.26.33';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -6250,9 +6250,15 @@ function openLogbook(id){
   const pedigreeTreeHtml = renderPedigreeTree(id);
 
   const helpFaqCat = HUSBANDRY_FAQ.find(c=>c.id==='sante');
-  const helpFaqItemsHtml = helpFaqCat ? helpFaqCat.items.map(it=>
-    '<div class="husbandry-qa"><div class="q">'+(currentLang==='en'?it.qEn:it.qFr)+'</div><div class="a">'+(currentLang==='en'?it.aEn:it.aFr)+'</div></div>'
-  ).join('') : '';
+  const helpFaqItemsHtml = helpFaqCat ? helpFaqCat.items.map((it,i)=>{
+    const qid = 'qa-help-'+id+'-'+i;
+    const qel = document.getElementById(qid);
+    const qaOpen = qel ? !qel.classList.contains('collapsed') : false;
+    return '<div class="husbandry-qa'+(qaOpen?'':' collapsed')+'" id="'+qid+'">'+
+      '<div class="q" onclick="toggleHusbandryQa(\''+qid+'\')"><span class="qa-arrow">▾</span>'+(currentLang==='en'?it.qEn:it.qFr)+'</div>'+
+      '<div class="a">'+(currentLang==='en'?it.aEn:it.aFr)+'</div>'+
+    '</div>';
+  }).join('') : '';
   const helpFolderId = 'faq-help-'+id;
   const helpFolderWasOpen = document.getElementById(helpFolderId) && !document.getElementById(helpFolderId).classList.contains('collapsed');
 
@@ -9623,12 +9629,21 @@ function renderMyths(){
   const folderId = 'folder-myths';
   const existing = document.getElementById(folderId);
   const isOpen = existing ? !existing.classList.contains('collapsed') : false;
-  const itemsHtml = MYTHS_VS_REALITY.map(m=>
-    '<div class="husbandry-qa">'+
-      '<div class="q" style="color:var(--rust);">✗ '+(isEn?m.mythEn:m.mythFr)+'</div>'+
-      '<div class="a" style="color:var(--sage);margin-top:4px;">✓ '+(isEn?m.realEn:m.realFr)+'</div>'+
-    '</div>'
-  ).join('');
+  // État ouvert/fermé de chaque mythe préservé au re-rendu, même mécanisme que husbandry FAQ.
+  const qaOpenState = {};
+  MYTHS_VS_REALITY.forEach((m,i)=>{
+    const qid = 'qa-myth-'+i;
+    const qel = document.getElementById(qid);
+    if(qel) qaOpenState[qid] = !qel.classList.contains('collapsed');
+  });
+  const itemsHtml = MYTHS_VS_REALITY.map((m,i)=>{
+    const qid = 'qa-myth-'+i;
+    const qaOpen = !!qaOpenState[qid];
+    return '<div class="husbandry-qa'+(qaOpen?'':' collapsed')+'" id="'+qid+'">'+
+      '<div class="q" onclick="toggleHusbandryQa(\''+qid+'\')" style="color:var(--rust);"><span class="qa-arrow">▾</span>✗ '+(isEn?m.mythEn:m.mythFr)+'</div>'+
+      '<div class="a" style="color:var(--sage);">✓ '+(isEn?m.realEn:m.realFr)+'</div>'+
+    '</div>';
+  }).join('');
   container.innerHTML = '<div class="community-folder'+(isOpen?'':' collapsed')+'" id="'+folderId+'">'+
     '<button class="community-folder-header" onclick="toggleCommunityFolder(\''+folderId+'\')">'+
       '<span class="folder-icon">▾</span><span>🔍 '+(isEn?'Myths vs Reality':'Mythes vs Réalité')+'</span>'+
@@ -9731,9 +9746,20 @@ function renderGlossary(){
   const folderId = 'folder-glossary';
   const existing = document.getElementById(folderId);
   const isOpen = existing ? !existing.classList.contains('collapsed') : false;
-  const itemsHtml = GLOSSARY_TERMS.map(g=>
-    '<div class="husbandry-qa"><div class="q">'+g.term+'</div><div class="a">'+(isEn?g.en:g.fr)+'</div></div>'
-  ).join('');
+  const qaOpenState = {};
+  GLOSSARY_TERMS.forEach((g,i)=>{
+    const qid = 'qa-gloss-'+i;
+    const qel = document.getElementById(qid);
+    if(qel) qaOpenState[qid] = !qel.classList.contains('collapsed');
+  });
+  const itemsHtml = GLOSSARY_TERMS.map((g,i)=>{
+    const qid = 'qa-gloss-'+i;
+    const qaOpen = !!qaOpenState[qid];
+    return '<div class="husbandry-qa'+(qaOpen?'':' collapsed')+'" id="'+qid+'">'+
+      '<div class="q" onclick="toggleHusbandryQa(\''+qid+'\')"><span class="qa-arrow">▾</span>'+g.term+'</div>'+
+      '<div class="a">'+(isEn?g.en:g.fr)+'</div>'+
+    '</div>';
+  }).join('');
   container.innerHTML = '<div class="community-folder'+(isOpen?'':' collapsed')+'" id="'+folderId+'">'+
     '<button class="community-folder-header" onclick="toggleCommunityFolder(\''+folderId+'\')">'+
       '<span class="folder-icon">▾</span><span>📖 '+(isEn?'Breeder jargon glossary':'Glossaire du jargon d\'éleveur')+'</span>'+
@@ -11951,7 +11977,15 @@ async function renderCommunityFaq(){
   if(!sb){ bodyEl.innerHTML = ''; return; }
   const { data, error } = await sb.from('community_faq').select('id,question,answer,created_at').eq('status','approved').order('created_at', { ascending:false }).limit(50);
   const approvedHtml = (!error && data && data.length)
-    ? data.map(item=>'<div class="husbandry-qa" style="margin-bottom:14px;"><div style="font-weight:600;color:var(--gold);margin-bottom:4px;">'+escapeHtml(item.question)+'</div><div style="font-size:12px;line-height:1.6;">'+escapeHtml(item.answer)+'</div></div>').join('')
+    ? data.map(item=>{
+        const qid = 'qa-cfaq-'+item.id;
+        const qel = document.getElementById(qid);
+        const qaOpen = qel ? !qel.classList.contains('collapsed') : false;
+        return '<div class="husbandry-qa'+(qaOpen?'':' collapsed')+'" id="'+qid+'" style="margin-bottom:10px;">'+
+          '<div class="q" onclick="toggleHusbandryQa(\''+qid+'\')"><span class="qa-arrow">▾</span>'+escapeHtml(item.question)+'</div>'+
+          '<div class="a">'+escapeHtml(item.answer)+'</div>'+
+        '</div>';
+      }).join('')
     : '<p style="font-size:11px;color:var(--ink-dim);">'+(isEn?'No community questions published yet.':'Aucune question communautaire publiée pour l\'instant.')+'</p>';
   const formHtml = currentUser
     ? '<div style="margin-top:16px;padding-top:16px;border-top:1px dashed var(--line);">'+
