@@ -1812,7 +1812,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.24';
+const APP_VERSION = '2026.08.26.26';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -1927,9 +1927,6 @@ function diagCopy(){
 document.addEventListener('DOMContentLoaded', function(){
   var wrap = document.createElement('div');
   wrap.innerHTML =
-    '<button id="diag-toggle" onclick="diagToggle()" style="position:fixed;bottom:18px;right:14px;z-index:99997;width:40px;height:40px;border-radius:50%;background:#2a2118;border:1px solid #5a4a30;color:#C9973E;font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:.55;">🐛'+
-      '<span id="diag-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:#c0392b;color:#fff;border-radius:10px;min-width:18px;height:18px;font-size:10px;font-family:monospace;align-items:center;justify-content:center;padding:0 4px;">0</span>'+
-    '</button>'+
     '<div id="diag-panel" style="display:none;position:fixed;top:5%;left:8px;right:8px;bottom:5%;z-index:99998;background:#141008;border:1px solid #5a4a30;border-radius:14px;padding:12px;display:flex;flex-direction:column;">'+
       '<div style="display:flex;gap:8px;margin-bottom:10px;flex-shrink:0;">'+
         '<button onclick="diagCopy()" style="flex:1;padding:10px;border-radius:10px;border:1px solid #C9973E;background:rgba(201,151,62,.15);color:#C9973E;font-family:monospace;font-size:12px;">📋 Copier tout</button>'+
@@ -1939,6 +1936,10 @@ document.addEventListener('DOMContentLoaded', function(){
       '<div id="diag-content" style="flex:1;overflow-y:auto;font-family:monospace;font-size:10.5px;color:#d8cbb0;white-space:pre-wrap;line-height:1.5;"></div>'+
     '</div>';
   document.body.appendChild(wrap);
+  var badge = document.createElement('span');
+  badge.id = 'diag-badge';
+  badge.style.cssText = 'display:none;';
+  document.body.appendChild(badge);
 });
 
 /* ---------------- PALIERS TARIFAIRES : fondations (27 août 2026) ----------------
@@ -4394,6 +4395,7 @@ function openConfigModal(){
       '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); openStorageDetails();">💾 '+(isEn?'Storage space':'Espace de stockage')+'</button>'+
       '<button class="sc-btn" style="width:100%;" onclick="exportBackup();">📤 '+(isEn?'Export my backup':'Exporter ma sauvegarde')+'</button>'+
       '<button class="sc-btn" style="width:100%;color:var(--rust);border-color:var(--rust);" onclick="reinitialiserDonneesLocales();">🔄 '+(isEn?'Reset local data (re-download from server)':'Réinitialiser les données locales (retélécharger du serveur)')+'</button>'+
+      (isAdminUser ? '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); diagToggle();">🐛 '+(isEn?'Diagnostic log (admin)':'Journal de diagnostic (admin)')+(diagErrorCount>0?' — '+diagErrorCount:'')+'</button>' : '')+
     '</div>'+
     '<p style="font-size:9.5px;color:var(--ink-dim);text-align:center;margin:16px 0 0;font-family:\'Courier New\',monospace;">'+(isEn?'Version':'Version')+' '+APP_VERSION+'</p>'
   );
@@ -11927,9 +11929,18 @@ async function submitCommunityFaq(){
   if(statusEl) statusEl.textContent = isEn?'✓ Submitted — pending review.':'✓ Soumis — en attente de révision.';
   showToast('✓ '+(isEn?'Question submitted for review.':'Question soumise pour révision.'), 'success');
 }
+var lastCommunityFaqAdminRun = 0;
 async function renderCommunityFaqAdmin(){
   const wrap = document.getElementById('community-faq-admin-container');
   if(!wrap) return;
+  // Garde-fou anti-répétition (30 août) — trouvé via le journal de diagnostic : plusieurs chemins
+  // de restauration de session (getSession, écouteur onAuthStateChange, connexion explicite)
+  // peuvent chacun appeler updateAuthUI() en succession rapide au chargement, et chacun relançait
+  // cette fonction — donc 2-3 requêtes identiques vers profiles/community_faq pour rien. Si on
+  // vient de tourner il y a moins de 1.5s, on saute plutôt que de répéter le même travail.
+  const now = Date.now();
+  if(now - lastCommunityFaqAdminRun < 1500) return;
+  lastCommunityFaqAdminRun = now;
   wrap.innerHTML = '';
   if(!currentUser || !sb) return;
   await checkAdminStatus();
