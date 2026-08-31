@@ -424,9 +424,11 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
 .back-to-app-btn:hover{border-color:var(--gold);color:var(--gold);}
 
 @media (max-width: 760px){
-  .legal-sidebar{top:auto;bottom:0;right:0;left:0;transform:none;flex-direction:row;justify-content:center;border-radius:14px 14px 0 0;border:1px solid var(--line);border-bottom:none;padding:8px 14px;gap:10px;}
+  .legal-sidebar{top:auto;bottom:0;right:0;left:0;transform:none;flex-direction:row;justify-content:space-between;border-radius:14px 14px 0 0;border:1px solid var(--line);border-bottom:none;padding:6px 6px;gap:2px;}
   .legal-sidebar-label{display:none;}
-  .legal-tab-btn{width:auto;flex-direction:row;padding:8px 14px;}
+  .legal-tab-btn{width:auto;flex:1;flex-direction:row;justify-content:center;padding:8px 4px;gap:4px;}
+  .legal-tab-icon{font-size:15px;}
+  .legal-tab-text{font-size:7.5px;}
   .legal-wrap{padding-right:16px;padding-bottom:90px;}
 }
 
@@ -1825,7 +1827,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.31';
+const APP_VERSION = '2026.08.26.32';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
