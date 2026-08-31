@@ -1422,7 +1422,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
     <table class="prey-size-table" style="width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:10px;">
       <thead><tr style="border-bottom:1px solid var(--line);">
         <th style="text-align:left;padding:6px 4px;color:var(--ink-dim);font-weight:600;" data-i18n="pythonWeightCol">Poids du python</th>
-        <th style="text-align:right;padding:6px 4px;color:var(--ink-dim);font-weight:600;" data-i18n="suggestedPreyCol">Proie suggérée (10-15%)</th>
+        <th style="text-align:right;padding:6px 4px;color:var(--ink-dim);font-weight:600;" data-i18n="suggestedPreyCol">Proie suggérée (% du poids)</th>
         <th style="text-align:right;padding:6px 4px;color:var(--ink-dim);font-weight:600;" data-i18n="typicalChoiceCol">Choix typique</th>
       </tr></thead>
       <tbody id="python-weight-tbody"></tbody>
@@ -1812,7 +1812,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.27';
+const APP_VERSION = '2026.08.26.28';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3323,7 +3323,7 @@ const I18N = {
     communauteIntro: 'Le vrai forum communautaire arrive plus tard (une fois LOCUS branché sur son propre serveur). En attendant, voici une première fiche de référence utile — plus de contenu à venir ici avec le temps.',
     folderPreySizeTitle: 'Lexique de taille des proies',
     preyChartTitle: '🐭🐀 Souris vs Rat — grosseur selon le poids du python',
-    preyChartSubtitle: 'Règle générale : la proie devrait peser environ 10 à 15% du poids du python. En cas de doute, choisis toujours plus petit — un python peut facilement reprendre une proie plus grosse la fois suivante, alors qu\'une proie trop grosse risque une régurgitation.',
+    preyChartSubtitle: 'Règle générale : la proie devrait peser environ 10 à 15% du poids du python pour un jeune/petit sujet — ce pourcentage diminue graduellement à mesure que le python grandit (voir le détail par palier de poids ci-dessous). En cas de doute, choisis toujours plus petit — un python peut facilement reprendre une proie plus grosse la fois suivante, alors qu\'une proie trop grosse risque une régurgitation.',
     preyCalcLabel: 'Poids de ton python (g) :',
     mouseSizesTitle: 'Souris (feeder mice)',
     ratSizesTitle: 'Rats (feeder rats)',
@@ -3752,7 +3752,7 @@ const I18N = {
     communauteIntro: 'The real community forum is coming later (once LOCUS is connected to its own server). In the meantime, here\'s a first useful reference sheet — more content will be added here over time.',
     folderPreySizeTitle: 'Prey Size Lexicon',
     preyChartTitle: '🐭🐀 Mouse vs Rat — size by python weight',
-    preyChartSubtitle: 'General rule: prey should weigh about 10 to 15% of the python\'s body weight. When in doubt, always go smaller — a python can easily take a bigger meal next time, while prey that\'s too large risks regurgitation.',
+    preyChartSubtitle: 'General rule: prey should weigh about 10 to 15% of the python\'s body weight for a young/small snake — this percentage gradually decreases as the python grows (see the breakdown by weight bracket below). When in doubt, always go smaller — a python can easily take a bigger meal next time, while prey that\'s too large risks regurgitation.',
     preyCalcLabel: 'Your python\'s weight (g):',
     mouseSizesTitle: 'Mice (feeder mice)',
     ratSizesTitle: 'Rats (feeder rats)',
