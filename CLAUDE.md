@@ -44,31 +44,31 @@ Pas de `package.json`, pas de dépôt Git initialisé localement, pas de build/l
 - Bucket Supabase Storage public `reptile-photos` (RLS : upload/modif/suppr limités au dossier `user_id`, lecture publique) — nécessaire pour les URLs de photos dans l'export MorphMarket (base64 non utilisable).
 - i18n : dictionnaire `I18N` (fr/en), `t(clé)`/`tLang(clé,langue)`, `applyTranslations()`. ~370 clés par langue.
 
-### Repères dans le fichier (~8650 lignes)
+### Repères dans le fichier (~12 845 lignes — rafraîchi le 1er septembre 2026)
 
-Fichier volumineux à un seul `<script>` (ouvre ligne 1608) — ces repères évitent de tout relire à chaque fois (numéros approximatifs, dérivent avec les patches) :
+Fichier volumineux à un seul `<script>` (ouvre ligne 1858) — ces repères évitent de tout relire à chaque fois (numéros approximatifs, dérivent avec les patches — au moindre doute, `grep -n` directement plutôt que de se fier à ce tableau) :
 
 | Zone | ~Ligne |
 |---|---|
-| `<style>` (CSS) | 46–785 |
-| Chargement CDN (`supabase-js`, `xlsx`) | 786–787 |
-| `SUPABASE_URL` / `SUPABASE_ANON_KEY` / init client `sb` | 1615–1623 |
-| Auth (modal, `currentUser`, `requireAuthOrPrompt`) | 1629–1760 |
-| `GENES` (base de données des gènes) | 1761 |
-| `CROSS_WARNINGS` | 1910 |
-| `I18N` (dictionnaire fr/en) | 2409 |
-| `t()` / `tLang()` / `applyTranslations()` | 3178–3227 |
-| Calculateur génétique (`crossLocus`, `runCross`, `renderPunnett`, `simulateClutch`) | 4255–4670 |
-| `escapeHtml()` | 4663 |
-| Logbook animal (pesées, mues, repas, visites véto) | 4721–5290 |
-| `STORAGE_KEY` (`locus_snakes_v1`) | 1959 |
-| `ELEVAGE_KEY` (`locus_elevage_v1`) et chargement (`racks`, pairing, clutches) | 5290–5340 |
-| Sync cloud (`mergeById`, `snakeToRow`/`rowToSnake`, `cloudMirrorSnakes`, `syncWithCloud`) | 5345–5460 |
-| Export/import (backup JSON, CSV MorphMarket) | 5461–5690 |
-| Racks / terrariums (grille, tubs, tournée) | 5890–6430 |
-| Ventes, clients, export MorphMarket, Stripe Connect | ~7390–7620 |
-| Stripe (`stripe-connect-onboard`, `stripe-create-payment`) | 2138–2150, 7460–7500 |
-| Export Excel (SheetJS) | ~8218+ |
+| `<style>` (CSS) | 61–883 |
+| Chargement CDN (`supabase-js`, `xlsx`) | 884–885 |
+| `SUPABASE_URL` / `SUPABASE_ANON_KEY` / init client `sb` (`createClient`) | 2036–2044 |
+| Auth (`requireAuthOrPrompt`, `currentUser`, `onAuthStateChange`) | 1744, 2198–2343 |
+| `STORAGE_KEY` (`locus_snakes_v1`) | 2583 |
+| `GENES` (base de données des gènes) | 2384 |
+| `CROSS_WARNINGS` | 2438 |
+| `I18N` (dictionnaire fr/en) | 3341 |
+| `t()` / `tLang()` / `applyTranslations()` | 4210–4237 |
+| Calculateur génétique (`crossLocus`, `runCross`, `renderPunnett`, `simulateClutch`) | 5636–6075 |
+| `escapeHtml()` | 6166 |
+| Suivi de santé animal (`addVetVisit` et fonctions de journal associées) | ~6100–6400 |
+| `ELEVAGE_KEY` (`locus_elevage_v1`) | 7132 |
+| Sync cloud (`dirtySyncIds`/`trackLocalChanges` déclarés tôt en 2592–2606 ; `mergeById`, `snakeToRow`/`rowToSnake`, `syncPushAll`/`syncPullAll` plus loin) | 2592–2606, 7216–7376 |
+| Export/import backup JSON (`exportBackup`) | 7479 |
+| Racks / terrariums (`renderRackGrid`, `renderTerrariumCleaningModalBody`, `renderTerrariumList`, `tourSelection`) | 4493 (var tourSelection), 8389–8978 |
+| Stripe Connect (`startStripeConnectOnboarding`, invoke `stripe-create-payment`) | 3064, 11227 |
+| Ventes, clients, export MorphMarket (`exportMorphMarketBulk`, `renderSalesView`) | 11315–11527 |
+| Export Excel (SheetJS / `XLSX.utils`) | 12163 |
 
 ## Règle technique permanente — i18n
 
