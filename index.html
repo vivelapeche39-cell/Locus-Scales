@@ -262,6 +262,12 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    représente UN reptile précis (proie non renseignée, à vendre, mue/pesée à faire, etc.) plutôt
    qu'une donnée non-animale (client, dépense, résumé financier) qui reste en liste verticale. */
 .mini-animal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+/* Grille de sélection compacte pour le nettoyage de rack par bac (31 août) — même esprit 3-large
+   que .mini-animal-grid, réutilisée ici pour cocher rapidement plusieurs bacs à la fois. */
+.tub-select-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px;}
+.tub-select-chip{background:var(--bg-panel);border:1px solid var(--line);border-radius:10px;padding:7px 6px;display:flex;flex-direction:column;gap:2px;font-size:9.5px;cursor:pointer;line-height:1.3;}
+.tub-select-chip.checked{border-color:var(--sage);background:rgba(124,131,99,.18);}
+.tub-select-chip input{margin-right:4px;}
 .mini-animal-card{background:var(--bg-panel);border:1px solid var(--line);border-radius:10px;padding:8px 7px;display:flex;flex-direction:column;gap:3px;}
 .mini-animal-card .mac-name{font-family:Georgia,'Times New Roman',serif;font-size:11px;font-weight:600;line-height:1.2;color:var(--ink);}
 .mini-animal-card .mac-sub{font-size:8.5px;color:var(--ink-dim);line-height:1.3;}
@@ -1847,7 +1853,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.1.42';
+const APP_VERSION = '2026.08.26.1.43';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -7298,11 +7304,11 @@ async function pushAllUserData(forceAll){
     }
     if(racks.length){
       const dirty = itemsToPush('racks', racks, forceAll);
-      if(dirty.length) await sb.from('racks').upsert(dirty.map(r=>({ id:r.id, user_id:currentUser.id, name:r.name, rows:r.rows, heating:r.heating||null })));
+      if(dirty.length) await sb.from('racks').upsert(dirty.map(r=>({ id:r.id, user_id:currentUser.id, name:r.name, rows:r.rows, heating:r.heating||null, tub_cleanings:r.tubCleanings||{} })));
     }
     if(terrariums.length){
       const dirty = itemsToPush('terrariums', terrariums, forceAll);
-      if(dirty.length) await sb.from('terrariums').upsert(dirty.map(te=>({ id:te.id, user_id:currentUser.id, name:te.name, size:te.size||null, status:te.status||'libre', bioactive: !!te.bioactive, lighting:te.lighting||null, heating:te.heating||null, substrate:te.substrate||null, pairing_start_date:te.pairingStartDate||null, uvb_replace_date:te.uvbReplaceDate||null })));
+      if(dirty.length) await sb.from('terrariums').upsert(dirty.map(te=>({ id:te.id, user_id:currentUser.id, name:te.name, size:te.size||null, status:te.status||'libre', bioactive: !!te.bioactive, lighting:te.lighting||null, heating:te.heating||null, substrate:te.substrate||null, pairing_start_date:te.pairingStartDate||null, uvb_replace_date:te.uvbReplaceDate||null, cleanings:te.cleanings||[] })));
     }
     if(pairings.length){
       const dirty = itemsToPush('pairings', pairings, forceAll);
@@ -7354,12 +7360,12 @@ async function pullAllUserData(){
       storage.save(savedSnakes);
     }
     if(racksRes.data && racksRes.data.length){
-      const remoteRacks = racksRes.data.map(r=>({ id:r.id, name:r.name, rows:r.rows, heating:r.heating||null, updatedAt: r.updated_at?Date.parse(r.updated_at):0 }));
+      const remoteRacks = racksRes.data.map(r=>({ id:r.id, name:r.name, rows:r.rows, heating:r.heating||null, tubCleanings:r.tub_cleanings||{}, updatedAt: r.updated_at?Date.parse(r.updated_at):0 }));
       racks = mergeById(racks, remoteRacks);
       markSynced('racks', remoteRacks);
     }
     if(terrariumsRes.data && terrariumsRes.data.length){
-      const remoteTerrariums = terrariumsRes.data.map(te=>({ id:te.id, name:te.name, size:te.size, status:te.status||'libre', bioactive: !!te.bioactive, lighting:te.lighting||null, heating:te.heating||null, substrate:te.substrate||null, pairingStartDate:te.pairing_start_date||null, uvbReplaceDate:te.uvb_replace_date||null, updatedAt: te.updated_at?Date.parse(te.updated_at):0 }));
+      const remoteTerrariums = terrariumsRes.data.map(te=>({ id:te.id, name:te.name, size:te.size, status:te.status||'libre', bioactive: !!te.bioactive, lighting:te.lighting||null, heating:te.heating||null, substrate:te.substrate||null, pairingStartDate:te.pairing_start_date||null, uvbReplaceDate:te.uvb_replace_date||null, cleanings:te.cleanings||[], updatedAt: te.updated_at?Date.parse(te.updated_at):0 }));
       terrariums = mergeById(terrariums, remoteTerrariums);
       markSynced('terrariums', remoteTerrariums);
     }
@@ -8345,6 +8351,7 @@ function renderRackGrid(){
       '<div class="rack-unit-head">'+
         '<input type="text" class="rack-name-input" value="'+escapeHtml(rack.name)+'" data-rack="'+rack.id+'"/>'+
         '<button class="sc-btn" data-act="addrow" data-rack="'+rack.id+'">'+t('addRowBtn')+'</button>'+
+        '<button class="sc-btn" data-act="cleanrack" data-rack="'+rack.id+'">🧹 '+(isEn?'Cleaning':'Nettoyage')+'</button>'+
         (racks.length>1 ? '<button class="sc-btn danger" data-act="delrack" data-rack="'+rack.id+'">'+t('deleteThisRackBtn')+'</button>' : '')+
       '</div>'+
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">'+
@@ -8397,6 +8404,7 @@ function renderRackGrid(){
   });
   container.querySelectorAll('[data-act="addrow"]').forEach(btn=>btn.addEventListener('click', ()=>addRowToRack(btn.dataset.rack)));
   container.querySelectorAll('[data-act="delrack"]').forEach(btn=>btn.addEventListener('click', ()=>deleteRack(btn.dataset.rack)));
+  container.querySelectorAll('[data-act="cleanrack"]').forEach(btn=>btn.addEventListener('click', ()=>openRackCleaningModal(btn.dataset.rack)));
   container.querySelectorAll('[data-act="tubplus"]').forEach(btn=>btn.addEventListener('click', ()=>adjustRowTubCount(btn.dataset.rack, parseInt(btn.dataset.row,10), 1)));
   container.querySelectorAll('[data-act="tubminus"]').forEach(btn=>btn.addEventListener('click', ()=>adjustRowTubCount(btn.dataset.rack, parseInt(btn.dataset.row,10), -1)));
   container.querySelectorAll('[data-act="delrow"]').forEach(btn=>btn.addEventListener('click', ()=>removeLastRow(btn.dataset.rack)));
@@ -8420,6 +8428,137 @@ function commitRackHeatingCustom(rackId, inputEl){
   saveElevage();
   renderRackGrid();
 }
+// Utilitaire partagé rack + terrarium — trouve l'entrée de nettoyage la plus récente d'une liste.
+function lastCleaningEntry(list){
+  if(!list || !list.length) return null;
+  return [...list].sort((a,b)=>b.date.localeCompare(a.date))[0];
+}
+function daysSinceDate(dateStr){
+  return Math.floor((Date.now() - new Date(dateStr+'T00:00:00').getTime()) / 86400000);
+}
+
+/* ---- Nettoyage de rack, par bac (31 août) — rapide : coche plusieurs bacs à la fois, ou toute
+   une rangée, ou tout le rack, puis un seul enregistrement pour tous les bacs cochés. ---- */
+function openRackCleaningModal(rackId){
+  const isEn = currentLang==='en';
+  const rack = getRack(rackId);
+  if(!rack) return;
+  if(!rack.tubCleanings) rack.tubCleanings = {};
+  let tubsHtml = '';
+  rack.rows.forEach((tubCount, rowIdx)=>{
+    const row = rowIdx+1;
+    tubsHtml += '<div style="margin-top:10px;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;">'+
+        '<span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Row ':'Rangée ')+row+'</span>'+
+        '<button type="button" class="sc-btn" style="font-size:9px;padding:4px 8px;" onclick="toggleRowCleaningChecks('+row+')">'+(isEn?'Check row':'Cocher rangée')+'</button>'+
+      '</div>'+
+      '<div class="tub-select-grid" id="rc-row-'+row+'">';
+    for(let tub=1; tub<=tubCount; tub++){
+      const key = row+'|'+tub;
+      const last = lastCleaningEntry(rack.tubCleanings[key]);
+      const info = last ? (daysSinceDate(last.date)+(isEn?'d ago':'j')) : (isEn?'never':'jamais');
+      tubsHtml += '<label class="tub-select-chip"><input type="checkbox" data-cleantub="'+key+'" onclick="this.closest(\'.tub-select-chip\').classList.toggle(\'checked\', this.checked)"/>'+(isEn?'Tub ':'Bac ')+tub+'<span style="color:var(--ink-dim);">'+info+'</span></label>';
+    }
+    tubsHtml += '</div></div>';
+  });
+  const body =
+    '<div style="display:flex;gap:6px;margin-bottom:4px;">'+
+      '<button type="button" class="sc-btn" style="flex:1;" onclick="toggleAllCleaningChecks(true)">'+(isEn?'Check all':'Tout cocher')+'</button>'+
+      '<button type="button" class="sc-btn" style="flex:1;" onclick="toggleAllCleaningChecks(false)">'+(isEn?'Uncheck all':'Tout décocher')+'</button>'+
+    '</div>'+
+    tubsHtml+
+    '<div style="margin-top:16px;padding-top:12px;border-top:1px dashed var(--line);">'+
+      '<select id="rc-type" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+        '<option value="partial">'+(isEn?'Partial':'Partiel')+'</option>'+
+        '<option value="complete">'+(isEn?'Complete':'Complet')+'</option>'+
+      '</select>'+
+      '<input type="text" id="rc-note" placeholder="'+(isEn?'Note (optional)':'Note (optionnel)')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
+      '<button class="sc-btn accent" style="width:100%;" onclick="logRackCleaning(\''+rackId+'\')">🧹 '+(isEn?'Log cleaning for checked tubs':'Enregistrer pour les bacs cochés')+'</button>'+
+    '</div>';
+  showQuickModal((isEn?'Cleaning — ':'Nettoyage — ')+rack.name, body);
+}
+function toggleRowCleaningChecks(row){
+  const container = document.getElementById('rc-row-'+row);
+  if(!container) return;
+  const boxes = Array.from(container.querySelectorAll('input[type=checkbox]'));
+  const allChecked = boxes.every(b=>b.checked);
+  boxes.forEach(b=>{ b.checked = !allChecked; b.closest('.tub-select-chip').classList.toggle('checked', b.checked); });
+}
+function toggleAllCleaningChecks(state){
+  document.querySelectorAll('[data-cleantub]').forEach(b=>{ b.checked = state; b.closest('.tub-select-chip').classList.toggle('checked', state); });
+}
+function logRackCleaning(rackId){
+  const isEn = currentLang==='en';
+  const rack = getRack(rackId);
+  if(!rack) return;
+  if(!rack.tubCleanings) rack.tubCleanings = {};
+  const checked = Array.from(document.querySelectorAll('[data-cleantub]:checked')).map(b=>b.dataset.cleantub);
+  if(!checked.length){ alert(isEn?'Check at least one tub.':'Coche au moins un bac.'); return; }
+  const type = document.getElementById('rc-type').value;
+  const note = document.getElementById('rc-note').value.trim();
+  const date = new Date().toISOString().slice(0,10);
+  checked.forEach(key=>{
+    if(!rack.tubCleanings[key]) rack.tubCleanings[key] = [];
+    rack.tubCleanings[key].push({ id:'clean_'+Date.now()+'_'+key, date, type, note });
+  });
+  saveElevage();
+  closeQuickModal();
+  showToast('🧹 '+(isEn?'Cleaning logged for ':'Nettoyage enregistré pour ')+checked.length+' '+(isEn?'tub(s).':'bac(s).'), 'success');
+}
+
+/* ---- Nettoyage de terrarium (31 août) — historique + alerte, désactivée si bioactif (un
+   setup bioactif n'a pratiquement jamais de nettoyage complet, donc pas d'alerte pertinente). ---- */
+function openTerrariumCleaningModal(terrariumId){
+  const te = getTerrarium(terrariumId);
+  if(!te) return;
+  if(!te.cleanings) te.cleanings = [];
+  renderTerrariumCleaningModalBody(terrariumId);
+}
+function renderTerrariumCleaningModalBody(terrariumId){
+  const isEn = currentLang==='en';
+  const te = getTerrarium(terrariumId);
+  if(!te) return;
+  const sorted = [...(te.cleanings||[])].sort((a,b)=>b.date.localeCompare(a.date));
+  const historyHtml = sorted.length ? sorted.map(c=>
+    '<div class="husbandry-qa" style="border-bottom:1px dashed var(--line);padding-bottom:8px;margin-bottom:8px;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;">'+
+        '<span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--gold);">'+(c.type==='complete'?'🧹 '+(isEn?'Complete':'Complet'):'🧽 '+(isEn?'Partial':'Partiel'))+' — '+c.date+'</span>'+
+        '<button class="sc-btn danger" onclick="deleteTerrariumCleaning(\''+terrariumId+'\',\''+c.id+'\')">×</button>'+
+      '</div>'+
+      (c.note?'<div style="font-size:11px;color:var(--ink-dim);margin-top:4px;">'+escapeHtml(c.note)+'</div>':'')+
+    '</div>'
+  ).join('') : '<p style="font-size:11px;color:var(--ink-dim);">'+(isEn?'No cleaning logged yet.':'Aucun nettoyage enregistré pour l\'instant.')+'</p>';
+  const body = historyHtml +
+    '<div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);">'+
+      '<select id="tc-type" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+        '<option value="partial">'+(isEn?'Partial':'Partiel')+'</option>'+
+        '<option value="complete">'+(isEn?'Complete':'Complet')+'</option>'+
+      '</select>'+
+      '<input type="text" id="tc-note" placeholder="'+(isEn?'Note (optional)':'Note (optionnel)')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
+      '<button class="sc-btn accent" style="width:100%;" onclick="logTerrariumCleaning(\''+terrariumId+'\')">🧹 '+(isEn?'Log cleaning':'Enregistrer le nettoyage')+'</button>'+
+    '</div>';
+  showQuickModal((isEn?'Cleaning — ':'Nettoyage — ')+te.name, body);
+}
+function logTerrariumCleaning(terrariumId){
+  const te = getTerrarium(terrariumId);
+  if(!te) return;
+  if(!te.cleanings) te.cleanings = [];
+  const type = document.getElementById('tc-type').value;
+  const note = document.getElementById('tc-note').value.trim();
+  te.cleanings.push({ id:'clean_'+Date.now(), date:new Date().toISOString().slice(0,10), type, note });
+  saveElevage();
+  renderTerrariumCleaningModalBody(terrariumId);
+  renderTerrariumList();
+}
+function deleteTerrariumCleaning(terrariumId, cleaningId){
+  const te = getTerrarium(terrariumId);
+  if(!te) return;
+  te.cleanings = (te.cleanings||[]).filter(c=>c.id!==cleaningId);
+  saveElevage();
+  renderTerrariumCleaningModalBody(terrariumId);
+  renderTerrariumList();
+}
+
 function addRack(){
   const isEn = currentLang==='en';
   const name = prompt(isEn?'Name of the new rack (e.g. "Freedom Breeder Rack", "Garage shelf"):':'Nom du nouveau rack (ex. "Rack Freedom Breeder", "Étagère du garage") :', (isEn?'Rack ':'Rack ')+(racks.length+1));
@@ -8631,7 +8770,7 @@ function addTerrarium(){
   const isEn = currentLang==='en';
   const name = prompt(isEn?'Name of the new terrarium (e.g. "Living room terrarium", "Baby tub #3"):':'Nom du nouveau terrarium (ex. "Terrarium salon", "Bac bébé #3") :', (isEn?'Terrarium ':'Terrarium ')+(terrariums.length+1));
   if(!name) return;
-  terrariums.push({ id:'terra_'+Date.now(), name:name.trim(), size:null, status:'libre', bioactive:false, pairingStartDate:null, lighting:null, heating:null, substrate:null, uvbReplaceDate:null });
+  terrariums.push({ id:'terra_'+Date.now(), name:name.trim(), size:null, status:'libre', bioactive:false, pairingStartDate:null, lighting:null, heating:null, substrate:null, uvbReplaceDate:null, cleanings:[] });
   saveElevage();
   renderTerrariumList();
   showToast('➕ '+(isEn?'Terrarium "':'Terrarium "')+name.trim()+(isEn?'" added.':'" ajouté.'), 'success');
@@ -8837,7 +8976,18 @@ function renderTerrariumList(){
       if(te.heating) head += '<span class="terra-size">🔥 '+escapeHtml(te.heating)+'</span>';
       if(te.substrate) head += '<span class="terra-size">🟫 '+escapeHtml(te.substrate)+'</span>';
       if(te.bioactive) head += '<span class="terra-bio-badge">🌱 '+(isEn?'Bioactive':'Bioactif')+'</span>';
-      head += '<span class="terra-card-tools"><button class="sc-btn" data-editte="'+te.id+'">✏️</button></span>';
+      // Badge nettoyage — pas d'alerte si bioactif (un setup bioactif n'a pratiquement jamais de
+      // nettoyage complet, l'écosystème s'en occupe ; l'informatif reste affiché, juste sans rouge).
+      if(!te.cleanings) te.cleanings = [];
+      const lastClean = lastCleaningEntry(te.cleanings);
+      if(lastClean){
+        const daysSince = daysSinceDate(lastClean.date);
+        const overdue = !te.bioactive && daysSince>=30;
+        head += '<span class="terra-size"'+(overdue?' style="color:#e08a63;font-weight:700;"':'')+'>'+(overdue?'🚨':'🧹')+' '+(isEn?(daysSince+'d since cleaning'):('Nettoyé il y a '+daysSince+'j'))+(overdue?(isEn?' — overdue':' — en retard'):'')+'</span>';
+      } else if(!te.bioactive){
+        head += '<span class="terra-size">🧹 '+(isEn?'Never cleaned':'Jamais nettoyé')+'</span>';
+      }
+      head += '<span class="terra-card-tools"><button class="sc-btn" data-cleante="'+te.id+'">🧹</button><button class="sc-btn" data-editte="'+te.id+'">✏️</button></span>';
       card.innerHTML = '<div class="terra-card-head">'+head+'</div>';
 
       // Suivi de cohabitation (31 août) — jours ensemble depuis l'arrivée du 2e animal, alerte
@@ -8907,6 +9057,9 @@ function renderTerrariumList(){
   });
   wrap.querySelectorAll('[data-editte]').forEach(btn=>{
     btn.addEventListener('click', ()=>openTerrariumEditModal(btn.dataset.editte));
+  });
+  wrap.querySelectorAll('[data-cleante]').forEach(btn=>{
+    btn.addEventListener('click', ()=>openTerrariumCleaningModal(btn.dataset.cleante));
   });
   wrap.querySelectorAll('[data-move]').forEach(btn=>{
     btn.addEventListener('click', ()=>openMoveTerrariumModal(btn.dataset.move));
