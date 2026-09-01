@@ -74,15 +74,18 @@ Fichier volumineux à un seul `<script>` (ouvre ligne 1608) — ces repères év
 
 Toute nouvelle section de contenu générée dynamiquement en JS (pas via `data-i18n` statique) doit être ajoutée à `applyTranslations()` (ou équivalent) **dès sa création**, pas seulement au changement d'onglet. Sinon elle reste figée dans l'ancienne langue au changement FR/EN. Bug déjà rencontré et corrigé plusieurs fois — toujours vérifier ce point par défaut lors de l'ajout de contenu dynamique.
 
-## Monétisation (décidée)
+## Monétisation (décidée le 25 août 2026 — voir docs/memoire-maitresse.md section 4)
 
-Philosophie : la ligne de démarcation est « élève-t-il ou pas », pas le nombre d'animaux. Pas de microtransactions, pas de limites artificielles qui ne coûtent rien à retirer.
+Structure à 4 paliers, ligne de démarcation combinant nombre d'animaux ET fonction (changement de principe assumé par rapport à l'ancienne règle "jamais bloquer sur le nombre") :
 
-| Palier | Contenu |
-|---|---|
-| Gratuit | Calculateur complet, nourriture, 3-5 reptiles, sync cloud incluse. ZÉRO élevage. |
-| Collection — 5$/mois | Reptiles illimités. Toujours zéro élevage. |
-| Pro — 8-10$/mois | Tout illimité + élevage complet (racks, pairing, incubation, ventes, export MorphMarket, QR, exports). |
+| Palier | Prix | Cible | Limite animaux | Accès |
+|---|---|---|---|---|
+| Gratuit | 0$ | Découverte | À déterminer | Zéro élevage, suivi minimal |
+| Passionné | 5$/mois | Collectionneur sans élevage | 20 | Presque tout SAUF vente et reproduction |
+| Première ponte | 5$/mois | Petit éleveur débutant | 10 | Élevage/vente à l'unité (pas en masse) |
+| Illimité | 10$/mois | Éleveur sérieux | Aucune | Tout, sans limite de volume |
+
+**🔴 Pas encore codé** — tout le monde a accès à tout gratuitement actuellement ; reste le principal bloquant de lancement.
 
 - Cloud sync **gratuit pour tous les paliers** (Safari iOS efface localStorage après 7 jours d'inactivité).
 - Commission transactionnelle ~1% via Stripe Connect (`application_fee_amount`) — revenu indépendant.
@@ -109,9 +112,11 @@ Philosophie : la ligne de démarcation est « élève-t-il ou pas », pas le nom
 
 ## Bugs déjà rencontrés (éviter de les reproduire)
 
-- **Temporal dead zone JS** : une constante utilisée par une fonction de rendu appelée au chargement doit être déclarée **avant** cette fonction, tout en haut du script.
+- **Temporal dead zone JS** : une constante utilisée par une fonction de rendu appelée au chargement doit être déclarée **avant** cette fonction, tout en haut du script. Piège déjà répété avec `renderDashboard()` (appelée avant `HEALTH_FLAG_DAYS_SINCE_FED`/`FEEDING_THRESHOLDS`) et `tourSelection` — pas spécifique à un navigateur, plante sur n'importe quel moteur JS dès qu'un utilisateur a des données existantes au chargement.
+- **WebKit — variable globale masquant un `id` HTML** : une globale déclarée en `let`/`const` qui porte le même nom qu'un attribut `id` ailleurs sur la page plante silencieusement sur Safari/Chrome iOS (« Can't create duplicate variable that shadows a global property »). **Toujours `var` pour les déclarations globales dans `index.html`, jamais `let`/`const`.**
+- **WebKit — variable nommée `t` masquant la fonction globale `t()`** : déclenche « Cannot access uninitialized variable » sur Safari/Chrome iOS, même dans du code sans lien avec la traduction (ex. `for(let t=...)`, `.find(t=>...)`). **Ne jamais nommer une variable/paramètre `t`.**
 - **Webhooks Stripe** : toujours vérifier que les destinations de webhook sont créées dans le **même bac à sable Stripe** que les clés API utilisées — sinon échec silencieux, aucune erreur visible.
-- **iOS Safari** : cache agressif après redéploiement — **réglé** via un mécanisme d'auto-détection de version (`APP_VERSION` dans `index.html` comparé à `version.txt` via `fetch({cache:'no-store'})`, rechargement forcé si différent). **Incrémenter `APP_VERSION` ET `version.txt` à chaque déploiement significatif**, sinon aucune détection. Champs de saisie sous 16px provoquent toujours un zoom automatique intempestif (non lié au cache).
+- **iOS Safari** : cache agressif après redéploiement — **réglé** via un mécanisme d'auto-détection de version (`APP_VERSION` dans `index.html` comparé à `version.txt` via `fetch({cache:'no-store'})`, rechargement forcé si différent). **Incrémenter `APP_VERSION` ET `version.txt` à chaque déploiement significatif**, sinon aucune détection. Format depuis le 31 août : `AAAA.MM.JJ.X.NN`, où `X.NN` est un compteur global de déploiements qui ne se remet **jamais** à zéro (continuer depuis la dernière valeur connue, ex. `1.99` → `2.00`). Champs de saisie sous 16px provoquent toujours un zoom automatique intempestif (non lié au cache).
 - **MorphMarket bulk import** : le champ Photo URLs exige une vraie URL publique — le base64 local ne fonctionne pas. Ils ne supportent qu'**une seule photo par annonce** actuellement.
 
 ## État actuel / backlog restant
