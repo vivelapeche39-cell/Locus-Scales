@@ -555,6 +555,24 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
 /* Racks & placement — multi-racks, rangées irrégulières */
 .rack-unit{background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:20px;}
 .rack-unit-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+/* Cartes Terrarium (31 août) — code couleur par statut : sage=libre (compacte), gold=occupé, rust=en accouplement. */
+.terra-card{background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:14px;}
+.terra-card.status-libre{border-color:var(--sage);padding:10px 16px;}
+.terra-card.status-occupe{border-color:var(--gold);}
+.terra-card.status-accouplement{border-color:var(--rust);background:rgba(163,77,44,.08);}
+.terra-card-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
+.terra-name-input{background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:'Courier New',monospace;font-size:13px;padding:6px 10px;flex:1;min-width:110px;}
+.terra-badge{font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;padding:3px 8px;border-radius:10px;font-family:'Courier New',monospace;white-space:nowrap;}
+.terra-badge.status-libre{background:rgba(124,131,99,.22);color:var(--sage);}
+.terra-badge.status-occupe{background:rgba(201,151,62,.22);color:var(--gold);}
+.terra-badge.status-accouplement{background:rgba(163,77,44,.28);color:#e08a63;}
+.terra-size{font-size:10.5px;color:var(--ink-dim);white-space:nowrap;}
+.terra-bio-badge{font-size:10.5px;color:var(--sage);white-space:nowrap;}
+.terra-occupant{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-top:1px dashed var(--line);margin-top:6px;gap:8px;flex-wrap:wrap;}
+.terra-occupant-name{cursor:pointer;font-size:12.5px;font-weight:600;}
+.terra-occupant-actions{display:flex;gap:6px;}
+.terra-empty-note{font-size:11px;color:var(--ink-dim);margin-top:2px;}
+.terra-card-tools{display:flex;gap:6px;margin-left:auto;}
 .rack-name-input{flex:1;min-width:140px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:10px;color:var(--gold);font-family:Georgia,'Times New Roman',serif;font-size:15px;font-weight:600;padding:8px 12px;}
 .rack-name-input:focus{outline:none;border-color:var(--gold);}
 .rack-row-tools{display:flex;gap:4px;flex-shrink:0;margin-left:6px;}
@@ -1178,7 +1196,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
             <h2 style="font-size:16px;margin:0;" data-i18n="terrariumsTitle">Terrariums (affichage individuel)</h2>
             <div class="section-line-ctrls" id="terra-line-ctrls"></div>
           </div>
-          <div id="terrarium-list" class="terrarium-list"></div>
+          <div id="terrarium-list"></div>
+          <button class="sc-btn accent" onclick="addTerrarium()" style="margin-top:8px;" data-i18n="addTerrariumBtn">➕ Ajouter un terrarium</button>
         </div>
       </div>
     </div>
@@ -1827,7 +1846,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.33';
+const APP_VERSION = '2026.08.26.35';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2554,8 +2573,8 @@ var storageWriteFailed = false; // vrai dès qu'une écriture localStorage écho
 // (ex. un webhook Stripe qui marque une vente confirmée pendant que le navigateur repousse sa vieille
 // copie par-dessus). Ce bloc doit être déclaré tôt dans le script (avant storage.save()) pour éviter
 // un piège de "temporal dead zone" — voir la règle permanente à ce sujet dans CLAUDE.md.
-const dirtySyncIds = { snakes:new Set(), racks:new Set(), pairings:new Set(), clutches:new Set(), expenses:new Set(), customers:new Set() };
-const lastSyncSnapshot = { snakes:{}, racks:{}, pairings:{}, clutches:{}, expenses:{}, customers:{} };
+const dirtySyncIds = { snakes:new Set(), racks:new Set(), terrariums:new Set(), pairings:new Set(), clutches:new Set(), expenses:new Set(), customers:new Set() };
+const lastSyncSnapshot = { snakes:{}, racks:{}, terrariums:{}, pairings:{}, clutches:{}, expenses:{}, customers:{} };
 function contentSignature(item){
   return JSON.stringify(item, (k,v)=> k==='updatedAt' ? undefined : v);
 }
@@ -3636,6 +3655,7 @@ const I18N = {
     addRackBtn: '➕ Ajouter un rack',
     deleteRackBtn: '🗑 Supprimer ce rack',
     terrariumsTitle: 'Terrariums (affichage individuel)',
+    addTerrariumBtn: '➕ Ajouter un terrarium',
     invertOrderBtn: '⇅ Inverser l\'ordre',
     elevageSearchPlaceholder: '🔍 Rechercher un nom ou un gène… (filtre les terrariums, surligne les bacs)',
     hideRacks: 'Masquer Racks',
@@ -4066,6 +4086,7 @@ const I18N = {
     addRackBtn: '➕ Add a Rack',
     deleteRackBtn: '🗑 Delete This Rack',
     terrariumsTitle: 'Terrariums (individual display)',
+    addTerrariumBtn: '➕ Add a terrarium',
     invertOrderBtn: '⇅ Reverse Order',
     elevageSearchPlaceholder: '🔍 Search a name or gene… (filters terrariums, highlights tubs)',
     hideRacks: 'Hide Racks',
@@ -7062,17 +7083,18 @@ const DEFAULT_LAYOUT = { hideRacks:false, hideTerrariums:false, order:'racks-fir
 function loadElevage(){
   try{
     const raw = localStorage.getItem(ELEVAGE_KEY);
-    return raw ? JSON.parse(raw) : { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{} };
-  }catch(e){ console.warn('LOCUS: lecture élevage impossible', e); return { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{} }; }
+    return raw ? JSON.parse(raw) : { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{} };
+  }catch(e){ console.warn('LOCUS: lecture élevage impossible', e); return { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{} }; }
 }
 function saveElevage(){
   trackLocalChanges('racks', racks);
+  trackLocalChanges('terrariums', terrariums);
   trackLocalChanges('pairings', pairings);
   trackLocalChanges('clutches', clutches);
   trackLocalChanges('expenses', expenses);
   trackLocalChanges('customers', customers);
   try{
-    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock }));
+    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock }));
     storageWriteFailed = false;
   }catch(e){
     console.warn('LOCUS: écriture élevage impossible', e);
@@ -7101,11 +7123,16 @@ if(!racks && elevageData.rackDims){
   racks = [{ id:'rack_1', name:'Rack 1', rows: Array(rd.rows||4).fill(rd.tubsPerRow||8) }];
 }
 if(!racks || racks.length===0) racks = [{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}];
+// Terrariums (31 août) — nouvelle entité de premier ordre, même pattern que racks. Un reptile en
+// mode terrarium référence maintenant un terrariumId (voir ensureSnakeMeta pour la migration douce
+// des anciennes fiches qui n'avaient qu'un mode:'terrarium' plat, sans terrarium nommé derrière).
+var terrariums = elevageData.terrariums || [];
 if(!layout) layout = {...DEFAULT_LAYOUT};
 if(!clutches) clutches = [];
 if(!expenses) expenses = [];
 if(!customers) customers = [];
 markSynced('racks', racks);
+markSynced('terrariums', terrariums);
 markSynced('pairings', pairings);
 markSynced('clutches', clutches);
 markSynced('expenses', expenses);
@@ -7271,6 +7298,10 @@ async function pushAllUserData(forceAll){
       const dirty = itemsToPush('racks', racks, forceAll);
       if(dirty.length) await sb.from('racks').upsert(dirty.map(r=>({ id:r.id, user_id:currentUser.id, name:r.name, rows:r.rows })));
     }
+    if(terrariums.length){
+      const dirty = itemsToPush('terrariums', terrariums, forceAll);
+      if(dirty.length) await sb.from('terrariums').upsert(dirty.map(te=>({ id:te.id, user_id:currentUser.id, name:te.name, size:te.size||null, status:te.status||'libre', bioactive: !!te.bioactive })));
+    }
     if(pairings.length){
       const dirty = itemsToPush('pairings', pairings, forceAll);
       if(dirty.length) await sb.from('pairings').upsert(dirty.map(p=>({ id:p.id, user_id:currentUser.id, sire_id:p.maleId||null, dam_id:p.femaleId||null, data:p })));
@@ -7290,7 +7321,7 @@ async function pushAllUserData(forceAll){
     await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock });
     const profile = loadProfile();
     await sb.from('profiles').upsert({ user_id:currentUser.id, breeder_name: profile.breederName||null, email: profile.email||null, phone: profile.phone||null });
-    ['snakes','racks','pairings','clutches','expenses','customers'].forEach(kind=> dirtySyncIds[kind].clear());
+    ['snakes','racks','terrariums','pairings','clutches','expenses','customers'].forEach(kind=> dirtySyncIds[kind].clear());
   }catch(e){
     console.warn('LOCUS: échec envoi des données', e);
     showToast('⚠️ '+(currentLang==='en'?'Data upload failed — try signing out and back in.':'Envoi des données échoué — essaie de te déconnecter puis reconnecter.'), 'error');
@@ -7300,9 +7331,10 @@ async function pushAllUserData(forceAll){
 async function pullAllUserData(){
   if(!sb || !currentUser) return;
   try{
-    const [snakesRes, racksRes, pairingsRes, clutchesRes, expensesRes, customersRes, stateRes, profileRes] = await Promise.all([
+    const [snakesRes, racksRes, terrariumsRes, pairingsRes, clutchesRes, expensesRes, customersRes, stateRes, profileRes] = await Promise.all([
       sb.from('snakes').select('*'),
       sb.from('racks').select('*'),
+      sb.from('terrariums').select('*'),
       sb.from('pairings').select('*'),
       sb.from('clutches').select('*'),
       sb.from('expenses').select('*'),
@@ -7323,6 +7355,11 @@ async function pullAllUserData(){
       const remoteRacks = racksRes.data.map(r=>({ id:r.id, name:r.name, rows:r.rows, updatedAt: r.updated_at?Date.parse(r.updated_at):0 }));
       racks = mergeById(racks, remoteRacks);
       markSynced('racks', remoteRacks);
+    }
+    if(terrariumsRes.data && terrariumsRes.data.length){
+      const remoteTerrariums = terrariumsRes.data.map(te=>({ id:te.id, name:te.name, size:te.size, status:te.status||'libre', bioactive: !!te.bioactive, updatedAt: te.updated_at?Date.parse(te.updated_at):0 }));
+      terrariums = mergeById(terrariums, remoteTerrariums);
+      markSynced('terrariums', remoteTerrariums);
     }
     if(pairingsRes.data){
       const remotePairings = pairingsRes.data.map(p=>({...p.data, updatedAt: p.updated_at?Date.parse(p.updated_at):0 }));
@@ -7392,7 +7429,7 @@ function exportBackup(){
   const payload = {
     app:'LOCUS', version:2, exportedAt:new Date().toISOString(),
     snakes: savedSnakes,
-    elevage: { racks, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock }
+    elevage: { racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock }
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
@@ -7421,6 +7458,7 @@ document.getElementById('import-file-input').addEventListener('change', (e)=>{
 
     const el = data.elevage || {};
     racks = el.racks || (el.rackDims ? [{id:'rack_1', name:'Rack 1', rows:Array(el.rackDims.rows||4).fill(el.rackDims.tubsPerRow||8)}] : [{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}]);
+    terrariums = el.terrariums || [];
     pairings = el.pairings || [];
     pairings.forEach(p=>{ if(!p.follicleSizes) p.follicleSizes = []; });
     layout = el.layout || {...DEFAULT_LAYOUT};
@@ -7783,6 +7821,10 @@ function renderPedigreeTree(snakeId){
 function ensureSnakeMeta(s){
   if(!s.placement) s.placement = { mode:'terrarium', row:null, tub:null };
   if(s.placement.mode==='rack' && !s.placement.rackId) s.placement.rackId = racks[0] ? racks[0].id : 'rack_1'; // migration ancien format
+  // terrariumId (31 août) : avant, mode:'terrarium' était une simple étiquette sans terrarium nommé
+  // derrière. Les anciennes fiches reçoivent terrariumId:null — traitées comme "à classer" dans
+  // renderTerrariumList(), plutôt que rattachées d'office à un terrarium deviné.
+  if(s.placement.mode==='terrarium' && s.placement.terrariumId===undefined) s.placement.terrariumId = null;
   if(!s.health) s.health = { consecutiveRefusals:0, weights:[], events:[] };
   if(!s.health.vetVisits) s.health.vetVisits = [];
   if(!s.health.events) s.health.events = [];
@@ -8454,35 +8496,271 @@ function toggleTerrarium(id){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
   ensureSnakeMeta(s);
-  s.placement = s.placement.mode==='terrarium' ? {mode:'rack', rackId:null, row:null, tub:null} : {mode:'terrarium', rackId:null, row:null, tub:null};
+  s.placement = s.placement.mode==='terrarium' ? {mode:'rack', rackId:null, row:null, tub:null} : {mode:'terrarium', terrariumId:null};
   storage.save(savedSnakes);
   renderRackGrid(); renderTerrariumList();
 }
 
+/* ---- Terrariums (31 août) — entité de premier ordre, même esprit que les racks ---- */
+function getTerrarium(id){ return terrariums.find(te=>te.id===id); }
+function terrariumOccupants(terrariumId){
+  return savedSnakes.filter(s=>{ ensureSnakeMeta(s); return s.placement.mode==='terrarium' && s.placement.terrariumId===terrariumId; });
+}
+function terrariumCapacity(te){ return te.status==='accouplement' ? 2 : 1; }
+
+function addTerrarium(){
+  const isEn = currentLang==='en';
+  const name = prompt(isEn?'Name of the new terrarium (e.g. "Living room terrarium", "Baby tub #3"):':'Nom du nouveau terrarium (ex. "Terrarium salon", "Bac bébé #3") :', (isEn?'Terrarium ':'Terrarium ')+(terrariums.length+1));
+  if(!name) return;
+  terrariums.push({ id:'terra_'+Date.now(), name:name.trim(), size:null, status:'libre', bioactive:false });
+  saveElevage();
+  renderTerrariumList();
+  showToast('➕ '+(isEn?'Terrarium "':'Terrarium "')+name.trim()+(isEn?'" added.':'" ajouté.'), 'success');
+}
+
+function openTerrariumEditModal(terrariumId){
+  const isEn = currentLang==='en';
+  const te = getTerrarium(terrariumId);
+  if(!te) return;
+  const body =
+    '<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Name':'Nom')+'</span>'+
+      '<input type="text" id="te-edit-name" value="'+escapeHtml(te.name||'')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
+    '<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Size (e.g. 90x45x45cm)':'Taille (ex. 90x45x45cm)')+'</span>'+
+      '<input type="text" id="te-edit-size" value="'+escapeHtml(te.size||'')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
+    '<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Status':'Statut')+'</span>'+
+      '<select id="te-edit-status" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+        '<option value="libre"'+(te.status==='libre'?' selected':'')+'>'+(isEn?'Free / empty':'Libre / vide')+'</option>'+
+        '<option value="occupe"'+(te.status==='occupe'?' selected':'')+'>'+(isEn?'Occupied':'Occupé')+'</option>'+
+        '<option value="accouplement"'+(te.status==='accouplement'?' selected':'')+'>'+(isEn?'Pairing in progress (allows 2 animals)':'En accouplement (permet 2 animaux)')+'</option>'+
+      '</select></label>'+
+    '<label style="display:flex;align-items:center;gap:8px;margin-bottom:16px;"><input type="checkbox" id="te-edit-bioactive" '+(te.bioactive?'checked':'')+' style="width:18px;height:18px;"/> <span>'+(isEn?'Bioactive setup':'Installation bioactive')+'</span></label>'+
+    '<button class="sc-btn accent" style="width:100%;" onclick="saveTerrariumEdit(\''+terrariumId+'\')">'+(isEn?'Save':'Enregistrer')+'</button>'+
+    (terrariumOccupants(terrariumId).length===0 ? '<button class="sc-btn danger" style="width:100%;margin-top:8px;" onclick="deleteTerrarium(\''+terrariumId+'\')">'+(isEn?'🗑 Delete this terrarium':'🗑 Supprimer ce terrarium')+'</button>' : '');
+  showQuickModal((isEn?'Edit terrarium':'Modifier le terrarium'), body);
+}
+function saveTerrariumEdit(terrariumId){
+  const isEn = currentLang==='en';
+  const te = getTerrarium(terrariumId);
+  if(!te) return;
+  const name = document.getElementById('te-edit-name').value.trim();
+  if(!name){ alert(isEn?'Name required.':'Le nom est requis.'); return; }
+  const newStatus = document.getElementById('te-edit-status').value;
+  const occupantCount = terrariumOccupants(terrariumId).length;
+  if(newStatus!=='accouplement' && occupantCount>1){
+    alert(isEn?'This terrarium currently has 2 animals — move one out before leaving "Pairing in progress".':'Ce terrarium contient actuellement 2 animaux — déplace-en un avant de quitter le statut « En accouplement ».');
+    return;
+  }
+  te.name = name;
+  te.size = document.getElementById('te-edit-size').value.trim() || null;
+  te.status = newStatus;
+  te.bioactive = document.getElementById('te-edit-bioactive').checked;
+  saveElevage();
+  closeQuickModal();
+  renderTerrariumList();
+  showToast(isEn?'Terrarium updated.':'Terrarium mis à jour.', 'success');
+}
+function deleteTerrarium(terrariumId){
+  const isEn = currentLang==='en';
+  const te = getTerrarium(terrariumId);
+  if(!te) return;
+  if(terrariumOccupants(terrariumId).length){ alert(isEn?'Move the animal(s) out first.':'Déplace d\'abord le ou les animaux avant de supprimer.'); return; }
+  if(!confirm(isEn?('Delete terrarium "'+te.name+'"?'):('Supprimer le terrarium « '+te.name+' » ?'))) return;
+  terrariums = terrariums.filter(x=>x.id!==terrariumId);
+  saveElevage();
+  closeQuickModal();
+  renderTerrariumList();
+  showToast(isEn?'Terrarium deleted.':'Terrarium supprimé.');
+}
+
+// Choisir QUEL animal ajouter à un terrarium donné (bouton "Assigner"/"Ajouter un partenaire").
+function openAssignAnimalModal(terrariumId){
+  const isEn = currentLang==='en';
+  const te = getTerrarium(terrariumId);
+  if(!te) return;
+  if(terrariumOccupants(terrariumId).length >= terrariumCapacity(te)){ alert(isEn?'This terrarium is already full.':'Ce terrarium est déjà plein.'); return; }
+  const candidates = savedSnakes.filter(s=>{ ensureSnakeMeta(s); return !(s.placement.mode==='terrarium' && s.placement.terrariumId===terrariumId); });
+  if(!candidates.length){ alert(isEn?'No other reptile available.':'Aucun autre reptile disponible.'); return; }
+  const optionsHtml = candidates.map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+' ('+(s.sex==='male'?'♂':'♀')+')</option>').join('');
+  const body =
+    '<select id="te-assign-select" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:12px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+optionsHtml+'</select>'+
+    '<button class="sc-btn accent" style="width:100%;" onclick="confirmAssignAnimal(\''+terrariumId+'\')">'+(isEn?'Assign':'Assigner')+'</button>';
+  showQuickModal((isEn?'Assign to "':'Assigner à « ')+te.name+(isEn?'"':' »'), body);
+}
+function confirmAssignAnimal(terrariumId){
+  const isEn = currentLang==='en';
+  const te = getTerrarium(terrariumId);
+  if(!te || terrariumOccupants(terrariumId).length >= terrariumCapacity(te)){ alert(isEn?'This terrarium is already full.':'Ce terrarium est déjà plein.'); return; }
+  const snakeId = document.getElementById('te-assign-select').value;
+  const s = savedSnakes.find(x=>x.id===snakeId);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  s.placement = { mode:'terrarium', terrariumId };
+  if(te.status==='libre') te.status='occupe';
+  storage.save(savedSnakes);
+  saveElevage();
+  closeQuickModal();
+  renderTerrariumList(); renderTourGrid();
+  showToast('✓ '+s.name+' '+(isEn?'assigned.':'assigné(e).'), 'success');
+}
+
+// Choisir VERS QUEL terrarium déplacer un animal donné (bouton "↔ Déplacer" ou "Assigner" du bac "à classer").
+function openMoveTerrariumModal(snakeId){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===snakeId);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const currentId = s.placement.terrariumId || null;
+  const options = terrariums.filter(te=>te.id!==currentId).map(te=>{
+    const full = terrariumOccupants(te.id).length >= terrariumCapacity(te);
+    return '<option value="'+te.id+'"'+(full?' disabled':'')+'>'+escapeHtml(te.name)+(full?(isEn?' (full)':' (plein)'):'')+'</option>';
+  }).join('');
+  if(!options){ alert(isEn?'No other terrarium available — create one first.':'Aucun autre terrarium disponible — crées-en un d\'abord.'); return; }
+  const body =
+    '<select id="te-move-select" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:12px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+options+'</select>'+
+    '<button class="sc-btn accent" style="width:100%;" onclick="confirmMoveTerrarium(\''+snakeId+'\')">'+(isEn?'Move':'Déplacer')+'</button>';
+  showQuickModal((isEn?'Move ':'Déplacer ')+s.name, body);
+}
+function confirmMoveTerrarium(snakeId){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===snakeId);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const newId = document.getElementById('te-move-select').value;
+  const newTe = getTerrarium(newId);
+  if(!newTe || terrariumOccupants(newId).length >= terrariumCapacity(newTe)){ alert(isEn?'That terrarium is full.':'Ce terrarium est plein.'); return; }
+  const oldId = s.placement.terrariumId || null;
+  const oldTe = getTerrarium(oldId);
+  s.placement = { mode:'terrarium', terrariumId:newId };
+  if(oldTe && terrariumOccupants(oldId).length===0) oldTe.status='libre';
+  if(newTe.status==='libre') newTe.status='occupe';
+  storage.save(savedSnakes);
+  saveElevage();
+  closeQuickModal();
+  renderTerrariumList(); renderTourGrid();
+  showToast('↔ '+s.name+' '+(isEn?'moved.':'déplacé(e).'), 'success');
+}
+function unassignFromTerrarium(snakeId){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===snakeId);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const teId = s.placement.terrariumId;
+  if(!confirm(isEn?('Remove '+s.name+' from this terrarium?'):('Retirer '+s.name+' de ce terrarium ?'))) return;
+  s.placement = { mode:'terrarium', terrariumId:null };
+  storage.save(savedSnakes);
+  const te = getTerrarium(teId);
+  if(te && terrariumOccupants(teId).length===0) te.status='libre';
+  saveElevage();
+  renderTerrariumList(); renderTourGrid();
+}
+
 function renderTerrariumList(){
+  const isEn = currentLang==='en';
   const wrap = document.getElementById('terrarium-list');
+  if(!wrap) return;
   savedSnakes.forEach(ensureSnakeMeta);
-  const list = savedSnakes.filter(s=>s.placement.mode==='terrarium' && matchesSearch(s, elevageSearchTerm));
-  wrap.innerHTML = list.length ? '' : '<div class="empty">'+(elevageSearchTerm?t('noTerrariumReptilesSearch'):t('noTerrariumReptiles'))+'</div>';
-  list.forEach(s=>{
+  wrap.innerHTML = '';
+
+  // Reptiles en mode terrarium sans terrarium assigné (migration des anciennes fiches, ou juste
+  // créés) — bucket "à classer" distinct des vraies cartes de terrarium.
+  const unassigned = savedSnakes.filter(s=>s.placement.mode==='terrarium' && !s.placement.terrariumId && matchesSearch(s, elevageSearchTerm));
+  if(unassigned.length){
+    const card = document.createElement('div');
+    card.className = 'terra-card';
+    card.style.borderStyle = 'dashed';
+    card.innerHTML = '<div class="terra-card-head"><span style="font-weight:700;">⚠ '+(isEn?'To assign':'À classer')+'</span></div>'+
+      '<p class="terra-empty-note">'+(isEn?'These reptiles aren\'t linked to a terrarium yet.':'Ces reptiles ne sont pas encore rattachés à un terrarium.')+'</p>';
+    unassigned.forEach(s=>{
+      const row = document.createElement('div');
+      row.className = 'terra-occupant';
+      row.innerHTML = '<span class="terra-occupant-name" data-open="'+s.id+'">'+escapeHtml(s.name)+' ('+(s.sex==='male'?'♂':'♀')+')</span>'+
+        '<span class="terra-occupant-actions"><button class="sc-btn" data-move="'+s.id+'">'+(isEn?'Assign':'Assigner')+'</button></span>';
+      card.appendChild(row);
+    });
+    wrap.appendChild(card);
+  }
+
+  if(terrariums.length===0){
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = isEn?'No terrariums yet — add one below.':'Aucun terrarium pour l\'instant — ajoutes-en un ci-dessous.';
+    wrap.appendChild(empty);
+  }
+
+  terrariums.forEach(te=>{
     try{
-      var chip = document.createElement('div');
-      chip.className = 'terrarium-chip selectable feed-'+feedingStatus(s);
-      chip.setAttribute('data-tooltip', snakeTooltip(s));
-      chip.innerHTML = '<span>'+escapeHtml(s.name)+' ('+(s.sex==='male'?'♂':'♀')+')</span>';
-      chip.addEventListener('click', ()=>openLogbook(s.id));
-      makeKeyboardClickable(chip, t('openSheetOf')+s.name);
-      wrap.appendChild(chip);
+      const occupants = terrariumOccupants(te.id).filter(s=>!elevageSearchTerm || matchesSearch(s, elevageSearchTerm));
+      const status = te.status || 'libre';
+      const statusLabel = status==='libre' ? (isEn?'Free':'Libre') : status==='accouplement' ? (isEn?'Pairing':'Accouplement') : (isEn?'Occupied':'Occupé');
+      const card = document.createElement('div');
+      card.className = 'terra-card status-'+status;
+      let head = '<input type="text" class="terra-name-input" value="'+escapeHtml(te.name)+'" data-rename="'+te.id+'"/>'+
+        '<span class="terra-badge status-'+status+'">'+statusLabel+'</span>';
+      if(te.size) head += '<span class="terra-size">📐 '+escapeHtml(te.size)+'</span>';
+      if(te.bioactive) head += '<span class="terra-bio-badge">🌱 '+(isEn?'Bioactive':'Bioactif')+'</span>';
+      head += '<span class="terra-card-tools"><button class="sc-btn" data-editte="'+te.id+'">✏️</button></span>';
+      card.innerHTML = '<div class="terra-card-head">'+head+'</div>';
+
+      if(occupants.length===0){
+        const note = document.createElement('p');
+        note.className = 'terra-empty-note';
+        note.textContent = isEn?'Empty — tap to assign a reptile.':'Vide — touche pour assigner un reptile.';
+        card.appendChild(note);
+        const assignBtn = document.createElement('button');
+        assignBtn.className = 'sc-btn';
+        assignBtn.style.marginTop = '6px';
+        assignBtn.textContent = '➕ '+(isEn?'Assign a reptile':'Assigner un reptile');
+        assignBtn.addEventListener('click', ()=>openAssignAnimalModal(te.id));
+        card.appendChild(assignBtn);
+      } else {
+        occupants.forEach(s=>{
+          const row = document.createElement('div');
+          row.className = 'terra-occupant feed-'+feedingStatus(s);
+          row.setAttribute('data-tooltip', snakeTooltip(s));
+          row.innerHTML = '<span class="terra-occupant-name" data-open="'+s.id+'">'+escapeHtml(s.name)+' ('+(s.sex==='male'?'♂':'♀')+')</span>'+
+            '<span class="terra-occupant-actions">'+
+              '<button class="sc-btn" data-move="'+s.id+'">↔ '+(isEn?'Move':'Déplacer')+'</button>'+
+              '<button class="sc-btn danger" data-unassign="'+s.id+'">✕</button>'+
+            '</span>';
+          card.appendChild(row);
+        });
+        if(status==='accouplement' && occupants.length<2){
+          const addPartnerBtn = document.createElement('button');
+          addPartnerBtn.className = 'sc-btn';
+          addPartnerBtn.style.marginTop = '6px';
+          addPartnerBtn.textContent = '➕ '+(isEn?'Add partner':'Ajouter un partenaire');
+          addPartnerBtn.addEventListener('click', ()=>openAssignAnimalModal(te.id));
+          card.appendChild(addPartnerBtn);
+        }
+      }
+      wrap.appendChild(card);
     }catch(erreur){
-      // Filet de sécurité (30 août) — une carte qui plante n'empêche plus les autres de s'afficher.
-      // L'erreur exacte s'affiche directement sur la carte fautive au lieu de rester invisible.
-      var errChip = document.createElement('div');
-      errChip.className = 'terrarium-chip';
-      errChip.style.cssText = 'border-color:#c0392b;background:rgba(192,57,43,.15);font-size:8.5px;';
-      errChip.textContent = '⚠ '+s.name+' : '+erreur.message+' | '+(erreur.stack?erreur.stack.split('\n').slice(0,5).join(' >> '):'pas de pile');
-      wrap.appendChild(errChip);
-      console.warn('LOCUS: erreur affichage carte terrarium pour '+s.name, erreur);
+      // Filet de sécurité (30 août) — même principe que pour les racks/anciennes cartes terrarium :
+      // une carte qui plante n'empêche plus les autres de s'afficher.
+      const errCard = document.createElement('div');
+      errCard.className = 'terra-card';
+      errCard.style.cssText = 'border-color:#c0392b;background:rgba(192,57,43,.15);font-size:9.5px;';
+      errCard.textContent = '⚠ '+(te.name||te.id)+' : '+erreur.message;
+      wrap.appendChild(errCard);
+      console.warn('LOCUS: erreur affichage carte terrarium', erreur);
     }
+  });
+
+  wrap.querySelectorAll('[data-rename]').forEach(inp=>{
+    inp.addEventListener('change', ()=>{ const te=getTerrarium(inp.dataset.rename); if(te && inp.value.trim()){ te.name=inp.value.trim(); saveElevage(); showToast(isEn?'Terrarium renamed.':'Terrarium renommé.','success'); } });
+  });
+  wrap.querySelectorAll('[data-editte]').forEach(btn=>{
+    btn.addEventListener('click', ()=>openTerrariumEditModal(btn.dataset.editte));
+  });
+  wrap.querySelectorAll('[data-move]').forEach(btn=>{
+    btn.addEventListener('click', ()=>openMoveTerrariumModal(btn.dataset.move));
+  });
+  wrap.querySelectorAll('[data-unassign]').forEach(btn=>{
+    btn.addEventListener('click', ()=>unassignFromTerrarium(btn.dataset.unassign));
+  });
+  wrap.querySelectorAll('[data-open]').forEach(el=>{
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', ()=>openLogbook(el.dataset.open));
   });
 }
 
@@ -12061,10 +12339,13 @@ function renderSpeciesGuidesList(){
   const wrap = document.getElementById('species-guides-list');
   if(!wrap) return;
   const all = [ { id:'ball_python', nameFr:'Python royal', nameEn:'Ball Python' }, ...SPECIES_REFERENCE ];
-  wrap.innerHTML = all.map(sp=>
-    '<div class="modal-row"><span>'+(isEn?sp.nameEn:sp.nameFr)+'</span>'+
-    '<button class="sc-btn" onclick="copySpeciesGuideLink(\''+sp.id+'\')">'+(isEn?'Copy link':'Copier le lien')+'</button></div>'
-  ).join('');
+  wrap.innerHTML = all.map(sp=>{
+    // Version courte pour ce tableau seulement (liens publics) — le nom complet reste utilisé
+    // ailleurs (ex. sélecteur d'espèce à l'ajout d'un reptile), ici c'est juste pour tenir sur 1 ligne.
+    const shortLabel = sp.id==='hognose' ? 'Hognose' : (isEn?sp.nameEn:sp.nameFr);
+    return '<div class="modal-row"><span>'+shortLabel+'</span>'+
+    '<button class="sc-btn" onclick="copySpeciesGuideLink(\''+sp.id+'\')">'+(isEn?'Copy link':'Copier le lien')+'</button></div>';
+  }).join('');
 }
 function copySpeciesGuideLink(speciesId){
   const isEn = currentLang==='en';
