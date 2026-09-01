@@ -1847,7 +1847,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.37';
+const APP_VERSION = '2026.08.26.1.41';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -7302,7 +7302,7 @@ async function pushAllUserData(forceAll){
     }
     if(terrariums.length){
       const dirty = itemsToPush('terrariums', terrariums, forceAll);
-      if(dirty.length) await sb.from('terrariums').upsert(dirty.map(te=>({ id:te.id, user_id:currentUser.id, name:te.name, size:te.size||null, status:te.status||'libre', bioactive: !!te.bioactive, lighting:te.lighting||null, heating:te.heating||null, substrate:te.substrate||null, pairing_start_date:te.pairingStartDate||null })));
+      if(dirty.length) await sb.from('terrariums').upsert(dirty.map(te=>({ id:te.id, user_id:currentUser.id, name:te.name, size:te.size||null, status:te.status||'libre', bioactive: !!te.bioactive, lighting:te.lighting||null, heating:te.heating||null, substrate:te.substrate||null, pairing_start_date:te.pairingStartDate||null, uvb_replace_date:te.uvbReplaceDate||null })));
     }
     if(pairings.length){
       const dirty = itemsToPush('pairings', pairings, forceAll);
@@ -7359,7 +7359,7 @@ async function pullAllUserData(){
       markSynced('racks', remoteRacks);
     }
     if(terrariumsRes.data && terrariumsRes.data.length){
-      const remoteTerrariums = terrariumsRes.data.map(te=>({ id:te.id, name:te.name, size:te.size, status:te.status||'libre', bioactive: !!te.bioactive, lighting:te.lighting||null, heating:te.heating||null, substrate:te.substrate||null, pairingStartDate:te.pairing_start_date||null, updatedAt: te.updated_at?Date.parse(te.updated_at):0 }));
+      const remoteTerrariums = terrariumsRes.data.map(te=>({ id:te.id, name:te.name, size:te.size, status:te.status||'libre', bioactive: !!te.bioactive, lighting:te.lighting||null, heating:te.heating||null, substrate:te.substrate||null, pairingStartDate:te.pairing_start_date||null, uvbReplaceDate:te.uvb_replace_date||null, updatedAt: te.updated_at?Date.parse(te.updated_at):0 }));
       terrariums = mergeById(terrariums, remoteTerrariums);
       markSynced('terrariums', remoteTerrariums);
     }
@@ -8537,6 +8537,7 @@ const DEFAULT_LIGHTING_OPTIONS = [
   { fr:'UVB (tube/lampe UVB)', en:'UVB (tube/bulb)' },
   { fr:'Lampe à incandescence (basking)', en:'Incandescent basking bulb' },
   { fr:'LED terrarium', en:'Terrarium LED' },
+  { fr:'Émetteur céramique (chauffe, n\'éclaire pas)', en:'Ceramic heat emitter (heat only, no light)' },
 ];
 const DEFAULT_HEATING_OPTIONS = [
   { fr:'Aucun', en:'None' },
@@ -8573,6 +8574,21 @@ function fieldOptionsHtml(kind, currentValue){
 function toggleCustomFieldInput(selectEl, customInputId){
   const el = document.getElementById(customInputId);
   if(el) el.style.display = selectEl.value==='__autre__' ? 'block' : 'none';
+}
+// Les tubes/lampes UVB perdent leur efficacité bien avant de cesser d'éclairer visiblement — d'où
+// l'intérêt de suivre une date de remplacement séparément, seulement quand UVB est sélectionné.
+function toggleUvbDateField(selectEl){
+  const wrap = document.getElementById('te-edit-uvb-date-wrap');
+  if(wrap) wrap.style.display = selectEl.value.indexOf('UVB')!==-1 ? 'block' : 'none';
+}
+// Raccourcis +6/+8/+10/+12 mois — durée de vie effective UVB variable selon la marque/le modèle,
+// pas de valeur "correcte" universelle, donc Alex choisit lui-même plutôt qu'un calcul imposé.
+function setUvbDateFromNow(months){
+  const d = new Date();
+  d.setMonth(d.getMonth() + months);
+  const iso = d.toISOString().slice(0,10);
+  const input = document.getElementById('te-edit-uvb-date');
+  if(input) input.value = iso;
 }
 // Lit un champ select+"Autre" et, si "Autre" a été utilisé, ajoute la valeur tapée à la liste
 // mémorisée pour ce type de champ — elle réapparaît ensuite comme choix direct partout ailleurs.
@@ -8615,7 +8631,7 @@ function addTerrarium(){
   const isEn = currentLang==='en';
   const name = prompt(isEn?'Name of the new terrarium (e.g. "Living room terrarium", "Baby tub #3"):':'Nom du nouveau terrarium (ex. "Terrarium salon", "Bac bébé #3") :', (isEn?'Terrarium ':'Terrarium ')+(terrariums.length+1));
   if(!name) return;
-  terrariums.push({ id:'terra_'+Date.now(), name:name.trim(), size:null, status:'libre', bioactive:false, pairingStartDate:null, lighting:null, heating:null, substrate:null });
+  terrariums.push({ id:'terra_'+Date.now(), name:name.trim(), size:null, status:'libre', bioactive:false, pairingStartDate:null, lighting:null, heating:null, substrate:null, uvbReplaceDate:null });
   saveElevage();
   renderTerrariumList();
   showToast('➕ '+(isEn?'Terrarium "':'Terrarium "')+name.trim()+(isEn?'" added.':'" ajouté.'), 'success');
@@ -8631,8 +8647,15 @@ function openTerrariumEditModal(terrariumId){
     '<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Size (e.g. 90x45x45cm)':'Taille (ex. 90x45x45cm)')+'</span>'+
       '<input type="text" id="te-edit-size" value="'+escapeHtml(te.size||'')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
     '<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Lighting':'Éclairage')+'</span>'+
-      '<select id="te-edit-lighting" onchange="toggleCustomFieldInput(this,\'te-edit-lighting-custom\')" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+fieldOptionsHtml('lighting', te.lighting)+'</select>'+
-      '<input type="text" id="te-edit-lighting-custom" placeholder="'+(isEn?'Type the lighting type…':'Tape le type d\'éclairage…')+'" style="display:none;width:100%;font-size:16px;padding:8px 10px;margin-top:6px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
+      '<select id="te-edit-lighting" onchange="toggleCustomFieldInput(this,\'te-edit-lighting-custom\'); toggleUvbDateField(this)" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+fieldOptionsHtml('lighting', te.lighting)+'</select>'+
+      '<input type="text" id="te-edit-lighting-custom" placeholder="'+(isEn?'Type the lighting type…':'Tape le type d\'éclairage…')+'" style="display:none;width:100%;font-size:16px;padding:8px 10px;margin-top:6px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
+      '<div id="te-edit-uvb-date-wrap" style="display:'+((te.lighting||'').indexOf('UVB')!==-1?'block':'none')+';margin-top:8px;">'+
+        '<span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Planned UVB replacement date':'Date de remplacement UVB prévue')+'</span>'+
+        '<input type="date" id="te-edit-uvb-date" value="'+(te.uvbReplaceDate||'')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">'+
+          [6,8,10,12].map(m=>'<button type="button" class="sc-btn" style="font-size:10.5px;padding:6px 10px;" onclick="setUvbDateFromNow('+m+')">+'+m+' '+(isEn?'mo':'mois')+'</button>').join('')+
+        '</div>'+
+      '</div></label>'+
     '<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Heating':'Chauffage')+'</span>'+
       '<select id="te-edit-heating" onchange="toggleCustomFieldInput(this,\'te-edit-heating-custom\')" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+fieldOptionsHtml('heating', te.heating)+'</select>'+
       '<input type="text" id="te-edit-heating-custom" placeholder="'+(isEn?'Type the heating type…':'Tape le type de chauffage…')+'" style="display:none;width:100%;font-size:16px;padding:8px 10px;margin-top:6px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
@@ -8654,6 +8677,7 @@ function saveTerrariumEdit(terrariumId){
   te.name = name;
   te.size = document.getElementById('te-edit-size').value.trim() || null;
   te.lighting = resolveFieldValue('te-edit-lighting', 'te-edit-lighting-custom', 'lighting');
+  te.uvbReplaceDate = (te.lighting && te.lighting.indexOf('UVB')!==-1) ? (document.getElementById('te-edit-uvb-date').value || null) : null;
   te.heating = resolveFieldValue('te-edit-heating', 'te-edit-heating-custom', 'heating');
   te.substrate = resolveFieldValue('te-edit-substrate', 'te-edit-substrate-custom', 'substrate');
   te.bioactive = document.getElementById('te-edit-bioactive').checked;
@@ -8802,6 +8826,14 @@ function renderTerrariumList(){
         '<span class="terra-badge status-'+status+'">'+statusLabel+'</span>';
       if(te.size) head += '<span class="terra-size">📐 '+escapeHtml(te.size)+'</span>';
       if(te.lighting) head += '<span class="terra-size">💡 '+escapeHtml(te.lighting)+'</span>';
+      if(te.uvbReplaceDate){
+        const daysLeft = Math.floor((new Date(te.uvbReplaceDate+'T00:00:00').getTime() - Date.now()) / 86400000);
+        const overdue = daysLeft < 0;
+        const soon = !overdue && daysLeft <= 14;
+        const uvbStyle = overdue ? 'color:#e08a63;font-weight:700;' : soon ? 'color:var(--gold);' : '';
+        const uvbIcon = overdue ? '🚨' : soon ? '⚠' : '☀️';
+        head += '<span class="terra-size" style="'+uvbStyle+'">'+uvbIcon+' '+(isEn?'UVB replace: ':'Remplacer UVB : ')+te.uvbReplaceDate+(overdue?(isEn?' (overdue)':' (dépassée)'):'')+'</span>';
+      }
       if(te.heating) head += '<span class="terra-size">🔥 '+escapeHtml(te.heating)+'</span>';
       if(te.substrate) head += '<span class="terra-size">🟫 '+escapeHtml(te.substrate)+'</span>';
       if(te.bioactive) head += '<span class="terra-bio-badge">🌱 '+(isEn?'Bioactive':'Bioactif')+'</span>';
