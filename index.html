@@ -1862,7 +1862,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.1.45';
+const APP_VERSION = '2026.08.26.1.48';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -6764,6 +6764,10 @@ function openFedModal(id){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
   showQuickModal((isEn?'Feeding — ':'Repas — ')+s.name,
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">'+
+      '<span style="font-size:12px;color:var(--ink-dim);">'+(isEn?'Number of prey items:':'Nombre de proies :')+'</span>'+
+      '<input type="number" id="fed-prey-count" min="1" value="1" style="width:64px;font-size:16px;padding:6px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);text-align:center;"/>'+
+    '</div>'+
     '<div style="display:flex;flex-direction:column;gap:8px;">'+
       '<button class="save-btn" onclick="confirmFed(\''+id+'\', \'complete\')">'+(isEn?'✅ Ate completely':'✅ Mangé au complet')+'</button>'+
       '<button class="sc-btn" onclick="confirmFed(\''+id+'\', \'partial\')">'+(isEn?'🍽 Partially eaten':'🍽 Mangé partiellement')+'</button>'+
@@ -6776,14 +6780,16 @@ function confirmFed(id, quantity){
   if(!s) return;
   ensureSnakeMeta(s);
   const today = new Date().toISOString().slice(0,10);
+  const countInput = document.getElementById('fed-prey-count');
+  const preyCount = countInput ? Math.max(1, parseInt(countInput.value)||1) : 1;
   s.health.consecutiveRefusals = 0;
-  s.health.events.push({date:today, type:'fed', quantity, preyType: s.preyType||'frozen'});
+  s.health.events.push({date:today, type:'fed', quantity, preyType: s.preyType||'frozen', preyCount});
   storage.save(savedSnakes);
   let stockMsg = '';
   if(s.preySpecies && s.preySize){
     const key = feederStockKey(s.preySpecies, s.preySize);
     if(feederStock[key]!=null){
-      feederStock[key] = Math.max(0, feederStock[key]-1);
+      feederStock[key] = Math.max(0, feederStock[key]-preyCount);
       saveElevage();
       if(feederStock[key] <= FEEDER_LOW_STOCK_THRESHOLD){
         stockMsg = isEn ? ' ⚠ Low stock: '+feederStock[key]+' left.' : ' ⚠ Stock bas : '+feederStock[key]+' restant(s).';
@@ -6791,7 +6797,8 @@ function confirmFed(id, quantity){
     }
   }
   closeQuickModal();
-  showToast('🍽 '+s.name+(isEn?' ate':' a mangé')+(quantity==='partial'?(isEn?' (partial).':' (partiellement).'):'.')+stockMsg, 'success');
+  const countTag = preyCount>1 ? (isEn?' ('+preyCount+' prey)':' ('+preyCount+' proies)') : '';
+  showToast('🍽 '+s.name+(isEn?' ate':' a mangé')+(quantity==='partial'?(isEn?' (partial).':' (partiellement).'):'.')+countTag+stockMsg, 'success');
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
   renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderFirstSnakeTip();
 }
@@ -6939,6 +6946,12 @@ function openRefusedModal(id){
     '</select>'+
     '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:6px;">'+(isEn?'Note (optional)':'Note (optionnelle)')+'</label>'+
     '<input type="text" id="refused-note-input" style="width:100%;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:\'Courier New\',monospace;font-size:14px;padding:9px 10px;"/>'+
+    ((s.preySpecies && s.preySize) ?
+      '<label style="display:flex;align-items:center;gap:8px;margin-top:14px;">'+
+        '<input type="checkbox" id="refused-lost-prey" style="width:18px;height:18px;"/>'+
+        '<span style="font-size:12px;">🗑 '+(isEn?'Prey lost (thrown out, not reused for another snake)':'Proie perdue (jetée, pas réutilisée pour un autre serpent)')+'</span>'+
+      '</label>'
+      : '')+
     '<button class="save-btn" style="margin-top:16px;width:100%;" onclick="confirmRefused(\''+id+'\')">'+(isEn?'Save refusal':'Enregistrer le refus')+'</button>'
   );
 }
@@ -6949,14 +6962,29 @@ function confirmRefused(id){
   ensureSnakeMeta(s);
   const reasonEl = document.getElementById('refused-reason-input');
   const noteEl = document.getElementById('refused-note-input');
+  const lostEl = document.getElementById('refused-lost-prey');
   const reason = reasonEl ? reasonEl.value : 'unknown';
   const note = noteEl ? noteEl.value.trim() : '';
+  const lostPrey = lostEl ? lostEl.checked : false;
   const today = new Date().toISOString().slice(0,10);
   s.health.consecutiveRefusals = (s.health.consecutiveRefusals||0)+1;
-  s.health.events.push({date:today, type:'refused', reason, note});
+  s.health.events.push({date:today, type:'refused', reason, note, lostPrey});
   storage.save(savedSnakes);
+  // Une proie refusée n'est PAS déduite du stock par défaut — souvent réutilisable pour un autre
+  // serpent (surtout congelé-décongelé). Décomptée seulement si "Proie perdue" est cochée.
+  let stockMsg = '';
+  if(lostPrey && s.preySpecies && s.preySize){
+    const key = feederStockKey(s.preySpecies, s.preySize);
+    if(feederStock[key]!=null){
+      feederStock[key] = Math.max(0, feederStock[key]-1);
+      saveElevage();
+      if(feederStock[key] <= FEEDER_LOW_STOCK_THRESHOLD){
+        stockMsg = isEn ? ' ⚠ Low stock: '+feederStock[key]+' left.' : ' ⚠ Stock bas : '+feederStock[key]+' restant(s).';
+      }
+    }
+  }
   closeQuickModal();
-  showToast('⚠ '+(isEn?'Refusal noted for ':'Refus noté pour ')+s.name+' — '+refusalReasonLabel(reason)+'.');
+  showToast('⚠ '+(isEn?'Refusal noted for ':'Refus noté pour ')+s.name+' — '+refusalReasonLabel(reason)+(lostPrey?(isEn?' (prey lost).':' (proie perdue).'):'.')+stockMsg);
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
   renderRackGrid(); renderTerrariumList(); renderTourGrid();
 }
@@ -8040,7 +8068,7 @@ function feedingLabels(){ return currentLang==='en' ? FEEDING_LABELS_EN : FEEDIN
 // (poids/grammes cibles par taille) pourra être ajoutée dans une future mise à jour.
 const PREY_SIZES = {
   mouse: ['Pinky','Fuzzy','Hopper','Weanling','Adult'],
-  rat: ['Pinky','Fuzzy','Weanling','Small','Medium','Large','X-Large','Jumbo'],
+  rat: ['Pinky','Fuzzy','Weanling','ASF (adulte)','Small','Medium','Large','X-Large','Jumbo'],
 };
 
 /* Coût de nourriture cumulé (estimé) — 25 août. On ne connaît pas le prix payé pour chaque proie
@@ -8048,7 +8076,9 @@ const PREY_SIZES = {
    par repas que l'éleveur entre lui-même, multiplié par le nombre d'événements "nourri" déjà loggés
    pour cet animal. Toujours présenté comme une estimation, jamais comme un chiffre exact. */
 function feedCount(s){
-  return (s.health && s.health.events) ? s.health.events.filter(e=>e.type==='fed').length : 0;
+  // Compte le nombre total de proies données, pas juste le nombre d'événements "nourri" — un repas
+  // peut maintenant inclure plusieurs proies (preyCount), important pour un coût cumulé juste.
+  return (s.health && s.health.events) ? s.health.events.filter(e=>e.type==='fed').reduce((sum,e)=>sum+(e.preyCount||1), 0) : 0;
 }
 function cumulativeFeedCost(s){
   return feedCount(s) * (s.feedCost || 0);
@@ -11858,6 +11888,9 @@ function runGlobalSearch(term){
 
   const geneMatches = GENES.filter(g=>g.name.toLowerCase().includes(q)).slice(0,5);
 
+  const rackMatches = racks.filter(r=>r.name.toLowerCase().includes(q)).slice(0,5);
+  const terrariumMatches = terrariums.filter(te=>te.name.toLowerCase().includes(q)).slice(0,5);
+
   const clientDir = buildClientDirectory();
   const clientMatches = Object.entries(clientDir).filter(([key,data])=>data.displayName.toLowerCase().includes(q)).slice(0,5);
 
@@ -11873,6 +11906,20 @@ function runGlobalSearch(term){
     html += '<div class="gsr-group">'+(isEn?'Clients':'Clients')+'</div>';
     clientMatches.forEach(([key,data])=>{
       html += '<div class="gsr-item" onclick="closeGlobalSearch(); showTab(\'ventes\'); showVentesSubtab(\'clients\');"><span class="gsr-icon">👤</span><div><b>'+escapeHtml(data.displayName)+'</b><small>'+data.sales.length+(isEn?' purchase(s)':' achat(s)')+'</small></div></div>';
+    });
+  }
+  if(rackMatches.length){
+    html += '<div class="gsr-group">'+(isEn?'Racks':'Racks')+'</div>';
+    rackMatches.forEach(r=>{
+      const occupantCount = savedSnakes.filter(s=>{ ensureSnakeMeta(s); return s.placement.mode==='rack' && s.placement.rackId===r.id; }).length;
+      html += '<div class="gsr-item" onclick="closeGlobalSearch(); showTab(\'elevage\'); showSubtab(\'racks\');"><span class="gsr-icon">🗄️</span><div><b>'+escapeHtml(r.name)+'</b><small>'+occupantCount+(isEn?' reptile(s)':' reptile(s)')+'</small></div></div>';
+    });
+  }
+  if(terrariumMatches.length){
+    html += '<div class="gsr-group">'+(isEn?'Terrariums':'Terrariums')+'</div>';
+    terrariumMatches.forEach(te=>{
+      const occupantCount = terrariumOccupants(te.id).length;
+      html += '<div class="gsr-item" onclick="closeGlobalSearch(); showTab(\'elevage\'); showSubtab(\'racks\');"><span class="gsr-icon">🌿</span><div><b>'+escapeHtml(te.name)+'</b><small>'+occupantCount+(isEn?' reptile(s)':' reptile(s)')+'</small></div></div>';
     });
   }
   if(geneMatches.length){
@@ -12551,7 +12598,8 @@ function eventLabel(type){
 // pour eux plutôt qu'une valeur inventée.
 function feedPreyTag(e){
   if(e.type!=='fed' || !e.preyType) return '';
-  return ' '+(e.preyType==='live'?'🐭':'❄️');
+  const countTag = (e.preyCount && e.preyCount>1) ? ' ×'+e.preyCount : '';
+  return ' '+(e.preyType==='live'?'🐭':'❄️')+countTag;
 }
 function renderHealthLog(){
   const wrap = document.getElementById('health-log');
