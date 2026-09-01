@@ -562,24 +562,33 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
 .rack-unit{background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:20px;}
 .rack-unit-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
 /* Cartes Terrarium (31 août) — code couleur par statut : sage=libre (compacte), gold=occupé, rust=en accouplement. */
-.terra-card{background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:14px;}
-.terra-card.status-libre{border-color:var(--sage);padding:10px 16px;}
+/* Cartes Terrarium — passées en grille 3-de-large le 31 août, même esprit que .mini-animal-grid,
+   pour rester cohérent avec le reste de l'app (Mes reptiles, Nourriture, etc.). */
+#terrarium-list{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.terra-card{background:var(--bg-panel);border:1px solid var(--line);border-radius:10px;padding:8px 7px;display:flex;flex-direction:column;gap:4px;}
+.terra-card.status-libre{border-color:var(--sage);}
 .terra-card.status-occupe{border-color:var(--gold);}
 .terra-card.status-accouplement{border-color:var(--rust);background:rgba(163,77,44,.08);}
 .terra-card.terra-card-alert{border-color:#e08a63;border-width:2px;box-shadow:0 0 0 1px rgba(224,138,99,.3);}
-.terra-card-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
-.terra-name-input{background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:'Courier New',monospace;font-size:13px;padding:6px 10px;flex:1;min-width:110px;}
-.terra-badge{font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;padding:3px 8px;border-radius:10px;font-family:'Courier New',monospace;white-space:nowrap;}
+.terra-card.terra-card-wide{grid-column:1 / -1;} /* bandeau "à classer" / message vide / erreur : pleine largeur, pas dans la grille 3-colonnes */
+.terra-card-head{display:flex;flex-direction:column;gap:4px;margin-bottom:2px;}
+.terra-name-input{background:var(--bg-panel-2);border:1px solid var(--line);border-radius:6px;color:var(--ink);font-family:'Courier New',monospace;font-size:11px;padding:5px 6px;width:100%;}
+.terra-badge{font-size:8px;text-transform:uppercase;letter-spacing:.3px;padding:2px 6px;border-radius:8px;font-family:'Courier New',monospace;white-space:nowrap;align-self:flex-start;}
 .terra-badge.status-libre{background:rgba(124,131,99,.22);color:var(--sage);}
 .terra-badge.status-occupe{background:rgba(201,151,62,.22);color:var(--gold);}
 .terra-badge.status-accouplement{background:rgba(163,77,44,.28);color:#e08a63;}
-.terra-size{font-size:10.5px;color:var(--ink-dim);white-space:nowrap;}
-.terra-bio-badge{font-size:10.5px;color:var(--sage);white-space:nowrap;}
-.terra-occupant{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-top:1px dashed var(--line);margin-top:6px;gap:8px;flex-wrap:wrap;}
-.terra-occupant-name{cursor:pointer;font-size:12.5px;font-weight:600;}
-.terra-occupant-actions{display:flex;gap:6px;}
-.terra-empty-note{font-size:11px;color:var(--ink-dim);margin-top:2px;}
-.terra-card-tools{display:flex;gap:6px;margin-left:auto;}
+.terra-size{font-size:9px;color:var(--ink-dim);display:block;line-height:1.4;}
+.terra-bio-badge{font-size:9px;color:var(--sage);display:block;}
+.terra-occupant{display:flex;flex-direction:column;gap:4px;padding:5px 0;border-top:1px dashed var(--line);margin-top:4px;}
+.terra-occupant-name{cursor:pointer;font-size:11px;font-weight:600;line-height:1.2;}
+.terra-occupant-actions{display:flex;gap:4px;flex-wrap:wrap;}
+.terra-occupant-actions .sc-btn{font-size:8.5px;padding:5px 6px;}
+.terra-empty-note{font-size:9px;color:var(--ink-dim);margin-top:1px;line-height:1.3;}
+.terra-card-tools{display:flex;gap:4px;}
+.terra-card-tools .sc-btn{font-size:9.5px;padding:5px 6px;}
+/* Bouton Nettoyage — rendu plus évident (31 août) : pleine largeur, coloré sage, plutôt qu'une
+   petite icône perdue à côté de ✏️. */
+.terra-clean-btn{width:100%;margin-top:4px;background:rgba(124,131,99,.18);border-color:var(--sage);color:var(--sage);font-weight:700;font-size:9.5px;padding:6px 4px;}
 .rack-name-input{flex:1;min-width:140px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:10px;color:var(--gold);font-family:Georgia,'Times New Roman',serif;font-size:15px;font-weight:600;padding:8px 12px;}
 .rack-name-input:focus{outline:none;border-color:var(--gold);}
 .rack-row-tools{display:flex;gap:4px;flex-shrink:0;margin-left:6px;}
@@ -1853,7 +1862,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.1.43';
+const APP_VERSION = '2026.08.26.1.45';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3209,6 +3218,13 @@ function openContactModal(){
    Pour ajouter du contenu : une nouvelle entrée en haut du tableau correspondant (ordre décroissant,
    plus récent en premier) suffit — aucune autre logique à toucher. */
 const ANNOUNCEMENTS = [
+  { date:'2026-08-31',
+    title:{ fr:'Racks & Terrariums, en mieux', en:'Racks & Terrariums, improved' },
+    body:{
+      fr:'Gros ménage dans la section Racks & Terrariums ! Chaque terrarium a maintenant sa propre fiche : taille, statut (libre / occupé / en accouplement), éclairage, chauffage, substrat, et une case bioactif. Tu peux déplacer un animal d\'un terrarium à un autre en un tap, suivre la date de remplacement de ton UVB, et logger tes nettoyages (partiel ou complet) — avec un petit rappel si ça fait un moment. Les racks ont aussi un suivi de nettoyage par bac, rapide à cocher en lot (tout un rack ou juste une rangée). Et pour les setups bioactifs : pas d\'alerte de nettoyage inutile, l\'écosystème s\'en occupe.',
+      en:'Big cleanup in the Racks & Terrariums section! Each terrarium now has its own record: size, status (free / occupied / pairing), lighting, heating, substrate, and a bioactive checkbox. You can move an animal from one terrarium to another with a tap, track your UVB replacement date, and log your cleanings (partial or complete) — with a gentle reminder if it\'s been a while. Racks also have per-tub cleaning tracking, quick to check off in bulk (a whole rack or just a row). And for bioactive setups: no unnecessary cleaning alerts, the ecosystem handles it.'
+    }
+  },
   // Exemple de structure — à remplacer/compléter au fil du temps.
   { date:'2026-08-05',
     title:{ fr:'Bienvenue sur LOCUS Scales', en:'Welcome to LOCUS Scales' },
@@ -8920,6 +8936,15 @@ function unassignFromTerrarium(snakeId){
   renderTerrariumList(); renderTourGrid();
 }
 
+// Raccourcit un texte de badge pour tenir dans une carte 1/3 de large — extrait le code entre
+// parenthèses si présent (ex. "Tapis chauffant (UTH)" -> "UTH"), sinon tronque avec ellipse.
+function shortBadgeLabel(str){
+  if(!str) return '';
+  const m = str.match(/\(([^)]+)\)/);
+  if(m) return m[1];
+  return str.length>13 ? str.slice(0,12)+'…' : str;
+}
+
 function renderTerrariumList(){
   const isEn = currentLang==='en';
   const wrap = document.getElementById('terrarium-list');
@@ -8928,13 +8953,13 @@ function renderTerrariumList(){
   wrap.innerHTML = '';
 
   // Reptiles en mode terrarium sans terrarium assigné (migration des anciennes fiches, ou juste
-  // créés) — bucket "à classer" distinct des vraies cartes de terrarium.
+  // créés) — bandeau "à classer" pleine largeur, distinct des vraies cartes de terrarium.
   const unassigned = savedSnakes.filter(s=>s.placement.mode==='terrarium' && !s.placement.terrariumId && matchesSearch(s, elevageSearchTerm));
   if(unassigned.length){
     const card = document.createElement('div');
-    card.className = 'terra-card';
+    card.className = 'terra-card terra-card-wide';
     card.style.borderStyle = 'dashed';
-    card.innerHTML = '<div class="terra-card-head"><span style="font-weight:700;">⚠ '+(isEn?'To assign':'À classer')+'</span></div>'+
+    card.innerHTML = '<div class="terra-card-head"><span style="font-weight:700;font-size:12px;">⚠ '+(isEn?'To assign':'À classer')+'</span></div>'+
       '<p class="terra-empty-note">'+(isEn?'These reptiles aren\'t linked to a terrarium yet.':'Ces reptiles ne sont pas encore rattachés à un terrarium.')+'</p>';
     unassigned.forEach(s=>{
       const row = document.createElement('div');
@@ -8948,7 +8973,7 @@ function renderTerrariumList(){
 
   if(terrariums.length===0){
     const empty = document.createElement('div');
-    empty.className = 'empty';
+    empty.className = 'empty terra-card-wide';
     empty.textContent = isEn?'No terrariums yet — add one below.':'Aucun terrarium pour l\'instant — ajoutes-en un ci-dessous.';
     wrap.appendChild(empty);
   }
@@ -8961,20 +8986,22 @@ function renderTerrariumList(){
       const card = document.createElement('div');
       const dtForClass = status==='accouplement' ? daysTogether(te) : null;
       card.className = 'terra-card status-'+status + (dtForClass!==null && dtForClass>=5 ? ' terra-card-alert' : '');
+
       let head = '<input type="text" class="terra-name-input" value="'+escapeHtml(te.name)+'" data-rename="'+te.id+'"/>'+
         '<span class="terra-badge status-'+status+'">'+statusLabel+'</span>';
+      // Badges compacts — texte raccourci (shortBadgeLabel), titre complet en tooltip natif au tap/hold.
       if(te.size) head += '<span class="terra-size">📐 '+escapeHtml(te.size)+'</span>';
-      if(te.lighting) head += '<span class="terra-size">💡 '+escapeHtml(te.lighting)+'</span>';
+      if(te.lighting) head += '<span class="terra-size" title="'+escapeHtml(te.lighting)+'">💡 '+escapeHtml(shortBadgeLabel(te.lighting))+'</span>';
+      if(te.heating) head += '<span class="terra-size" title="'+escapeHtml(te.heating)+'">🔥 '+escapeHtml(shortBadgeLabel(te.heating))+'</span>';
+      if(te.substrate) head += '<span class="terra-size" title="'+escapeHtml(te.substrate)+'">🟫 '+escapeHtml(shortBadgeLabel(te.substrate))+'</span>';
       if(te.uvbReplaceDate){
         const daysLeft = Math.floor((new Date(te.uvbReplaceDate+'T00:00:00').getTime() - Date.now()) / 86400000);
         const overdue = daysLeft < 0;
         const soon = !overdue && daysLeft <= 14;
         const uvbStyle = overdue ? 'color:#e08a63;font-weight:700;' : soon ? 'color:var(--gold);' : '';
         const uvbIcon = overdue ? '🚨' : soon ? '⚠' : '☀️';
-        head += '<span class="terra-size" style="'+uvbStyle+'">'+uvbIcon+' '+(isEn?'UVB replace: ':'Remplacer UVB : ')+te.uvbReplaceDate+(overdue?(isEn?' (overdue)':' (dépassée)'):'')+'</span>';
+        head += '<span class="terra-size" style="'+uvbStyle+'" title="'+(isEn?'UVB replacement':'Remplacement UVB')+' : '+te.uvbReplaceDate+'">'+uvbIcon+' UVB '+te.uvbReplaceDate.slice(5)+'</span>';
       }
-      if(te.heating) head += '<span class="terra-size">🔥 '+escapeHtml(te.heating)+'</span>';
-      if(te.substrate) head += '<span class="terra-size">🟫 '+escapeHtml(te.substrate)+'</span>';
       if(te.bioactive) head += '<span class="terra-bio-badge">🌱 '+(isEn?'Bioactive':'Bioactif')+'</span>';
       // Badge nettoyage — pas d'alerte si bioactif (un setup bioactif n'a pratiquement jamais de
       // nettoyage complet, l'écosystème s'en occupe ; l'informatif reste affiché, juste sans rouge).
@@ -8983,26 +9010,31 @@ function renderTerrariumList(){
       if(lastClean){
         const daysSince = daysSinceDate(lastClean.date);
         const overdue = !te.bioactive && daysSince>=30;
-        head += '<span class="terra-size"'+(overdue?' style="color:#e08a63;font-weight:700;"':'')+'>'+(overdue?'🚨':'🧹')+' '+(isEn?(daysSince+'d since cleaning'):('Nettoyé il y a '+daysSince+'j'))+(overdue?(isEn?' — overdue':' — en retard'):'')+'</span>';
+        head += '<span class="terra-size"'+(overdue?' style="color:#e08a63;font-weight:700;"':'')+'>'+(overdue?'🚨 ':'🧹 ')+daysSince+(isEn?'d':'j')+(overdue?(isEn?' overdue':' en retard'):'')+'</span>';
       } else if(!te.bioactive){
-        head += '<span class="terra-size">🧹 '+(isEn?'Never cleaned':'Jamais nettoyé')+'</span>';
+        head += '<span class="terra-size">🧹 '+(isEn?'never':'jamais')+'</span>';
       }
-      head += '<span class="terra-card-tools"><button class="sc-btn" data-cleante="'+te.id+'">🧹</button><button class="sc-btn" data-editte="'+te.id+'">✏️</button></span>';
+      head += '<span class="terra-card-tools"><button class="sc-btn" data-editte="'+te.id+'">✏️ '+(isEn?'Edit':'Modifier')+'</button></span>';
       card.innerHTML = '<div class="terra-card-head">'+head+'</div>';
 
-      // Suivi de cohabitation (31 août) — jours ensemble depuis l'arrivée du 2e animal, alerte
-      // visuelle passé 5 jours (seuil demandé par Alex — pas un standard vétérinaire, juste un
-      // rappel pour aller vérifier la situation, pas une instruction de séparer).
+      // Bouton Nettoyage — rendu plus évident (31 août) : pleine largeur, coloré, texte + icône,
+      // plutôt qu'une petite icône perdue à côté des autres boutons.
+      const cleanBtn = document.createElement('button');
+      cleanBtn.className = 'sc-btn terra-clean-btn';
+      cleanBtn.textContent = '🧹 '+(isEn?'Cleaning':'Nettoyage');
+      cleanBtn.addEventListener('click', ()=>openTerrariumCleaningModal(te.id));
+      card.appendChild(cleanBtn);
+
+      // Suivi de cohabitation — jours ensemble depuis l'arrivée du 2e animal, alerte visuelle
+      // passé 5 jours (seuil demandé par Alex — pas un standard vétérinaire, juste un rappel).
       if(status==='accouplement'){
         const dt = daysTogether(te);
         if(dt!==null){
           const alertOn = dt>=5;
           const together = document.createElement('div');
           together.className = 'terra-empty-note';
-          together.style.cssText = alertOn ? 'color:#e08a63;font-weight:700;margin-top:4px;' : 'margin-top:4px;';
-          together.textContent = (alertOn?'🚨 ':'🐍 ')+(isEn
-            ? ('Together for '+dt+' day(s)'+(alertOn?' — worth checking in on them':''))
-            : ('Ensemble depuis '+dt+' jour(s)'+(alertOn?' — ça vaut la peine d\'aller vérifier':'')));
+          together.style.cssText = alertOn ? 'color:#e08a63;font-weight:700;margin-top:2px;' : 'margin-top:2px;';
+          together.textContent = (alertOn?'🚨 ':'🐍 ')+(isEn ? (dt+'d together') : (dt+'j ensemble'));
           card.appendChild(together);
         }
       }
@@ -9010,12 +9042,12 @@ function renderTerrariumList(){
       if(occupants.length===0){
         const note = document.createElement('p');
         note.className = 'terra-empty-note';
-        note.textContent = isEn?'Empty — tap to assign a reptile.':'Vide — touche pour assigner un reptile.';
+        note.textContent = isEn?'Empty — tap to assign.':'Vide — touche pour assigner.';
         card.appendChild(note);
         const assignBtn = document.createElement('button');
         assignBtn.className = 'sc-btn';
-        assignBtn.style.marginTop = '6px';
-        assignBtn.textContent = '➕ '+(isEn?'Assign a reptile':'Assigner un reptile');
+        assignBtn.style.cssText = 'width:100%;margin-top:4px;font-size:8.5px;padding:5px 4px;';
+        assignBtn.textContent = '➕ '+(isEn?'Assign':'Assigner');
         assignBtn.addEventListener('click', ()=>openAssignAnimalModal(te.id));
         card.appendChild(assignBtn);
       } else {
@@ -9025,7 +9057,7 @@ function renderTerrariumList(){
           row.setAttribute('data-tooltip', snakeTooltip(s));
           row.innerHTML = '<span class="terra-occupant-name" data-open="'+s.id+'">'+escapeHtml(s.name)+' ('+(s.sex==='male'?'♂':'♀')+')</span>'+
             '<span class="terra-occupant-actions">'+
-              '<button class="sc-btn" data-move="'+s.id+'">↔ '+(isEn?'Move':'Déplacer')+'</button>'+
+              '<button class="sc-btn" data-move="'+s.id+'">↔</button>'+
               '<button class="sc-btn danger" data-unassign="'+s.id+'">✕</button>'+
             '</span>';
           card.appendChild(row);
@@ -9033,8 +9065,8 @@ function renderTerrariumList(){
         if(status==='accouplement' && occupants.length<2){
           const addPartnerBtn = document.createElement('button');
           addPartnerBtn.className = 'sc-btn';
-          addPartnerBtn.style.marginTop = '6px';
-          addPartnerBtn.textContent = '➕ '+(isEn?'Add partner':'Ajouter un partenaire');
+          addPartnerBtn.style.cssText = 'width:100%;margin-top:4px;font-size:8.5px;padding:5px 4px;';
+          addPartnerBtn.textContent = '➕ '+(isEn?'Partner':'Partenaire');
           addPartnerBtn.addEventListener('click', ()=>openAssignAnimalModal(te.id));
           card.appendChild(addPartnerBtn);
         }
@@ -9044,7 +9076,7 @@ function renderTerrariumList(){
       // Filet de sécurité (30 août) — même principe que pour les racks/anciennes cartes terrarium :
       // une carte qui plante n'empêche plus les autres de s'afficher.
       const errCard = document.createElement('div');
-      errCard.className = 'terra-card';
+      errCard.className = 'terra-card terra-card-wide';
       errCard.style.cssText = 'border-color:#c0392b;background:rgba(192,57,43,.15);font-size:9.5px;';
       errCard.textContent = '⚠ '+(te.name||te.id)+' : '+erreur.message;
       wrap.appendChild(errCard);
@@ -9057,9 +9089,6 @@ function renderTerrariumList(){
   });
   wrap.querySelectorAll('[data-editte]').forEach(btn=>{
     btn.addEventListener('click', ()=>openTerrariumEditModal(btn.dataset.editte));
-  });
-  wrap.querySelectorAll('[data-cleante]').forEach(btn=>{
-    btn.addEventListener('click', ()=>openTerrariumCleaningModal(btn.dataset.cleante));
   });
   wrap.querySelectorAll('[data-move]').forEach(btn=>{
     btn.addEventListener('click', ()=>openMoveTerrariumModal(btn.dataset.move));
