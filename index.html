@@ -560,6 +560,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
 .terra-card.status-libre{border-color:var(--sage);padding:10px 16px;}
 .terra-card.status-occupe{border-color:var(--gold);}
 .terra-card.status-accouplement{border-color:var(--rust);background:rgba(163,77,44,.08);}
+.terra-card.terra-card-alert{border-color:#e08a63;border-width:2px;box-shadow:0 0 0 1px rgba(224,138,99,.3);}
 .terra-card-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
 .terra-name-input{background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:'Courier New',monospace;font-size:13px;padding:6px 10px;flex:1;min-width:110px;}
 .terra-badge{font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;padding:3px 8px;border-radius:10px;font-family:'Courier New',monospace;white-space:nowrap;}
@@ -1846,7 +1847,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.35';
+const APP_VERSION = '2026.08.26.36';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -8506,13 +8507,30 @@ function getTerrarium(id){ return terrariums.find(te=>te.id===id); }
 function terrariumOccupants(terrariumId){
   return savedSnakes.filter(s=>{ ensureSnakeMeta(s); return s.placement.mode==='terrarium' && s.placement.terrariumId===terrariumId; });
 }
-function terrariumCapacity(te){ return te.status==='accouplement' ? 2 : 1; }
+function terrariumCapacity(te){ return 2; } // tout terrarium peut temporairement accueillir 2 animaux (introduction pour accouplement) — le statut suit automatiquement, voir refreshTerrariumStatus()
+// Dérive le statut du terrarium à partir du nombre d'occupants — plus besoin de le régler à la
+// main avant de déplacer un animal (demande d'Alex, 31 août). Pose aussi pairingStartDate au
+// moment exact où le 2e animal arrive, pour pouvoir afficher/alerter sur "ensemble depuis X jours".
+function refreshTerrariumStatus(te){
+  if(!te) return;
+  const count = terrariumOccupants(te.id).length;
+  if(count===0){ te.status='libre'; te.pairingStartDate=null; }
+  else if(count===1){ te.status='occupe'; te.pairingStartDate=null; }
+  else {
+    if(te.status!=='accouplement') te.pairingStartDate = new Date().toISOString().slice(0,10);
+    te.status='accouplement';
+  }
+}
+function daysTogether(te){
+  if(!te.pairingStartDate) return null;
+  return Math.floor((Date.now() - new Date(te.pairingStartDate+'T00:00:00').getTime()) / 86400000);
+}
 
 function addTerrarium(){
   const isEn = currentLang==='en';
   const name = prompt(isEn?'Name of the new terrarium (e.g. "Living room terrarium", "Baby tub #3"):':'Nom du nouveau terrarium (ex. "Terrarium salon", "Bac bébé #3") :', (isEn?'Terrarium ':'Terrarium ')+(terrariums.length+1));
   if(!name) return;
-  terrariums.push({ id:'terra_'+Date.now(), name:name.trim(), size:null, status:'libre', bioactive:false });
+  terrariums.push({ id:'terra_'+Date.now(), name:name.trim(), size:null, status:'libre', bioactive:false, pairingStartDate:null });
   saveElevage();
   renderTerrariumList();
   showToast('➕ '+(isEn?'Terrarium "':'Terrarium "')+name.trim()+(isEn?'" added.':'" ajouté.'), 'success');
@@ -8527,13 +8545,8 @@ function openTerrariumEditModal(terrariumId){
       '<input type="text" id="te-edit-name" value="'+escapeHtml(te.name||'')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
     '<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Size (e.g. 90x45x45cm)':'Taille (ex. 90x45x45cm)')+'</span>'+
       '<input type="text" id="te-edit-size" value="'+escapeHtml(te.size||'')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
-    '<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Status':'Statut')+'</span>'+
-      '<select id="te-edit-status" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
-        '<option value="libre"'+(te.status==='libre'?' selected':'')+'>'+(isEn?'Free / empty':'Libre / vide')+'</option>'+
-        '<option value="occupe"'+(te.status==='occupe'?' selected':'')+'>'+(isEn?'Occupied':'Occupé')+'</option>'+
-        '<option value="accouplement"'+(te.status==='accouplement'?' selected':'')+'>'+(isEn?'Pairing in progress (allows 2 animals)':'En accouplement (permet 2 animaux)')+'</option>'+
-      '</select></label>'+
-    '<label style="display:flex;align-items:center;gap:8px;margin-bottom:16px;"><input type="checkbox" id="te-edit-bioactive" '+(te.bioactive?'checked':'')+' style="width:18px;height:18px;"/> <span>'+(isEn?'Bioactive setup':'Installation bioactive')+'</span></label>'+
+    '<label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><input type="checkbox" id="te-edit-bioactive" '+(te.bioactive?'checked':'')+' style="width:18px;height:18px;"/> <span>'+(isEn?'Bioactive setup':'Installation bioactive')+'</span></label>'+
+    '<p style="font-size:10px;color:var(--ink-dim);margin:0 0 16px;">'+(isEn?'Status (free / occupied / pairing) is automatic based on how many animals are inside — no need to set it by hand.':'Le statut (libre / occupé / en accouplement) est automatique selon le nombre d\'animaux dedans — pas besoin de le régler à la main.')+'</p>'+
     '<button class="sc-btn accent" style="width:100%;" onclick="saveTerrariumEdit(\''+terrariumId+'\')">'+(isEn?'Save':'Enregistrer')+'</button>'+
     (terrariumOccupants(terrariumId).length===0 ? '<button class="sc-btn danger" style="width:100%;margin-top:8px;" onclick="deleteTerrarium(\''+terrariumId+'\')">'+(isEn?'🗑 Delete this terrarium':'🗑 Supprimer ce terrarium')+'</button>' : '');
   showQuickModal((isEn?'Edit terrarium':'Modifier le terrarium'), body);
@@ -8544,15 +8557,8 @@ function saveTerrariumEdit(terrariumId){
   if(!te) return;
   const name = document.getElementById('te-edit-name').value.trim();
   if(!name){ alert(isEn?'Name required.':'Le nom est requis.'); return; }
-  const newStatus = document.getElementById('te-edit-status').value;
-  const occupantCount = terrariumOccupants(terrariumId).length;
-  if(newStatus!=='accouplement' && occupantCount>1){
-    alert(isEn?'This terrarium currently has 2 animals — move one out before leaving "Pairing in progress".':'Ce terrarium contient actuellement 2 animaux — déplace-en un avant de quitter le statut « En accouplement ».');
-    return;
-  }
   te.name = name;
   te.size = document.getElementById('te-edit-size').value.trim() || null;
-  te.status = newStatus;
   te.bioactive = document.getElementById('te-edit-bioactive').checked;
   saveElevage();
   closeQuickModal();
@@ -8595,7 +8601,7 @@ function confirmAssignAnimal(terrariumId){
   if(!s) return;
   ensureSnakeMeta(s);
   s.placement = { mode:'terrarium', terrariumId };
-  if(te.status==='libre') te.status='occupe';
+  refreshTerrariumStatus(te);
   storage.save(savedSnakes);
   saveElevage();
   closeQuickModal();
@@ -8631,8 +8637,8 @@ function confirmMoveTerrarium(snakeId){
   const oldId = s.placement.terrariumId || null;
   const oldTe = getTerrarium(oldId);
   s.placement = { mode:'terrarium', terrariumId:newId };
-  if(oldTe && terrariumOccupants(oldId).length===0) oldTe.status='libre';
-  if(newTe.status==='libre') newTe.status='occupe';
+  refreshTerrariumStatus(oldTe);
+  refreshTerrariumStatus(newTe);
   storage.save(savedSnakes);
   saveElevage();
   closeQuickModal();
@@ -8649,7 +8655,7 @@ function unassignFromTerrarium(snakeId){
   s.placement = { mode:'terrarium', terrariumId:null };
   storage.save(savedSnakes);
   const te = getTerrarium(teId);
-  if(te && terrariumOccupants(teId).length===0) te.status='libre';
+  refreshTerrariumStatus(te);
   saveElevage();
   renderTerrariumList(); renderTourGrid();
 }
@@ -8693,13 +8699,31 @@ function renderTerrariumList(){
       const status = te.status || 'libre';
       const statusLabel = status==='libre' ? (isEn?'Free':'Libre') : status==='accouplement' ? (isEn?'Pairing':'Accouplement') : (isEn?'Occupied':'Occupé');
       const card = document.createElement('div');
-      card.className = 'terra-card status-'+status;
+      const dtForClass = status==='accouplement' ? daysTogether(te) : null;
+      card.className = 'terra-card status-'+status + (dtForClass!==null && dtForClass>=5 ? ' terra-card-alert' : '');
       let head = '<input type="text" class="terra-name-input" value="'+escapeHtml(te.name)+'" data-rename="'+te.id+'"/>'+
         '<span class="terra-badge status-'+status+'">'+statusLabel+'</span>';
       if(te.size) head += '<span class="terra-size">📐 '+escapeHtml(te.size)+'</span>';
       if(te.bioactive) head += '<span class="terra-bio-badge">🌱 '+(isEn?'Bioactive':'Bioactif')+'</span>';
       head += '<span class="terra-card-tools"><button class="sc-btn" data-editte="'+te.id+'">✏️</button></span>';
       card.innerHTML = '<div class="terra-card-head">'+head+'</div>';
+
+      // Suivi de cohabitation (31 août) — jours ensemble depuis l'arrivée du 2e animal, alerte
+      // visuelle passé 5 jours (seuil demandé par Alex — pas un standard vétérinaire, juste un
+      // rappel pour aller vérifier la situation, pas une instruction de séparer).
+      if(status==='accouplement'){
+        const dt = daysTogether(te);
+        if(dt!==null){
+          const alertOn = dt>=5;
+          const together = document.createElement('div');
+          together.className = 'terra-empty-note';
+          together.style.cssText = alertOn ? 'color:#e08a63;font-weight:700;margin-top:4px;' : 'margin-top:4px;';
+          together.textContent = (alertOn?'🚨 ':'🐍 ')+(isEn
+            ? ('Together for '+dt+' day(s)'+(alertOn?' — worth checking in on them':''))
+            : ('Ensemble depuis '+dt+' jour(s)'+(alertOn?' — ça vaut la peine d\'aller vérifier':'')));
+          card.appendChild(together);
+        }
+      }
 
       if(occupants.length===0){
         const note = document.createElement('p');
