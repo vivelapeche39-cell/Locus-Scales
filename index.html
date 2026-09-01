@@ -1847,7 +1847,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:Verdana
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.08.26.36';
+const APP_VERSION = '2026.08.26.37';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -7080,7 +7080,7 @@ function skipBatchWeigh(){
 // pour rackDims/pairings. Aucune dépendance vers la logique de calcul génétique,
 // seul summarizeGenes() est réutilisé pour l'affichage.
 const ELEVAGE_KEY = 'locus_elevage_v1';
-const DEFAULT_LAYOUT = { hideRacks:false, hideTerrariums:false, order:'racks-first', tourHideRacks:false, tourHideTerrariums:false, tourOrder:'racks-first' };
+const DEFAULT_LAYOUT = { hideRacks:false, hideTerrariums:false, order:'racks-first', tourHideRacks:false, tourHideTerrariums:false, tourOrder:'racks-first', customFieldOptions:{ lighting:[], heating:[], substrate:[] } };
 function loadElevage(){
   try{
     const raw = localStorage.getItem(ELEVAGE_KEY);
@@ -7129,6 +7129,7 @@ if(!racks || racks.length===0) racks = [{id:'rack_1', name:'Rack 1', rows:[8,8,8
 // des anciennes fiches qui n'avaient qu'un mode:'terrarium' plat, sans terrarium nommé derrière).
 var terrariums = elevageData.terrariums || [];
 if(!layout) layout = {...DEFAULT_LAYOUT};
+if(!layout.customFieldOptions) layout.customFieldOptions = { lighting:[], heating:[], substrate:[] }; // migration douce (31 août)
 if(!clutches) clutches = [];
 if(!expenses) expenses = [];
 if(!customers) customers = [];
@@ -7297,11 +7298,11 @@ async function pushAllUserData(forceAll){
     }
     if(racks.length){
       const dirty = itemsToPush('racks', racks, forceAll);
-      if(dirty.length) await sb.from('racks').upsert(dirty.map(r=>({ id:r.id, user_id:currentUser.id, name:r.name, rows:r.rows })));
+      if(dirty.length) await sb.from('racks').upsert(dirty.map(r=>({ id:r.id, user_id:currentUser.id, name:r.name, rows:r.rows, heating:r.heating||null })));
     }
     if(terrariums.length){
       const dirty = itemsToPush('terrariums', terrariums, forceAll);
-      if(dirty.length) await sb.from('terrariums').upsert(dirty.map(te=>({ id:te.id, user_id:currentUser.id, name:te.name, size:te.size||null, status:te.status||'libre', bioactive: !!te.bioactive })));
+      if(dirty.length) await sb.from('terrariums').upsert(dirty.map(te=>({ id:te.id, user_id:currentUser.id, name:te.name, size:te.size||null, status:te.status||'libre', bioactive: !!te.bioactive, lighting:te.lighting||null, heating:te.heating||null, substrate:te.substrate||null, pairing_start_date:te.pairingStartDate||null })));
     }
     if(pairings.length){
       const dirty = itemsToPush('pairings', pairings, forceAll);
@@ -7353,12 +7354,12 @@ async function pullAllUserData(){
       storage.save(savedSnakes);
     }
     if(racksRes.data && racksRes.data.length){
-      const remoteRacks = racksRes.data.map(r=>({ id:r.id, name:r.name, rows:r.rows, updatedAt: r.updated_at?Date.parse(r.updated_at):0 }));
+      const remoteRacks = racksRes.data.map(r=>({ id:r.id, name:r.name, rows:r.rows, heating:r.heating||null, updatedAt: r.updated_at?Date.parse(r.updated_at):0 }));
       racks = mergeById(racks, remoteRacks);
       markSynced('racks', remoteRacks);
     }
     if(terrariumsRes.data && terrariumsRes.data.length){
-      const remoteTerrariums = terrariumsRes.data.map(te=>({ id:te.id, name:te.name, size:te.size, status:te.status||'libre', bioactive: !!te.bioactive, updatedAt: te.updated_at?Date.parse(te.updated_at):0 }));
+      const remoteTerrariums = terrariumsRes.data.map(te=>({ id:te.id, name:te.name, size:te.size, status:te.status||'libre', bioactive: !!te.bioactive, lighting:te.lighting||null, heating:te.heating||null, substrate:te.substrate||null, pairingStartDate:te.pairing_start_date||null, updatedAt: te.updated_at?Date.parse(te.updated_at):0 }));
       terrariums = mergeById(terrariums, remoteTerrariums);
       markSynced('terrariums', remoteTerrariums);
     }
@@ -7382,7 +7383,7 @@ async function pullAllUserData(){
       customers = mergeById(customers, remoteCustomers);
       markSynced('customers', remoteCustomers);
     }
-    if(stateRes.data && stateRes.data.layout) layout = stateRes.data.layout;
+    if(stateRes.data && stateRes.data.layout){ layout = stateRes.data.layout; if(!layout.customFieldOptions) layout.customFieldOptions = { lighting:[], heating:[], substrate:[] }; }
     if(stateRes.data && stateRes.data.custom_events) customEvents = mergeById(customEvents, stateRes.data.custom_events);
     if(stateRes.data && stateRes.data.projects) projects = mergeById(projects, stateRes.data.projects);
     if(stateRes.data && stateRes.data.feeder_stock) feederStock = stateRes.data.feeder_stock;
@@ -7463,6 +7464,7 @@ document.getElementById('import-file-input').addEventListener('change', (e)=>{
     pairings = el.pairings || [];
     pairings.forEach(p=>{ if(!p.follicleSizes) p.follicleSizes = []; });
     layout = el.layout || {...DEFAULT_LAYOUT};
+    if(!layout.customFieldOptions) layout.customFieldOptions = { lighting:[], heating:[], substrate:[] };
     clutches = el.clutches || [];
     expenses = el.expenses || [];
     customers = el.customers || [];
@@ -8333,6 +8335,7 @@ function snakeTooltip(s){
 }
 
 function renderRackGrid(){
+  const isEn = currentLang==='en';
   const container = document.getElementById('racks-container');
   container.innerHTML = '';
   racks.forEach(rack=>{
@@ -8343,6 +8346,11 @@ function renderRackGrid(){
         '<input type="text" class="rack-name-input" value="'+escapeHtml(rack.name)+'" data-rack="'+rack.id+'"/>'+
         '<button class="sc-btn" data-act="addrow" data-rack="'+rack.id+'">'+t('addRowBtn')+'</button>'+
         (racks.length>1 ? '<button class="sc-btn danger" data-act="delrack" data-rack="'+rack.id+'">'+t('deleteThisRackBtn')+'</button>' : '')+
+      '</div>'+
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">'+
+        '<span style="font-size:11px;color:var(--ink-dim);">🔥 '+(isEn?'Heating':'Chauffage')+' :</span>'+
+        '<select class="pedigree-select" style="min-width:180px;" onchange="toggleCustomFieldInput(this,\'rack-heat-custom-'+rack.id+'\'); if(this.value!==\'__autre__\'){ saveRackHeating(\''+rack.id+'\', this.value||null); }">'+fieldOptionsHtml('heating', rack.heating)+'</select>'+
+        '<input type="text" id="rack-heat-custom-'+rack.id+'" placeholder="'+(isEn?'Type the heating type…':'Tape le type de chauffage…')+'" style="display:none;font-size:16px;padding:6px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);flex:1;min-width:140px;" onchange="commitRackHeatingCustom(\''+rack.id+'\', this)"/>'+
       '</div>';
     const gridEl = document.createElement('div');
     gridEl.className = 'rack-grid';
@@ -8394,6 +8402,24 @@ function renderRackGrid(){
   container.querySelectorAll('[data-act="delrow"]').forEach(btn=>btn.addEventListener('click', ()=>removeLastRow(btn.dataset.rack)));
 }
 
+// Chauffage de rack (31 août) — un seul champ par rack (pas par bac, ça change rarement d'un bac
+// à l'autre dans le même rack), auto-sauvegardé au changement, sans modale.
+function saveRackHeating(rackId, value){
+  const rack = getRack(rackId);
+  if(!rack) return;
+  rack.heating = value || null;
+  saveElevage();
+}
+function commitRackHeatingCustom(rackId, inputEl){
+  const custom = inputEl.value.trim();
+  if(!custom) return;
+  const list = customFieldOptionsFor('heating');
+  if(!list.includes(custom)) list.push(custom);
+  const rack = getRack(rackId);
+  if(rack) rack.heating = custom;
+  saveElevage();
+  renderRackGrid();
+}
 function addRack(){
   const isEn = currentLang==='en';
   const name = prompt(isEn?'Name of the new rack (e.g. "Freedom Breeder Rack", "Garage shelf"):':'Nom du nouveau rack (ex. "Rack Freedom Breeder", "Étagère du garage") :', (isEn?'Rack ':'Rack ')+(racks.length+1));
@@ -8503,6 +8529,65 @@ function toggleTerrarium(id){
 }
 
 /* ---- Terrariums (31 août) — entité de premier ordre, même esprit que les racks ---- */
+/* ---- Éclairage / Chauffage / Substrat (31 août) — listes par défaut + entrées "Autre" mémorisées ----
+   Chauffage réutilise volontairement les mêmes acronymes que la FAQ husbandry (UTH/CHE/RHP/DHP)
+   pour rester cohérent avec le contenu déjà validé. Format "Nom (CODE)" demandé par Alex. */
+const DEFAULT_LIGHTING_OPTIONS = [
+  { fr:'Aucun', en:'None' },
+  { fr:'UVB (tube/lampe UVB)', en:'UVB (tube/bulb)' },
+  { fr:'Lampe à incandescence (basking)', en:'Incandescent basking bulb' },
+  { fr:'LED terrarium', en:'Terrarium LED' },
+];
+const DEFAULT_HEATING_OPTIONS = [
+  { fr:'Aucun', en:'None' },
+  { fr:'Tapis chauffant (UTH)', en:'Under Tank Heater (UTH)' },
+  { fr:'Câble chauffant', en:'Heat cable' },
+  { fr:'Panneau radiant (RHP)', en:'Radiant Heat Panel (RHP)' },
+  { fr:'Projecteur de chaleur profonde (DHP)', en:'Deep Heat Projector (DHP)' },
+  { fr:'Émetteur de chaleur céramique (CHE)', en:'Ceramic Heat Emitter (CHE)' },
+];
+const DEFAULT_SUBSTRATE_OPTIONS = [
+  { fr:'Copeaux (aspen)', en:'Aspen shavings' },
+  { fr:'Papier journal', en:'Newspaper' },
+  { fr:'Essuie-tout', en:'Paper towel' },
+  { fr:'Substrat naturel (coco/terreau)', en:'Natural substrate (coco/soil)' },
+  { fr:'Tapis reptile', en:'Reptile carpet' },
+];
+function customFieldOptionsFor(kind){
+  if(!layout.customFieldOptions) layout.customFieldOptions = { lighting:[], heating:[], substrate:[] };
+  if(!layout.customFieldOptions[kind]) layout.customFieldOptions[kind] = [];
+  return layout.customFieldOptions[kind];
+}
+// Construit le <select> pour un champ donné : options par défaut (traduites) + entrées "Autre"
+// déjà tapées par Alex par le passé (mémorisées, réutilisables sans retaper) + "Autre…" en dernier.
+function fieldOptionsHtml(kind, currentValue){
+  const isEn = currentLang==='en';
+  const defaults = kind==='lighting' ? DEFAULT_LIGHTING_OPTIONS : kind==='heating' ? DEFAULT_HEATING_OPTIONS : DEFAULT_SUBSTRATE_OPTIONS;
+  const defaultLabels = defaults.map(o=>isEn?o.en:o.fr);
+  const allLabels = [...defaultLabels, ...customFieldOptionsFor(kind)];
+  let html = '<option value="">'+(isEn?'— Not set —':'— Non renseigné —')+'</option>';
+  allLabels.forEach(lbl=>{ html += '<option value="'+escapeHtml(lbl)+'"'+(currentValue===lbl?' selected':'')+'>'+escapeHtml(lbl)+'</option>'; });
+  html += '<option value="__autre__"'+(currentValue==='__autre__'?' selected':'')+'>'+(isEn?'Other…':'Autre…')+'</option>';
+  return html;
+}
+function toggleCustomFieldInput(selectEl, customInputId){
+  const el = document.getElementById(customInputId);
+  if(el) el.style.display = selectEl.value==='__autre__' ? 'block' : 'none';
+}
+// Lit un champ select+"Autre" et, si "Autre" a été utilisé, ajoute la valeur tapée à la liste
+// mémorisée pour ce type de champ — elle réapparaît ensuite comme choix direct partout ailleurs.
+function resolveFieldValue(selectId, customInputId, kind){
+  const sel = document.getElementById(selectId).value;
+  if(sel==='__autre__'){
+    const custom = document.getElementById(customInputId).value.trim();
+    if(!custom) return null;
+    const list = customFieldOptionsFor(kind);
+    if(!list.includes(custom)) list.push(custom);
+    return custom;
+  }
+  return sel || null;
+}
+
 function getTerrarium(id){ return terrariums.find(te=>te.id===id); }
 function terrariumOccupants(terrariumId){
   return savedSnakes.filter(s=>{ ensureSnakeMeta(s); return s.placement.mode==='terrarium' && s.placement.terrariumId===terrariumId; });
@@ -8530,7 +8615,7 @@ function addTerrarium(){
   const isEn = currentLang==='en';
   const name = prompt(isEn?'Name of the new terrarium (e.g. "Living room terrarium", "Baby tub #3"):':'Nom du nouveau terrarium (ex. "Terrarium salon", "Bac bébé #3") :', (isEn?'Terrarium ':'Terrarium ')+(terrariums.length+1));
   if(!name) return;
-  terrariums.push({ id:'terra_'+Date.now(), name:name.trim(), size:null, status:'libre', bioactive:false, pairingStartDate:null });
+  terrariums.push({ id:'terra_'+Date.now(), name:name.trim(), size:null, status:'libre', bioactive:false, pairingStartDate:null, lighting:null, heating:null, substrate:null });
   saveElevage();
   renderTerrariumList();
   showToast('➕ '+(isEn?'Terrarium "':'Terrarium "')+name.trim()+(isEn?'" added.':'" ajouté.'), 'success');
@@ -8545,6 +8630,15 @@ function openTerrariumEditModal(terrariumId){
       '<input type="text" id="te-edit-name" value="'+escapeHtml(te.name||'')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
     '<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Size (e.g. 90x45x45cm)':'Taille (ex. 90x45x45cm)')+'</span>'+
       '<input type="text" id="te-edit-size" value="'+escapeHtml(te.size||'')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
+    '<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Lighting':'Éclairage')+'</span>'+
+      '<select id="te-edit-lighting" onchange="toggleCustomFieldInput(this,\'te-edit-lighting-custom\')" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+fieldOptionsHtml('lighting', te.lighting)+'</select>'+
+      '<input type="text" id="te-edit-lighting-custom" placeholder="'+(isEn?'Type the lighting type…':'Tape le type d\'éclairage…')+'" style="display:none;width:100%;font-size:16px;padding:8px 10px;margin-top:6px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
+    '<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Heating':'Chauffage')+'</span>'+
+      '<select id="te-edit-heating" onchange="toggleCustomFieldInput(this,\'te-edit-heating-custom\')" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+fieldOptionsHtml('heating', te.heating)+'</select>'+
+      '<input type="text" id="te-edit-heating-custom" placeholder="'+(isEn?'Type the heating type…':'Tape le type de chauffage…')+'" style="display:none;width:100%;font-size:16px;padding:8px 10px;margin-top:6px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
+    '<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Substrate':'Substrat')+'</span>'+
+      '<select id="te-edit-substrate" onchange="toggleCustomFieldInput(this,\'te-edit-substrate-custom\')" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+fieldOptionsHtml('substrate', te.substrate)+'</select>'+
+      '<input type="text" id="te-edit-substrate-custom" placeholder="'+(isEn?'Type the substrate…':'Tape le substrat…')+'" style="display:none;width:100%;font-size:16px;padding:8px 10px;margin-top:6px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
     '<label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><input type="checkbox" id="te-edit-bioactive" '+(te.bioactive?'checked':'')+' style="width:18px;height:18px;"/> <span>'+(isEn?'Bioactive setup':'Installation bioactive')+'</span></label>'+
     '<p style="font-size:10px;color:var(--ink-dim);margin:0 0 16px;">'+(isEn?'Status (free / occupied / pairing) is automatic based on how many animals are inside — no need to set it by hand.':'Le statut (libre / occupé / en accouplement) est automatique selon le nombre d\'animaux dedans — pas besoin de le régler à la main.')+'</p>'+
     '<button class="sc-btn accent" style="width:100%;" onclick="saveTerrariumEdit(\''+terrariumId+'\')">'+(isEn?'Save':'Enregistrer')+'</button>'+
@@ -8559,6 +8653,9 @@ function saveTerrariumEdit(terrariumId){
   if(!name){ alert(isEn?'Name required.':'Le nom est requis.'); return; }
   te.name = name;
   te.size = document.getElementById('te-edit-size').value.trim() || null;
+  te.lighting = resolveFieldValue('te-edit-lighting', 'te-edit-lighting-custom', 'lighting');
+  te.heating = resolveFieldValue('te-edit-heating', 'te-edit-heating-custom', 'heating');
+  te.substrate = resolveFieldValue('te-edit-substrate', 'te-edit-substrate-custom', 'substrate');
   te.bioactive = document.getElementById('te-edit-bioactive').checked;
   saveElevage();
   closeQuickModal();
@@ -8704,6 +8801,9 @@ function renderTerrariumList(){
       let head = '<input type="text" class="terra-name-input" value="'+escapeHtml(te.name)+'" data-rename="'+te.id+'"/>'+
         '<span class="terra-badge status-'+status+'">'+statusLabel+'</span>';
       if(te.size) head += '<span class="terra-size">📐 '+escapeHtml(te.size)+'</span>';
+      if(te.lighting) head += '<span class="terra-size">💡 '+escapeHtml(te.lighting)+'</span>';
+      if(te.heating) head += '<span class="terra-size">🔥 '+escapeHtml(te.heating)+'</span>';
+      if(te.substrate) head += '<span class="terra-size">🟫 '+escapeHtml(te.substrate)+'</span>';
       if(te.bioactive) head += '<span class="terra-bio-badge">🌱 '+(isEn?'Bioactive':'Bioactif')+'</span>';
       head += '<span class="terra-card-tools"><button class="sc-btn" data-editte="'+te.id+'">✏️</button></span>';
       card.innerHTML = '<div class="terra-card-head">'+head+'</div>';
