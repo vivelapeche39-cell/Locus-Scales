@@ -644,6 +644,18 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 .tstep b{display:block;color:var(--ink);font-size:12px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Verdana,sans-serif;font-weight:600;margin-bottom:2px;}
 .tstep.next{border-left-color:var(--gold);}
 .tstep.next b{color:var(--gold);}
+/* Stepper de saison 8 étapes (2 septembre) — vue d'ensemble "où on en est vraiment" basée sur les
+   données déjà loggées (pas des projections comme .timeline-steps ci-dessus). Horizontal scrollable
+   sur mobile plutôt que de wrap en plusieurs lignes illisibles. */
+.season-stepper{display:flex;gap:0;overflow-x:auto;margin:10px 0;padding-bottom:4px;-webkit-overflow-scrolling:touch;}
+.season-step{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;min-width:64px;font-family:'Courier New',monospace;font-size:8px;text-align:center;color:var(--ink-dim);position:relative;}
+.season-step-dot{width:14px;height:14px;border-radius:50%;background:var(--bg-panel-2);border:2px solid var(--line);margin-bottom:4px;}
+.season-step.done .season-step-dot{background:var(--sage);border-color:var(--sage);}
+.season-step.current .season-step-dot{background:var(--gold);border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,151,62,.25);}
+.season-step.current{color:var(--gold);font-weight:700;}
+.season-step-line{position:absolute;top:6px;left:-50%;width:100%;height:2px;background:var(--line);z-index:-1;}
+.season-step.done .season-step-line{background:var(--sage);}
+.season-step:first-child .season-step-line{display:none;}
 
 /* Alertes santé */
 .health-alert-bar{background:rgba(163,77,44,.14);border:1px solid var(--rust);border-radius:12px;padding:10px 14px;font-size:12px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
@@ -1153,6 +1165,11 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <label style="flex:1;"><span data-i18n="provenanceLabel">Provenance</span> <span style="font-weight:400;color:var(--ink-dim);" data-i18n="provenanceHint">(éleveur d'origine — laisse vide si né chez toi)</span>
           <input type="text" id="draft-provenance" class="pedigree-select" list="provenance-suggestions" style="width:100%;margin-top:4px;" placeholder="Ex. Python of the North, éleveur particulier, animalerie…"/>
           <datalist id="provenance-suggestions"></datalist>
+        </label>
+      </div>
+      <div class="pedigree-row">
+        <label style="flex:1;"><span data-i18n="purchasePriceLabel">Prix d'achat</span> <span style="font-weight:400;color:var(--ink-dim);" data-i18n="purchasePriceHint">(optionnel — laisse vide si né chez toi ; sert au calcul de profit par ponte/animal)</span>
+          <input type="number" id="draft-purchase-price" class="pedigree-select" min="0" step="0.01" style="width:100%;margin-top:4px;" placeholder="0.00 $"/>
         </label>
       </div>
       <div class="pedigree-row" style="background:rgba(201,151,62,.08);border:1px solid var(--gold);border-radius:10px;padding:10px 12px;margin:12px 18px 0;">
@@ -1880,7 +1897,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.1.57';
+const APP_VERSION = '2026.09.02.1.62';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3770,6 +3787,8 @@ const I18N = {
     markHatchedBtn: '🐣 Marquer comme éclos',
     namePlaceholder: 'Nom (ex. Rex, Luna, #042)…',
     provenanceHint: '(éleveur d\'origine — laisse vide si né chez toi)',
+    purchasePriceLabel: 'Prix d\'achat',
+    purchasePriceHint: '(optionnel — laisse vide si né chez toi ; sert au calcul de profit par ponte/animal)',
     saveNewBtn: 'Enregistrer ce reptile',
     cancelEditBtn: 'Annuler la modification',
     searchMinePlaceholder: '🔍 Rechercher un reptile par nom ou par gène…',
@@ -3830,6 +3849,10 @@ const I18N = {
     follicleTrackingTitle: 'Suivi folliculaire',
     noFollicleRecorded: 'Aucune mesure folliculaire enregistrée',
     addFollicleBtn: '+ Ajouter une mesure',
+    locksTitle: '🔒 Verrouillages',
+    noLocksRecorded: 'Aucun verrouillage daté pour l\'instant.',
+    addLockBtn: '+ Enregistrer un verrouillage',
+    preLayShedActualTitle: '🐍 Mue pré-ponte réelle',
     customEventsTitle: 'Rappels personnalisés',
     customEventsHint: 'Ajoute n\'importe quelle date future (vermifuge, rendez-vous vétérinaire, renouvellement UVB…) — apparaît dans ton résumé quotidien le jour même si les notifications sont activées.',
     customEventPlaceholder: 'Ex. Vermifuge annuel',
@@ -4260,6 +4283,8 @@ const I18N = {
     markHatchedBtn: '🐣 Mark as hatched',
     namePlaceholder: 'Name (e.g. Rex, Luna, #042)…',
     provenanceHint: '(original breeder — leave blank if born here)',
+    purchasePriceLabel: 'Purchase price',
+    purchasePriceHint: '(optional — leave blank if born here; used for clutch/animal profit calculations)',
     saveNewBtn: 'Save This Reptile',
     cancelEditBtn: 'Cancel Editing',
     searchMinePlaceholder: '🔍 Search a reptile by name or gene…',
@@ -4320,6 +4345,10 @@ const I18N = {
     follicleTrackingTitle: 'Follicle tracking',
     noFollicleRecorded: 'No follicle measurement recorded',
     addFollicleBtn: '+ Add a measurement',
+    locksTitle: '🔒 Locks',
+    noLocksRecorded: 'No lock dated yet.',
+    addLockBtn: '+ Log a lock',
+    preLayShedActualTitle: '🐍 Actual pre-lay shed',
     customEventsTitle: 'Custom reminders',
     customEventsHint: 'Add any future date (deworming, vet appointment, UVB replacement…) — shows up in your daily summary that day if notifications are enabled.',
     customEventPlaceholder: 'e.g. Annual deworming',
@@ -4664,6 +4693,10 @@ var savedSnakes = storage.load();
 var tourSelection = new Set();
 markSynced('snakes', savedSnakes);
 var editingId = null;
+// Lien ponte <-> accouplement (2 septembre) — pont temporaire entre createClutchFromPairing() et
+// addClutch() : on ne peut pas juste passer un paramètre puisque le formulaire de ponte est un
+// formulaire HTML classique, pas un appel de fonction direct.
+var pendingPairingIdForClutch = null;
 updateStorageBanner();
 
 function defaultStatus(gene){
@@ -5306,19 +5339,22 @@ function saveDraft(){
   const damId = document.getElementById('draft-dam').value || null;
   const birthDate = readBirthDateFromForm();
   const provenance = document.getElementById('draft-provenance').value.trim() || null;
+  const purchasePriceEl = document.getElementById('draft-purchase-price');
+  const purchasePrice = purchasePriceEl && purchasePriceEl.value !== '' ? parseFloat(purchasePriceEl.value) : null;
   const preySpecies = document.getElementById('draft-prey-species').value || null;
   const preySize = document.getElementById('draft-prey-size').value || null;
   if(editingId){
     const snake = savedSnakes.find(s=>s.id===editingId);
-    snake.name = name; snake.sex = draftSex; snake.genes = {...state.draft}; snake.sireId = sireId; snake.damId = damId; snake.birthDate = birthDate; snake.provenance = provenance; snake.species = species;
+    snake.name = name; snake.sex = draftSex; snake.genes = {...state.draft}; snake.sireId = sireId; snake.damId = damId; snake.birthDate = birthDate; snake.provenance = provenance; snake.purchasePrice = purchasePrice; snake.species = species;
     snake.preySpecies = preySpecies; snake.preySize = preySize;
     editingId = null;
   } else {
-    savedSnakes.push({ id: 'snk_'+Date.now(), name, sex: draftSex, genes: {...state.draft}, sireId, damId, birthDate, provenance, species, preySpecies, preySize, preyType:'frozen' });
+    savedSnakes.push({ id: 'snk_'+Date.now(), name, sex: draftSex, genes: {...state.draft}, sireId, damId, birthDate, provenance, purchasePrice, species, preySpecies, preySize, preyType:'frozen' });
   }
   state.draft = {};
   nameInput.value = '';
   document.getElementById('draft-provenance').value = '';
+  document.getElementById('draft-purchase-price').value = '';
   document.getElementById('draft-is-ball-python').checked = true;
   document.getElementById('draft-species-other').value = '';
   document.getElementById('draft-prey-species').value = '';
@@ -5341,6 +5377,7 @@ function editSnake(id){
   state.draft = {...snake.genes};
   document.getElementById('draft-name').value = snake.name;
   document.getElementById('draft-provenance').value = snake.provenance || '';
+  document.getElementById('draft-purchase-price').value = (snake.purchasePrice!=null) ? snake.purchasePrice : '';
   const species = snake.species || 'ball_python';
   const isBallPython = species==='ball_python';
   document.getElementById('draft-is-ball-python').checked = isBallPython;
@@ -5374,6 +5411,7 @@ function duplicateSnake(id){
   state.draft = {...snake.genes};
   document.getElementById('draft-name').value = '';
   document.getElementById('draft-provenance').value = snake.provenance || '';
+  document.getElementById('draft-purchase-price').value = (snake.purchasePrice!=null) ? snake.purchasePrice : '';
   const species = snake.species || 'ball_python';
   const isBallPython = species==='ball_python';
   document.getElementById('draft-is-ball-python').checked = isBallPython;
@@ -5402,6 +5440,7 @@ function cancelEdit(){
   state.draft = {};
   document.getElementById('draft-name').value = '';
   document.getElementById('draft-provenance').value = '';
+  document.getElementById('draft-purchase-price').value = '';
   document.getElementById('draft-prey-species').value = '';
   updateDraftPreySizeOptions();
   setDraftSex('male');
@@ -6542,6 +6581,13 @@ function openLogbook(id){
   const statusButtonsHtml = ['kept','forsale','reserved'].map(v=>
     '<button class="sc-btn'+(s.status===v?' accent':'')+'" onclick="setListingStatus(\''+id+'\',\''+v+'\')">'+saleStatusLabel(v)+'</button>'
   ).join('') + '<button class="sc-btn danger" onclick="setListingStatus(\''+id+'\',\'sold\')">'+t('markSoldBtn')+'</button>';
+  const purchasePriceRow = '<div class="modal-row"><span>'+t('purchasePriceLabel')+'</span><span><input type="number" class="price-input" style="width:90px;" value="'+(s.purchasePrice!=null?s.purchasePrice:'')+'" placeholder="0" onchange="setPurchasePrice(\''+id+'\', this.value)"/> $</span></div>';
+  const realizedMarginRow = (s.status==='sold' && s.soldPrice!=null && s.purchasePrice!=null)
+    ? (function(){
+        const margin = s.soldPrice - s.purchasePrice;
+        return '<div class="modal-row"><span>'+(isEn?'Realized margin':'Marge réalisée')+'</span><span style="font-weight:700;color:'+(margin>=0?'var(--sage)':'var(--rust)')+';">'+(margin>=0?'+':'')+margin.toFixed(2)+' $</span></div>';
+      })()
+    : '';
   const statusDetailHtml = s.status==='sold'
     ? mrow(t('buyerLabel'), escapeHtml(s.buyer||'—')) + mrow(t('saleDateLabel'), s.soldDate||'—')
       + (hasAccess('shipping') ? (
@@ -6769,7 +6815,9 @@ function openLogbook(id){
     '</div>' : '')+
     '<div class="modal-section"><h3>'+t('saleStatusTitle')+'</h3>'+
       '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">'+statusButtonsHtml+'</div>'+
+      purchasePriceRow+
       statusDetailHtml+
+      realizedMarginRow+
     '</div>'+
     '<div class="modal-section"><h3>'+t('photosTitle')+'</h3>'+
       '<input type="file" accept="image/*" id="photo-input-'+id+'" style="display:none;" onchange="addPhotoToSnake(\''+id+'\', this.files[0])"/>'+
@@ -7629,7 +7677,8 @@ function snakeToRow(s){
     listing_url: s.listingUrl||null, buyer: s.buyer||null, sold_date: s.soldDate||null, sold_price: s.soldPrice||null,
     quarantine: s.quarantine||{active:false,startDate:null,durationDays:60}, custom_tags: s.customTags||[], species: s.species||'ball_python',
     paid_via_stripe: !!s.paidViaStripe, care_params: s.careParams||{}, public_token: s.publicToken||null, feed_cost: s.feedCost||null, transfer_token: s.transferToken||null,
-    shipping_carrier: s.shippingCarrier||null, shipping_tracking: s.shippingTracking||null, shipping_date: s.shippingDate||null, shipping_delivered: !!s.shippingDelivered
+    shipping_carrier: s.shippingCarrier||null, shipping_tracking: s.shippingTracking||null, shipping_date: s.shippingDate||null, shipping_delivered: !!s.shippingDelivered,
+    purchase_price: s.purchasePrice!=null ? s.purchasePrice : null
   };
 }
 function rowToSnake(r){
@@ -7642,7 +7691,8 @@ function rowToSnake(r){
     buyer: r.buyer, soldDate: r.sold_date, soldPrice: r.sold_price, createdAt: r.created_at ? Date.parse(r.created_at) : Date.now(),
     quarantine: r.quarantine || {active:false,startDate:null,durationDays:60}, customTags: r.custom_tags || [], species: r.species || 'ball_python',
     paidViaStripe: !!r.paid_via_stripe, careParams: r.care_params || {}, publicToken: r.public_token || null, feedCost: r.feed_cost!=null ? r.feed_cost : null, transferToken: r.transfer_token || null,
-    shippingCarrier: r.shipping_carrier || null, shippingTracking: r.shipping_tracking || null, shippingDate: r.shipping_date || null, shippingDelivered: !!r.shipping_delivered, updatedAt: r.updated_at ? Date.parse(r.updated_at) : 0
+    shippingCarrier: r.shipping_carrier || null, shippingTracking: r.shipping_tracking || null, shippingDate: r.shipping_date || null, shippingDelivered: !!r.shipping_delivered,
+    purchasePrice: r.purchase_price!=null ? r.purchase_price : null, updatedAt: r.updated_at ? Date.parse(r.updated_at) : 0
   };
 }
 
@@ -9866,7 +9916,7 @@ function addPairing(){
   }
   if(warnings.length && !confirm((isEn?'⚠ Points to check before this pairing:\n\n':'⚠ Points à vérifier avant cet accouplement :\n\n')+warnings.join('\n')+(isEn?'\n\nPair anyway?':'\n\nAccoupler quand même ?'))) return;
   const projectId = document.getElementById('pairing-project').value || null;
-  pairings.push({ id:'pr_'+Date.now(), maleId, femaleId, pairedDate:date, coolingDate, ovulationConfirmed:false, ovulationDate:null, follicleSizes:[], projectId });
+  pairings.push({ id:'pr_'+Date.now(), maleId, femaleId, pairedDate:date, coolingDate, ovulationConfirmed:false, ovulationDate:null, follicleSizes:[], lockDates:[], preLayShedDate:null, projectId });
   saveElevage();
   renderTimeline();
   renderProjects();
@@ -10977,6 +11027,18 @@ function renderClutchForm(){
   damSel.innerHTML = females.length ? females.map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+'</option>').join('') : '<option value="">'+(isEn?'No female registered':'Aucune femelle enregistrée')+'</option>';
   if(!document.getElementById('clutch-laydate').value) document.getElementById('clutch-laydate').valueAsDate = new Date();
 }
+// Amorce le formulaire de ponte depuis une fiche d'accouplement (2 septembre) — pré-remplit
+// sire/dam et retient le lien pour que addClutch() sache relier la ponte créée à cet accouplement.
+function createClutchFromPairing(pairingId){
+  const p = pairings.find(x=>x.id===pairingId);
+  if(!p) return;
+  pendingPairingIdForClutch = pairingId;
+  showTab('incubation');
+  renderClutchForm();
+  if(p.maleId) document.getElementById('clutch-sire').value = p.maleId;
+  if(p.femaleId) document.getElementById('clutch-dam').value = p.femaleId;
+  document.getElementById('clutch-eggcount').focus();
+}
 
 // Fertilité/reproductibilité d'une femelle : les accouplements enregistrés (calendrier) sont le
 // dénominateur des tentatives, les pontes réellement enregistrées (matchées par damId, puisque
@@ -11113,8 +11175,9 @@ function addClutch(){
   const hatchDate = addDays(layDate, incubationDays);
   clutches.push({
     id:'cl_'+Date.now(), ref, sireId, damId, eggCount, layDate, incubationDays,
-    hatchDate, hatched:false, hatchedAt:null
+    hatchDate, hatched:false, hatchedAt:null, pairingId:pendingPairingIdForClutch
   });
+  pendingPairingIdForClutch = null; // consommé — repasse en création "libre" par défaut
   saveElevage();
   document.getElementById('clutch-eggcount').value = '';
   renderClutches();
@@ -11161,6 +11224,24 @@ function renderNextHatchBanner(){
   wrap.innerHTML = '<div class="next-hatch-banner">🎉 '+t('nextHatchBannerPrefix')+' <b>'+days+' '+t('dayWord')+(days>1?'s':'')+'</b>, '+t('nextHatchBannerMid')+' <b>'+upcoming.ref+'</b> ('+upcoming.eggCount+' '+t('eggWord')+(upcoming.eggCount>1?'s':'')+') '+t('nextHatchBannerSuffix')+'</div>';
 }
 
+// Profit par ponte (2 septembre) — revenus des bébés vendus vs coût d'acquisition des parents.
+// Transparent sur la limite : le coût des parents peut être partagé entre plusieurs pontes dans
+// la vraie vie, donc c'est une vue simplifiée pour donner un ordre de grandeur, pas un vrai P&L.
+function clutchProfitSummary(c, sire, dam){
+  const isEn = currentLang==='en';
+  const babies = savedSnakes.filter(s=>s.clutchRef===c.ref);
+  const soldBabies = babies.filter(s=>s.status==='sold' && s.soldPrice!=null);
+  const revenue = soldBabies.reduce((sum,s)=>sum+s.soldPrice, 0);
+  const parentCost = (sire && sire.purchasePrice!=null ? sire.purchasePrice : 0) + (dam && dam.purchasePrice!=null ? dam.purchasePrice : 0);
+  if(!babies.length && !parentCost) return '';
+  const netVsParents = revenue - parentCost;
+  return '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-family:\'Courier New\',monospace;font-size:10.5px;">'+
+    (babies.length ? '<div class="modal-row"><span>'+(isEn?'Revenue (sold)':'Revenus (vendus)')+'</span><span style="color:var(--sage);">'+revenue.toFixed(2)+' $ ('+soldBabies.length+'/'+babies.length+')</span></div>' : '')+
+    (parentCost>0 ? '<div class="modal-row"><span>'+(isEn?'Parents\' acquisition cost':'Coût d\'acquisition des parents')+'</span><span style="color:var(--ink-dim);">'+parentCost.toFixed(2)+' $</span></div>' : '')+
+    (babies.length && parentCost>0 ? '<div class="modal-row"><span>'+(isEn?'Net vs. parent cost':'Net vs coût des parents')+'</span><span style="font-weight:700;color:'+(netVsParents>=0?'var(--sage)':'var(--rust)')+';">'+(netVsParents>=0?'+':'')+netVsParents.toFixed(2)+' $</span></div>' : '')+
+    (parentCost>0 ? '<div style="font-size:9px;color:var(--ink-dim);margin-top:2px;">'+(isEn?'Note: parent cost is often shared across several clutches — simplified view, not a strict per-clutch P&L.':'Note : le coût des parents est souvent partagé entre plusieurs pontes — vue simplifiée, pas un vrai bilan par ponte.')+'</div>' : '')+
+  '</div>';
+}
 function renderClutches(){
   renderNextHatchBanner();
   const wrap = document.getElementById('clutch-list');
@@ -11195,6 +11276,7 @@ function renderClutches(){
         mrow(t('layDateLabel'), c.layDate) +
         mrow(t('expectedHatchLabel'), c.hatchDate+' (+'+(c.incubationDays||60)+'j)') +
       '</div>'+
+      clutchProfitSummary(c, sire, dam)+
       '<div class="clutch-actions">'+
         (c.hatched ? '' : '<button class="sc-btn accent" data-act="hatch" data-id="'+c.id+'">'+t('markHatchedBtn')+'</button>')+
         '<button class="sc-btn danger" data-act="delclutch" data-id="'+c.id+'">'+t('deleteBtn')+'</button>'+
@@ -11488,6 +11570,13 @@ function setAskingPrice(id, value){
   s.askingPrice = parseFloat(value) || null;
   storage.save(savedSnakes);
   renderSavedList();
+}
+function setPurchasePrice(id, value){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  s.purchasePrice = value!=='' ? (parseFloat(value) || null) : null;
+  storage.save(savedSnakes);
 }
 
 // Upload manuel uniquement — LOCUS ne génère aucune photo. Redimensionnement local (max 900px large,
@@ -12923,6 +13012,40 @@ function deleteFollicleSize(pairingId, follicleId){
   renderTimeline();
 }
 
+// Verrouillage (2 septembre) — un accouplement peut comporter plusieurs verrouillages sur
+// plusieurs jours/semaines, chacun daté séparément (pas juste une date d'introduction unique).
+function addLockDate(pairingId){
+  const isEn = currentLang==='en';
+  const p = pairings.find(x=>x.id===pairingId);
+  if(!p) return;
+  if(!p.lockDates) p.lockDates = [];
+  const dateEl = document.getElementById('lock-date-'+pairingId);
+  const date = dateEl ? dateEl.value : '';
+  if(!date){ alert(isEn?'Pick a date first.':'Choisis d\'abord une date.'); return; }
+  p.lockDates.push({ id:'lock_'+Date.now(), date });
+  p.lockDates.sort((a,b)=>a.date.localeCompare(b.date));
+  saveElevage();
+  renderTimeline();
+}
+function deleteLockDate(pairingId, lockId){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this lock date?':'Supprimer cette date de verrouillage ?')) return;
+  const p = pairings.find(x=>x.id===pairingId);
+  if(!p) return;
+  p.lockDates = (p.lockDates||[]).filter(l=>l.id!==lockId);
+  saveElevage();
+  renderTimeline();
+}
+// Mue pré-ponte — survient généralement ~30 jours avant la ponte, signal fiable que la ponte
+// approche. Une seule date (contrairement aux verrouillages/follicules qui sont répétés).
+function setPreLayShedDate(pairingId, value){
+  const p = pairings.find(x=>x.id===pairingId);
+  if(!p) return;
+  p.preLayShedDate = value || null;
+  saveElevage();
+  renderTimeline();
+}
+
 // Rappels personnalisés — dates futures libres définies par l'éleveur (vermifuge, rendez-vous
 // vétérinaire, renouvellement UVB, etc.), indépendantes des accouplements/portées automatiques.
 function addCustomEvent(){
@@ -13058,6 +13181,38 @@ function setAssumedClutchSize(pairingId, val){
   saveElevage();
   renderOutcomesView();
 }
+// Stepper de saison (2 septembre) — dérive l'étape actuelle depuis les vraies données déjà
+// loggées, même principe que le statut auto-dérivé des terrariums (pas de champ "stage" séparé à
+// maintenir à la main, qui finirait par désynchroniser de la réalité).
+function seasonStageStatus(p){
+  const linkedClutch = clutches.find(c=>c.pairingId===p.id);
+  return [
+    { key:'paired', labelFr:'Introduit', labelEn:'Paired', done:!!p.pairedDate },
+    { key:'lock', labelFr:'Verrouillé', labelEn:'Locked', done:(p.lockDates||[]).length>0 },
+    { key:'follicles', labelFr:'Follicules', labelEn:'Follicles', done:(p.follicleSizes||[]).length>0 },
+    { key:'ovulation', labelFr:'Ovulation', labelEn:'Ovulation', done:!!p.ovulationConfirmed },
+    { key:'shed', labelFr:'Mue pré-ponte', labelEn:'Pre-lay shed', done:!!p.preLayShedDate },
+    { key:'eggs', labelFr:'Ponte', labelEn:'Eggs', done:!!linkedClutch },
+    { key:'incubation', labelFr:'Incubation', labelEn:'Incubation', done:!!linkedClutch && !linkedClutch.hatched },
+    { key:'hatch', labelFr:'Éclosion', labelEn:'Hatch', done:!!linkedClutch && !!linkedClutch.hatched },
+  ];
+}
+function seasonStepperHtml(p){
+  const isEn = currentLang==='en';
+  const stages = seasonStageStatus(p);
+  // Étape "courante" = dernière étape complétée (ou la toute première si rien n'est fait encore) —
+  // l'incubation reste "done" tant que la ponte n'est pas éclose, donc elle sert aussi de courante
+  // pendant toute la durée de l'incubation, pas juste au moment où elle démarre.
+  let currentIdx = 0;
+  stages.forEach((s,i)=>{ if(s.done) currentIdx = i; });
+  return '<div class="season-stepper">'+
+    stages.map((s,i)=>{
+      const cls = i<currentIdx ? 'done' : i===currentIdx ? (s.done?'done current':'current') : '';
+      return '<div class="season-step '+cls+'"><span class="season-step-line"></span><span class="season-step-dot"></span>'+(isEn?s.labelEn:s.labelFr)+'</div>';
+    }).join('')+
+  '</div>';
+}
+
 function renderTimeline(){
   renderLastYearReference();
   renderOutcomesView();
@@ -13115,13 +13270,45 @@ function renderTimeline(){
       '<div style="font-family:\'Courier New\',monospace;font-size:9.5px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);margin-bottom:6px;">'+t('follicleTrackingTitle')+'</div>'+
       follicleHistoryHtml + follicleAddHtml +
     '</div>';
+    // Verrouillages (2 septembre) — plusieurs verrouillages possibles sur un même accouplement,
+    // chacun daté séparément (pas juste la date d'introduction unique déjà suivie via pairedDate).
+    const lockDates = p.lockDates || [];
+    const lockHistoryHtml = lockDates.length
+      ? lockDates.map(l=>'<div class="modal-row"><span>'+l.date+'</span><span><button class="sc-btn danger" data-act="dellock" data-id="'+p.id+'" data-lid="'+l.id+'">×</button></span></div>').join('')
+      : '<div style="font-size:11px;color:var(--ink-dim);">'+t('noLocksRecorded')+'</div>';
+    const lockHtml = '<div style="margin-top:10px;border-top:1px dashed var(--line);padding-top:10px;">'+
+      '<div style="font-family:\'Courier New\',monospace;font-size:9.5px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);margin-bottom:6px;">'+t('locksTitle')+'</div>'+
+      lockHistoryHtml+
+      '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">'+
+        '<input type="date" id="lock-date-'+p.id+'" style="font-size:14px;padding:6px 8px;"/>'+
+        '<button class="sc-btn accent" data-act="addlock" data-id="'+p.id+'">'+t('addLockBtn')+'</button>'+
+      '</div>'+
+    '</div>';
+    // Mue pré-ponte RÉELLE (à distinguer de l'estimation déjà affichée dans "steps" ci-dessus,
+    // calculée à ovulationDate+15j — ceci est la vraie date une fois observée dans les faits).
+    const preLayShedHtml = '<div style="margin-top:10px;border-top:1px dashed var(--line);padding-top:10px;">'+
+      '<div style="font-family:\'Courier New\',monospace;font-size:9.5px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);margin-bottom:6px;">'+t('preLayShedActualTitle')+'</div>'+
+      '<input type="date" value="'+(p.preLayShedDate||'')+'" onchange="setPreLayShedDate(\''+p.id+'\', this.value)" style="font-size:14px;padding:6px 8px;"/>'+
+    '</div>';
+    // Lien vers la ponte (2 septembre) — si une ponte a déjà été créée depuis cet accouplement,
+    // on l'affiche directement (référence + statut) au lieu du bouton de création.
+    const linkedClutch = clutches.find(c=>c.pairingId===p.id);
+    const clutchLinkHtml = '<div style="margin-top:10px;border-top:1px dashed var(--line);padding-top:10px;">'+
+      (linkedClutch
+        ? '<div class="modal-row"><span>🥚 '+escapeHtml(linkedClutch.ref)+'</span><span>'+(linkedClutch.hatched?(currentLang==='en'?'Hatched':'Éclose'):(currentLang==='en'?'Expected '+linkedClutch.hatchDate:'Prévue '+linkedClutch.hatchDate))+'</span></div>'
+        : '<button class="sc-btn accent" data-act="mkclutch" data-id="'+p.id+'">🥚 '+(currentLang==='en'?'Create the clutch from this pairing':'Créer la ponte depuis cet accouplement')+'</button>')+
+    '</div>';
     card.innerHTML =
       '<div class="timeline-head"><span class="timeline-title">'+(male?escapeHtml(male.name):'?')+' × '+(female?escapeHtml(female.name):'?')+'</span>'+
       '<span><button class="ovul-toggle'+(p.ovulationConfirmed?' active':'')+'" data-act="ovul" data-id="'+p.id+'">'+(p.ovulationConfirmed?t('ovulationConfirmedBtn'):t('confirmOvulationBtn'))+'</button> '+
       '<button class="sc-btn danger" data-act="del" data-id="'+p.id+'">'+t('deleteBtn')+'</button></span></div>'+
       (p.coolingDate ? '<div style="font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:6px;">❄️ '+t('coolingDateLabel')+' '+p.coolingDate+'</div>' : '')+
+      seasonStepperHtml(p)+
       '<div class="timeline-steps">'+steps+'</div>'+
+      lockHtml+
       follicleHtml+
+      preLayShedHtml+
+      clutchLinkHtml+
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">'+
         '<button class="sc-btn" data-act="loadcalc" data-id="'+p.id+'">'+t('loadInCalcBtn')+'</button>'+
         '<button class="sc-btn" data-act="linkpred" data-id="'+p.id+'">'+t('linkPredictionBtn')+'</button>'+
@@ -13134,6 +13321,9 @@ function renderTimeline(){
   wrap.querySelectorAll('[data-act="loadcalc"]').forEach(b=>b.addEventListener('click', ()=>loadPairingIntoCalculator(b.dataset.id)));
   wrap.querySelectorAll('[data-act="linkpred"]').forEach(b=>b.addEventListener('click', ()=>linkPredictionToPairing(b.dataset.id)));
   wrap.querySelectorAll('[data-act="addwl"]').forEach(b=>b.addEventListener('click', ()=>addWaitlistEntry(b.dataset.id)));
+  wrap.querySelectorAll('[data-act="addlock"]').forEach(b=>b.addEventListener('click', ()=>addLockDate(b.dataset.id)));
+  wrap.querySelectorAll('[data-act="dellock"]').forEach(b=>b.addEventListener('click', ()=>deleteLockDate(b.dataset.id, b.dataset.lid)));
+  wrap.querySelectorAll('[data-act="mkclutch"]').forEach(b=>b.addEventListener('click', ()=>createClutchFromPairing(b.dataset.id)));
   wrap.querySelectorAll('[data-wl]').forEach(b=>b.addEventListener('click', ()=>removeWaitlistEntry(b.dataset.pair, b.dataset.wl)));
   wrap.querySelectorAll('[data-act="addfoll"]').forEach(b=>b.addEventListener('click', ()=>addFollicleSize(b.dataset.id)));
   wrap.querySelectorAll('[data-act="delfoll"]').forEach(b=>b.addEventListener('click', ()=>deleteFollicleSize(b.dataset.id, b.dataset.fid)));
