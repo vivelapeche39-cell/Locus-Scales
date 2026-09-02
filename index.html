@@ -1679,6 +1679,10 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" data-i18n="fiscalSalesYearTitle">Ventes de l'année</h2></div>
   <div id="fiscal-sales-list" class="sale-list"></div>
 
+  <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" data-i18n="acquisitionCostsTitle">Coûts d'acquisition (prix payé par animal)</h2></div>
+  <p class="footnote" style="margin-top:0;margin-bottom:12px;" data-i18n="acquisitionCostsDesc">Sert au calcul de marge réalisée par animal et au profit par ponte. Modifie directement ici, ou depuis la fiche de l'animal.</p>
+  <div id="acquisition-costs-list" class="sale-list"></div>
+
   <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" data-i18n="fiscalExpensesTitle">Dépenses</h2></div>
   <div class="pairing-form">
     <input type="date" id="expense-date"/>
@@ -1940,7 +1944,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.1.70';
+const APP_VERSION = '2026.09.02.1.71';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3649,6 +3653,8 @@ const I18N = {
     fiscalExportExcelBtn: '📊 Exporter en Excel',
     inventoryExportBtn: 'Rapport d\'inventaire complet',
     fiscalSalesYearTitle: "Ventes de l'année",
+    acquisitionCostsTitle: "Coûts d'acquisition (prix payé par animal)",
+    acquisitionCostsDesc: "Sert au calcul de marge réalisée par animal et au profit par ponte. Modifie directement ici, ou depuis la fiche de l'animal.",
     fiscalExpensesTitle: 'Dépenses',
     expenseAmountPlaceholder: 'Montant $',
     expenseNotePlaceholder: 'Note (optionnel)',
@@ -4157,6 +4163,8 @@ const I18N = {
     fiscalExportExcelBtn: '📊 Export to Excel',
     inventoryExportBtn: 'Full inventory report',
     fiscalSalesYearTitle: "This year's sales",
+    acquisitionCostsTitle: 'Acquisition costs (price paid per animal)',
+    acquisitionCostsDesc: 'Used for the realized margin per animal and clutch profit calculations. Edit directly here, or from the animal\'s sheet.',
     fiscalExpensesTitle: 'Expenses',
     expenseAmountPlaceholder: 'Amount $',
     expenseNotePlaceholder: 'Note (optional)',
@@ -13374,6 +13382,24 @@ function exportInventoryExcel(){
   XLSX.writeFile(wb, (isEn?'LOCUS-Scales-inventory-':'LOCUS-Scales-inventaire-')+new Date().toISOString().slice(0,10)+'.xlsx');
 }
 
+// Coûts d'acquisition (2 septembre) — le champ existait déjà (formulaire d'ajout, fiche
+// individuelle) mais Alex ne le trouvait pas en pensant "argent" -> onglet Fiscal. Liste éditable
+// directement ici plutôt que d'obliger à ouvrir chaque fiche une par une.
+function renderAcquisitionCostsList(){
+  const isEn = currentLang==='en';
+  const wrap = document.getElementById('acquisition-costs-list');
+  if(!wrap) return;
+  const sorted = [...savedSnakes].sort((a,b)=>a.name.localeCompare(b.name));
+  wrap.innerHTML = sorted.length ? '' : '<div class="empty">'+(isEn?'No reptiles yet.':'Aucun reptile pour l\'instant.')+'</div>';
+  sorted.forEach(s=>{
+    const row = document.createElement('div');
+    row.className = 'sale-row';
+    row.innerHTML =
+      '<div class="sale-name">'+escapeHtml(s.name)+'<small>'+(s.sex==='male'?(isEn?'Male':'Mâle'):s.sex==='female'?(isEn?'Female':'Femelle'):'?')+'</small></div>'+
+      '<span><input type="number" class="price-input" style="width:90px;" value="'+(s.purchasePrice!=null?s.purchasePrice:'')+'" placeholder="0" onchange="setPurchasePrice(\''+s.id+'\', this.value)"/> $</span>';
+    wrap.appendChild(row);
+  });
+}
 function renderFiscalView(){
   const isEn = currentLang==='en';
   if(!hasAccess('fiscalSummary')){
@@ -13431,6 +13457,8 @@ function renderFiscalView(){
       '<button class="sc-btn danger" onclick="deleteExpense(\''+e.id+'\')">'+t('deleteBtn')+'</button>';
     expWrap.appendChild(row);
   });
+
+  renderAcquisitionCostsList();
 
   if(!document.getElementById('expense-date').value) document.getElementById('expense-date').valueAsDate = new Date();
 }
