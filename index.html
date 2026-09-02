@@ -1690,6 +1690,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
     <input type="number" id="expense-amount" data-i18n-placeholder="expenseAmountPlaceholder" placeholder="Montant $" style="width:110px;"/>
     <input type="text" id="expense-note" data-i18n-placeholder="expenseNotePlaceholder" placeholder="Note (optionnel)" style="flex:1;min-width:140px;"/>
     <button class="save-btn" onclick="addExpense()" data-i18n="addExpenseBtn">Ajouter la dépense</button>
+    <input type="file" id="budget-excel-input" accept=".xlsx,.xls,.csv" style="display:none;"/>
+    <button class="sc-btn" onclick="document.getElementById('budget-excel-input').click()">📊 <span data-i18n="importBudgetBtn">Importer un budget Excel</span></button>
   </div>
 
   <div class="results-hdr" style="margin-top:20px;"><h2 style="font-size:14.5px;" data-i18n="expenseBreakdownTitle">Répartition par catégorie</h2></div>
@@ -1944,7 +1946,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.1.71';
+const APP_VERSION = '2026.09.02.1.72';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3659,6 +3661,7 @@ const I18N = {
     expenseAmountPlaceholder: 'Montant $',
     expenseNotePlaceholder: 'Note (optionnel)',
     addExpenseBtn: 'Ajouter la dépense',
+    importBudgetBtn: 'Importer un budget Excel',
     expenseBreakdownTitle: 'Répartition par catégorie',
     expenseChronoTitle: 'Détail chronologique',
     pairingRoiTitle: '🥚 ROI par accouplement',
@@ -4169,6 +4172,7 @@ const I18N = {
     expenseAmountPlaceholder: 'Amount $',
     expenseNotePlaceholder: 'Note (optional)',
     addExpenseBtn: 'Add expense',
+    importBudgetBtn: 'Import an Excel budget',
     expenseBreakdownTitle: 'Breakdown by category',
     expenseChronoTitle: 'Chronological detail',
     pairingRoiTitle: '🥚 ROI per pairing',
@@ -13226,6 +13230,108 @@ function populateExpenseCategorySelect(){
   if(sel) sel.innerHTML = EXPENSE_CATEGORIES.map(c=>'<option value="'+c.name+'">'+c.icon+' '+translateExpenseCat(c.name)+'</option>').join('');
 }
 
+/* ==================== Import de budget Excel existant (2 septembre) — Alex pensait avoir déjà un
+   moyen d'amener un budget existant d'un coup. Réutilise XLSX (déjà chargé pour l'export fiscal) +
+   le même principe de mapping d'en-têtes flexible et d'aperçu que l'import CSV générique de
+   reptiles, adapté aux dépenses (date, catégorie, montant, note). ==================== */
+const BUDGET_COLUMN_ALIASES = {
+  date: ['date'],
+  category: ['categorie','catégorie','category','type'],
+  amount: ['montant','amount','prix','cost','cout','coût'],
+  note: ['note','notes','description','remarques','comment','comments'],
+};
+function mapBudgetHeaders(headerRow){
+  const map = {};
+  headerRow.forEach((h,i)=>{
+    const norm = normalizeHeaderKey(String(h||''));
+    for(const field in BUDGET_COLUMN_ALIASES){
+      if(BUDGET_COLUMN_ALIASES[field].some(alias=>normalizeHeaderKey(alias)===norm)) map[field] = i;
+    }
+  });
+  return map;
+}
+// Fait de son mieux pour retrouver une catégorie LOCUS existante à partir d'un texte libre —
+// sinon "Autre", mais le texte original est gardé dans la note pour ne jamais perdre d'info.
+function matchExpenseCategory(raw){
+  if(!raw) return null;
+  const norm = normalizeHeaderKey(raw);
+  const found = EXPENSE_CATEGORIES.find(c=>{
+    const tr = EXPENSE_CAT_TRANSLATIONS[c.name];
+    return normalizeHeaderKey(c.name)===norm || (tr && (normalizeHeaderKey(tr.fr)===norm || normalizeHeaderKey(tr.en)===norm)) || normalizeHeaderKey(c.name).includes(norm) || norm.includes(normalizeHeaderKey(c.name).split(' ')[0]);
+  });
+  return found ? found.name : null;
+}
+var pendingBudgetRows = [];
+document.getElementById('budget-excel-input').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const isEn = currentLang==='en';
+  const reader = new FileReader();
+  reader.onload = (evt)=>{
+    let rows;
+    try{
+      const wb = XLSX.read(evt.target.result, { type:'binary', cellDates:true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(ws, { header:1, raw:false, defval:'' });
+    }catch(err){ alert(isEn?'Could not read this file.':'Impossible de lire ce fichier.'); e.target.value=''; return; }
+    rows = rows.filter(r=>r.some(cell=>String(cell).trim()!==''));
+    if(!rows.length){ alert(isEn?'Empty file.':'Fichier vide.'); e.target.value=''; return; }
+    const headerRow = rows[0].map(String);
+    const colMap = mapBudgetHeaders(headerRow);
+    if(colMap.amount===undefined){ alert(isEn?'Could not find an "amount" column — check your file headers.':'Impossible de trouver une colonne "montant" — vérifie les en-têtes de ton fichier.'); e.target.value=''; return; }
+    const get = (r,f) => colMap[f]!==undefined ? String(r[colMap[f]]||'').trim() : '';
+    pendingBudgetRows = rows.slice(1).map(r=>{
+      const amountRaw = get(r,'amount').replace(',','.').replace(/[^0-9.\-]/g,'');
+      const categoryRaw = get(r,'category');
+      const matchedCat = matchExpenseCategory(categoryRaw);
+      let dateVal = get(r,'date');
+      const isoMatch = dateVal.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+      dateVal = isoMatch ? (isoMatch[1]+'-'+isoMatch[2].padStart(2,'0')+'-'+isoMatch[3].padStart(2,'0')) : null;
+      return {
+        date: dateVal,
+        category: matchedCat || 'Autre',
+        originalCategory: categoryRaw,
+        amount: amountRaw ? parseFloat(amountRaw) : null,
+        note: get(r,'note') || (matchedCat ? null : categoryRaw) || null,
+      };
+    }).filter(r=>r.amount!=null && !isNaN(r.amount));
+    if(!pendingBudgetRows.length){ alert(isEn?'No valid row found (missing amount values?).':'Aucune ligne valide trouvée (colonne montant vide ?).'); e.target.value=''; return; }
+    renderBudgetImportPreview(colMap, headerRow);
+    e.target.value = '';
+  };
+  reader.readAsBinaryString(file);
+});
+function renderBudgetImportPreview(colMap, headerRow){
+  const isEn = currentLang==='en';
+  const detected = Object.keys(colMap).map(f=>f+' → "'+escapeHtml(headerRow[colMap[f]])+'"').join(', ');
+  const missingDates = pendingBudgetRows.filter(r=>!r.date).length;
+  const previewRows = pendingBudgetRows.slice(0,5).map(r=>
+    '<div class="modal-row"><span>'+categoryIcon(r.category)+' '+translateExpenseCat(r.category)+(r.originalCategory && r.category==='Autre' ? ' ('+escapeHtml(r.originalCategory)+')' : '')+'</span><span style="font-size:10px;color:var(--ink-dim);">'+(r.date||(isEn?'no date':'sans date'))+' · '+r.amount+' $</span></div>'
+  ).join('');
+  const body =
+    '<p style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Columns detected: ':'Colonnes détectées : ')+(detected||'')+'</p>'+
+    (missingDates ? '<p style="font-size:11px;color:var(--gold);">⚠ '+missingDates+' '+(isEn?'row(s) with no valid date — today\'s date will be used for those.':'ligne(s) sans date valide — la date d\'aujourd\'hui sera utilisée pour celles-là.')+'</p>' : '')+
+    '<p style="font-size:13px;margin:10px 0;font-weight:600;">'+pendingBudgetRows.length+' '+(isEn?'expense(s) ready to import. Preview of the first 5:':'dépense(s) prête(s) à importer. Aperçu des 5 premières :')+'</p>'+
+    previewRows+
+    (pendingBudgetRows.length>5 ? '<div style="font-size:10.5px;color:var(--ink-dim);padding:6px 4px;">+'+(pendingBudgetRows.length-5)+' '+(isEn?'more':'de plus')+'</div>' : '')+
+    '<button class="save-btn" style="width:100%;margin-top:14px;" onclick="confirmBudgetImport()">✅ '+(isEn?'Confirm import':'Confirmer l\'import')+'</button>'+
+    '<button class="sc-btn" style="width:100%;margin-top:6px;" onclick="pendingBudgetRows=[]; closeQuickModal();">'+(isEn?'Cancel':'Annuler')+'</button>';
+  showQuickModal(isEn?'Budget import preview':'Aperçu de l\'import de budget', body);
+}
+function confirmBudgetImport(){
+  const isEn = currentLang==='en';
+  const today = new Date().toISOString().slice(0,10);
+  let added = 0;
+  pendingBudgetRows.forEach(r=>{
+    expenses.push({ id:'exp_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), date:r.date||today, category:r.category, amount:r.amount, note:r.note });
+    added++;
+  });
+  pendingBudgetRows = [];
+  saveElevage();
+  closeQuickModal();
+  renderFiscalView();
+  showToast('📊 '+added+' '+(isEn?'expense(s) imported.':'dépense(s) importée(s).'), 'success');
+}
 function addExpense(){
   const date = document.getElementById('expense-date').value || new Date().toISOString().slice(0,10);
   const category = document.getElementById('expense-category').value;
