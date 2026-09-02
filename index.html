@@ -1872,7 +1872,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.1.52';
+const APP_VERSION = '2026.09.02.1.53';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2603,8 +2603,15 @@ var storageWriteFailed = false; // vrai dès qu'une écriture localStorage écho
 // (ex. un webhook Stripe qui marque une vente confirmée pendant que le navigateur repousse sa vieille
 // copie par-dessus). Ce bloc doit être déclaré tôt dans le script (avant storage.save()) pour éviter
 // un piège de "temporal dead zone" — voir la règle permanente à ce sujet dans CLAUDE.md.
-const dirtySyncIds = { snakes:new Set(), racks:new Set(), terrariums:new Set(), pairings:new Set(), clutches:new Set(), expenses:new Set(), customers:new Set() };
-const lastSyncSnapshot = { snakes:{}, racks:{}, terrariums:{}, pairings:{}, clutches:{}, expenses:{}, customers:{} };
+var dirtySyncIds = { snakes:new Set(), racks:new Set(), terrariums:new Set(), pairings:new Set(), clutches:new Set(), expenses:new Set(), customers:new Set() };
+var lastSyncSnapshot = { snakes:{}, racks:{}, terrariums:{}, pairings:{}, clutches:{}, expenses:{}, customers:{} };
+// Suppressions locales pas encore envoyées au cloud (2 sept) — trackLocalChanges() détecte quand un
+// id connu du dernier snapshot a disparu du tableau actuel (donc supprimé localement) et l'ajoute
+// ici ; pushAllUserData() envoie ensuite un vrai DELETE Supabase pour chaque id, puis vide l'ensemble.
+// Avant ce correctif, une suppression n'était JAMAIS poussée au cloud (seuls des upserts existaient) —
+// l'item revenait systématiquement au pull suivant (mergeById n'a aucune façon de représenter "ceci a
+// été supprimé", seulement de comparer deux copies existantes par horodatage).
+var dirtyDeletedIds = { snakes:new Set(), racks:new Set(), terrariums:new Set(), pairings:new Set(), clutches:new Set(), expenses:new Set(), customers:new Set() };
 function contentSignature(item){
   return JSON.stringify(item, (k,v)=> k==='updatedAt' ? undefined : v);
 }
@@ -2612,13 +2619,22 @@ function contentSignature(item){
 // horodatage local et le marque à pousser vers le cloud au prochain pushAllUserData().
 function trackLocalChanges(kind, arr){
   const snap = lastSyncSnapshot[kind];
+  const currentIds = new Set();
   (arr||[]).forEach(item=>{
     if(!item || item.id==null) return;
+    currentIds.add(item.id);
     const sig = contentSignature(item);
     if(snap[item.id] !== sig){
       item.updatedAt = Date.now();
       dirtySyncIds[kind].add(item.id);
       snap[item.id] = sig;
+    }
+  });
+  Object.keys(snap).forEach(id=>{
+    if(!currentIds.has(id)){
+      dirtyDeletedIds[kind].add(id);
+      dirtySyncIds[kind].delete(id);
+      delete snap[id];
     }
   });
 }
@@ -7366,7 +7382,7 @@ var debutOccupation = 0;
 // (ex. un webhook Stripe) pendant que le navigateur tirait ses propres données périmées par-dessus.
 // Si l'horodatage manque des deux côtés (anciennes fiches jamais synchronisées), le local continue
 // de l'emporter par défaut, comme avant.
-function mergeById(localArr, cloudArr){
+function mergeById(localArr, cloudArr, kind){
   const byId = {};
   (cloudArr||[]).forEach(item=>{ if(item && item.id!=null) byId[item.id] = item; });
   (localArr||[]).forEach(item=>{
@@ -7374,6 +7390,12 @@ function mergeById(localArr, cloudArr){
     const cloudItem = byId[item.id];
     if(!cloudItem || (item.updatedAt||0) >= (cloudItem.updatedAt||0)) byId[item.id] = item;
   });
+  // Une suppression locale pas encore poussée (voir dirtyDeletedIds/trackLocalChanges) ne doit jamais
+  // être ramenée par un tirage qui arrive avant que le DELETE ait fini d'être envoyé — sinon l'item
+  // réapparaît à chaque actualisation tant que le push n'a pas gagné la course contre le prochain pull.
+  if(kind && dirtyDeletedIds[kind] && dirtyDeletedIds[kind].size){
+    dirtyDeletedIds[kind].forEach(id=>{ delete byId[id]; });
+  }
   return Object.values(byId);
 }
 
@@ -7527,6 +7549,15 @@ async function pushAllUserData(forceAll){
     saveAppStatePushedAt(Date.now());
     const profile = loadProfile();
     await sb.from('profiles').upsert({ user_id:currentUser.id, breeder_name: profile.breederName||null, email: profile.email||null, phone: profile.phone||null });
+    // Envoie les suppressions locales en attente (2 sept) — le nom de `kind` correspond exactement
+    // au nom de la table Supabase dans les 7 cas, donc une seule boucle suffit. Sans ça, un item
+    // supprimé localement n'était jamais retiré du cloud et revenait au prochain tirage.
+    for(const kind of ['snakes','racks','terrariums','pairings','clutches','expenses','customers']){
+      if(dirtyDeletedIds[kind].size){
+        const { error } = await sb.from(kind).delete().in('id', [...dirtyDeletedIds[kind]]);
+        if(!error) dirtyDeletedIds[kind].clear();
+      }
+    }
     ['snakes','racks','terrariums','pairings','clutches','expenses','customers'].forEach(kind=> dirtySyncIds[kind].clear());
   }catch(e){
     console.warn('LOCUS: échec envoi des données', e);
@@ -7553,38 +7584,38 @@ async function pullAllUserData(){
     // "à pousser" au prochain pushAllUserData() plutôt que d'être prise à tort pour déjà à jour.
     if(snakesRes.data){
       const remoteSnakes = snakesRes.data.map(rowToSnake);
-      savedSnakes = mergeById(savedSnakes, remoteSnakes);
+      savedSnakes = mergeById(savedSnakes, remoteSnakes, 'snakes');
       markSynced('snakes', remoteSnakes);
       storage.save(savedSnakes);
     }
     if(racksRes.data && racksRes.data.length){
       const remoteRacks = racksRes.data.map(r=>({ id:r.id, name:r.name, rows:r.rows, heating:r.heating||null, tubCleanings:r.tub_cleanings||{}, updatedAt: r.updated_at?Date.parse(r.updated_at):0 }));
-      racks = mergeById(racks, remoteRacks);
+      racks = mergeById(racks, remoteRacks, 'racks');
       markSynced('racks', remoteRacks);
     }
     if(terrariumsRes.data && terrariumsRes.data.length){
       const remoteTerrariums = terrariumsRes.data.map(te=>({ id:te.id, name:te.name, size:te.size, status:te.status||'libre', bioactive: !!te.bioactive, lighting:te.lighting||null, heating:te.heating||null, substrate:te.substrate||null, pairingStartDate:te.pairing_start_date||null, uvbReplaceDate:te.uvb_replace_date||null, cleanings:te.cleanings||[], updatedAt: te.updated_at?Date.parse(te.updated_at):0 }));
-      terrariums = mergeById(terrariums, remoteTerrariums);
+      terrariums = mergeById(terrariums, remoteTerrariums, 'terrariums');
       markSynced('terrariums', remoteTerrariums);
     }
     if(pairingsRes.data){
       const remotePairings = pairingsRes.data.map(p=>({...p.data, updatedAt: p.updated_at?Date.parse(p.updated_at):0 }));
-      pairings = mergeById(pairings, remotePairings);
+      pairings = mergeById(pairings, remotePairings, 'pairings');
       markSynced('pairings', remotePairings);
     }
     if(clutchesRes.data){
       const remoteClutches = clutchesRes.data.map(c=>({...c.data, updatedAt: c.updated_at?Date.parse(c.updated_at):0 }));
-      clutches = mergeById(clutches, remoteClutches);
+      clutches = mergeById(clutches, remoteClutches, 'clutches');
       markSynced('clutches', remoteClutches);
     }
     if(expensesRes.data){
       const remoteExpenses = expensesRes.data.map(ex=>({ id:ex.id, date:ex.date, category:ex.category, amount:ex.amount, note:ex.note, updatedAt: ex.updated_at?Date.parse(ex.updated_at):0 }));
-      expenses = mergeById(expenses, remoteExpenses);
+      expenses = mergeById(expenses, remoteExpenses, 'expenses');
       markSynced('expenses', remoteExpenses);
     }
     if(customersRes.data){
       const remoteCustomers = customersRes.data.map(cu=>({...cu.data, updatedAt: cu.updated_at?Date.parse(cu.updated_at):0 }));
-      customers = mergeById(customers, remoteCustomers);
+      customers = mergeById(customers, remoteCustomers, 'customers');
       markSynced('customers', remoteCustomers);
     }
     const serverStateUpdatedAt = (stateRes.data && stateRes.data.updated_at) ? Date.parse(stateRes.data.updated_at) : 0;
