@@ -635,6 +635,17 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 .pairing-form select, .pairing-form input[type=date]{background:var(--bg-panel-2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Courier New',monospace;font-size:12px;padding:7px 9px;}
 .timeline{display:flex;flex-direction:column;gap:10px;}
 .timeline-card{background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;}
+/* Vue tableau du journal (2 septembre) — alternative "spreadsheet" au flux de cartes, colonnes
+   activables/désactivables et triables. Scroll horizontal sur mobile plutôt que d'écraser le texte. */
+.logtable-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:10px;}
+.logtable{width:100%;border-collapse:collapse;font-family:'Courier New',monospace;font-size:10.5px;white-space:nowrap;}
+.logtable th{background:var(--bg-panel-2);color:var(--gold);text-align:left;padding:8px 10px;cursor:pointer;user-select:none;position:sticky;top:0;border-bottom:1px solid var(--line);}
+.logtable th:hover{color:var(--ink);}
+.logtable th.sorted::after{content:' ▾';font-size:8px;}
+.logtable th.sorted.asc::after{content:' ▴';}
+.logtable td{padding:7px 10px;border-bottom:1px solid var(--line);color:var(--ink);}
+.logtable tr:last-child td{border-bottom:none;}
+.logtable tr:hover td{background:rgba(201,151,62,.06);}
 .timeline-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
 .timeline-title{font-family:Georgia,'Times New Roman',serif;font-size:14.5px;font-weight:600;}
 .ovul-toggle{font-family:'Courier New',monospace;font-size:10px;padding:5px 10px;border:1px solid var(--rust);border-radius:18px;background:transparent;color:var(--rust);cursor:pointer;}
@@ -951,6 +962,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   <div id="storage-banner" class="storage-banner" style="display:none;"></div>
   <div id="onboarding-banner" class="onboarding-banner" style="display:none;"></div>
   <div id="backup-reminder-banner" class="onboarding-banner" style="display:none;"></div>
+  <div id="sample-data-banner" class="onboarding-banner" style="display:none;"></div>
 
   <div class="global-search-wrap">
     <input type="text" id="global-search-input" class="global-search-input" data-i18n-placeholder="globalSearchPlaceholder" placeholder="🔍 Recherche unifiée — nom, gène, provenance, client…" autocomplete="off"/>
@@ -976,6 +988,14 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
     <div id="dash-birthdays-wrap" style="display:none;">
       <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;">🎂 <span data-i18n="birthdaysWidgetTitle">Anniversaires ce mois-ci</span></h2></div>
       <div id="dash-birthdays"></div>
+    </div>
+    <div id="dash-todos-wrap">
+      <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;">📝 <span data-i18n="todosWidgetTitle">Tâches</span></h2></div>
+      <div id="todos-list"></div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <input type="text" id="todo-input" data-i18n-placeholder="todoInputPlaceholder" placeholder="Ex. Commander des rongeurs" style="flex:1;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" onkeydown="if(event.key==='Enter') addTodo();"/>
+        <button class="save-btn" onclick="addTodo()" data-i18n="addBtn">+ Ajouter</button>
+      </div>
     </div>
     <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" data-i18n="lastNextMealTitle">🍽 Dernier repas / Prochain repas</h2></div>
     <div id="dash-lastnext-list"></div>
@@ -1165,6 +1185,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <label style="flex:1;"><span data-i18n="provenanceLabel">Provenance</span> <span style="font-weight:400;color:var(--ink-dim);" data-i18n="provenanceHint">(éleveur d'origine — laisse vide si né chez toi)</span>
           <input type="text" id="draft-provenance" class="pedigree-select" list="provenance-suggestions" style="width:100%;margin-top:4px;" placeholder="Ex. Python of the North, éleveur particulier, animalerie…"/>
           <datalist id="provenance-suggestions"></datalist>
+          <datalist id="room-suggestions"></datalist>
         </label>
       </div>
       <div class="pedigree-row">
@@ -1256,6 +1277,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <button class="tour-action-btn shed" data-i18n="actionShed" onclick="applyTourAction('shed')">A mué</button>
         <button class="tour-action-btn refused" data-i18n="actionRefused" onclick="applyTourAction('refused')">Refus</button>
         <button class="tour-action-btn" data-i18n="actionWeigh" onclick="applyTourAction('weigh')">Peser</button>
+        <button class="tour-action-btn" onclick="applyTourAction('water')">💧 <span data-i18n="eventWater">Changement d'eau</span></button>
         <button class="sc-btn" data-i18n="deselectBtn" onclick="clearTourSelection()">Désélectionner</button>
       </div>
       <div class="tour-toolbar" id="tour-quickselect" style="padding-top:0;border-bottom:none;margin-bottom:10px;">
@@ -1264,6 +1286,10 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <button class="tour-action-btn" onclick="selectByPreyType('live')" data-i18n="selectLiveBtn">🐭 Tout le vivant</button>
       </div>
       <div id="health-alerts"></div>
+      <div id="tour-room-filter-wrap" style="display:none;margin-bottom:14px;">
+        <span style="font-size:11px;color:var(--ink-dim);">📍 <span data-i18n="roomFilterLabel">Pièce</span> :</span>
+        <select id="tour-room-filter" class="egg-select" onchange="setTourRoomFilter(this.value)"></select>
+      </div>
       <button class="sc-btn" id="tour-show-all-btn" style="margin-bottom:14px;" onclick="showAllRacksTerrariums()">🔄 <span data-i18n="showAllSectionsBtn">Tout réafficher</span></button>
       <div id="tour-wrap">
         <div class="elevage-block" id="block-tour-racks">
@@ -1333,8 +1359,15 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         </div>
       </div>
       <div id="timeline" class="timeline"></div>
-      <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" data-i18n="healthLogTitle">Journal de suivi (Mode Tournée)</h2></div>
+      <div class="results-hdr" style="margin-top:26px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <h2 style="font-size:16px;margin:0;" data-i18n="healthLogTitle">Journal de suivi (Mode Tournée)</h2>
+        <div style="display:flex;gap:6px;">
+          <button class="sc-btn" id="healthlog-view-toggle-btn" onclick="toggleHealthLogView()">📊 <span data-i18n="tableViewBtn">Vue tableau</span></button>
+          <button class="sc-btn" id="healthlog-columns-btn" onclick="openHealthLogColumnsModal()" style="display:none;">⚙️ <span data-i18n="columnsBtn">Colonnes</span></button>
+        </div>
+      </div>
       <div id="health-log" class="timeline"></div>
+      <div id="health-log-table" class="logtable-wrap" style="display:none;"></div>
     </div>
 
     <div id="sub-nourriture" style="display:none;">
@@ -1631,6 +1664,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   <div class="mine-filter-bar">
     <select id="fiscal-year-select" class="egg-select"></select>
     <button class="sc-btn accent" onclick="exportBudgetExcel()" data-i18n="fiscalExportExcelBtn">📊 Exporter en Excel</button>
+    <button class="sc-btn" onclick="exportInventoryExcel()">📋 <span data-i18n="inventoryExportBtn">Rapport d'inventaire complet</span></button>
   </div>
   <div class="value-bar" style="margin-top:0;border-top:none;padding-top:0;">
     <div class="value-box"><div class="vb-label" data-i18n="fiscalIncomeLabel">Revenus (ventes)</div><div class="vb-amount" id="fiscal-income">0 $</div></div>
@@ -1906,7 +1940,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.1.64';
+const APP_VERSION = '2026.09.02.1.70';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2906,6 +2940,7 @@ const DASH_CARDS = [
   { key:'today_pairing', fr:'— En accouplement depuis 5j+', en:'— Pairing 5+ days' },
   { key:'today_lowstock', fr:'— Stock de proies bas', en:'— Low prey stock' },
   { key:'birthdays', fr:'Anniversaires du mois', en:'Birthdays this month' },
+  { key:'todos', fr:'Tâches', en:'Tasks' },
   { key:'feeding', fr:'Calendrier de nourrissage', en:'Feeding calendar' },
   { key:'hatch', fr:'Prochaines éclosions', en:'Upcoming hatchings' },
   { key:'facebook', fr:'Bannière Facebook', en:'Facebook banner' },
@@ -2958,6 +2993,8 @@ function applyDashCardVisibility(){
   if(todayWidget) todayWidget.style.display = anyTodayOn ? '' : 'none';
   const birthdaysWrap = document.getElementById('dash-birthdays-wrap');
   if(birthdaysWrap && !dashCardPrefs.birthdays) birthdaysWrap.style.display = 'none';
+  const todosWrap = document.getElementById('dash-todos-wrap');
+  if(todosWrap) todosWrap.style.display = dashCardPrefs.todos ? '' : 'none';
   const feedingList = document.getElementById('dash-feeding-list');
   if(feedingList){ feedingList.style.display = dashCardPrefs.feeding ? '' : 'none'; if(feedingList.previousElementSibling) feedingList.previousElementSibling.style.display = dashCardPrefs.feeding ? '' : 'none'; }
   const hatchList = document.getElementById('dash-hatch-list');
@@ -3418,6 +3455,8 @@ const I18N = {
     tabDash: '📋 Tableau de bord',
     todayWidgetTitle: 'Aujourd\'hui — à surveiller',
     birthdaysWidgetTitle: 'Anniversaires ce mois-ci',
+    todosWidgetTitle: 'Tâches',
+    todoInputPlaceholder: 'Ex. Commander des rongeurs',
     feedingCalendarTitle: '📅 Calendrier de nourrissage — 7 prochains jours',
     lastNextMealTitle: '🍽 Dernier repas / Prochain repas',
     neverFedLabel: 'Jamais nourri',
@@ -3608,6 +3647,7 @@ const I18N = {
     storageIndicatorTitle: 'Espace de stockage utilisé',
     fiscalRapportTitle: 'Rapport fiscal',
     fiscalExportExcelBtn: '📊 Exporter en Excel',
+    inventoryExportBtn: 'Rapport d\'inventaire complet',
     fiscalSalesYearTitle: "Ventes de l'année",
     fiscalExpensesTitle: 'Dépenses',
     expenseAmountPlaceholder: 'Montant $',
@@ -3751,6 +3791,7 @@ const I18N = {
     lengthHistoryTitle: 'Historique de longueur',
     noLengthRecorded: 'Aucune mesure enregistrée',
     eventLength: 'Mesure',
+    eventWater: 'Changement d\'eau',
     vetJournalTitle: 'Journal vétérinaire',
     vetReasonPlaceholder: 'Motif de la visite (ex. examen annuel)…',
     vetFindingsPlaceholder: 'Observations, diagnostic, traitement…',
@@ -3844,6 +3885,8 @@ const I18N = {
     actionWeigh: 'Peser',
     deselectBtn: 'Désélectionner',
     showAllSectionsBtn: 'Tout réafficher',
+    roomFilterLabel: 'Pièce',
+    allRoomsOption: 'Toutes les pièces',
     quickSelectPreyLabel: 'Sélection rapide par proie :',
     selectFrozenBtn: '❄️ Tout le décongelé',
     selectLiveBtn: '🐭 Tout le vivant',
@@ -3870,6 +3913,9 @@ const I18N = {
     customEventPlaceholder: 'Ex. Vermifuge annuel',
     addBtn: '+ Ajouter',
     healthLogTitle: 'Journal de suivi (Mode Tournée)',
+    tableViewBtn: 'Vue tableau',
+    columnsBtn: 'Colonnes',
+    cardsViewBtn: 'Vue cartes',
     noPairingsEmpty: '💞 Aucun accouplement enregistré — utilise le formulaire ci-dessus pour lancer le suivi d\'une paire.',
     noHealthLogEmpty: 'Aucune action enregistrée via le Mode Tournée pour l\'instant.',
     deleteBtn: 'Supprimer',
@@ -3917,6 +3963,8 @@ const I18N = {
     tabDash: '📋 Dashboard',
     todayWidgetTitle: 'Today — worth a look',
     birthdaysWidgetTitle: 'Birthdays this month',
+    todosWidgetTitle: 'Tasks',
+    todoInputPlaceholder: 'Ex. Order rodents',
     feedingCalendarTitle: '📅 Feeding calendar — next 7 days',
     lastNextMealTitle: '🍽 Last meal / Next meal',
     neverFedLabel: 'Never fed',
@@ -4107,6 +4155,7 @@ const I18N = {
     storageIndicatorTitle: 'Storage space used',
     fiscalRapportTitle: 'Tax report',
     fiscalExportExcelBtn: '📊 Export to Excel',
+    inventoryExportBtn: 'Full inventory report',
     fiscalSalesYearTitle: "This year's sales",
     fiscalExpensesTitle: 'Expenses',
     expenseAmountPlaceholder: 'Amount $',
@@ -4250,6 +4299,7 @@ const I18N = {
     lengthHistoryTitle: 'Length history',
     noLengthRecorded: 'No measurement recorded',
     eventLength: 'Measurement',
+    eventWater: 'Water change',
     vetJournalTitle: 'Vet journal',
     vetReasonPlaceholder: 'Visit reason (e.g. annual checkup)…',
     vetFindingsPlaceholder: 'Findings, diagnosis, treatment…',
@@ -4343,6 +4393,8 @@ const I18N = {
     actionWeigh: 'Weigh',
     deselectBtn: 'Deselect',
     showAllSectionsBtn: 'Show everything again',
+    roomFilterLabel: 'Room',
+    allRoomsOption: 'All rooms',
     quickSelectPreyLabel: 'Quick select by prey:',
     selectFrozenBtn: '❄️ All frozen-thawed',
     selectLiveBtn: '🐭 All live',
@@ -4369,6 +4421,9 @@ const I18N = {
     customEventPlaceholder: 'e.g. Annual deworming',
     addBtn: '+ Add',
     healthLogTitle: 'Care Log (Tour Mode)',
+    tableViewBtn: 'Table view',
+    columnsBtn: 'Columns',
+    cardsViewBtn: 'Card view',
     noPairingsEmpty: '💞 No pairing recorded yet — use the form above to start tracking a pair.',
     noHealthLogEmpty: 'No action recorded via Tour Mode yet.',
     deleteBtn: 'Delete',
@@ -4672,9 +4727,44 @@ function openConfigModal(){
       '<button class="sc-btn" style="width:100%;" onclick="exportBackup();">📤 '+(isEn?'Export my backup':'Exporter ma sauvegarde')+'</button>'+
       '<button class="sc-btn" style="width:100%;color:var(--rust);border-color:var(--rust);" onclick="reinitialiserDonneesLocales();">🔄 '+(isEn?'Reset local data (re-download from server)':'Réinitialiser les données locales (retélécharger du serveur)')+'</button>'+
       (isAdminUser ? '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); diagToggle();">🐛 '+(isEn?'Diagnostic log (admin)':'Journal de diagnostic (admin)')+(diagErrorCount>0?' — '+diagErrorCount:'')+'</button>' : '')+
+      (currentUser ? '<button class="sc-btn danger" style="width:100%;" onclick="closeQuickModal(); openDeleteAccountModal();">🗑️ '+(isEn?'Delete my account':'Supprimer mon compte')+'</button>' : '')+
     '</div>'+
     '<p style="font-size:9.5px;color:var(--ink-dim);text-align:center;margin:16px 0 0;font-family:\'Courier New\',monospace;">'+(isEn?'Version':'Version')+' '+APP_VERSION+'</p>'
   );
+}
+
+// Suppression de compte en libre-service (2 septembre) — avant, fallait me contacter et je le
+// faisais à la main via Supabase. Confirmation forte : retaper le courriel exact du compte, pas
+// juste un "OK/Annuler" trop facile à cliquer par erreur pour une action aussi définitive.
+function openDeleteAccountModal(){
+  const isEn = currentLang==='en';
+  const email = (currentUser && currentUser.email) || '';
+  const body =
+    '<p style="font-size:12px;color:var(--rust);font-weight:700;margin:0 0 10px;">⚠️ '+(isEn?'This is permanent and cannot be undone.':'C\'est permanent et irréversible.')+'</p>'+
+    '<p style="font-size:11.5px;color:var(--ink-dim);margin:0 0 14px;">'+(isEn?'This deletes every reptile, rack, terrarium, sale, expense, and customer tied to your account, then closes the account itself.':'Ça supprime tous tes reptiles, racks, terrariums, ventes, dépenses et clients liés à ton compte, puis ferme le compte lui-même.')+'</p>'+
+    '<label style="display:block;font-size:11px;color:var(--ink-dim);margin-bottom:6px;">'+(isEn?'Type your email to confirm ('+escapeHtml(email)+'):':'Tape ton courriel pour confirmer ('+escapeHtml(email)+') :')+'</label>'+
+    '<input type="email" id="delete-account-confirm-email" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:14px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" placeholder="'+escapeHtml(email)+'"/>'+
+    '<button class="sc-btn danger" style="width:100%;" onclick="confirmDeleteAccount()">🗑️ '+(isEn?'Permanently delete my account':'Supprimer mon compte définitivement')+'</button>';
+  showQuickModal(isEn?'⚠️ Delete account':'⚠️ Supprimer le compte', body);
+}
+async function confirmDeleteAccount(){
+  const isEn = currentLang==='en';
+  const email = (currentUser && currentUser.email) || '';
+  const typed = (document.getElementById('delete-account-confirm-email').value || '').trim();
+  if(typed.toLowerCase() !== email.toLowerCase()){
+    alert(isEn?'The email doesn\'t match — nothing was deleted.':'Le courriel ne correspond pas — rien n\'a été supprimé.');
+    return;
+  }
+  if(!sb){ alert(isEn?'Not connected.':'Pas connecté.'); return; }
+  try{
+    const { error } = await sb.rpc('delete_my_account');
+    if(error){ alert((isEn?'Deletion failed: ':'Échec de la suppression : ')+error.message); return; }
+    try{ localStorage.clear(); }catch(e){}
+    alert(isEn?'Your account and all its data have been deleted. You\'ll now be signed out.':'Ton compte et toutes ses données ont été supprimés. Tu vas maintenant être déconnecté.');
+    window.location.reload();
+  }catch(e){
+    alert((isEn?'Deletion failed: ':'Échec de la suppression : ')+e.message);
+  }
 }
 
 function openStorageDetails(){
@@ -4706,6 +4796,9 @@ var savedSnakes = storage.load();
 // "undefined is not an object (evaluating 'tourSelection.has')". La déclarer ici, tout au début
 // aux côtés des autres variables d'état centrales, élimine cette fenêtre de risque au complet.
 var tourSelection = new Set();
+// Filtre multi-pièces (2 septembre) — pour les éleveurs dont la collection est répartie entre
+// plusieurs pièces physiques (sous-sol, salon, chambre dédiée...). 'all' = pas de filtre.
+var tourRoomFilter = 'all';
 markSynced('snakes', savedSnakes);
 var editingId = null;
 // Lien ponte <-> accouplement (2 septembre) — pont temporaire entre createClutchFromPairing() et
@@ -6731,6 +6824,7 @@ function openLogbook(id){
       '<button class="tour-action-btn refused" onclick="logAction(\''+id+'\',\'refused\')">'+t('eventRefused')+'</button>'+
       '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'weigh\')">'+t('eventWeigh')+'</button>'+
       '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'length\')">'+t('eventLength')+'</button>'+
+      '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'water\')">💧 '+t('eventWater')+'</button>'+
     '</div>'+
     '<div class="modal-row" style="margin-top:10px;"><span>'+t('nextMealLabel')+'</span><span>'+nextFeedingDate(s)+'</span></div>'+
     '<div class="modal-row"><span>'+t('feedingIntervalLabel')+'</span><span><input type="number" class="price-input" style="width:60px;" min="1" value="'+(s.feedingIntervalDays||'')+'" placeholder="'+DEFAULT_FEEDING_INTERVAL+'" onchange="setFeedingInterval(\''+id+'\', this.value)"/> '+t('daysWord')+'</span></div>'+
@@ -6913,6 +7007,7 @@ function openLogbook(id){
     '<div class="modal-section"><h3>'+t('labelShareTitle')+'</h3><div style="display:flex;gap:8px;flex-wrap:wrap;">'+
       '<button class="sc-btn" onclick="toggleQrCode(\''+id+'\')">'+t('generateQrBtn')+'</button>'+
       '<button class="sc-btn" onclick="printTubLabel(\''+id+'\')">'+t('printLabelBtn')+'</button>'+
+      '<button class="sc-btn" onclick="openLabelFieldsModal(\''+id+'\')" title="'+(currentLang==='en'?'Customize label fields':'Personnaliser les champs')+'">⚙️</button>'+
       '<button class="sc-btn accent" onclick="exportSnakeSheet(\''+id+'\')">'+t('exportSheetBtn')+'</button>'+
       '<button class="sc-btn" onclick="exportSnakeSheet(\''+id+'\', true)">'+t('exportVetSheetBtn')+'</button>'+
       '<button class="sc-btn'+(s.publicToken?' danger':'')+'" onclick="togglePublicShare(\''+id+'\')">'+(s.publicToken?(currentLang==='en'?'🚫 Disable public link':'🚫 Retirer le lien public'):(currentLang==='en'?'🔗 Enable public link':'🔗 Activer un lien public'))+'</button>'+
@@ -7019,11 +7114,63 @@ function toggleQrCode(id){
   box.style.display = 'block';
 }
 
+/* ==================== Générateur d'étiquettes personnalisable (2 septembre) — avant, l'étiquette
+   était fixe (QR + nom + sexe + génétique). Maintenant les champs sont activables/désactivables,
+   préférence persistée localStorage (s'applique à toutes les étiquettes, pas par animal). ==================== */
+const LABEL_FIELDS = [
+  { key:'qr', fr:'Code QR', en:'QR code' },
+  { key:'name', fr:'Nom', en:'Name' },
+  { key:'species', fr:'Espèce', en:'Species' },
+  { key:'sex', fr:'Sexe', en:'Sex' },
+  { key:'genetics', fr:'Génétique', en:'Genetics' },
+  { key:'weight', fr:'Dernier poids', en:'Last weight' },
+  { key:'birthDate', fr:'Date de naissance', en:'Birth date' },
+  { key:'price', fr:'Prix demandé', en:'Asking price' },
+];
+const LABEL_FIELDS_KEY = 'locus_label_fields_v1';
+function loadLabelFieldsPrefs(){
+  const defaults = {};
+  LABEL_FIELDS.forEach(f=> defaults[f.key] = ['qr','name','sex','genetics'].includes(f.key));
+  try{
+    const raw = localStorage.getItem(LABEL_FIELDS_KEY);
+    if(raw) return Object.assign(defaults, JSON.parse(raw));
+  }catch(e){}
+  return defaults;
+}
+var labelFieldsPrefs = loadLabelFieldsPrefs();
+function saveLabelFieldsPrefs(){
+  try{ localStorage.setItem(LABEL_FIELDS_KEY, JSON.stringify(labelFieldsPrefs)); }catch(e){}
+}
+function openLabelFieldsModal(id){
+  const isEn = currentLang==='en';
+  const body = LABEL_FIELDS.map(f=>
+    '<label style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px dashed var(--line);">'+
+      '<input type="checkbox" '+(labelFieldsPrefs[f.key]?'checked':'')+' onchange="toggleLabelField(\''+f.key+'\')" style="width:18px;height:18px;"/>'+
+      '<span>'+(isEn?f.en:f.fr)+'</span>'+
+    '</label>'
+  ).join('')+
+  '<button class="save-btn" style="width:100%;margin-top:14px;" onclick="closeQuickModal(); printTubLabel(\''+id+'\');">🏷️ '+(isEn?'Print with these fields':'Imprimer avec ces champs')+'</button>';
+  showQuickModal(isEn?'Label fields':'Champs de l\'étiquette', body);
+}
+function toggleLabelField(key){
+  labelFieldsPrefs[key] = !labelFieldsPrefs[key];
+  saveLabelFieldsPrefs();
+}
 function printTubLabel(id){
   if(!requireAuthOrPrompt()) return;
+  const isEn = currentLang==='en';
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
-  const url = qrImageUrl(buildQrData(s), 260);
+  const lastWeight = s.health.weights.length ? s.health.weights[s.health.weights.length-1].value+'g' : null;
+  const speciesLabel = (s.species && s.species!=='ball_python') ? (SPECIES_REFERENCE.find(sp=>sp.id===s.species)||{}).nameFr||s.species : (isEn?'Ball Python':'Python royal');
+  const lines = [];
+  if(labelFieldsPrefs.species) lines.push(speciesLabel);
+  if(labelFieldsPrefs.sex) lines.push(s.sex==='male'?t('sexMale'):t('sexFemale'));
+  if(labelFieldsPrefs.genetics) lines.push(summarizeGenes(s.genes));
+  if(labelFieldsPrefs.weight && lastWeight) lines.push((isEn?'Weight: ':'Poids : ')+lastWeight);
+  if(labelFieldsPrefs.birthDate && s.birthDate) lines.push((isEn?'Born: ':'Né(e) : ')+s.birthDate);
+  if(labelFieldsPrefs.price && s.askingPrice!=null) lines.push((isEn?'Asking: ':'Demandé : ')+s.askingPrice+' $');
+  const imgHtml = labelFieldsPrefs.qr ? '<img src="'+qrImageUrl(buildQrData(s), 200)+'" onload="window.print()"/>' : '';
   const win = window.open('', '_blank', 'width=420,height=520');
   win.document.write(
     '<html><head><title>'+t('labelTitlePrefix')+' '+escapeHtml(s.name)+'</title><style>'+
@@ -7033,12 +7180,13 @@ function printTubLabel(id){
     'p{font-size:12px;color:#555;margin:2px 0;}'+
     '@media print{ body{padding:0;} }'+
     '</style></head><body>'+
-    '<img src="'+url+'" onload="window.print()"/>'+
-    '<h1>'+escapeHtml(s.name)+'</h1>'+
-    '<p>'+(s.sex==='male'?t('sexMale'):t('sexFemale'))+' — '+summarizeGenes(s.genes)+'</p>'+
+    imgHtml+
+    (labelFieldsPrefs.name ? '<h1>'+escapeHtml(s.name)+'</h1>' : '')+
+    (lines.length ? '<p>'+lines.map(escapeHtml).join(' — ')+'</p>' : '')+
     '</body></html>'
   );
   win.document.close();
+  if(!labelFieldsPrefs.qr) win.print(); // pas de <img onload>, donc déclenché manuellement
 }
 
 function exportSnakeSheet(id, vetMode){
@@ -7106,6 +7254,13 @@ function logAction(id, type){
   else if(type==='shed'){ openShedModal(id); return; }
   else if(type==='weigh'){ openWeighModal(id); return; }
   else if(type==='length'){ openLengthModal(id); return; }
+  else if(type==='water'){
+    s.health.events.push({date:today, type:'water'});
+    storage.save(savedSnakes);
+    showToast('💧 '+(isEn?'Water change logged for ':'Changement d\'eau noté pour ')+s.name+'.', 'success');
+    if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
+    return;
+  }
   openLogbook(id);       // rafraîchit la modale ouverte
   renderRackGrid(); renderTerrariumList(); renderTourGrid();  // rafraîchit les vues sous-jacentes
 }
@@ -7507,8 +7662,8 @@ function saveAppStatePushedAt(ts){
 function loadElevage(){
   try{
     const raw = localStorage.getItem(ELEVAGE_KEY);
-    return raw ? JSON.parse(raw) : { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{} };
-  }catch(e){ console.warn('LOCUS: lecture élevage impossible', e); return { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{} }; }
+    return raw ? JSON.parse(raw) : { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, todos:[] };
+  }catch(e){ console.warn('LOCUS: lecture élevage impossible', e); return { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, todos:[] }; }
 }
 function saveElevage(){
   trackLocalChanges('racks', racks);
@@ -7518,7 +7673,7 @@ function saveElevage(){
   trackLocalChanges('expenses', expenses);
   trackLocalChanges('customers', customers);
   try{
-    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock }));
+    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos }));
     storageWriteFailed = false;
   }catch(e){
     console.warn('LOCUS: écriture élevage impossible', e);
@@ -7531,6 +7686,7 @@ var elevageData = loadElevage();
 var { pairings, layout, clutches, expenses, customers } = elevageData;
 (pairings||[]).forEach(p=>{ if(!p.follicleSizes) p.follicleSizes = []; }); // migration : suivi folliculaire ajouté après coup
 var customEvents = elevageData.customEvents || [];
+var todos = elevageData.todos || [];
 // Projets multi-générations — regroupe des accouplements sur plusieurs saisons vers un objectif
 // génétique précis (ex. « Bumblebee project »). Stocké comme customEvents : local dans
 // locus_elevage_v1, synchronisé au serveur via app_state.projects (voir pushAllUserData/pullAllUserData).
@@ -7729,11 +7885,11 @@ async function pushAllUserData(forceAll){
     }
     if(racks.length){
       const dirty = itemsToPush('racks', racks, forceAll);
-      if(dirty.length) await sb.from('racks').upsert(dirty.map(r=>({ id:r.id, user_id:currentUser.id, name:r.name, rows:r.rows, heating:r.heating||null, tub_cleanings:r.tubCleanings||{} })));
+      if(dirty.length) await sb.from('racks').upsert(dirty.map(r=>({ id:r.id, user_id:currentUser.id, name:r.name, rows:r.rows, heating:r.heating||null, tub_cleanings:r.tubCleanings||{}, room:r.room||null })));
     }
     if(terrariums.length){
       const dirty = itemsToPush('terrariums', terrariums, forceAll);
-      if(dirty.length) await sb.from('terrariums').upsert(dirty.map(te=>({ id:te.id, user_id:currentUser.id, name:te.name, size:te.size||null, status:te.status||'libre', bioactive: !!te.bioactive, lighting:te.lighting||null, heating:te.heating||null, substrate:te.substrate||null, pairing_start_date:te.pairingStartDate||null, uvb_replace_date:te.uvbReplaceDate||null, cleanings:te.cleanings||[] })));
+      if(dirty.length) await sb.from('terrariums').upsert(dirty.map(te=>({ id:te.id, user_id:currentUser.id, name:te.name, size:te.size||null, status:te.status||'libre', bioactive: !!te.bioactive, lighting:te.lighting||null, heating:te.heating||null, substrate:te.substrate||null, pairing_start_date:te.pairingStartDate||null, uvb_replace_date:te.uvbReplaceDate||null, cleanings:te.cleanings||[], room:te.room||null })));
     }
     if(pairings.length){
       const dirty = itemsToPush('pairings', pairings, forceAll);
@@ -7756,7 +7912,7 @@ async function pushAllUserData(forceAll){
         await sb.rpc('upsert_customer_encrypted', { p_id: cu.id, p_data: cu });
       }
     }
-    await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock });
+    await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock, todos });
     saveAppStatePushedAt(Date.now());
     const profile = loadProfile();
     await sb.from('profiles').upsert({ user_id:currentUser.id, breeder_name: profile.breederName||null, email: profile.email||null, phone: profile.phone||null });
@@ -7800,12 +7956,12 @@ async function pullAllUserData(){
       storage.save(savedSnakes);
     }
     if(racksRes.data && racksRes.data.length){
-      const remoteRacks = racksRes.data.map(r=>({ id:r.id, name:r.name, rows:r.rows, heating:r.heating||null, tubCleanings:r.tub_cleanings||{}, updatedAt: r.updated_at?Date.parse(r.updated_at):0 }));
+      const remoteRacks = racksRes.data.map(r=>({ id:r.id, name:r.name, rows:r.rows, heating:r.heating||null, tubCleanings:r.tub_cleanings||{}, room:r.room||null, updatedAt: r.updated_at?Date.parse(r.updated_at):0 }));
       racks = mergeById(racks, remoteRacks, 'racks');
       markSynced('racks', remoteRacks);
     }
     if(terrariumsRes.data && terrariumsRes.data.length){
-      const remoteTerrariums = terrariumsRes.data.map(te=>({ id:te.id, name:te.name, size:te.size, status:te.status||'libre', bioactive: !!te.bioactive, lighting:te.lighting||null, heating:te.heating||null, substrate:te.substrate||null, pairingStartDate:te.pairing_start_date||null, uvbReplaceDate:te.uvb_replace_date||null, cleanings:te.cleanings||[], updatedAt: te.updated_at?Date.parse(te.updated_at):0 }));
+      const remoteTerrariums = terrariumsRes.data.map(te=>({ id:te.id, name:te.name, size:te.size, status:te.status||'libre', bioactive: !!te.bioactive, lighting:te.lighting||null, heating:te.heating||null, substrate:te.substrate||null, pairingStartDate:te.pairing_start_date||null, uvbReplaceDate:te.uvb_replace_date||null, cleanings:te.cleanings||[], room:te.room||null, updatedAt: te.updated_at?Date.parse(te.updated_at):0 }));
       terrariums = mergeById(terrariums, remoteTerrariums, 'terrariums');
       markSynced('terrariums', remoteTerrariums);
     }
@@ -7834,6 +7990,7 @@ async function pullAllUserData(){
     const remoteAppStateWins = serverStateUpdatedAt > localStatePushedAt;
     if(stateRes.data && stateRes.data.layout && remoteAppStateWins){ layout = stateRes.data.layout; if(!layout.customFieldOptions) layout.customFieldOptions = { lighting:[], heating:[], substrate:[] }; }
     if(stateRes.data && stateRes.data.custom_events) customEvents = mergeById(customEvents, stateRes.data.custom_events);
+    if(stateRes.data && stateRes.data.todos) todos = mergeById(todos, stateRes.data.todos);
     if(stateRes.data && stateRes.data.projects) projects = mergeById(projects, stateRes.data.projects);
     if(stateRes.data && stateRes.data.feeder_stock && remoteAppStateWins) feederStock = stateRes.data.feeder_stock;
     if(stateRes.data && stateRes.data.dismissed_banners){
@@ -7880,7 +8037,7 @@ function exportBackup(){
   const payload = {
     app:'LOCUS', version:2, exportedAt:new Date().toISOString(),
     snakes: savedSnakes,
-    elevage: { racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock }
+    elevage: { racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos }
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
@@ -7923,6 +8080,7 @@ document.getElementById('import-file-input').addEventListener('change', (e)=>{
     expenses = el.expenses || [];
     customers = el.customers || [];
     customEvents = el.customEvents || [];
+    todos = el.todos || [];
     projects = el.projects || [];
     feederStock = el.feederStock || {};
     saveElevage();
@@ -8926,6 +9084,7 @@ function snakeTooltip(s){
 
 function renderRackGrid(){
   const isEn = currentLang==='en';
+  renderRoomSuggestions();
   const container = document.getElementById('racks-container');
   container.innerHTML = '';
   racks.forEach(rack=>{
@@ -8943,6 +9102,8 @@ function renderRackGrid(){
         '<span style="font-size:11px;color:var(--ink-dim);">🔥 '+(isEn?'Heating':'Chauffage')+' :</span>'+
         '<select class="pedigree-select" style="min-width:180px;" onchange="toggleCustomFieldInput(this,\'rack-heat-custom-'+rack.id+'\'); if(this.value!==\'__autre__\'){ saveRackHeating(\''+rack.id+'\', this.value||null); }">'+fieldOptionsHtml('heating', rack.heating)+'</select>'+
         '<input type="text" id="rack-heat-custom-'+rack.id+'" placeholder="'+(isEn?'Type the heating type…':'Tape le type de chauffage…')+'" style="display:none;font-size:16px;padding:6px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);flex:1;min-width:140px;" onchange="commitRackHeatingCustom(\''+rack.id+'\', this)"/>'+
+        '<span style="font-size:11px;color:var(--ink-dim);">📍 '+(isEn?'Room':'Pièce')+' :</span>'+
+        '<input type="text" list="room-suggestions" value="'+escapeHtml(rack.room||'')+'" placeholder="'+(isEn?'e.g. Living room':'Ex. Salon')+'" style="font-size:16px;padding:6px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);width:130px;" onchange="saveRackRoom(\''+rack.id+'\', this.value)"/>'+
       '</div>';
     const gridEl = document.createElement('div');
     gridEl.className = 'rack-grid';
@@ -9002,6 +9163,16 @@ function saveRackHeating(rackId, value){
   if(!rack) return;
   rack.heating = value || null;
   saveElevage();
+}
+// Pièce (2 septembre) — sert au filtre multi-pièces de Mode Tournée, pour les éleveurs dont la
+// collection est répartie entre plusieurs pièces physiques (sous-sol, salon, chambre dédiée...).
+function saveRackRoom(rackId, value){
+  const rack = getRack(rackId);
+  if(!rack) return;
+  rack.room = value.trim() || null;
+  saveElevage();
+  renderRoomSuggestions();
+  renderTourRoomFilterOptions();
 }
 function commitRackHeatingCustom(rackId, inputEl){
   const custom = inputEl.value.trim();
@@ -9472,6 +9643,8 @@ function openTerrariumEditModal(terrariumId){
     '<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Substrate':'Substrat')+'</span>'+
       '<select id="te-edit-substrate" onchange="toggleCustomFieldInput(this,\'te-edit-substrate-custom\')" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+fieldOptionsHtml('substrate', te.substrate)+'</select>'+
       '<input type="text" id="te-edit-substrate-custom" placeholder="'+(isEn?'Type the substrate…':'Tape le substrat…')+'" style="display:none;width:100%;font-size:16px;padding:8px 10px;margin-top:6px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
+    '<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Room':'Pièce')+'</span>'+
+      '<input type="text" id="te-edit-room" list="room-suggestions" value="'+escapeHtml(te.room||'')+'" placeholder="'+(isEn?'e.g. Living room':'Ex. Salon')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
     '<label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><input type="checkbox" id="te-edit-bioactive" '+(te.bioactive?'checked':'')+' style="width:18px;height:18px;"/> <span>'+(isEn?'Bioactive setup':'Installation bioactive')+'</span></label>'+
     '<p style="font-size:10px;color:var(--ink-dim);margin:0 0 16px;">'+(isEn?'Status (free / occupied / pairing) is automatic based on how many animals are inside — no need to set it by hand.':'Le statut (libre / occupé / en accouplement) est automatique selon le nombre d\'animaux dedans — pas besoin de le régler à la main.')+'</p>'+
     '<button class="sc-btn accent" style="width:100%;" onclick="saveTerrariumEdit(\''+terrariumId+'\')">'+(isEn?'Save':'Enregistrer')+'</button>'+
@@ -9491,7 +9664,10 @@ function saveTerrariumEdit(terrariumId){
   te.heating = resolveFieldValue('te-edit-heating', 'te-edit-heating-custom', 'heating');
   te.substrate = resolveFieldValue('te-edit-substrate', 'te-edit-substrate-custom', 'substrate');
   te.bioactive = document.getElementById('te-edit-bioactive').checked;
+  te.room = document.getElementById('te-edit-room').value.trim() || null;
   saveElevage();
+  renderRoomSuggestions();
+  renderTourRoomFilterOptions();
   closeQuickModal();
   renderTerrariumList();
   showToast(isEn?'Terrarium updated.':'Terrarium mis à jour.', 'success');
@@ -9775,11 +9951,41 @@ function snakeFromKey(key){
   return snakeAt(rackId,row,tub);
 }
 
+function knownRooms(){
+  const fromRacks = racks.map(r=>r.room).filter(Boolean);
+  const fromTerrariums = terrariums.map(te=>te.room).filter(Boolean);
+  return [...new Set([...fromRacks, ...fromTerrariums])].sort();
+}
+function renderRoomSuggestions(){
+  const list = document.getElementById('room-suggestions');
+  if(!list) return;
+  list.innerHTML = knownRooms().map(r=>'<option value="'+escapeHtml(r)+'"></option>').join('');
+}
+function renderTourRoomFilterOptions(){
+  const isEn = currentLang==='en';
+  const sel = document.getElementById('tour-room-filter');
+  const wrap = document.getElementById('tour-room-filter-wrap');
+  if(!sel || !wrap) return;
+  const rooms = knownRooms();
+  // Le filtre reste caché tant qu'aucune pièce n'a été renseignée nulle part — pas la peine
+  // d'encombrer Mode Tournée pour un éleveur avec une seule pièce/pas de pièces nommées.
+  if(!rooms.length){ wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  sel.innerHTML = '<option value="all">'+t('allRoomsOption')+'</option>'+rooms.map(r=>'<option value="'+escapeHtml(r)+'"'+(tourRoomFilter===r?' selected':'')+'>'+escapeHtml(r)+'</option>').join('');
+  sel.value = tourRoomFilter;
+}
+function setTourRoomFilter(value){
+  tourRoomFilter = value;
+  renderTourGrid();
+  renderTourTerrariums();
+}
 function renderTourGrid(){
   const isEn = currentLang==='en';
+  renderTourRoomFilterOptions();
   const grid = document.getElementById('tour-grid');
   grid.innerHTML = '';
-  racks.forEach(rack=>{
+  const visibleRacks = tourRoomFilter==='all' ? racks : racks.filter(r=>r.room===tourRoomFilter);
+  visibleRacks.forEach(rack=>{
     const unit = document.createElement('div');
     unit.className = 'rack-unit';
     const headBar = document.createElement('div');
@@ -9878,7 +10084,13 @@ function renderTourTerrariums(){
   const wrap = document.getElementById('tour-terrariums');
   if(!wrap) return;
   savedSnakes.forEach(ensureSnakeMeta);
-  const list = savedSnakes.filter(s=>s.placement.mode==='terrarium');
+  let list = savedSnakes.filter(s=>s.placement.mode==='terrarium');
+  if(tourRoomFilter!=='all'){
+    list = list.filter(s=>{
+      const te = s.placement.terrariumId ? getTerrarium(s.placement.terrariumId) : null;
+      return te && te.room===tourRoomFilter;
+    });
+  }
   wrap.innerHTML = list.length ? '' : '<div class="empty">'+t('noTerrariumReptiles')+'</div>';
   list.forEach(s=>{
     try{
@@ -9984,6 +10196,7 @@ function applyTourAction(action){
     }
     else if(action==='refused'){ snake.health.consecutiveRefusals = (snake.health.consecutiveRefusals||0)+1; snake.health.events.push({date:today, type:'refused', reason:'unknown'}); }
     else if(action==='shed'){ snake.health.events.push({date:today, type:'shed'}); }
+    else if(action==='water'){ snake.health.events.push({date:today, type:'water'}); }
   });
   storage.save(savedSnakes);
   if(stockTouched) saveElevage();
@@ -12409,6 +12622,7 @@ function renderWelcomeHero(){
       '<button class="wh-btn primary" onclick="dismissWelcome(); showTab(\'mine\'); document.getElementById(\'draft-name\').focus();"><span class="wh-icon">🐍</span> '+(isEn?'Add my first reptile':'Ajouter mon premier reptile')+'</button>'+
       '<button class="wh-btn" onclick="dismissWelcome(); showTab(\'calc\');"><span class="wh-icon">🧬</span> '+(isEn?'Try the calculator':'Essayer le calculateur')+'</button>'+
       '<button class="wh-btn" onclick="dismissWelcome(); showTab(\'export\');"><span class="wh-icon">📂</span> '+(isEn?'Import my existing data':'Importer mes données existantes')+'</button>'+
+      '<button class="wh-btn" onclick="loadSampleData();"><span class="wh-icon">👀</span> '+(isEn?'See an example first':'Voir un exemple d\'abord')+'</button>'+
     '</div>';
 }
 
@@ -12416,12 +12630,131 @@ function setDashSpeciesFilter(v){
   dashSpeciesFilter = v;
   renderDashboard();
 }
+/* ==================== Tâches/to-do générique (2 septembre) — distinct des rappels personnalisés
+   datés (customEvents) : pas de date obligatoire, juste une liste à cocher au fur et à mesure
+   ("Nettoyer le rack 3", "Commander des rongeurs"...). Stocké dans app_state.todos, même mécanisme
+   que customEvents (voir plus haut). ==================== */
+function addTodo(){
+  const isEn = currentLang==='en';
+  const input = document.getElementById('todo-input');
+  const title = input.value.trim();
+  if(!title) return;
+  todos.push({ id:'todo_'+Date.now(), title, done:false, createdAt:new Date().toISOString().slice(0,10) });
+  input.value = '';
+  saveElevage();
+  renderTodos();
+}
+function toggleTodo(id){
+  const item = todos.find(x=>x.id===id);
+  if(!item) return;
+  item.done = !item.done;
+  saveElevage();
+  renderTodos();
+}
+function deleteTodo(id){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this task?':'Supprimer cette tâche ?')) return;
+  todos = todos.filter(x=>x.id!==id);
+  saveElevage();
+  renderTodos();
+}
+function renderTodos(){
+  const isEn = currentLang==='en';
+  const wrap = document.getElementById('todos-list');
+  if(!wrap) return;
+  const pending = todos.filter(t=>!t.done);
+  const done = todos.filter(t=>t.done);
+  const rowHtml = t => '<div class="modal-row" style="align-items:center;">'+
+      '<span style="display:flex;align-items:center;gap:8px;'+(t.done?'opacity:.5;text-decoration:line-through;':'')+'">'+
+        '<input type="checkbox" '+(t.done?'checked':'')+' onchange="toggleTodo(\''+t.id+'\')" style="width:18px;height:18px;"/>'+
+        escapeHtml(t.title)+
+      '</span>'+
+      '<button class="sc-btn danger" onclick="deleteTodo(\''+t.id+'\')">×</button>'+
+    '</div>';
+  wrap.innerHTML = (pending.length||done.length)
+    ? pending.map(rowHtml).join('') + done.map(rowHtml).join('')
+    : '<div class="empty">'+(isEn?'No tasks — add one below.':'Aucune tâche — ajoutes-en une ci-dessous.')+'</div>';
+}
+
+/* ==================== Données d'exemple (2 septembre) — bouton "Voir un exemple d'abord" sur
+   l'accueil, PAS automatique à l'inscription (choix explicite d'Alex : moins intrusif si quelqu'un
+   a déjà ses propres animaux à entrer). Tout objet créé porte isSample:true, ce qui permet de les
+   retrouver et de les effacer précisément, sans jamais toucher aux vraies données de l'utilisateur. ==================== */
+function loadSampleData(){
+  const isEn = currentLang==='en';
+  const prefix = isEn ? 'Sample — ' : 'Exemple — ';
+  const pastelGene = GENES.find(g=>g.name==='Pastel');
+  const spiderGene = GENES.find(g=>g.name==='Spider');
+  const maleGenes = {}; if(spiderGene) maleGenes[spiderGene.id] = defaultStatus(spiderGene);
+  const femaleGenes = {}; if(pastelGene) femaleGenes[pastelGene.id] = defaultStatus(pastelGene);
+
+  let terraId;
+  if(!terrariums.some(t=>t.isSample)){
+    terraId = 'terra_sample_'+Date.now();
+    terrariums.push({ id:terraId, name:prefix+(isEn?'Terrarium':'Terrarium'), size:'90x45x45cm', status:'occupe', bioactive:false, lighting:null, heating:null, substrate:null, uvbReplaceDate:null, cleanings:[], isSample:true });
+  } else {
+    terraId = terrariums.find(t=>t.isSample).id;
+  }
+
+  savedSnakes.push({
+    id:'snk_sample_male_'+Date.now(), name:prefix+(isEn?'Spider (male)':'Spider (mâle)'), sex:'male',
+    genes:maleGenes, sireId:null, damId:null, species:'ball_python', isSample:true,
+    placement:{ mode:'rack', rackId: racks[0]?racks[0].id:'rack_1', row:1, tub:1 }
+  });
+  savedSnakes.push({
+    id:'snk_sample_female_'+Date.now(), name:prefix+(isEn?'Pastel (female)':'Pastel (femelle)'), sex:'female',
+    genes:femaleGenes, sireId:null, damId:null, species:'ball_python', isSample:true,
+    placement:{ mode:'terrarium', terrariumId:terraId }
+  });
+  if(!todos.some(x=>x.isSample)){
+    todos.push({ id:'todo_sample_'+Date.now(), title: isEn?'Sample task — try checking this off':'Tâche exemple — essaie de la cocher', done:false, createdAt:new Date().toISOString().slice(0,10), isSample:true });
+  }
+
+  storage.save(savedSnakes);
+  saveElevage();
+  dismissWelcome();
+  showTab('mine');
+  updateSampleDataBanner();
+  showToast('👀 '+(isEn?'Sample data added — take a look around!':'Données d\'exemple ajoutées — explore un peu !'), 'success');
+}
+function clearSampleData(){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Remove all sample data? This won\'t touch any of your real reptiles.':'Retirer toutes les données d\'exemple ? Ça ne touchera à aucun de tes vrais reptiles.')) return;
+  savedSnakes = savedSnakes.filter(s=>!s.isSample);
+  terrariums = terrariums.filter(t=>!t.isSample);
+  todos = todos.filter(x=>!x.isSample);
+  storage.save(savedSnakes);
+  saveElevage();
+  updateSampleDataBanner();
+  renderSavedList();
+  renderDashboard();
+  showToast('🗑 '+(isEn?'Sample data removed.':'Données d\'exemple retirées.'), 'success');
+}
+function hasSampleData(){
+  return savedSnakes.some(s=>s.isSample) || terrariums.some(t=>t.isSample) || todos.some(t=>t.isSample);
+}
+function updateSampleDataBanner(){
+  const isEn = currentLang==='en';
+  const el = document.getElementById('sample-data-banner');
+  if(!el) return;
+  if(!hasSampleData()){ el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  el.innerHTML = '<span class="ob-icon">👀</span>'+
+    '<div class="ob-body">'+
+      '<span class="ob-title">'+(isEn?'You\'re looking at sample data':'Tu explores des données d\'exemple')+'</span>'+
+      (isEn?'These fictional reptiles let you try the app before adding your own. Clear them anytime.':'Ces reptiles fictifs te permettent d\'essayer l\'app avant d\'ajouter les tiens. Efface-les quand tu veux.')+
+      '<div style="margin-top:8px;"><button class="sc-btn danger" onclick="clearSampleData()">🗑 '+(isEn?'Clear sample data':'Effacer les exemples')+'</button></div>'+
+    '</div>';
+}
+
 function renderDashboard(){
   const isEn = currentLang==='en';
   savedSnakes.forEach(ensureSnakeMeta);
   renderBetaBanner();
   renderWelcomeHero();
   updateBackupReminderBanner();
+  updateSampleDataBanner();
+  renderTodos();
 
   const hour = new Date().getHours();
   const greeting = isEn
@@ -13004,6 +13337,43 @@ function exportBudgetExcel(){
   XLSX.writeFile(wb, (isEn?'LOCUS-Scales-tax-report-':'LOCUS-Scales-rapport-fiscal-')+fiscalYear+'.xlsx');
 }
 
+// Rapport d'inventaire complet (2 septembre) — toute la collection, peu importe le statut, dans un
+// seul fichier Excel. Distinct du rapport fiscal (qui ne couvre que ventes/dépenses de l'année) :
+// celui-ci sert d'inventaire général (assurance, permis, vue d'ensemble à montrer/imprimer).
+function exportInventoryExcel(){
+  if(!requireAuthOrPrompt()) return;
+  const isEn = currentLang==='en';
+  savedSnakes.forEach(ensureSnakeMeta);
+  const headerRow = isEn
+    ? ['Name','Sex','Species','Genetics','Birth date','Status','Last weight (g)','Provenance','Purchase price ($)','Asking/Sold price ($)','Location']
+    : ['Nom','Sexe','Espèce','Génétique','Date de naissance','Statut','Dernier poids (g)','Provenance','Prix d\'achat ($)','Prix demandé/vendu ($)','Emplacement'];
+  const statusLabel = s => s.status==='sold' ? (isEn?'Sold':'Vendu') : s.status==='available' ? (isEn?'Available':'Disponible') : (isEn?'Not for sale':'Pas à vendre');
+  const locationLabel = s => {
+    if(s.placement.mode==='rack'){
+      const rack = getRack(s.placement.rackId);
+      return (rack?rack.name:'?')+' R'+s.placement.row+'/B'+s.placement.tub;
+    }
+    const te = s.placement.terrariumId ? getTerrarium(s.placement.terrariumId) : null;
+    return te ? te.name : (isEn?'Unassigned':'Non classé');
+  };
+  const rows = savedSnakes.map(s=>{
+    const lastWeight = s.health.weights.length ? s.health.weights[s.health.weights.length-1].value : '';
+    const speciesLabel = (s.species && s.species!=='ball_python') ? (SPECIES_REFERENCE.find(sp=>sp.id===s.species)||{}).nameFr||s.species : (isEn?'Ball Python':'Python royal');
+    return [
+      s.name, s.sex==='male'?(isEn?'Male':'Mâle'):(isEn?'Female':'Femelle'), speciesLabel,
+      summarizeGenes(s.genes), s.birthDate||'', statusLabel(s), lastWeight,
+      s.provenance||'', s.purchasePrice!=null?s.purchasePrice:'',
+      s.status==='sold'?(s.soldPrice!=null?s.soldPrice:''):(s.askingPrice!=null?s.askingPrice:''),
+      locationLabel(s)
+    ];
+  });
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([headerRow, ...rows]);
+  ws['!cols'] = [{wch:16},{wch:8},{wch:16},{wch:28},{wch:13},{wch:12},{wch:12},{wch:20},{wch:12},{wch:16},{wch:20}];
+  XLSX.utils.book_append_sheet(wb, ws, isEn?'Inventory':'Inventaire');
+  XLSX.writeFile(wb, (isEn?'LOCUS-Scales-inventory-':'LOCUS-Scales-inventaire-')+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
 function renderFiscalView(){
   const isEn = currentLang==='en';
   if(!hasAccess('fiscalSummary')){
@@ -13484,7 +13854,7 @@ function renderTimeline(){
 }
 
 function eventLabel(type){
-  const map = { fed:'eventFed', shed:'eventShed', refused:'eventRefused', weigh:'eventWeigh', length:'eventLength' };
+  const map = { fed:'eventFed', shed:'eventShed', refused:'eventRefused', weigh:'eventWeigh', length:'eventLength', water:'eventWater' };
   return map[type] ? t(map[type]) : type;
 }
 // Petit indicatif ❄️/🐭 accolé à un événement "fed" quand le type de proie est connu — les repas
@@ -13495,13 +13865,121 @@ function feedPreyTag(e){
   const countTag = (e.preyCount && e.preyCount>1) ? ' ×'+e.preyCount : '';
   return ' '+(e.preyType==='live'?'🐭':'❄️')+countTag;
 }
+/* ==================== Vue tableau du journal (2 septembre) — colonnes activables/désactivables
+   et triables, alternative "spreadsheet" au flux de cartes déjà existant. Préférences persistées
+   localStorage seulement (préférence d'affichage personnelle, pas une donnée d'élevage). ==================== */
+const HEALTHLOG_COLUMNS = [
+  { key:'date', fr:'Date', en:'Date' },
+  { key:'snake', fr:'Reptile', en:'Reptile' },
+  { key:'type', fr:'Type', en:'Type' },
+  { key:'detail', fr:'Détail', en:'Detail' },
+  { key:'note', fr:'Note', en:'Note' },
+];
+const HEALTHLOG_VIEW_KEY = 'locus_healthlog_view_v1';
+function loadHealthLogViewPrefs(){
+  const defaults = { mode:'cards', columns:{}, sortBy:'date', sortDir:'desc' };
+  HEALTHLOG_COLUMNS.forEach(c=> defaults.columns[c.key]=true);
+  try{
+    const raw = localStorage.getItem(HEALTHLOG_VIEW_KEY);
+    if(raw) return Object.assign(defaults, JSON.parse(raw), { columns:Object.assign(defaults.columns, (JSON.parse(raw).columns||{})) });
+  }catch(e){}
+  return defaults;
+}
+var healthLogViewPrefs = loadHealthLogViewPrefs();
+function saveHealthLogViewPrefs(){
+  try{ localStorage.setItem(HEALTHLOG_VIEW_KEY, JSON.stringify(healthLogViewPrefs)); }catch(e){}
+}
+function toggleHealthLogView(){
+  healthLogViewPrefs.mode = healthLogViewPrefs.mode==='table' ? 'cards' : 'table';
+  saveHealthLogViewPrefs();
+  renderHealthLog();
+}
+function openHealthLogColumnsModal(){
+  const isEn = currentLang==='en';
+  const body = HEALTHLOG_COLUMNS.map(c=>
+    '<label style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px dashed var(--line);">'+
+      '<input type="checkbox" '+(healthLogViewPrefs.columns[c.key]?'checked':'')+' onchange="toggleHealthLogColumn(\''+c.key+'\')" style="width:18px;height:18px;"/>'+
+      '<span>'+(isEn?c.en:c.fr)+'</span>'+
+    '</label>'
+  ).join('');
+  showQuickModal(isEn?'Table columns':'Colonnes du tableau', body);
+}
+function toggleHealthLogColumn(key){
+  healthLogViewPrefs.columns[key] = !healthLogViewPrefs.columns[key];
+  saveHealthLogViewPrefs();
+  renderHealthLog();
+}
+function setHealthLogSort(key){
+  if(healthLogViewPrefs.sortBy===key) healthLogViewPrefs.sortDir = healthLogViewPrefs.sortDir==='asc' ? 'desc' : 'asc';
+  else { healthLogViewPrefs.sortBy = key; healthLogViewPrefs.sortDir = 'asc'; }
+  saveHealthLogViewPrefs();
+  renderHealthLog();
+}
+function healthLogEventDetail(e){
+  const isEn = currentLang==='en';
+  if(e.type==='weigh') return e.value+'g';
+  if(e.type==='length') return e.value+'cm';
+  if(e.type==='shed' && e.quality) return shedQualityLabel(e.quality);
+  if(e.type==='fed'){
+    let d = (e.quantity==='partial') ? (isEn?'partial':'partiel') : (isEn?'complete':'complet');
+    if(e.preyCount && e.preyCount>1) d += ' ×'+e.preyCount;
+    return d;
+  }
+  if(e.type==='refused') return refusalReasonLabel(e.reason);
+  return '';
+}
+function renderHealthLogTable(all){
+  const isEn = currentLang==='en';
+  const wrap = document.getElementById('health-log-table');
+  if(!wrap) return;
+  const sorted = [...all].sort((a,b)=>{
+    let av = a[healthLogViewPrefs.sortBy], bv = b[healthLogViewPrefs.sortBy];
+    if(healthLogViewPrefs.sortBy==='type'){ av = eventLabel(a.type); bv = eventLabel(b.type); }
+    av = (av||'').toString().toLowerCase(); bv = (bv||'').toString().toLowerCase();
+    const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+    return healthLogViewPrefs.sortDir==='asc' ? cmp : -cmp;
+  });
+  const cols = HEALTHLOG_COLUMNS.filter(c=>healthLogViewPrefs.columns[c.key]);
+  const theadHtml = '<tr>'+cols.map(c=>{
+    const sortedCls = healthLogViewPrefs.sortBy===c.key ? ('sorted '+healthLogViewPrefs.sortDir) : '';
+    return '<th class="'+sortedCls+'" onclick="setHealthLogSort(\''+c.key+'\')">'+(isEn?c.en:c.fr)+'</th>';
+  }).join('')+'</tr>';
+  const rowsHtml = sorted.map(e=>{
+    return '<tr>'+cols.map(c=>{
+      if(c.key==='date') return '<td>'+e.date+'</td>';
+      if(c.key==='snake') return '<td>'+escapeHtml(e.snake)+'</td>';
+      if(c.key==='type') return '<td>'+eventLabel(e.type)+'</td>';
+      if(c.key==='detail') return '<td>'+escapeHtml(healthLogEventDetail(e))+'</td>';
+      if(c.key==='note') return '<td>'+escapeHtml(e.note||'')+'</td>';
+      return '<td></td>';
+    }).join('')+'</tr>';
+  }).join('');
+  wrap.innerHTML = '<table class="logtable"><thead>'+theadHtml+'</thead><tbody>'+(rowsHtml||('<tr><td colspan="'+cols.length+'" style="color:var(--ink-dim);">'+t('noHealthLogEmpty')+'</td></tr>'))+'</tbody></table>';
+}
 function renderHealthLog(){
   const wrap = document.getElementById('health-log');
+  const tableWrap = document.getElementById('health-log-table');
   if(!wrap) return;
+  const isEn = currentLang==='en';
   savedSnakes.forEach(ensureSnakeMeta);
   const all = [];
   savedSnakes.forEach(s=> s.health.events.forEach(e=> all.push({...e, snake:s.name})));
   all.sort((a,b)=> b.date.localeCompare(a.date));
+
+  const toggleBtn = document.getElementById('healthlog-view-toggle-btn');
+  const columnsBtn = document.getElementById('healthlog-columns-btn');
+  const isTable = healthLogViewPrefs.mode==='table';
+  if(toggleBtn) toggleBtn.innerHTML = isTable ? ('📇 <span>'+t('cardsViewBtn')+'</span>') : ('📊 <span>'+t('tableViewBtn')+'</span>');
+  if(columnsBtn) columnsBtn.style.display = isTable ? '' : 'none';
+  wrap.style.display = isTable ? 'none' : '';
+  if(tableWrap) tableWrap.style.display = isTable ? '' : 'none';
+
+  if(isTable){
+    // Vue tableau : le journal complet (pas de plafond à 40) — c'est justement le point d'une
+    // vue tableau, pouvoir tout parcourir/trier plutôt qu'un flux tronqué.
+    renderHealthLogTable(all);
+    return;
+  }
   const recent = all.slice(0,40);
   wrap.innerHTML = recent.length ? recent.map(e=>
     '<div class="timeline-card" style="padding:9px 14px;"><span class="timeline-title" style="font-size:12.5px;">'+e.date+' — '+escapeHtml(e.snake)+' : '+eventLabel(e.type)+(e.type==='weigh'?' ('+e.value+'g)':'')+(e.type==='length'?' ('+e.value+'cm)':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(currentLang==='en'?'partial':'partiel'):'')+feedPreyTag(e)+'</span></div>'
