@@ -938,6 +938,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 
   <div id="storage-banner" class="storage-banner" style="display:none;"></div>
   <div id="onboarding-banner" class="onboarding-banner" style="display:none;"></div>
+  <div id="backup-reminder-banner" class="onboarding-banner" style="display:none;"></div>
 
   <div class="global-search-wrap">
     <input type="text" id="global-search-input" class="global-search-input" data-i18n-placeholder="globalSearchPlaceholder" placeholder="🔍 Recherche unifiée — nom, gène, provenance, client…" autocomplete="off"/>
@@ -960,6 +961,10 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
     <div class="dash-grid" id="dash-alert-grid"></div>
     <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" id="dash-today-title">🌤️ <span data-i18n="todayWidgetTitle">Aujourd'hui — à surveiller</span></h2></div>
     <div id="dash-today-widget"></div>
+    <div id="dash-birthdays-wrap" style="display:none;">
+      <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;">🎂 <span data-i18n="birthdaysWidgetTitle">Anniversaires ce mois-ci</span></h2></div>
+      <div id="dash-birthdays"></div>
+    </div>
     <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" data-i18n="lastNextMealTitle">🍽 Dernier repas / Prochain repas</h2></div>
     <div id="dash-lastnext-list"></div>
     <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" data-i18n="feedingCalendarTitle">📅 Calendrier de nourrissage — 7 prochains jours</h2></div>
@@ -1105,6 +1110,9 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
           <option value="weight" data-i18n="sortWeight">Trier : Poids</option>
         </select>
         <select id="mine-tag-filter" class="egg-select"></select>
+        <select id="mine-saved-filter-select" class="egg-select" onchange="if(this.value!=='') applySavedMineFilter(parseInt(this.value));"></select>
+        <button class="sc-btn" onclick="const sel=document.getElementById('mine-saved-filter-select'); if(sel.value!=='') deleteSavedMineFilter(parseInt(sel.value)); else alert(currentLang==='en'?'Pick a saved filter first.':'Choisis d\'abord un filtre sauvegardé.');" title="Supprimer le filtre sélectionné">🗑</button>
+        <button class="sc-btn" onclick="saveCurrentMineFilterAsPreset()">⭐ <span data-i18n="saveFilterBtn">Sauvegarder ce filtre</span></button>
         <button class="sc-btn" id="batch-mode-toggle-btn" onclick="toggleBatchMode()">☑️ <span data-i18n="batchSelectBtn">Sélection multiple</span></button>
       </div>
       <div id="batch-action-bar" style="display:none;background:var(--bg-panel-2);border:1px solid var(--gold);border-radius:12px;padding:10px 14px;margin-bottom:14px;gap:8px;flex-wrap:wrap;align-items:center;">
@@ -1872,7 +1880,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.1.55';
+const APP_VERSION = '2026.09.02.1.57';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2864,18 +2872,29 @@ const PERSONALIZATION_GROUPS = [
 const DASH_CARDS_KEY = 'locus_dash_cards_v1';
 const DASH_CARDS = [
   { key:'alerts', fr:'Alertes (santé, ventes, etc.)', en:'Alerts (health, sales, etc.)' },
-  { key:'today', fr:'Aujourd\'hui — à surveiller', en:'Today — to watch' },
+  { key:'today_shed', fr:'— Mue prévue bientôt', en:'— Shed expected soon' },
+  { key:'today_weigh', fr:'— Pesée à faire', en:'— Weigh-in due' },
+  { key:'today_clutch', fr:'— Pontes à surveiller de près', en:'— Clutches to watch closely' },
+  { key:'today_cleaning', fr:'— Nettoyage en retard', en:'— Cleaning overdue' },
+  { key:'today_uvb', fr:'— Remplacement UVB dépassé', en:'— UVB replacement overdue' },
+  { key:'today_pairing', fr:'— En accouplement depuis 5j+', en:'— Pairing 5+ days' },
+  { key:'today_lowstock', fr:'— Stock de proies bas', en:'— Low prey stock' },
+  { key:'birthdays', fr:'Anniversaires du mois', en:'Birthdays this month' },
   { key:'feeding', fr:'Calendrier de nourrissage', en:'Feeding calendar' },
   { key:'hatch', fr:'Prochaines éclosions', en:'Upcoming hatchings' },
   { key:'facebook', fr:'Bannière Facebook', en:'Facebook banner' },
 ];
 function loadDashCardPrefs(){
-  try{
-    const raw = localStorage.getItem(DASH_CARDS_KEY);
-    if(raw) return JSON.parse(raw);
-  }catch(e){}
   const prefs = {};
   DASH_CARDS.forEach(c=> prefs[c.key] = true);
+  try{
+    const raw = localStorage.getItem(DASH_CARDS_KEY);
+    // Migration douce (2 septembre) : un ancien format sauvegardé (avant le découpage de "today"
+    // en 7 sous-items + ajout de "birthdays") n'a pas ces nouvelles clés — sans ce merge, elles
+    // vaudraient undefined (donc masquées par défaut) au lieu de true pour ceux qui avaient déjà
+    // personnalisé leur dashboard.
+    if(raw) Object.assign(prefs, JSON.parse(raw));
+  }catch(e){}
   return prefs;
 }
 var dashCardPrefs = loadDashCardPrefs();
@@ -2900,19 +2919,19 @@ function renderDashCardSettings(){
   ).join('');
 }
 function applyDashCardVisibility(){
-  const map = {
-    alerts: 'dash-alert-grid',
-    today: null, // deux éléments (titre + widget) — géré à part ci-dessous
-    feeding: null,
-    hatch: null,
-    facebook: null
-  };
   const alertsEl = document.getElementById('dash-alert-grid');
   if(alertsEl) alertsEl.style.display = dashCardPrefs.alerts ? '' : 'none';
+  // "Aujourd'hui" (2 septembre) — plus un seul interrupteur : le titre/widget ne s'affiche que
+  // si AU MOINS un des 7 sous-items est activé ; renderDashboard() filtre ensuite chaque groupe
+  // individuellement selon dashCardPrefs.today_xxx au moment de construire le contenu.
+  const todaySubKeys = ['today_shed','today_weigh','today_clutch','today_cleaning','today_uvb','today_pairing','today_lowstock'];
+  const anyTodayOn = todaySubKeys.some(k=>dashCardPrefs[k]);
   const todayTitle = document.getElementById('dash-today-title');
   const todayWidget = document.getElementById('dash-today-widget');
-  if(todayTitle) todayTitle.parentElement.style.display = dashCardPrefs.today ? '' : 'none';
-  if(todayWidget) todayWidget.style.display = dashCardPrefs.today ? '' : 'none';
+  if(todayTitle) todayTitle.parentElement.style.display = anyTodayOn ? '' : 'none';
+  if(todayWidget) todayWidget.style.display = anyTodayOn ? '' : 'none';
+  const birthdaysWrap = document.getElementById('dash-birthdays-wrap');
+  if(birthdaysWrap && !dashCardPrefs.birthdays) birthdaysWrap.style.display = 'none';
   const feedingList = document.getElementById('dash-feeding-list');
   if(feedingList){ feedingList.style.display = dashCardPrefs.feeding ? '' : 'none'; if(feedingList.previousElementSibling) feedingList.previousElementSibling.style.display = dashCardPrefs.feeding ? '' : 'none'; }
   const hatchList = document.getElementById('dash-hatch-list');
@@ -3372,6 +3391,7 @@ const I18N = {
   fr: {
     tabDash: '📋 Tableau de bord',
     todayWidgetTitle: 'Aujourd\'hui — à surveiller',
+    birthdaysWidgetTitle: 'Anniversaires ce mois-ci',
     feedingCalendarTitle: '📅 Calendrier de nourrissage — 7 prochains jours',
     lastNextMealTitle: '🍽 Dernier repas / Prochain repas',
     neverFedLabel: 'Jamais nourri',
@@ -3682,6 +3702,7 @@ const I18N = {
     customTagsPlaceholder: 'Ex. reproducteur prouvé…',
     customTagsAddBtn: '+ Ajouter',
     filterTagAll: 'Étiquette : Toutes',
+    saveFilterBtn: 'Sauvegarder ce filtre',
     batchSelectBtn: 'Sélection multiple',
     batchFeedBtn: 'Nourrir',
     batchMoveBtn: 'Rack ↔ Terrarium',
@@ -3860,6 +3881,7 @@ const I18N = {
   en: {
     tabDash: '📋 Dashboard',
     todayWidgetTitle: 'Today — worth a look',
+    birthdaysWidgetTitle: 'Birthdays this month',
     feedingCalendarTitle: '📅 Feeding calendar — next 7 days',
     lastNextMealTitle: '🍽 Last meal / Next meal',
     neverFedLabel: 'Never fed',
@@ -4170,6 +4192,7 @@ const I18N = {
     customTagsPlaceholder: 'e.g. proven breeder…',
     customTagsAddBtn: '+ Add',
     filterTagAll: 'Tag: All',
+    saveFilterBtn: 'Save this filter',
     batchSelectBtn: 'Batch select',
     batchFeedBtn: 'Feed',
     batchMoveBtn: 'Rack ↔ Enclosure',
@@ -5452,6 +5475,56 @@ var mineTagFilter = 'all';
 var batchSelectMode = false;
 var batchSelectedIds = new Set();
 var mineSortBy = 'created';
+
+// Filtres personnalisés sauvegardés (2 septembre) — localStorage seulement, c'est une préférence
+// d'affichage personnelle, pas une donnée d'élevage à synchroniser entre appareils.
+var MINE_SAVED_FILTERS_KEY = 'locus_mine_saved_filters_v1';
+function loadSavedMineFilters(){
+  try{ return JSON.parse(localStorage.getItem(MINE_SAVED_FILTERS_KEY)||'[]'); }catch(e){ return []; }
+}
+function saveSavedMineFilters(list){
+  try{ localStorage.setItem(MINE_SAVED_FILTERS_KEY, JSON.stringify(list)); }catch(e){}
+}
+function saveCurrentMineFilterAsPreset(){
+  const isEn = currentLang==='en';
+  const name = prompt(isEn?'Name this filter (ex. "Females available"):':'Nomme ce filtre (ex. "Femelles disponibles") :');
+  if(!name || !name.trim()) return;
+  const list = loadSavedMineFilters();
+  list.push({ name:name.trim(), status:mineStatusFilter, sex:mineSexFilter, verified:mineVerifiedFilter, tag:mineTagFilter, sort:mineSortBy });
+  saveSavedMineFilters(list);
+  renderSavedMineFilterOptions();
+  showToast('⭐ '+(isEn?'Filter "':'Filtre "')+name.trim()+(isEn?'" saved.':'" sauvegardé.'), 'success');
+}
+function applySavedMineFilter(index){
+  const list = loadSavedMineFilters();
+  const preset = list[index];
+  if(!preset) return;
+  mineStatusFilter = preset.status; mineSexFilter = preset.sex; mineVerifiedFilter = preset.verified; mineTagFilter = preset.tag; mineSortBy = preset.sort;
+  document.querySelectorAll('#mine-status-filters .filter-chip').forEach(b=>b.classList.toggle('active', b.dataset.status===preset.status));
+  document.querySelectorAll('#mine-sex-filters .filter-chip').forEach(b=>b.classList.toggle('active', b.dataset.sex===preset.sex));
+  document.querySelectorAll('#mine-verified-filters .filter-chip').forEach(b=>b.classList.toggle('active', b.dataset.verified===preset.verified));
+  const tagSel = document.getElementById('mine-tag-filter'); if(tagSel) tagSel.value = preset.tag;
+  const sortSel = document.getElementById('mine-sort-select'); if(sortSel) sortSel.value = preset.sort;
+  renderSavedList();
+}
+function deleteSavedMineFilter(index){
+  const isEn = currentLang==='en';
+  const list = loadSavedMineFilters();
+  if(!list[index]) return;
+  if(!confirm(isEn?'Delete the filter "'+list[index].name+'"?':'Supprimer le filtre « '+list[index].name+' » ?')) return;
+  list.splice(index,1);
+  saveSavedMineFilters(list);
+  renderSavedMineFilterOptions();
+}
+function renderSavedMineFilterOptions(){
+  const isEn = currentLang==='en';
+  const sel = document.getElementById('mine-saved-filter-select');
+  if(!sel) return;
+  const list = loadSavedMineFilters();
+  sel.innerHTML = '<option value="">⭐ '+(isEn?'Saved filters':'Filtres sauvegardés')+'</option>'+
+    list.map((f,i)=>'<option value="'+i+'">'+escapeHtml(f.name)+'</option>').join('');
+  sel.style.display = list.length ? '' : 'none';
+}
 var dashSpeciesFilter = 'all'; // filtre par espèce sur le dashboard — utile seulement si plusieurs espèces cohabitent
 
 function sortSnakes(list, sortBy){
@@ -5630,6 +5703,7 @@ function renderSavedList(){
     tagFilterEl.value = allTags.includes(prevValue) ? prevValue : 'all';
     mineTagFilter = tagFilterEl.value;
   }
+  renderSavedMineFilterOptions();
   if(savedSnakes.length===0){
     grid.innerHTML = '<div class="empty">'+t('mineEmptyState')+'</div>';
     return;
@@ -6409,6 +6483,8 @@ function addVetVisit(id){
   if(listEl) listEl.innerHTML = renderVetVisitsHtml(s);
 }
 function deleteVetVisit(id, visitId){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this vet visit entry?':'Supprimer cette visite vétérinaire ?')) return;
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
   ensureSnakeMeta(s);
@@ -7238,6 +7314,8 @@ function addCleaning(id){
   if(listEl) listEl.innerHTML = renderCleaningsHtml(s);
 }
 function deleteCleaning(id, cleaningId){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this cleaning entry?':'Supprimer ce nettoyage ?')) return;
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
   ensureSnakeMeta(s);
@@ -7280,6 +7358,8 @@ function addDefecation(id){
   if(listEl) listEl.innerHTML = renderDefecationsHtml(s);
 }
 function deleteDefecation(id, defecationId){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this defecation entry?':'Supprimer cette entrée de défécation ?')) return;
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
   ensureSnakeMeta(s);
@@ -7739,6 +7819,11 @@ function exportBackup(){
   a.download = 'locus-sauvegarde-'+new Date().toISOString().slice(0,10)+'.json';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  // Rappel de sauvegarde (2 septembre) — la synchro cloud existe, mais un vrai fichier téléchargé
+  // reste la meilleure police d'assurance. Date gardée en localStorage seulement (pas besoin de la
+  // synchroniser entre appareils, chaque appareil peut avoir exporté à un moment différent).
+  try{ localStorage.setItem('locus_last_export', new Date().toISOString().slice(0,10)); }catch(e){}
+  updateBackupReminderBanner();
 }
 
 document.getElementById('import-file-input').addEventListener('change', (e)=>{
@@ -8875,6 +8960,8 @@ function logSingleTubCleaning(rackId, row, tub){
   openTubCleaningHistory(rackId, row, tub);
 }
 function deleteRackTubCleaning(rackId, row, tub, cleaningId){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this cleaning entry?':'Supprimer ce nettoyage ?')) return;
   const rack = getRack(rackId);
   if(!rack) return;
   const key = row+'|'+tub;
@@ -8929,6 +9016,8 @@ function logTerrariumCleaning(terrariumId){
   renderTerrariumList();
 }
 function deleteTerrariumCleaning(terrariumId, cleaningId){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this cleaning entry?':'Supprimer ce nettoyage ?')) return;
   const te = getTerrarium(terrariumId);
   if(!te) return;
   te.cleanings = (te.cleanings||[]).filter(c=>c.id!==cleaningId);
@@ -9886,6 +9975,8 @@ function removeWaitlistEntry(pairingId, entryId){
 }
 
 function deletePairing(id){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this pairing? Its follicle sizes and notes will be lost.':'Supprimer cet accouplement ? Ses tailles de follicules et notes seront perdues.')) return;
   pairings = pairings.filter(p=>p.id!==id);
   saveElevage();
   renderTimeline();
@@ -11034,6 +11125,8 @@ function addClutch(){
 }
 
 function deleteClutch(id){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this clutch? This does not delete any baby already created from it.':'Supprimer cette ponte ? Ça ne supprime pas les bébés déjà créés à partir d\'elle.')) return;
   clutches = clutches.filter(c=>c.id!==id);
   saveElevage();
   renderClutches();
@@ -11447,6 +11540,8 @@ async function ensurePhotoPublicUrl(snake, photo){
 }
 
 function deletePhoto(snakeId, photoId){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this photo?':'Supprimer cette photo ?')) return;
   const s = savedSnakes.find(x=>x.id===snakeId);
   if(!s) return;
   s.photos = (s.photos||[]).filter(p=>p.id!==photoId);
@@ -12019,6 +12114,42 @@ function renderBetaBanner(){
     '</div>'+
     '<button class="ob-close" onclick="dismissBetaBanner()" aria-label="Fermer">×</button>';
 }
+// Rappel de sauvegarde (2 septembre) — pas un dismissBanner() classique (ferme pour toujours) : un
+// simple snooze de 14 jours, pour que le rappel revienne vraiment plus tard au lieu d'être tué
+// silencieusement dès le premier "×". La date du dernier export vit en localStorage seulement
+// (locus_last_export) — pas besoin de la synchroniser, chaque appareil peut exporter à son rythme.
+function daysSinceLastExport(){
+  let last;
+  try{ last = localStorage.getItem('locus_last_export'); }catch(e){ last = null; }
+  if(!last) return null;
+  return Math.floor((Date.now() - new Date(last+'T00:00:00').getTime()) / 86400000);
+}
+function updateBackupReminderBanner(){
+  const isEn = currentLang==='en';
+  const el = document.getElementById('backup-reminder-banner');
+  if(!el) return;
+  let snoozeUntil;
+  try{ snoozeUntil = localStorage.getItem('locus_backup_reminder_snooze'); }catch(e){ snoozeUntil = null; }
+  if(snoozeUntil && snoozeUntil > new Date().toISOString().slice(0,10)){ el.style.display = 'none'; return; }
+  const days = daysSinceLastExport();
+  const shouldShow = savedSnakes.length>0 && (days===null || days>=30);
+  if(!shouldShow){ el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  el.innerHTML = '<span class="ob-icon">💾</span>'+
+    '<div class="ob-body">'+
+      '<span class="ob-title">'+(isEn?'Backup reminder':'Rappel de sauvegarde')+'</span>'+
+      (days===null
+        ? (isEn?'You\'ve never downloaded a local backup. Cloud sync is great, but a real downloaded file is the best insurance against any mishap.':'Tu n\'as jamais téléchargé de sauvegarde locale. La synchro cloud, c\'est bien, mais un vrai fichier téléchargé reste la meilleure police d\'assurance contre n\'importe quel pépin.')
+        : (isEn?('It\'s been '+days+' days since your last local backup — worth doing another one.'):('Ça fait '+days+' jours depuis ta dernière sauvegarde locale — ça vaut la peine d\'en refaire une.')))+
+      '<div style="margin-top:8px;"><button class="sc-btn accent" onclick="exportBackup()">💾 '+(isEn?'Export now':'Exporter maintenant')+'</button></div>'+
+    '</div>'+
+    '<button class="ob-close" onclick="snoozeBackupReminder()" aria-label="Fermer">×</button>';
+}
+function snoozeBackupReminder(){
+  try{ localStorage.setItem('locus_backup_reminder_snooze', addDays(new Date().toISOString().slice(0,10), 14)); }catch(e){}
+  const el = document.getElementById('backup-reminder-banner');
+  if(el) el.style.display = 'none';
+}
 function renderWelcomeHero(){
   const isEn = currentLang==='en';
   const hero = document.getElementById('welcome-hero');
@@ -12047,6 +12178,7 @@ function renderDashboard(){
   savedSnakes.forEach(ensureSnakeMeta);
   renderBetaBanner();
   renderWelcomeHero();
+  updateBackupReminderBanner();
 
   const hour = new Date().getHours();
   const greeting = isEn
@@ -12140,37 +12272,72 @@ function renderDashboard(){
     });
   });
   const lowStockEntries = Object.keys(feederStock).filter(k=> feederStock[k]!=null && feederStock[k]<=FEEDER_LOW_STOCK_THRESHOLD);
+  // Personnalisation (2 septembre) — chaque groupe est vidé si sa préférence est décochée, plutôt
+  // que de retoucher chaque condition d'affichage plus bas (plus robuste aux futurs changements).
+  const shedSoonF = dashCardPrefs.today_shed ? shedSoon : [];
+  const weighDueF = dashCardPrefs.today_weigh ? weighDue : [];
+  const clutchesToCheckF = dashCardPrefs.today_clutch ? clutchesToCheck : [];
+  const terraCleanOverdueF = dashCardPrefs.today_cleaning ? terraCleanOverdue : [];
+  const rackTubsOverdueF = dashCardPrefs.today_cleaning ? rackTubsOverdue : [];
+  const uvbOverdueF = dashCardPrefs.today_uvb ? uvbOverdue : [];
+  const pairingLongF = dashCardPrefs.today_pairing ? pairingLong : [];
+  const lowStockEntriesF = dashCardPrefs.today_lowstock ? lowStockEntries : [];
 
   const todayWrap = document.getElementById('dash-today-widget');
-  if(!shedSoon.length && !weighDue.length && !clutchesToCheck.length && !terraCleanOverdue.length && !uvbOverdue.length && !pairingLong.length && !rackTubsOverdue.length && !lowStockEntries.length){
+  if(!shedSoonF.length && !weighDueF.length && !clutchesToCheckF.length && !terraCleanOverdueF.length && !uvbOverdueF.length && !pairingLongF.length && !rackTubsOverdueF.length && !lowStockEntriesF.length){
     todayWrap.innerHTML = '<div class="empty">🎉 '+(isEn?'Nothing needs special attention right now.':'Rien de particulier à surveiller pour l\'instant.')+'</div>';
   } else {
     todayWrap.innerHTML =
-      (shedSoon.length ? '<div class="feed-day-group"><div class="feed-day-label">🐍 '+(isEn?'Shed expected soon':'Mue prévue bientôt')+' — '+shedSoon.length+'</div><div class="mini-animal-grid">'+
-        shedSoon.map(x=>miniAnimalCardHtml(x.snake.name, '~'+x.date, '<button class="sc-btn accent" onclick="openLogbook(\''+x.snake.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button>')).join('')+
+      (shedSoonF.length ? '<div class="feed-day-group"><div class="feed-day-label">🐍 '+(isEn?'Shed expected soon':'Mue prévue bientôt')+' — '+shedSoonF.length+'</div><div class="mini-animal-grid">'+
+        shedSoonF.map(x=>miniAnimalCardHtml(x.snake.name, '~'+x.date, '<button class="sc-btn accent" onclick="openLogbook(\''+x.snake.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button>')).join('')+
       '</div></div>' : '')+
-      (weighDue.length ? '<div class="feed-day-group"><div class="feed-day-label">⚖ '+(isEn?'Weigh-in due':'Pesée à faire')+' — '+weighDue.length+'</div><div class="mini-animal-grid">'+
-        weighDue.slice(0,10).map(s=>{ const d = daysSinceLastWeigh(s); return miniAnimalCardHtml(s.name, (d===null?(isEn?'never weighed':'jamais pesé'):(isEn?d+'d ago':'il y a '+d+'j')),
+      (weighDueF.length ? '<div class="feed-day-group"><div class="feed-day-label">⚖ '+(isEn?'Weigh-in due':'Pesée à faire')+' — '+weighDueF.length+'</div><div class="mini-animal-grid">'+
+        weighDueF.slice(0,10).map(s=>{ const d = daysSinceLastWeigh(s); return miniAnimalCardHtml(s.name, (d===null?(isEn?'never weighed':'jamais pesé'):(isEn?d+'d ago':'il y a '+d+'j')),
           '<button class="save-btn" onclick="logAction(\''+s.id+'\',\'weigh\')">⚖ '+(isEn?'Weigh':'Peser')+'</button>'+
           '<button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button>'); }).join('')+
-        (weighDue.length>10 ? '<div style="font-size:10.5px;color:var(--ink-dim);padding:6px 4px;">'+(isEn?'+'+(weighDue.length-10)+' more':'+'+(weighDue.length-10)+' de plus')+'</div>' : '')+
+        (weighDueF.length>10 ? '<div style="font-size:10.5px;color:var(--ink-dim);padding:6px 4px;">'+(isEn?'+'+(weighDueF.length-10)+' more':'+'+(weighDueF.length-10)+' de plus')+'</div>' : '')+
       '</div></div>' : '')+
-      (clutchesToCheck.length ? '<div class="feed-day-group"><div class="feed-day-label">🥚 '+(isEn?'Clutches to watch closely':'Pontes à surveiller de près')+' — '+clutchesToCheck.length+'</div><div class="sale-list">'+
-        clutchesToCheck.map(c=>{ const d = Math.floor((new Date(c.hatchDate+'T00:00:00').getTime() - Date.now()) / 86400000); return '<div class="sale-row"><div class="sale-name">'+escapeHtml(c.ref)+'<small>'+(d>=0?(isEn?'hatch in '+d+'d':'éclosion dans '+d+'j'):(isEn?Math.abs(d)+'d overdue':'+'+Math.abs(d)+'j de retard'))+'</small></div><button class="sc-btn accent" onclick="showTab(\'incubation\')">🥚 '+(isEn?'View':'Voir')+'</button></div>'; }).join('')+
+      (clutchesToCheckF.length ? '<div class="feed-day-group"><div class="feed-day-label">🥚 '+(isEn?'Clutches to watch closely':'Pontes à surveiller de près')+' — '+clutchesToCheckF.length+'</div><div class="sale-list">'+
+        clutchesToCheckF.map(c=>{ const d = Math.floor((new Date(c.hatchDate+'T00:00:00').getTime() - Date.now()) / 86400000); return '<div class="sale-row"><div class="sale-name">'+escapeHtml(c.ref)+'<small>'+(d>=0?(isEn?'hatch in '+d+'d':'éclosion dans '+d+'j'):(isEn?Math.abs(d)+'d overdue':'+'+Math.abs(d)+'j de retard'))+'</small></div><button class="sc-btn accent" onclick="showTab(\'incubation\')">🥚 '+(isEn?'View':'Voir')+'</button></div>'; }).join('')+
       '</div></div>' : '')+
-      ((terraCleanOverdue.length||rackTubsOverdue.length) ? '<div class="feed-day-group"><div class="feed-day-label">🧹 '+(isEn?'Cleaning overdue':'Nettoyage en retard')+' — '+(terraCleanOverdue.length+rackTubsOverdue.length)+'</div><div class="sale-list">'+
-        terraCleanOverdue.map(te=>'<div class="sale-row"><div class="sale-name">'+escapeHtml(te.name)+'</div><button class="sc-btn accent" onclick="showTab(\'elevage\'); showSubtab(\'racks\');">🧹 '+(isEn?'View':'Voir')+'</button></div>').join('')+
-        rackTubsOverdue.slice(0,5).map(x=>'<div class="sale-row"><div class="sale-name">'+escapeHtml(x.rack.name)+' — '+(isEn?'Tub ':'Bac ')+x.key.split('|')[1]+'</div><button class="sc-btn accent" onclick="showTab(\'elevage\'); showSubtab(\'racks\');">🧹 '+(isEn?'View':'Voir')+'</button></div>').join('')+
+      ((terraCleanOverdueF.length||rackTubsOverdueF.length) ? '<div class="feed-day-group"><div class="feed-day-label">🧹 '+(isEn?'Cleaning overdue':'Nettoyage en retard')+' — '+(terraCleanOverdueF.length+rackTubsOverdueF.length)+'</div><div class="sale-list">'+
+        terraCleanOverdueF.map(te=>'<div class="sale-row"><div class="sale-name">'+escapeHtml(te.name)+'</div><button class="sc-btn accent" onclick="showTab(\'elevage\'); showSubtab(\'racks\');">🧹 '+(isEn?'View':'Voir')+'</button></div>').join('')+
+        rackTubsOverdueF.slice(0,5).map(x=>'<div class="sale-row"><div class="sale-name">'+escapeHtml(x.rack.name)+' — '+(isEn?'Tub ':'Bac ')+x.key.split('|')[1]+'</div><button class="sc-btn accent" onclick="showTab(\'elevage\'); showSubtab(\'racks\');">🧹 '+(isEn?'View':'Voir')+'</button></div>').join('')+
       '</div></div>' : '')+
-      (uvbOverdue.length ? '<div class="feed-day-group"><div class="feed-day-label">☀️ '+(isEn?'UVB replacement overdue':'Remplacement UVB dépassé')+' — '+uvbOverdue.length+'</div><div class="sale-list">'+
-        uvbOverdue.map(te=>'<div class="sale-row"><div class="sale-name">'+escapeHtml(te.name)+'<small>'+te.uvbReplaceDate+'</small></div><button class="sc-btn accent" onclick="showTab(\'elevage\'); showSubtab(\'racks\');">💡 '+(isEn?'View':'Voir')+'</button></div>').join('')+
+      (uvbOverdueF.length ? '<div class="feed-day-group"><div class="feed-day-label">☀️ '+(isEn?'UVB replacement overdue':'Remplacement UVB dépassé')+' — '+uvbOverdueF.length+'</div><div class="sale-list">'+
+        uvbOverdueF.map(te=>'<div class="sale-row"><div class="sale-name">'+escapeHtml(te.name)+'<small>'+te.uvbReplaceDate+'</small></div><button class="sc-btn accent" onclick="showTab(\'elevage\'); showSubtab(\'racks\');">💡 '+(isEn?'View':'Voir')+'</button></div>').join('')+
       '</div></div>' : '')+
-      (pairingLong.length ? '<div class="feed-day-group"><div class="feed-day-label">🐍 '+(isEn?'Pairing 5+ days':'En accouplement depuis 5j+')+' — '+pairingLong.length+'</div><div class="sale-list">'+
-        pairingLong.map(te=>'<div class="sale-row"><div class="sale-name">'+escapeHtml(te.name)+'<small>'+daysTogether(te)+(isEn?'d together':'j ensemble')+'</small></div><button class="sc-btn accent" onclick="showTab(\'elevage\'); showSubtab(\'racks\');">🐍 '+(isEn?'View':'Voir')+'</button></div>').join('')+
+      (pairingLongF.length ? '<div class="feed-day-group"><div class="feed-day-label">🐍 '+(isEn?'Pairing 5+ days':'En accouplement depuis 5j+')+' — '+pairingLongF.length+'</div><div class="sale-list">'+
+        pairingLongF.map(te=>'<div class="sale-row"><div class="sale-name">'+escapeHtml(te.name)+'<small>'+daysTogether(te)+(isEn?'d together':'j ensemble')+'</small></div><button class="sc-btn accent" onclick="showTab(\'elevage\'); showSubtab(\'racks\');">🐍 '+(isEn?'View':'Voir')+'</button></div>').join('')+
       '</div></div>' : '')+
-      (lowStockEntries.length ? '<div class="feed-day-group"><div class="feed-day-label">📦 '+(isEn?'Low prey stock':'Stock de proies bas')+' — '+lowStockEntries.length+'</div><div class="sale-list">'+
-        lowStockEntries.map(k=>{ const [species,size]=k.split('|'); return '<div class="sale-row"><div class="sale-name">'+escapeHtml(species)+' '+escapeHtml(size)+'<small>'+feederStock[k]+' '+(isEn?'left':'restant(s)')+'</small></div><button class="sc-btn accent" onclick="showTab(\'elevage\'); showSubtab(\'nourriture\');">📦 '+(isEn?'View':'Voir')+'</button></div>'; }).join('')+
+      (lowStockEntriesF.length ? '<div class="feed-day-group"><div class="feed-day-label">📦 '+(isEn?'Low prey stock':'Stock de proies bas')+' — '+lowStockEntriesF.length+'</div><div class="sale-list">'+
+        lowStockEntriesF.map(k=>{ const [species,size]=k.split('|'); return '<div class="sale-row"><div class="sale-name">'+escapeHtml(species)+' '+escapeHtml(size)+'<small>'+feederStock[k]+' '+(isEn?'left':'restant(s)')+'</small></div><button class="sc-btn accent" onclick="showTab(\'elevage\'); showSubtab(\'nourriture\');">📦 '+(isEn?'View':'Voir')+'</button></div>'; }).join('')+
       '</div></div>' : '');
+  }
+
+  // Anniversaires du mois (2 septembre) — juste sympathique, pas fonctionnel, dans l'esprit
+  // "passionné" plutôt qu'outil corporate. Basé sur le mois/jour de birthDate, année ignorée.
+  const birthdaysWrap = document.getElementById('dash-birthdays-wrap');
+  const birthdaysList = document.getElementById('dash-birthdays');
+  const curMonth = new Date().getMonth();
+  const curDay = new Date().getDate();
+  const monthBirthdays = dashSnakes.filter(s=>{
+    if(!s.birthDate) return false;
+    const bd = new Date(s.birthDate+'T00:00:00');
+    return bd.getMonth()===curMonth;
+  }).sort((a,b)=> new Date(a.birthDate+'T00:00:00').getDate() - new Date(b.birthDate+'T00:00:00').getDate());
+  if(monthBirthdays.length && dashCardPrefs.birthdays){
+    birthdaysWrap.style.display = '';
+    birthdaysList.className = 'mini-animal-grid';
+    birthdaysList.innerHTML = monthBirthdays.map(s=>{
+      const bd = new Date(s.birthDate+'T00:00:00');
+      const isToday = bd.getDate()===curDay;
+      const ageYears = new Date().getFullYear() - bd.getFullYear();
+      const sub = (isEn?'the ':'le ')+bd.getDate()+(isEn?'':'')+(isToday?(isEn?' — today! 🎉':' — aujourd\'hui ! 🎉'):'')+' ('+ageYears+(isEn?'y':'a')+')';
+      return miniAnimalCardHtml(s.name, sub, '<button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button>');
+    }).join('');
+  } else {
+    birthdaysWrap.style.display = 'none';
   }
 
   // Calendrier de nourrissage : projette la prochaine date de repas de CHAQUE reptile
@@ -12489,6 +12656,8 @@ function addExpense(){
   showToast(t('expenseAddedToast').replace('__AMOUNT__', amount), 'success');
 }
 function deleteExpense(id){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this expense?':'Supprimer cette dépense ?')) return;
   expenses = expenses.filter(e=>e.id!==id);
   saveElevage();
   renderFiscalView();
@@ -12745,6 +12914,8 @@ function addFollicleSize(pairingId){
   renderTimeline();
 }
 function deleteFollicleSize(pairingId, follicleId){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this follicle size entry?':'Supprimer cette mesure de follicule ?')) return;
   const p = pairings.find(x=>x.id===pairingId);
   if(!p) return;
   p.follicleSizes = (p.follicleSizes||[]).filter(f=>f.id!==follicleId);
@@ -12768,6 +12939,8 @@ function addCustomEvent(){
   renderCustomEvents();
 }
 function deleteCustomEvent(id){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this reminder?':'Supprimer ce rappel ?')) return;
   customEvents = customEvents.filter(e=>e.id!==id);
   saveElevage();
   renderCustomEvents();
