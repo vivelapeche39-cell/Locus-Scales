@@ -1866,7 +1866,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.1.50';
+const APP_VERSION = '2026.09.02.1.51';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -6928,6 +6928,7 @@ function confirmFed(id, quantity){
   showToast('🍽 '+s.name+(isEn?' ate':' a mangé')+(quantity==='partial'?(isEn?' (partial).':' (partiellement).'):'.')+countTag+stockMsg, 'success');
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
   renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderFirstSnakeTip();
+  if(document.getElementById('view-dash').style.display!=='none') renderDashboard();
 }
 
 function openWeighModal(id){
@@ -6962,6 +6963,7 @@ function confirmWeigh(id){
   showToast('⚖ '+s.name+' — '+(currentLang==='en'?'weighed: ':'pesé : ')+val+'g', 'success');
   renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderFirstSnakeTip();
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
+  if(document.getElementById('view-dash').style.display!=='none') renderDashboard();
 }
 
 // Suivi de longueur — même pattern que la pesée (modale rapide, historique dans la fiche).
@@ -8538,11 +8540,12 @@ function renderRackGrid(){
   racks.forEach(rack=>{
     const unit = document.createElement('div');
     unit.className = 'rack-unit';
+    const overdueTubs = countOverdueTubCleanings(rack);
     unit.innerHTML =
       '<div class="rack-unit-head">'+
         '<input type="text" class="rack-name-input" value="'+escapeHtml(rack.name)+'" data-rack="'+rack.id+'"/>'+
         '<button class="sc-btn" data-act="addrow" data-rack="'+rack.id+'">'+t('addRowBtn')+'</button>'+
-        '<button class="sc-btn" data-act="cleanrack" data-rack="'+rack.id+'">🧹 '+(isEn?'Cleaning':'Nettoyage')+'</button>'+
+        '<button class="sc-btn" data-act="cleanrack" data-rack="'+rack.id+'">🧹 '+(isEn?'Cleaning':'Nettoyage')+(overdueTubs?' <span style="color:#e08a63;font-weight:700;">🚨 '+overdueTubs+'</span>':'')+'</button>'+
         (racks.length>1 ? '<button class="sc-btn danger" data-act="delrack" data-rack="'+rack.id+'">'+t('deleteThisRackBtn')+'</button>' : '')+
       '</div>'+
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">'+
@@ -8627,6 +8630,20 @@ function lastCleaningEntry(list){
 function daysSinceDate(dateStr){
   return Math.floor((Date.now() - new Date(dateStr+'T00:00:00').getTime()) / 86400000);
 }
+// Compte les bacs occupés dont le dernier nettoyage remonte à 30j+ — même seuil que l'alerte
+// terrarium, affiché comme résumé sur la carte du rack (2 sept) plutôt que d'avoir à ouvrir la
+// modale de nettoyage pour le découvrir.
+function countOverdueTubCleanings(rack){
+  if(!rack.tubCleanings) return 0;
+  let count = 0;
+  rack.rows.forEach((tubCount, rowIdx)=>{
+    for(let tub=1; tub<=tubCount; tub++){
+      const last = lastCleaningEntry(rack.tubCleanings[rowIdx+1+'|'+tub]);
+      if(last && daysSinceDate(last.date)>=30) count++;
+    }
+  });
+  return count;
+}
 
 /* ---- Nettoyage de rack, par bac (31 août) — rapide : coche plusieurs bacs à la fois, ou toute
    une rangée, ou tout le rack, puis un seul enregistrement pour tous les bacs cochés. ---- */
@@ -8647,8 +8664,19 @@ function openRackCleaningModal(rackId){
     for(let tub=1; tub<=tubCount; tub++){
       const key = row+'|'+tub;
       const last = lastCleaningEntry(rack.tubCleanings[key]);
-      const info = last ? (daysSinceDate(last.date)+(isEn?'d ago':'j')) : (isEn?'never':'jamais');
-      tubsHtml += '<label class="tub-select-chip"><input type="checkbox" data-cleantub="'+key+'" onclick="this.closest(\'.tub-select-chip\').classList.toggle(\'checked\', this.checked)"/>'+(isEn?'Tub ':'Bac ')+tub+'<span style="color:var(--ink-dim);">'+info+'</span></label>';
+      // Même seuil/style que le badge de nettoyage terrarium (30j) — pas d'urgence tant que jamais
+      // nettoyé (pas de date de référence), juste l'informatif "jamais".
+      let infoStyle = 'color:var(--ink-dim);';
+      let info;
+      if(last){
+        const daysSince = daysSinceDate(last.date);
+        const overdue = daysSince>=30;
+        if(overdue) infoStyle = 'color:#e08a63;font-weight:700;';
+        info = (overdue?'🚨 ':'')+daysSince+(isEn?'d ago':'j')+(overdue?(isEn?' overdue':' en retard'):'');
+      } else {
+        info = isEn?'never':'jamais';
+      }
+      tubsHtml += '<label class="tub-select-chip"><input type="checkbox" data-cleantub="'+key+'" onclick="this.closest(\'.tub-select-chip\').classList.toggle(\'checked\', this.checked)"/>'+(isEn?'Tub ':'Bac ')+tub+'<span style="'+infoStyle+'" onclick="event.preventDefault(); openTubCleaningHistory(\''+rackId+'\','+row+','+tub+')" title="'+(isEn?'View cleaning history':'Voir l\'historique de nettoyage')+'">'+info+'</span></label>';
     }
     tubsHtml += '</div></div>';
   });
@@ -8695,6 +8723,63 @@ function logRackCleaning(rackId){
   saveElevage();
   closeQuickModal();
   showToast('🧹 '+(isEn?'Cleaning logged for ':'Nettoyage enregistré pour ')+checked.length+' '+(isEn?'tub(s).':'bac(s).'), 'success');
+}
+
+// Historique de nettoyage d'un bac précis (2 sept) — même parité que le terrarium (historique +
+// suppression), atteint en cliquant sur l'info "Xj / jamais" d'un bac dans la modale de nettoyage
+// rack. Remplace le contenu de la même modale plutôt que d'en ouvrir une seconde (une seule modale
+// à la fois dans l'app), avec un bouton retour vers la grille de bacs.
+function openTubCleaningHistory(rackId, row, tub){
+  const isEn = currentLang==='en';
+  const rack = getRack(rackId);
+  if(!rack) return;
+  if(!rack.tubCleanings) rack.tubCleanings = {};
+  const key = row+'|'+tub;
+  const sorted = [...(rack.tubCleanings[key]||[])].sort((a,b)=>b.date.localeCompare(a.date));
+  const historyHtml = sorted.length ? sorted.map(c=>
+    '<div class="husbandry-qa" style="border-bottom:1px dashed var(--line);padding-bottom:8px;margin-bottom:8px;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;">'+
+        '<span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--gold);">'+(c.type==='complete'?'🧹 '+(isEn?'Complete':'Complet'):'🧽 '+(isEn?'Partial':'Partiel'))+' — '+c.date+'</span>'+
+        '<button class="sc-btn danger" onclick="deleteRackTubCleaning(\''+rackId+'\','+row+','+tub+',\''+c.id+'\')">×</button>'+
+      '</div>'+
+      (c.note?'<div style="font-size:11px;color:var(--ink-dim);margin-top:4px;">'+escapeHtml(c.note)+'</div>':'')+
+    '</div>'
+  ).join('') : '<p style="font-size:11px;color:var(--ink-dim);">'+(isEn?'No cleaning logged yet.':'Aucun nettoyage enregistré pour l\'instant.')+'</p>';
+  const body =
+    '<button class="sc-btn" style="margin-bottom:12px;" onclick="openRackCleaningModal(\''+rackId+'\')">← '+(isEn?'Back':'Retour')+'</button>'+
+    historyHtml +
+    '<div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);">'+
+      '<select id="rtc-type" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+        '<option value="partial">'+(isEn?'Partial':'Partiel')+'</option>'+
+        '<option value="complete">'+(isEn?'Complete':'Complet')+'</option>'+
+      '</select>'+
+      '<input type="text" id="rtc-note" placeholder="'+(isEn?'Note (optional)':'Note (optionnel)')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
+      '<button class="sc-btn accent" style="width:100%;" onclick="logSingleTubCleaning(\''+rackId+'\','+row+','+tub+')">🧹 '+(isEn?'Log cleaning for this tub':'Enregistrer pour ce bac')+'</button>'+
+    '</div>';
+  showQuickModal((isEn?'Cleaning — ':'Nettoyage — ')+rack.name+' · '+(isEn?'Row ':'Rangée ')+row+(isEn?', tub ':', bac ')+tub, body);
+}
+function logSingleTubCleaning(rackId, row, tub){
+  const isEn = currentLang==='en';
+  const rack = getRack(rackId);
+  if(!rack) return;
+  if(!rack.tubCleanings) rack.tubCleanings = {};
+  const key = row+'|'+tub;
+  const type = document.getElementById('rtc-type').value;
+  const note = document.getElementById('rtc-note').value.trim();
+  if(!rack.tubCleanings[key]) rack.tubCleanings[key] = [];
+  rack.tubCleanings[key].push({ id:'clean_'+Date.now()+'_'+key, date:new Date().toISOString().slice(0,10), type, note });
+  saveElevage();
+  showToast('🧹 '+(isEn?'Cleaning logged.':'Nettoyage enregistré.'), 'success');
+  openTubCleaningHistory(rackId, row, tub);
+}
+function deleteRackTubCleaning(rackId, row, tub, cleaningId){
+  const rack = getRack(rackId);
+  if(!rack) return;
+  const key = row+'|'+tub;
+  if(!rack.tubCleanings || !rack.tubCleanings[key]) return;
+  rack.tubCleanings[key] = rack.tubCleanings[key].filter(c=>c.id!==cleaningId);
+  saveElevage();
+  openTubCleaningHistory(rackId, row, tub);
 }
 
 /* ---- Nettoyage de terrarium (31 août) — historique + alerte, désactivée si bioactif (un
@@ -11943,7 +12028,9 @@ function renderDashboard(){
         shedSoon.map(x=>miniAnimalCardHtml(x.snake.name, '~'+x.date, '<button class="sc-btn accent" onclick="openLogbook(\''+x.snake.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button>')).join('')+
       '</div></div>' : '')+
       (weighDue.length ? '<div class="feed-day-group"><div class="feed-day-label">⚖ '+(isEn?'Weigh-in due':'Pesée à faire')+' — '+weighDue.length+'</div><div class="mini-animal-grid">'+
-        weighDue.slice(0,10).map(s=>{ const d = daysSinceLastWeigh(s); return miniAnimalCardHtml(s.name, (d===null?(isEn?'never weighed':'jamais pesé'):(isEn?d+'d ago':'il y a '+d+'j')), '<button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button>'); }).join('')+
+        weighDue.slice(0,10).map(s=>{ const d = daysSinceLastWeigh(s); return miniAnimalCardHtml(s.name, (d===null?(isEn?'never weighed':'jamais pesé'):(isEn?d+'d ago':'il y a '+d+'j')),
+          '<button class="save-btn" onclick="logAction(\''+s.id+'\',\'weigh\')">⚖ '+(isEn?'Weigh':'Peser')+'</button>'+
+          '<button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button>'); }).join('')+
         (weighDue.length>10 ? '<div style="font-size:10.5px;color:var(--ink-dim);padding:6px 4px;">'+(isEn?'+'+(weighDue.length-10)+' more':'+'+(weighDue.length-10)+' de plus')+'</div>' : '')+
       '</div></div>' : '')+
       (clutchesToCheck.length ? '<div class="feed-day-group"><div class="feed-day-label">🥚 '+(isEn?'Clutches to watch closely':'Pontes à surveiller de près')+' — '+clutchesToCheck.length+'</div><div class="sale-list">'+
@@ -11989,7 +12076,9 @@ function renderDashboard(){
       return '<div class="feed-day-group">'+
         '<div class="feed-day-label">'+dayLabel(dateStr)+' — '+snakesForDay.length+(isEn?' reptile'+(snakesForDay.length>1?'s':''):' reptile'+(snakesForDay.length>1?'s':''))+'</div>'+
         '<div class="mini-animal-grid">'+snakesForDay.map(s=>
-          miniAnimalCardHtml(s.name, '', '<button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button>')
+          miniAnimalCardHtml(s.name, '',
+            '<button class="save-btn" onclick="logAction(\''+s.id+'\',\'fed\')">🍽 '+(isEn?'Fed':'Nourri')+'</button>'+
+            '<button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button>')
         ).join('')+
       '</div></div>';
     }).join('');
