@@ -1872,7 +1872,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.1.54';
+const APP_VERSION = '2026.09.02.1.55';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5339,6 +5339,41 @@ function editSnake(id){
   document.getElementById('panel-draft').scrollIntoView({behavior:'smooth', block:'start'});
 }
 
+// Dupliquer une fiche (2 septembre) — utile pour un groupe d'animaux similaires (même provenance,
+// même génétique de base). Ne copie JAMAIS le nom (toujours à retaper) ni les photos/historique de
+// santé/emplacement (c'est un NOUVEL animal physique, pas le même). editingId reste null exprès :
+// "Enregistrer" créera une nouvelle fiche, jamais un écrasement de l'originale.
+function duplicateSnake(id){
+  const isEn = currentLang==='en';
+  const snake = savedSnakes.find(s=>s.id===id);
+  if(!snake) return;
+  editingId = null;
+  state.draft = {...snake.genes};
+  document.getElementById('draft-name').value = '';
+  document.getElementById('draft-provenance').value = snake.provenance || '';
+  const species = snake.species || 'ball_python';
+  const isBallPython = species==='ball_python';
+  document.getElementById('draft-is-ball-python').checked = isBallPython;
+  document.getElementById('draft-species-other').value = isBallPython ? '' : species;
+  updateDraftSpeciesVisibility();
+  document.getElementById('draft-prey-species').value = snake.preySpecies || '';
+  updateDraftPreySizeOptions();
+  if(snake.preySpecies && snake.preySize) document.getElementById('draft-prey-size').value = snake.preySize;
+  setDraftSex(snake.sex);
+  renderTags('draft');
+  renderParentSelects();
+  document.getElementById('draft-sire').value = snake.sireId || '';
+  document.getElementById('draft-dam').value = snake.damId || '';
+  fillBirthDateForm(snake.birthDate || null);
+  updateDraftFormMode();
+  showTab('mine');
+  document.getElementById('panel-draft').style.display = '';
+  document.getElementById('mine-toggle-draft-btn').classList.add('active');
+  document.getElementById('panel-draft').scrollIntoView({behavior:'smooth', block:'start'});
+  document.getElementById('draft-name').focus();
+  showToast('📋 '+(isEn?'Duplicated from ':'Dupliqué depuis ')+snake.name+(isEn?' — enter a name and adjust as needed.':' — entre un nom et ajuste au besoin.'));
+}
+
 function cancelEdit(){
   editingId = null;
   state.draft = {};
@@ -5641,6 +5676,7 @@ function renderSavedList(){
           (s.sex!=='female' ? '<option value="female">→ '+(isEn?'Load as female':'Charger comme femelle')+'</option>' : '')+
           '<option value="terrarium">'+(s.placement.mode==='terrarium'?(isEn?'Switch to Rack':'Passer en Rack'):(isEn?'Switch to Terrarium':'Passer en Terrarium'))+'</option>'+
           '<option value="edit">'+(isEn?'Edit':'Modifier')+'</option>'+
+          '<option value="duplicate">📋 '+(isEn?'Duplicate':'Dupliquer')+'</option>'+
           '<option value="delete">'+(isEn?'Delete':'Supprimer')+'</option>'+
         '</select>'+
       '</div>';
@@ -5660,6 +5696,7 @@ function renderSavedList(){
       if(!act) return;
       if(act==='delete') deleteSnake(id);
       else if(act==='edit') editSnake(id);
+      else if(act==='duplicate') duplicateSnake(id);
       else if(act==='sex') sexSnake(id);
       else if(act==='terrarium'){ toggleTerrarium(id); renderSavedList(); }
       else { loadSnake(id, act); showTab('calc'); }
@@ -6382,6 +6419,30 @@ function deleteVetVisit(id, visitId){
 }
 
 var currentLogbookId = null; // suit quelle fiche est ouverte, pour pouvoir la régénérer au changement de langue
+// Sparkline de poids (2 septembre) — SVG brut fait main, aucune librairie, juste pour repérer une
+// tendance d'un coup d'œil plutôt qu'en scrollant une liste de chiffres. weights = ordre
+// chronologique (ancien -> récent), au moins 2 points requis pour que ça ait un sens.
+function weightSparklineSvg(weights){
+  if(!weights || weights.length<2) return '';
+  const w = 280, h = 54, pad = 6;
+  const values = weights.map(pt=>pt.value);
+  const min = Math.min(...values), max = Math.max(...values);
+  const range = (max-min) || 1;
+  const stepX = (w-pad*2) / (values.length-1);
+  const points = values.map((v,i)=>{
+    const x = pad + i*stepX;
+    const y = h-pad - ((v-min)/range) * (h-pad*2);
+    return x.toFixed(1)+','+y.toFixed(1);
+  });
+  const trendUp = values[values.length-1] >= values[0];
+  const lineColor = trendUp ? 'var(--sage)' : 'var(--rust)';
+  const lastPt = points[points.length-1].split(',');
+  return '<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;height:54px;margin:6px 0 4px;" preserveAspectRatio="none">'+
+    '<polyline points="'+points.join(' ')+'" fill="none" style="stroke:'+lineColor+';stroke-width:2;" vector-effect="non-scaling-stroke"/>'+
+    '<circle cx="'+lastPt[0]+'" cy="'+lastPt[1]+'" r="3" style="fill:'+lineColor+';"/>'+
+  '</svg>';
+}
+
 function openLogbook(id){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
@@ -6640,7 +6701,7 @@ function openLogbook(id){
       photosHtml+
     '</div>'+
     '<div class="modal-section"><h3>'+t('genealogyTitle')+'</h3>'+pedigreeHtml+pedigreeTreeHtml+'</div>'+
-    '<div class="modal-section"><h3>'+t('weightHistoryTitle')+'</h3>'+weightsHtml+growthCompareHtml+'</div>'+
+    '<div class="modal-section"><h3>'+t('weightHistoryTitle')+'</h3>'+weightSparklineSvg(s.health.weights)+weightsHtml+growthCompareHtml+'</div>'+
     '<div class="modal-section"><h3>'+t('lengthHistoryTitle')+'</h3>'+lengthsHtml+'</div>'+
     '<div class="modal-section"><h3>'+t('vetJournalTitle')+'</h3>'+
       '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">'+
@@ -12060,8 +12121,28 @@ function renderDashboard(){
     const days = Math.floor((new Date(c.hatchDate+'T00:00:00').getTime() - Date.now()) / 86400000);
     return days<=14;
   });
+  // Alertes Racks & Terrariums regroupées ici (2 septembre) — avant, il fallait ouvrir Élevage >
+  // Racks & Terrariums pour les voir une par une sur chaque carte. Pas filtré par espèce (les
+  // terrariums/racks ne sont pas rattachés à une espèce précise).
+  const terraCleanOverdue = terrariums.filter(te=>{
+    if(te.bioactive) return false; // jamais d'alerte nettoyage pour un setup bioactif
+    const last = lastCleaningEntry(te.cleanings);
+    return last ? daysSinceDate(last.date)>=30 : true;
+  });
+  const uvbOverdue = terrariums.filter(te=> te.uvbReplaceDate && new Date(te.uvbReplaceDate+'T00:00:00').getTime() < Date.now());
+  const pairingLong = terrariums.filter(te=> te.status==='accouplement' && daysTogether(te)!==null && daysTogether(te)>=5);
+  const rackTubsOverdue = [];
+  racks.forEach(r=>{
+    if(!r.tubCleanings) return;
+    Object.keys(r.tubCleanings).forEach(key=>{
+      const last = lastCleaningEntry(r.tubCleanings[key]);
+      if(last && daysSinceDate(last.date)>=30) rackTubsOverdue.push({rack:r, key});
+    });
+  });
+  const lowStockEntries = Object.keys(feederStock).filter(k=> feederStock[k]!=null && feederStock[k]<=FEEDER_LOW_STOCK_THRESHOLD);
+
   const todayWrap = document.getElementById('dash-today-widget');
-  if(!shedSoon.length && !weighDue.length && !clutchesToCheck.length){
+  if(!shedSoon.length && !weighDue.length && !clutchesToCheck.length && !terraCleanOverdue.length && !uvbOverdue.length && !pairingLong.length && !rackTubsOverdue.length && !lowStockEntries.length){
     todayWrap.innerHTML = '<div class="empty">🎉 '+(isEn?'Nothing needs special attention right now.':'Rien de particulier à surveiller pour l\'instant.')+'</div>';
   } else {
     todayWrap.innerHTML =
@@ -12076,6 +12157,19 @@ function renderDashboard(){
       '</div></div>' : '')+
       (clutchesToCheck.length ? '<div class="feed-day-group"><div class="feed-day-label">🥚 '+(isEn?'Clutches to watch closely':'Pontes à surveiller de près')+' — '+clutchesToCheck.length+'</div><div class="sale-list">'+
         clutchesToCheck.map(c=>{ const d = Math.floor((new Date(c.hatchDate+'T00:00:00').getTime() - Date.now()) / 86400000); return '<div class="sale-row"><div class="sale-name">'+escapeHtml(c.ref)+'<small>'+(d>=0?(isEn?'hatch in '+d+'d':'éclosion dans '+d+'j'):(isEn?Math.abs(d)+'d overdue':'+'+Math.abs(d)+'j de retard'))+'</small></div><button class="sc-btn accent" onclick="showTab(\'incubation\')">🥚 '+(isEn?'View':'Voir')+'</button></div>'; }).join('')+
+      '</div></div>' : '')+
+      ((terraCleanOverdue.length||rackTubsOverdue.length) ? '<div class="feed-day-group"><div class="feed-day-label">🧹 '+(isEn?'Cleaning overdue':'Nettoyage en retard')+' — '+(terraCleanOverdue.length+rackTubsOverdue.length)+'</div><div class="sale-list">'+
+        terraCleanOverdue.map(te=>'<div class="sale-row"><div class="sale-name">'+escapeHtml(te.name)+'</div><button class="sc-btn accent" onclick="showTab(\'elevage\'); showSubtab(\'racks\');">🧹 '+(isEn?'View':'Voir')+'</button></div>').join('')+
+        rackTubsOverdue.slice(0,5).map(x=>'<div class="sale-row"><div class="sale-name">'+escapeHtml(x.rack.name)+' — '+(isEn?'Tub ':'Bac ')+x.key.split('|')[1]+'</div><button class="sc-btn accent" onclick="showTab(\'elevage\'); showSubtab(\'racks\');">🧹 '+(isEn?'View':'Voir')+'</button></div>').join('')+
+      '</div></div>' : '')+
+      (uvbOverdue.length ? '<div class="feed-day-group"><div class="feed-day-label">☀️ '+(isEn?'UVB replacement overdue':'Remplacement UVB dépassé')+' — '+uvbOverdue.length+'</div><div class="sale-list">'+
+        uvbOverdue.map(te=>'<div class="sale-row"><div class="sale-name">'+escapeHtml(te.name)+'<small>'+te.uvbReplaceDate+'</small></div><button class="sc-btn accent" onclick="showTab(\'elevage\'); showSubtab(\'racks\');">💡 '+(isEn?'View':'Voir')+'</button></div>').join('')+
+      '</div></div>' : '')+
+      (pairingLong.length ? '<div class="feed-day-group"><div class="feed-day-label">🐍 '+(isEn?'Pairing 5+ days':'En accouplement depuis 5j+')+' — '+pairingLong.length+'</div><div class="sale-list">'+
+        pairingLong.map(te=>'<div class="sale-row"><div class="sale-name">'+escapeHtml(te.name)+'<small>'+daysTogether(te)+(isEn?'d together':'j ensemble')+'</small></div><button class="sc-btn accent" onclick="showTab(\'elevage\'); showSubtab(\'racks\');">🐍 '+(isEn?'View':'Voir')+'</button></div>').join('')+
+      '</div></div>' : '')+
+      (lowStockEntries.length ? '<div class="feed-day-group"><div class="feed-day-label">📦 '+(isEn?'Low prey stock':'Stock de proies bas')+' — '+lowStockEntries.length+'</div><div class="sale-list">'+
+        lowStockEntries.map(k=>{ const [species,size]=k.split('|'); return '<div class="sale-row"><div class="sale-name">'+escapeHtml(species)+' '+escapeHtml(size)+'<small>'+feederStock[k]+' '+(isEn?'left':'restant(s)')+'</small></div><button class="sc-btn accent" onclick="showTab(\'elevage\'); showSubtab(\'nourriture\');">📦 '+(isEn?'View':'Voir')+'</button></div>'; }).join('')+
       '</div></div>' : '');
   }
 
