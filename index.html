@@ -1781,6 +1781,15 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   </div>
 
   <div class="reg-card">
+    <div class="reg-card-head"><span class="reg-flag">📋</span><h3 data-i18n="genericCsvTitle">Import CSV générique (n'importe quelle collection)</h3></div>
+    <p data-i18n="genericCsvDesc">Tu viens d'un autre outil (Excel, une autre app, un tableau maison) ? Exporte ta collection en CSV avec des en-têtes (nom, sexe, gènes, date de naissance, provenance, prix d'achat…) — LOCUS reconnaît les en-têtes courants automatiquement et te montre un aperçu avant de confirmer quoi que ce soit.</p>
+    <input type="file" id="generic-csv-file-input" accept=".csv,text/csv" style="display:none;"/>
+    <div class="reg-links">
+      <button class="sc-btn accent" onclick="if(requireAuthOrPrompt()) document.getElementById('generic-csv-file-input').click()">📋 <span data-i18n="genericCsvBtn">Choisir un fichier CSV (avec en-têtes)</span></button>
+    </div>
+  </div>
+
+  <div class="reg-card">
     <div class="reg-card-head"><span class="reg-flag">🔄</span><h3 data-i18n="mmImportTitle">Import depuis MorphMarket</h3></div>
     <p data-i18n="mmImportDesc">Tu utilises déjà MorphMarket (Animal Manager) ? Exporte ta collection en CSV depuis là-bas, puis importe-la ici directement — pas besoin de tout ressaisir à la main. La génétique est extraite du titre/traits de chaque annonce et reste marquée « à vérifier » jusqu'à confirmation.</p>
     <input type="file" id="mm-csv-file-input" accept=".csv,.tsv,text/csv,text/tab-separated-values" style="display:none;"/>
@@ -1897,7 +1906,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.1.62';
+const APP_VERSION = '2026.09.02.1.64';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3652,6 +3661,9 @@ const I18N = {
     exportCsvTitle: 'Import CSV (onboarding rapide)',
     exportCsvDescPrefix: 'Ajoute plusieurs reptiles d\'un coup depuis un fichier CSV. Format attendu par ligne : ',
     exportCsvBtn: '📑 Choisir un fichier CSV',
+    genericCsvTitle: 'Import CSV générique (n\'importe quelle collection)',
+    genericCsvDesc: 'Tu viens d\'un autre outil (Excel, une autre app, un tableau maison) ? Exporte ta collection en CSV avec des en-têtes (nom, sexe, gènes, date de naissance, provenance, prix d\'achat…) — LOCUS reconnaît les en-têtes courants automatiquement et te montre un aperçu avant de confirmer quoi que ce soit.',
+    genericCsvBtn: 'Choisir un fichier CSV (avec en-têtes)',
     exportValueReportTitle: 'Rapport de valeur (assurance)',
     exportValueReportDesc: "Déjà disponible dans l'onglet Valeur — génère un document imprimable/PDF de tout ton inventaire avec valeur estimée.",
     exportValueReportLink: '→ Aller à l\'onglet Valeur',
@@ -4148,6 +4160,9 @@ const I18N = {
     exportCsvTitle: 'CSV import (quick onboarding)',
     exportCsvDescPrefix: 'Add several reptiles at once from a CSV file. Expected format per line: ',
     exportCsvBtn: '📑 Choose a CSV file',
+    genericCsvTitle: 'Generic CSV import (any collection)',
+    genericCsvDesc: 'Coming from another tool (Excel, another app, a homemade spreadsheet)? Export your collection as CSV with headers (name, sex, genes, birth date, provenance, purchase price…) — LOCUS recognizes common headers automatically and shows you a preview before confirming anything.',
+    genericCsvBtn: 'Choose a CSV file (with headers)',
     exportValueReportTitle: 'Value report (insurance)',
     exportValueReportDesc: "Already available in the Value tab — generates a printable/PDF document of your whole inventory with estimated value.",
     exportValueReportLink: '→ Go to the Value tab',
@@ -7734,7 +7749,12 @@ async function pushAllUserData(forceAll){
     }
     if(customers.length){
       const dirty = itemsToPush('customers', customers, forceAll);
-      if(dirty.length) await sb.from('customers').upsert(dirty.map(cu=>({ id:cu.id, user_id:currentUser.id, data:cu })));
+      // Chiffrement niveau colonne (2 septembre) — passe par la fonction RPC upsert_customer_encrypted
+      // plutôt qu'un upsert direct, pour que la colonne `data` reste chiffrée à la source. Un appel
+      // par client (la fonction RPC ne prend qu'un enregistrement à la fois, contrairement à .upsert()).
+      for(const cu of dirty){
+        await sb.rpc('upsert_customer_encrypted', { p_id: cu.id, p_data: cu });
+      }
     }
     await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock });
     saveAppStatePushedAt(Date.now());
@@ -7766,7 +7786,7 @@ async function pullAllUserData(){
       sb.from('pairings').select('*'),
       sb.from('clutches').select('*'),
       sb.from('expenses').select('*'),
-      sb.from('customers').select('*'),
+      sb.rpc('get_my_customers_decrypted'), // chiffrement niveau colonne (2 sept) — déchiffre côté serveur, jamais de select direct sur data_encrypted
       sb.from('app_state').select('*').maybeSingle(),
       sb.from('profiles').select('breeder_name, email, phone').maybeSingle()
     ]);
@@ -7957,6 +7977,140 @@ document.getElementById('csv-file-input').addEventListener('change', (e)=>{
   };
   reader.readAsText(file);
 });
+
+/* ==================== Import CSV générique (2 septembre) — n'importe quelle collection, pas
+   juste le format rigide nom;sexe;gènes ci-dessus. Détecte le délimiteur, reconnaît les en-têtes
+   courants FR/EN, montre un aperçu avant de créer quoi que ce soit (contrairement à l'import rapide
+   ci-dessus qui écrit directement — celui-ci est pensé pour un plus gros import venant d'ailleurs,
+   où une erreur de mapping de colonne serait plus coûteuse à corriger après coup). ==================== */
+function detectCsvDelimiter(line){
+  const counts = { ',':(line.match(/,/g)||[]).length, ';':(line.match(/;/g)||[]).length, '\t':(line.match(/\t/g)||[]).length };
+  return Object.keys(counts).reduce((a,b)=>counts[a]>=counts[b]?a:b);
+}
+function parseCsvLine(line, delim){
+  const result = [];
+  let cur = '', inQuotes = false;
+  for(let i=0;i<line.length;i++){
+    const ch = line[i];
+    if(inQuotes){
+      if(ch==='"'){ if(line[i+1]==='"'){ cur+='"'; i++; } else { inQuotes=false; } }
+      else cur+=ch;
+    } else {
+      if(ch==='"') inQuotes=true;
+      else if(ch===delim){ result.push(cur); cur=''; }
+      else cur+=ch;
+    }
+  }
+  result.push(cur);
+  return result.map(v=>v.trim());
+}
+function normalizeHeaderKey(str){
+  return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+}
+const CSV_COLUMN_ALIASES = {
+  name: ['nom','name','nom du reptile','reptile name'],
+  sex: ['sexe','sex'],
+  genes: ['genes','gene','genetique','genetics','morph','morphs'],
+  birthDate: ['date de naissance','birth date','dob','naissance','date naissance'],
+  provenance: ['provenance','source','eleveur','breeder'],
+  purchasePrice: ['prix d\'achat','prix achat','purchase price','cost','cout'],
+  species: ['espece','species'],
+  askingPrice: ['prix demande','prix','asking price','price'],
+  notes: ['notes','note','remarques','comment','comments'],
+};
+function mapCsvHeaders(headerRow){
+  const map = {};
+  headerRow.forEach((h,i)=>{
+    const norm = normalizeHeaderKey(h);
+    for(const field in CSV_COLUMN_ALIASES){
+      if(CSV_COLUMN_ALIASES[field].some(alias=>normalizeHeaderKey(alias)===norm)) map[field] = i;
+    }
+  });
+  return map;
+}
+// Ne devine pas les formats de date ambigus (ex. 03/04/2026 = 3 avril ou 4 mars ?) — accepte
+// seulement l'ISO sans équivoque, laisse vide sinon pour qu'Alex/l'utilisateur corrige à la main
+// plutôt que de risquer une date fausse silencieuse.
+function normalizeCsvDate(str){
+  if(!str) return null;
+  const m = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if(!m) return null;
+  return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
+}
+var pendingGenericCsvRows = [];
+document.getElementById('generic-csv-file-input').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const isEn = currentLang==='en';
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    const rawLines = reader.result.split(/\r?\n/).filter(l=>l.trim()!=='');
+    if(!rawLines.length){ alert(isEn?'Empty file.':'Fichier vide.'); e.target.value=''; return; }
+    const delim = detectCsvDelimiter(rawLines[0]);
+    const headerRow = parseCsvLine(rawLines[0], delim);
+    const colMap = mapCsvHeaders(headerRow);
+    if(colMap.name===undefined){ alert(isEn?'Could not find a "name" column — check your CSV headers.':'Impossible de trouver une colonne "nom" — vérifie les en-têtes de ton CSV.'); e.target.value=''; return; }
+    const get = (cols,f) => colMap[f]!==undefined ? (cols[colMap[f]]||'').trim() : '';
+    pendingGenericCsvRows = rawLines.slice(1).map(line=>parseCsvLine(line, delim)).map(cols=>{
+      const sexRaw = get(cols,'sex');
+      const priceRaw = get(cols,'purchasePrice').replace(',','.').replace(/[^0-9.]/g,'');
+      const askRaw = get(cols,'askingPrice').replace(',','.').replace(/[^0-9.]/g,'');
+      return {
+        name: get(cols,'name'),
+        sex: /^f/i.test(sexRaw) ? 'female' : /^m/i.test(sexRaw) ? 'male' : null,
+        genesRaw: get(cols,'genes'),
+        birthDate: normalizeCsvDate(get(cols,'birthDate')),
+        provenance: get(cols,'provenance') || null,
+        purchasePrice: priceRaw ? parseFloat(priceRaw) : null,
+        species: get(cols,'species') || null,
+        askingPrice: askRaw ? parseFloat(askRaw) : null,
+        notes: get(cols,'notes') || null,
+      };
+    }).filter(r=>r.name);
+    if(!pendingGenericCsvRows.length){ alert(isEn?'No valid row found (missing name column values?).':'Aucune ligne valide trouvée (colonne nom vide ?).'); e.target.value=''; return; }
+    renderGenericCsvPreview(colMap, headerRow);
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+});
+function renderGenericCsvPreview(colMap, headerRow){
+  const isEn = currentLang==='en';
+  const detected = Object.keys(colMap).map(f=>f+' → "'+escapeHtml(headerRow[colMap[f]])+'"').join(', ');
+  const previewRows = pendingGenericCsvRows.slice(0,5).map(r=>
+    '<div class="modal-row"><span>'+escapeHtml(r.name)+'</span><span style="font-size:10px;color:var(--ink-dim);">'+(r.sex||'?')+(r.birthDate?' · '+r.birthDate:'')+(r.purchasePrice!=null?' · '+r.purchasePrice+'$':'')+'</span></div>'
+  ).join('');
+  const body =
+    '<p style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Columns detected: ':'Colonnes détectées : ')+(detected||(isEn?'name only':'nom seulement'))+'</p>'+
+    '<p style="font-size:13px;margin:10px 0;font-weight:600;">'+pendingGenericCsvRows.length+' '+(isEn?'reptile(s) ready to import. Preview of the first 5:':'reptile(s) prêt(s) à importer. Aperçu des 5 premiers :')+'</p>'+
+    previewRows+
+    (pendingGenericCsvRows.length>5 ? '<div style="font-size:10.5px;color:var(--ink-dim);padding:6px 4px;">+'+(pendingGenericCsvRows.length-5)+' '+(isEn?'more':'de plus')+'</div>' : '')+
+    '<button class="save-btn" style="width:100%;margin-top:14px;" onclick="confirmGenericCsvImport()">✅ '+(isEn?'Confirm import':'Confirmer l\'import')+'</button>'+
+    '<button class="sc-btn" style="width:100%;margin-top:6px;" onclick="pendingGenericCsvRows=[]; closeQuickModal();">'+(isEn?'Cancel':'Annuler')+'</button>';
+  showQuickModal((isEn?'CSV import preview':'Aperçu de l\'import CSV'), body);
+}
+function confirmGenericCsvImport(){
+  const isEn = currentLang==='en';
+  let added = 0;
+  pendingGenericCsvRows.forEach(r=>{
+    const genes = {};
+    (r.genesRaw||'').split(/[|,]/).map(g=>g.trim()).filter(Boolean).forEach(gname=>{
+      const g = GENES.find(x=>x.name.toLowerCase()===gname.toLowerCase());
+      if(g) genes[g.id] = defaultStatus(g);
+    });
+    savedSnakes.push({
+      id:'snk_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
+      name:r.name, sex:r.sex, genes, sireId:null, damId:null,
+      birthDate:r.birthDate||null, provenance:r.provenance,
+      purchasePrice:r.purchasePrice, species:r.species||'ball_python',
+      askingPrice:r.askingPrice
+    });
+    added++;
+  });
+  pendingGenericCsvRows = [];
+  renderSavedList();
+  closeQuickModal();
+  showToast('📋 '+added+' '+(isEn?'reptile(s) imported.':'reptile(s) importé(s).'), 'success');
+}
 
 /* ==================== Import MorphMarket (Animal Manager export) ==================== */
 // MorphMarket exporte en CSV ou TSV avec en-tête (Category, Title, Sex, Weight, Price,
