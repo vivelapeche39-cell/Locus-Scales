@@ -948,8 +948,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
     <button class="tab-btn active" data-tab="dash" data-i18n="tabDash" onclick="showTab('dash')">📋 Tableau de bord</button>
     <button class="tab-btn" data-tab="mine" data-i18n="tabMine" onclick="showTab('mine')">🐍 Mes reptiles</button>
     <button class="tab-btn" data-tab="elevage" data-i18n="tabElevage" onclick="showTab('elevage')">🏠 Élevage</button>
-    <button class="tab-btn" data-tab="ventes" data-i18n="tabVentes" onclick="showTab('ventes')">🏷️ Ventes</button>
     <button class="tab-btn" data-tab="incubation" data-i18n="tabIncubation" onclick="showTab('incubation')">🥚 Incubation</button>
+    <button class="tab-btn" data-tab="ventes" data-i18n="tabVentes" onclick="showTab('ventes')">🏷️ Ventes</button>
   </div>
 
   <div id="view-dash">
@@ -1191,8 +1191,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
     <div class="subtabs">
       <button class="subtab-btn active" data-sub="racks" data-i18n="subRacks" onclick="showSubtab('racks')">🗄️ Racks &amp; Terrariums</button>
       <button class="subtab-btn" data-sub="tour" data-i18n="subTour" onclick="showSubtab('tour')">🔄 Mode Tournée</button>
-      <button class="subtab-btn" data-sub="calendar" data-i18n="subCalendar" onclick="showSubtab('calendar')">📅 Calendrier</button>
       <button class="subtab-btn" data-sub="nourriture" data-i18n="subNourriture" onclick="showSubtab('nourriture')">🍽 Nourriture</button>
+      <button class="subtab-btn" data-sub="calendar" data-i18n="subCalendar" onclick="showSubtab('calendar')">📅 Calendrier</button>
       <button class="subtab-btn" data-sub="objectif" data-i18n="subObjectif" onclick="showSubtab('objectif')">🎯 Objectif</button>
     </div>
 
@@ -1872,7 +1872,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.1.53';
+const APP_VERSION = '2026.09.02.1.54';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2839,8 +2839,8 @@ const PERSONALIZATION_KEY = 'locus_personalization_v1';
 const PERSONALIZATION_FEATURES = [
   { key:'racks', sub:'racks', icon:'🏠', group:'elevage', fr:'Racks & Terrariums', en:'Racks & Enclosures' },
   { key:'tour', sub:'tour', icon:'🚶', group:'elevage', fr:'Mode Tournée', en:'Tour Mode' },
-  { key:'calendar', sub:'calendar', icon:'📅', group:'elevage', fr:'Calendrier de reproduction', en:'Breeding calendar' },
   { key:'nourriture', sub:'nourriture', icon:'🍽', group:'elevage', fr:'Nourriture', en:'Feeding' },
+  { key:'calendar', sub:'calendar', icon:'📅', group:'elevage', fr:'Calendrier de reproduction', en:'Breeding calendar' },
   { key:'objectif', sub:'objectif', icon:'🎯', group:'elevage', fr:'Objectif (planificateur)', en:'Goal (planner)' },
   { key:'incubation', icon:'🥚', group:'elevage', fr:'Incubation', en:'Incubation' },
   { key:'listings', vsub:'listings', icon:'🏷️', group:'ventes', fr:'Annonces & MorphMarket', en:'Listings & MorphMarket' },
