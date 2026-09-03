@@ -1571,6 +1571,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 
     <div style="display:flex;align-items:center;gap:10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:20px;flex-wrap:wrap;">
       <span style="font-size:10.5px;color:var(--ink-dim);" data-i18n="preyChartShareHint">Lien public et partageable, sans compte requis — utile pour les groupes Facebook.</span>
+      <a href="#" id="prey-guide-link" target="_blank" rel="noopener" class="sc-btn" style="text-decoration:none;">🔗 <span data-i18n="viewLinkBtn">Voir</span></a>
       <button class="sc-btn" onclick="copySpeciesGuideLink('prey_sizes')" data-i18n="copyPreyLinkBtn">📋 Copier le lien</button>
     </div>
 
@@ -1946,7 +1947,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.1.82';
+const APP_VERSION = '2026.09.02.1.84';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3571,6 +3572,7 @@ const I18N = {
     communauteIntro: 'Le vrai forum communautaire arrive plus tard (une fois LOCUS branché sur son propre serveur). En attendant, voici une première fiche de référence utile — plus de contenu à venir ici avec le temps.',
     folderPreySizeTitle: 'Lexique de taille des proies',
     preyChartShareHint: 'Lien public et partageable, sans compte requis — utile pour les groupes Facebook.',
+    viewLinkBtn: 'Voir',
     copyPreyLinkBtn: '📋 Copier le lien',
     preyChartTitle: '🐭🐀 Souris vs Rat — grosseur selon le poids du python',
     preyChartSubtitle: 'Règle générale : la proie devrait peser environ 10 à 15% du poids du python pour un jeune/petit sujet — ce pourcentage diminue graduellement à mesure que le python grandit (voir le détail par palier de poids ci-dessous). En cas de doute, choisis toujours plus petit — un python peut facilement reprendre une proie plus grosse la fois suivante, alors qu\'une proie trop grosse risque une régurgitation.',
@@ -4086,6 +4088,7 @@ const I18N = {
     communauteIntro: 'The real community forum is coming later (once LOCUS is connected to its own server). In the meantime, here\'s a first useful reference sheet — more content will be added here over time.',
     folderPreySizeTitle: 'Prey Size Lexicon',
     preyChartShareHint: 'Public, shareable link, no account required — useful for Facebook groups.',
+    viewLinkBtn: 'View',
     copyPreyLinkBtn: '📋 Copy link',
     preyChartTitle: '🐭🐀 Mouse vs Rat — size by python weight',
     preyChartSubtitle: 'General rule: prey should weigh about 10 to 15% of the python\'s body weight for a young/small snake — this percentage gradually decreases as the python grows (see the breakdown by weight bracket below). When in doubt, always go smaller — a python can easily take a bigger meal next time, while prey that\'s too large risks regurgitation.',
@@ -10756,6 +10759,8 @@ function renderPreyChart(){
   const ratTbody = document.getElementById('rat-size-tbody');
   const weightTbody = document.getElementById('python-weight-tbody');
   if(!mouseTbody) return;
+  const preyGuideLink = document.getElementById('prey-guide-link');
+  if(preyGuideLink) preyGuideLink.href = publicGuideUrl('prey_sizes');
 
   mouseTbody.innerHTML = MOUSE_SIZES.map(s=>
     '<tr style="border-bottom:1px solid rgba(255,255,255,.05);"><td style="padding:6px 4px;">'+(isEn?s.en:s.fr)+'</td><td style="padding:6px 4px;text-align:right;font-family:\'Courier New\',monospace;color:var(--gold);">'+formatPreyWeight(s.min,s.max,isEn)+'</td></tr>'
@@ -14792,14 +14797,22 @@ function renderSpeciesGuidesList(){
     const items = all.filter(sp=>sp.category===cat);
     if(!items.length) return ''; // pas de tortue enregistrée pour l'instant -> section absente plutôt que vide
     const label = SPECIES_CATEGORY_LABELS[cat];
+    const folderId = 'folder-species-'+cat;
+    const existing = document.getElementById(folderId);
+    const wasOpen = existing ? !existing.classList.contains('collapsed') : false;
     const rows = items.map(sp=>{
       // Version courte pour ce tableau seulement (liens publics) — le nom complet reste utilisé
       // ailleurs (ex. sélecteur d'espèce à l'ajout d'un reptile), ici c'est juste pour tenir sur 1 ligne.
       const shortLabel = sp.id==='hognose' ? 'Hognose' : (isEn?sp.nameEn:sp.nameFr);
-      return '<div class="modal-row"><span>'+shortLabel+'</span>'+
+      return '<div class="modal-row"><a href="'+publicGuideUrl(sp.id)+'" target="_blank" rel="noopener" style="color:var(--ink);text-decoration:underline;text-decoration-color:var(--gold);">'+shortLabel+'</a>'+
         '<button class="sc-btn" onclick="copySpeciesGuideLink(\''+sp.id+'\')">'+(isEn?'Copy link':'Copier le lien')+'</button></div>';
     }).join('');
-    return '<div style="font-family:\'Courier New\',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);margin:14px 0 6px;">'+(isEn?label.en:label.fr)+'</div>'+rows;
+    return '<div class="community-folder'+(wasOpen?'':' collapsed')+'" id="'+folderId+'" style="margin-top:10px;">'+
+      '<button class="community-folder-header" onclick="toggleCommunityFolder(\''+folderId+'\')">'+
+        '<span class="folder-icon">▾</span><span>'+(isEn?label.en:label.fr)+' ('+items.length+')</span>'+
+      '</button>'+
+      '<div class="community-folder-body">'+rows+'</div>'+
+    '</div>';
   }).join('');
 }
 function copySpeciesGuideLink(speciesId){
