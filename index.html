@@ -345,13 +345,13 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 .dash-card.tone-neutral .dash-card-count{color:var(--ink-dim);}
 
 /* Arbre généalogique */
-.pedigree-tree{display:flex;align-items:stretch;gap:10px;margin-top:10px;overflow-x:auto;}
-.ped-col{display:flex;flex-direction:column;justify-content:space-around;gap:6px;flex:1;min-width:100px;}
+.pedigree-tree{display:flex;align-items:stretch;gap:8px;margin-top:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.ped-col{display:flex;flex-direction:column;justify-content:space-around;gap:4px;flex:1;min-width:76px;}
 .ped-col-mid{justify-content:space-around;}
 .ped-col-self{justify-content:center;}
-.ped-node{background:var(--bg-panel-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:10.5px;text-align:center;color:var(--ink);flex:1;display:flex;align-items:center;justify-content:center;min-height:32px;}
+.ped-node{background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;padding:5px 7px;font-size:9px;text-align:center;color:var(--ink);flex:1;display:flex;align-items:center;justify-content:center;min-height:24px;line-height:1.2;}
 .ped-node.ped-empty{color:var(--ink-dim);font-style:italic;background:transparent;border-style:dashed;}
-.ped-node.ped-self{background:var(--gold);color:#1a1409;font-weight:600;border-color:var(--gold);}
+.ped-node.ped-self{background:var(--gold);color:#1a1409;font-weight:600;border-color:var(--gold);font-size:10.5px;}
 .ped-node.ped-repeated{border-color:var(--rust);background:rgba(163,77,44,.18);color:#e0906a;cursor:help;}
 
 /* Calendrier de nourrissage */
@@ -890,9 +890,9 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   .dash-card-count{font-size:26px;}
   .dash-card-label{font-size:9px;}
   .global-search-results{max-height:60vh;}
-  .pedigree-tree{gap:6px;}
-  .ped-node{font-size:9.5px;padding:6px 6px;min-height:28px;}
-  .ped-col{min-width:78px;}
+  .pedigree-tree{gap:4px;}
+  .ped-node{font-size:8px;padding:4px 5px;min-height:22px;}
+  .ped-col{min-width:64px;}
   .client-card-head{flex-wrap:wrap;}
   .client-card{padding:14px 16px;}
   .reg-card-head{flex-wrap:wrap;}
@@ -1946,7 +1946,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.1.72';
+const APP_VERSION = '2026.09.02.1.73';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -8544,9 +8544,28 @@ function pedigreeNodeHtml(node, repeatedIds){
   return '<div class="ped-node'+(repeated?' ped-repeated':'')+'" title="'+(repeated?(isEn?'⚠ This individual appears more than once in the tree':'⚠ Cet individu apparaît plusieurs fois dans l\'arbre'):'')+'">'+escapeHtml(node.snake.name)+(repeated?' ⚠':'')+'</div>';
 }
 
+// Extrait les colonnes de génération d'un arbre — générique, marche pour n'importe quelle
+// profondeur (2 septembre : passé de 2 à 4 générations pour suivre les projets double/triple
+// récessif, où la consanguinité peut venir d'un ancêtre commun plus loin que les grands-parents).
+// columns[0] = génération 1 (parents, 2 noeuds), columns[1] = génération 2 (4 noeuds), etc. —
+// toujours 2^génération noeuds par colonne (null en filler pour garder l'alignement visuel).
+function pedigreeGenerationColumns(tree, generations){
+  const columns = [];
+  for(let gen=1; gen<=generations; gen++){
+    const col = [];
+    (function walk(node, depth){
+      if(depth===gen){ col.push(node); return; }
+      walk(node ? node.sire : null, depth+1);
+      walk(node ? node.dam : null, depth+1);
+    })(tree, 0);
+    columns.push(col);
+  }
+  return columns;
+}
 function renderPedigreeTree(snakeId){
   const isEn = currentLang==='en';
-  const tree = buildAncestorTree(snakeId, 0, 2);
+  const PEDIGREE_GENERATIONS = 4;
+  const tree = buildAncestorTree(snakeId, 0, PEDIGREE_GENERATIONS);
   if(!tree || (!tree.sire && !tree.dam)) return '<div style="font-size:11.5px;color:var(--ink-dim);margin-top:8px;">'+(isEn?'Not enough pedigree recorded to build a tree (add sire/dam on the record).':'Pas assez de pedigree enregistré pour construire un arbre (ajoute père/mère sur la fiche).')+'</div>';
 
   const counts = {};
@@ -8554,10 +8573,7 @@ function renderPedigreeTree(snakeId){
   countAncestorOccurrences(tree.dam, counts);
   const repeatedIds = new Set(Object.keys(counts).filter(id=>counts[id]>1));
 
-  const ggSire1 = tree.sire ? tree.sire.sire : null, ggSire2 = tree.sire ? tree.sire.dam : null;
-  const ggDam1 = tree.dam ? tree.dam.sire : null, ggDam2 = tree.dam ? tree.dam.dam : null;
-
-  // Coefficient chiffré (calculé sur tout le pedigree connu, pas juste les 3 générations affichées)
+  // Coefficient chiffré (calculé sur tout le pedigree connu, pas juste les 4 générations affichées)
   // plutôt que la simple détection binaire "ancêtre répété" — mais on garde le surlignage visuel
   // des ancêtres répétés dans l'arbre, utile pour repérer PAR QUELLE branche vient la parenté.
   const F = inbreedingCoefficient(tree.snake.sireId, tree.snake.damId);
@@ -8572,9 +8588,15 @@ function renderPedigreeTree(snakeId){
     (repeatedIds.size ? '<br/><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Repeated ancestor(s) highlighted below show which branch it comes from.':'Le(s) ancêtre(s) répété(s) surligné(s) ci-dessous montre(nt) de quelle branche ça vient.')+'</span>' : '')+
   '</div>';
 
+  const genColumns = pedigreeGenerationColumns(tree, PEDIGREE_GENERATIONS); // [gen1..gen4], 2/4/8/16 noeuds
+  const displayColumns = [...genColumns].reverse(); // affichage : le plus loin à gauche, parents juste avant soi
+  const colsHtml = displayColumns.map((col,i)=>{
+    const isParentsCol = i===displayColumns.length-1;
+    return '<div class="ped-col'+(isParentsCol?' ped-col-mid':'')+'">'+col.map(n=>pedigreeNodeHtml(n,repeatedIds)).join('')+'</div>';
+  }).join('');
+
   return '<div class="pedigree-tree">'+
-    '<div class="ped-col">'+pedigreeNodeHtml(ggSire1,repeatedIds)+pedigreeNodeHtml(ggSire2,repeatedIds)+pedigreeNodeHtml(ggDam1,repeatedIds)+pedigreeNodeHtml(ggDam2,repeatedIds)+'</div>'+
-    '<div class="ped-col ped-col-mid">'+pedigreeNodeHtml(tree.sire,repeatedIds)+pedigreeNodeHtml(tree.dam,repeatedIds)+'</div>'+
+    colsHtml+
     '<div class="ped-col ped-col-self"><div class="ped-node ped-self">'+escapeHtml(tree.snake.name)+'</div></div>'+
   '</div>'+inbreedingWarning;
 }
