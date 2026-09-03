@@ -1630,8 +1630,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   </div>
 
   <div class="footnote">
-    <b>Note :</b> 78 gènes actuellement dans la base, chacun vérifié individuellement (Morphpedia, ReptiDex, ou source communautaire fiable citée) — mode de transmission, allélisme et risques santé connus, pas des suppositions. La génétique complète du python royal compte encore d'autres gènes moins documentés ou débattus dans la communauté ; ceux-ci sont volontairement exclus tant qu'ils ne sont pas confirmés plutôt que d'être ajoutés par approximation. Certaines interactions restent à vérifier avant tout usage réel d'élevage — Claude peut en ajouter d'autres sur demande.
-    <p style="margin-top:12px;margin-bottom:0;opacity:.65;">© 2026 LOCUS Scales — Alexandre Young. Tous droits réservés. La reproduction ou la copie de ce logiciel, en tout ou en partie, est interdite sans autorisation.</p>
+    <b data-i18n="geneCountNoteLabel">Note :</b> <span data-i18n="geneCountNoteBody">78 gènes actuellement dans la base, chacun vérifié individuellement (Morphpedia, ReptiDex, ou source communautaire fiable citée) — mode de transmission, allélisme et risques santé connus, pas des suppositions. La génétique complète du python royal compte encore d'autres gènes moins documentés ou débattus dans la communauté ; ceux-ci sont volontairement exclus tant qu'ils ne sont pas confirmés plutôt que d'être ajoutés par approximation. Certaines interactions restent à vérifier avant tout usage réel d'élevage — Claude peut en ajouter d'autres sur demande.</span>
+    <p style="margin-top:12px;margin-bottom:0;opacity:.65;" data-i18n="footerCopyright">© 2026 LOCUS Scales — Alexandre Young. Tous droits réservés. La reproduction ou la copie de ce logiciel, en tout ou en partie, est interdite sans autorisation.</p>
   </div>
 
 </div>
@@ -1946,7 +1946,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.1.78';
+const APP_VERSION = '2026.09.02.1.79';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3801,6 +3801,9 @@ const I18N = {
     photosTitle: 'Photos',
     addPhotoBtn: '📷 Ajouter une photo',
     genealogyTitle: 'Généalogie',
+    geneCountNoteLabel: 'Note :',
+    geneCountNoteBody: "78 gènes actuellement dans la base, chacun vérifié individuellement (Morphpedia, ReptiDex, ou source communautaire fiable citée) — mode de transmission, allélisme et risques santé connus, pas des suppositions. La génétique complète du python royal compte encore d'autres gènes moins documentés ou débattus dans la communauté ; ceux-ci sont volontairement exclus tant qu'ils ne sont pas confirmés plutôt que d'être ajoutés par approximation. Certaines interactions restent à vérifier avant tout usage réel d'élevage — Claude peut en ajouter d'autres sur demande.",
+    footerCopyright: '© 2026 LOCUS Scales — Alexandre Young. Tous droits réservés. La reproduction ou la copie de ce logiciel, en tout ou en partie, est interdite sans autorisation.',
     viewCompatibilityBtn: 'Voir la compatibilité avec…',
     registeredOffspring: 'Descendance enregistrée',
     noneWord: 'Aucune',
@@ -4313,6 +4316,9 @@ const I18N = {
     photosTitle: 'Photos',
     addPhotoBtn: '📷 Add a photo',
     genealogyTitle: 'Genealogy',
+    geneCountNoteLabel: 'Note:',
+    geneCountNoteBody: "78 genes currently in the database, each individually verified (Morphpedia, ReptiDex, or a cited reliable community source) — inheritance mode, allelism, and known health risks, not guesswork. Full ball python genetics still includes other genes that are less documented or debated in the community; these are deliberately excluded until confirmed rather than added by approximation. Some interactions still need verification before real breeding use — Claude can add more on request.",
+    footerCopyright: '© 2026 LOCUS Scales — Alexandre Young. All rights reserved. Reproduction or copying of this software, in whole or in part, is prohibited without authorization.',
     viewCompatibilityBtn: 'View compatibility with…',
     registeredOffspring: 'Registered offspring',
     noneWord: 'None',
