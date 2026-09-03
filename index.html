@@ -1946,7 +1946,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.1.76';
+const APP_VERSION = '2026.09.02.1.77';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3801,6 +3801,7 @@ const I18N = {
     photosTitle: 'Photos',
     addPhotoBtn: '📷 Ajouter une photo',
     genealogyTitle: 'Généalogie',
+    viewCompatibilityBtn: 'Voir la compatibilité avec…',
     registeredOffspring: 'Descendance enregistrée',
     noneWord: 'Aucune',
     weightHistoryTitle: 'Historique de poids',
@@ -4312,6 +4313,7 @@ const I18N = {
     photosTitle: 'Photos',
     addPhotoBtn: '📷 Add a photo',
     genealogyTitle: 'Genealogy',
+    viewCompatibilityBtn: 'View compatibility with…',
     registeredOffspring: 'Registered offspring',
     noneWord: 'None',
     weightHistoryTitle: 'Weight history',
@@ -5622,6 +5624,36 @@ function deleteSnake(id){
   renderSavedList();
 }
 
+// Compatibilité génétique accessible partout (2 septembre) — avant, fallait charger chaque animal
+// séparément dans le calculateur via le menu "⋯". Ici, un tap direct depuis la fiche pré-remplit
+// les deux côtés et lance le calcul, réduit la friction sans rien inventer de nouveau côté moteur.
+function openCompatibilityModal(snakeId){
+  const isEn = currentLang==='en';
+  const snake = savedSnakes.find(s=>s.id===snakeId);
+  if(!snake || !snake.sex) return;
+  const oppositeSex = snake.sex==='male' ? 'female' : 'male';
+  const candidates = savedSnakes.filter(s=>s.id!==snakeId && s.sex===oppositeSex);
+  if(!candidates.length){ alert(isEn?'No reptile of the opposite sex registered to compare with.':'Aucun reptile du sexe opposé enregistré pour comparer.'); return; }
+  const options = candidates.map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+' — '+escapeHtml(summarizeGenes(s.genes))+'</option>').join('');
+  const body =
+    '<select id="compat-partner-select" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:12px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+options+'</select>'+
+    '<button class="save-btn" style="width:100%;" onclick="viewCompatibility(\''+snakeId+'\')">🧬 '+(isEn?'View compatibility':'Voir la compatibilité')+'</button>';
+  showQuickModal((isEn?'Compatibility for ':'Compatibilité pour ')+snake.name, body);
+}
+function viewCompatibility(snakeId){
+  const isEn = currentLang==='en';
+  const partnerId = document.getElementById('compat-partner-select').value;
+  const snake = savedSnakes.find(s=>s.id===snakeId);
+  const partner = savedSnakes.find(s=>s.id===partnerId);
+  if(!snake || !partner) return;
+  state.male = {...(snake.sex==='male'?snake:partner).genes};
+  state.female = {...(snake.sex==='female'?snake:partner).genes};
+  closeQuickModal();
+  showTab('calc');
+  renderTags('male'); renderTags('female');
+  runCross();
+  showToast('🧬 '+(isEn?'Loaded ':'Chargé ')+snake.name+' × '+partner.name+'.', 'success');
+}
 function loadSnake(id, targetSex){
   const isEn = currentLang==='en';
   const snake = savedSnakes.find(s=>s.id===id);
@@ -6961,7 +6993,9 @@ function openLogbook(id){
       '<button class="sc-btn accent" onclick="document.getElementById(\'photo-input-'+id+'\').click()">'+t('addPhotoBtn')+'</button>'+
       photosHtml+
     '</div>'+
-    '<div class="modal-section"><h3>'+t('genealogyTitle')+'</h3>'+pedigreeHtml+pedigreeTreeHtml+'</div>'+
+    '<div class="modal-section"><h3>'+t('genealogyTitle')+'</h3>'+pedigreeHtml+pedigreeTreeHtml+
+      (s.sex ? '<button class="sc-btn accent" style="width:100%;margin-top:10px;" onclick="openCompatibilityModal(\''+id+'\')">🧬 '+t('viewCompatibilityBtn')+'</button>' : '')+
+    '</div>'+
     (s.geneticNotes && s.geneticNotes.length ? '<div class="modal-section" style="border-color:var(--gold);background:rgba(201,151,62,.06);"><h3>🔍 '+FEATURE_NAME+'</h3>'+
       [...s.geneticNotes].sort((a,b)=>b.date.localeCompare(a.date)).map(n=>'<div class="modal-row" style="align-items:flex-start;"><span style="font-size:11.5px;line-height:1.5;">'+escapeHtml(n.text)+'<br/><small style="color:var(--ink-dim);">'+n.date+'</small></span></div>').join('')+
     '</div>' : '')+
