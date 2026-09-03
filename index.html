@@ -1946,7 +1946,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.1.75';
+const APP_VERSION = '2026.09.02.1.76';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2259,6 +2259,13 @@ try{
           (r.sire_name || r.dam_name ? '<div class="modal-row"><span>'+(isEn?'Parents':'Parents')+'</span><span>'+escapeHtml(r.sire_name||'?')+' × '+escapeHtml(r.dam_name||'?')+'</span></div>' : '')+
           (r.provenance ? '<div class="modal-row"><span>Provenance</span><span>'+escapeHtml(r.provenance)+'</span></div>' : '')+
         '</div>'+
+        '<div style="font-size:10px;color:var(--ink-dim);text-align:center;margin:-8px 0 14px;line-height:1.5;">'+(isEn
+          ? 'LOCUS records what the breeder declared, and when — it confirms the integrity of the timestamped history, not the genetic accuracy itself.'
+          : 'LOCUS enregistre ce que l\'éleveur a déclaré, et quand — ça garantit l\'intégrité de l\'historique horodaté, pas l\'exactitude génétique elle-même.')+'</div>'+
+        (r.genetics_history && r.genetics_history.length ? '<div style="background:var(--bg-panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px;">'+
+          '<div style="font-weight:600;color:var(--gold);margin-bottom:4px;">'+(isEn?'Genetics correction history':'Historique des corrections de génétique')+'</div>'+
+          historyBlock(r.genetics_history, gh=>escapeHtml(gh.date)+' — '+(isEn?'from "':'de « ')+escapeHtml(gh.from)+(isEn?'" to "':' » à « ')+escapeHtml(gh.to)+(isEn?'"':' »'))+
+        '</div>' : '')+
         '<div style="background:var(--bg-panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px;">'+
           '<div style="font-weight:600;color:var(--gold);margin-bottom:4px;">'+(isEn?'Weight history':'Historique de poids')+'</div>'+
           historyBlock(weights, w=>escapeHtml(w.date)+' — '+w.value+'g')+
@@ -5465,6 +5472,15 @@ function saveDraft(){
   const preySize = document.getElementById('draft-prey-size').value || null;
   if(editingId){
     const snake = savedSnakes.find(s=>s.id===editingId);
+    // Carnet de bord (2 septembre) — LOCUS enregistre ce qui a été déclaré et quand, jamais une
+    // garantie d'exactitude. Une correction reste visible plutôt que cachée, c'est justement ce qui
+    // rend l'historique digne de confiance (voir disclaimer sur la page de transfert publique).
+    const oldGeneNames = summarizeGenes(snake.genes||{});
+    const newGeneNames = summarizeGenes({...state.draft});
+    if(oldGeneNames !== newGeneNames){
+      if(!snake.geneticsHistory) snake.geneticsHistory = [];
+      snake.geneticsHistory.push({ id:'ghist_'+Date.now(), date:new Date().toISOString().slice(0,10), from:oldGeneNames, to:newGeneNames });
+    }
     snake.name = name; snake.sex = draftSex; snake.genes = {...state.draft}; snake.sireId = sireId; snake.damId = damId; snake.birthDate = birthDate; snake.provenance = provenance; snake.purchasePrice = purchasePrice; snake.species = species;
     snake.preySpecies = preySpecies; snake.preySize = preySize;
     editingId = null;
@@ -7867,7 +7883,8 @@ function snakeToRow(s){
     quarantine: s.quarantine||{active:false,startDate:null,durationDays:60}, custom_tags: s.customTags||[], species: s.species||'ball_python',
     paid_via_stripe: !!s.paidViaStripe, care_params: s.careParams||{}, public_token: s.publicToken||null, feed_cost: s.feedCost||null, transfer_token: s.transferToken||null,
     shipping_carrier: s.shippingCarrier||null, shipping_tracking: s.shippingTracking||null, shipping_date: s.shippingDate||null, shipping_delivered: !!s.shippingDelivered,
-    purchase_price: s.purchasePrice!=null ? s.purchasePrice : null
+    purchase_price: s.purchasePrice!=null ? s.purchasePrice : null,
+    genetics_history: s.geneticsHistory||[]
   };
 }
 function rowToSnake(r){
@@ -7881,7 +7898,8 @@ function rowToSnake(r){
     quarantine: r.quarantine || {active:false,startDate:null,durationDays:60}, customTags: r.custom_tags || [], species: r.species || 'ball_python',
     paidViaStripe: !!r.paid_via_stripe, careParams: r.care_params || {}, publicToken: r.public_token || null, feedCost: r.feed_cost!=null ? r.feed_cost : null, transferToken: r.transfer_token || null,
     shippingCarrier: r.shipping_carrier || null, shippingTracking: r.shipping_tracking || null, shippingDate: r.shipping_date || null, shippingDelivered: !!r.shipping_delivered,
-    purchasePrice: r.purchase_price!=null ? r.purchase_price : null, updatedAt: r.updated_at ? Date.parse(r.updated_at) : 0
+    purchasePrice: r.purchase_price!=null ? r.purchase_price : null,
+    geneticsHistory: r.genetics_history||[], updatedAt: r.updated_at ? Date.parse(r.updated_at) : 0
   };
 }
 
@@ -8624,6 +8642,7 @@ function ensureSnakeMeta(s){
   if(!s.health.defecations) s.health.defecations = []; // journal de défécation — {id, date, note} — suivi parasites/digestion
   if(!s.photos) s.photos = []; // photos ajoutées manuellement par l'éleveur — LOCUS n'en génère aucune
   if(!s.geneticNotes) s.geneticNotes = []; // [FEATURE_NAME] — notes de divergence génétique datées, distinctes du journal de santé
+  if(!s.geneticsHistory) s.geneticsHistory = []; // Carnet de bord — historique des corrections de génétique déclarée, jamais effacé
   if(s.status===undefined) s.status = 'kept'; // 'kept' | 'forsale' | 'reserved' | 'sold'
   if(s.askingPrice===undefined) s.askingPrice = null;
   if(s.buyer===undefined) s.buyer = null;
