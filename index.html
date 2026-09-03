@@ -1947,7 +1947,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.1.84';
+const APP_VERSION = '2026.09.02.1.85';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2142,12 +2142,34 @@ try{
 // Les fonctions référencées dans le .then() (summarizeGenes, formatBirthLabel, GENES...) sont
 // déclarées plus loin dans le fichier, mais c'est sans risque : ce callback ne s'exécute qu'après
 // la réponse réseau, donc bien après que le script au complet ait fini de s'exécuter une première fois.
+// Langue des pages publiques autonomes (2 septembre) — avant, uniquement devinée depuis la langue
+// du téléphone/navigateur (navigator.language), sans aucun moyen de la changer manuellement. Un
+// visiteur (ou Alex lui-même en train de tester) avec un appareil en français restait coincé en
+// français même en voulant voir la version anglaise. Le paramètre ?lang=fr/en dans l'URL prend
+// maintenant le dessus si présent, avec un bouton de bascule visible sur chaque page.
+function detectPublicPageLang(){
+  const forced = new URLSearchParams(location.search).get('lang');
+  if(forced==='fr') return false;
+  if(forced==='en') return true;
+  return !(navigator.language||'').toLowerCase().startsWith('fr');
+}
+function togglePublicPageLang(isEn){
+  const params = new URLSearchParams(location.search);
+  params.set('lang', isEn ? 'fr' : 'en');
+  location.search = params.toString();
+}
+function publicPageLangToggleHtml(isEn){
+  return '<div style="text-align:center;margin-bottom:14px;">'+
+    '<button onclick="togglePublicPageLang('+isEn+')" style="background:transparent;border:1px solid var(--line);color:var(--ink-dim);font-size:10.5px;padding:5px 12px;border-radius:14px;cursor:pointer;font-family:\'Courier New\',monospace;">'+(isEn?'Français':'English')+'</button>'+
+  '</div>';
+}
+
 (function initPublicSnakeView(){
   const token = new URLSearchParams(location.search).get('public');
   if(!token) return;
   const overlay = document.getElementById('public-view-overlay');
   if(!overlay) return;
-  const isEn = !(navigator.language||'').toLowerCase().startsWith('fr');
+  const isEn = detectPublicPageLang();
   overlay.style.display = 'block';
   overlay.innerHTML = '<div style="max-width:520px;margin:0 auto;padding:60px 20px;text-align:center;color:var(--ink-dim);font-family:system-ui,-apple-system,Segoe UI,Roboto,Verdana,sans-serif;">'+(isEn?'Loading…':'Chargement…')+'</div>';
   if(!sb){
@@ -2178,6 +2200,7 @@ try{
     const speciesLabel = (!r.species || r.species==='ball_python') ? 'Ball Python' : (r.species==='other' ? (isEn?'Other species':'Autre espèce') : escapeHtml(r.species));
     overlay.innerHTML =
       '<div style="max-width:560px;margin:0 auto;padding:32px 20px 60px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Verdana,sans-serif;">'+
+        publicPageLangToggleHtml(isEn)+
         '<div style="text-align:center;margin-bottom:24px;">'+
           '<div style="font-family:Georgia,serif;font-size:22px;color:var(--gold);letter-spacing:1px;">LOCUS<span style="color:var(--sage);">.</span>Scales</div>'+
           '<div style="font-size:10px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px;">'+(isEn?'Public reptile profile':'Fiche reptile publique')+'</div>'+
@@ -2206,7 +2229,7 @@ try{
   if(!token) return;
   const overlay = document.getElementById('public-view-overlay');
   if(!overlay) return;
-  const isEn = !(navigator.language||'').toLowerCase().startsWith('fr');
+  const isEn = detectPublicPageLang();
   overlay.style.display = 'block';
   overlay.innerHTML = '<div style="max-width:520px;margin:0 auto;padding:60px 20px;text-align:center;color:var(--ink-dim);font-family:system-ui,-apple-system,Segoe UI,Roboto,Verdana,sans-serif;">'+(isEn?'Loading…':'Chargement…')+'</div>';
   if(!sb){
@@ -2245,6 +2268,7 @@ try{
     };
     overlay.innerHTML =
       '<div style="max-width:560px;margin:0 auto;padding:32px 20px 60px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Verdana,sans-serif;">'+
+        publicPageLangToggleHtml(isEn)+
         '<div style="text-align:center;margin-bottom:24px;">'+
           '<div style="font-family:Georgia,serif;font-size:22px;color:var(--gold);letter-spacing:1px;">LOCUS<span style="color:var(--sage);">.</span>Scales</div>'+
           '<div style="font-size:10px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px;">'+(isEn?'Clutch showcase':'Vitrine de portée')+'</div>'+
@@ -2270,7 +2294,7 @@ try{
   if(!token) return;
   const overlay = document.getElementById('public-view-overlay');
   if(!overlay) return;
-  const isEn = !(navigator.language||'').toLowerCase().startsWith('fr');
+  const isEn = detectPublicPageLang();
   overlay.style.display = 'block';
   overlay.innerHTML = '<div style="max-width:520px;margin:0 auto;padding:60px 20px;text-align:center;color:var(--ink-dim);font-family:system-ui,-apple-system,Segoe UI,Roboto,Verdana,sans-serif;">'+(isEn?'Loading…':'Chargement…')+'</div>';
   if(!sb){
@@ -2310,6 +2334,7 @@ try{
       : '<div style="margin-top:8px;font-size:11.5px;color:var(--ink-dim);">'+(isEn?'No history recorded.':'Aucun historique enregistré.')+'</div>';
     overlay.innerHTML =
       '<div style="max-width:560px;margin:0 auto;padding:32px 20px 60px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Verdana,sans-serif;">'+
+        publicPageLangToggleHtml(isEn)+
         '<div style="text-align:center;margin-bottom:24px;">'+
           '<div style="font-family:Georgia,serif;font-size:22px;color:var(--gold);letter-spacing:1px;">LOCUS<span style="color:var(--sage);">.</span>Scales</div>'+
           '<div style="font-size:10px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px;">'+(isEn?'Full record transfer — new owner':'Transfert de dossier complet — nouveau propriétaire')+'</div>'+
@@ -14831,7 +14856,7 @@ function publicGuideUrl(speciesId){
   return location.origin + location.pathname + '?guide=' + speciesId;
 }
 function buildSpeciesGuideHtml(speciesId){
-  const isEn = !(navigator.language||'').toLowerCase().startsWith('fr');
+  const isEn = detectPublicPageLang();
   const langKey = isEn ? 'En' : 'Fr';
   let title, introHtml, bodyHtml;
   if(speciesId==='ball_python'){
@@ -14913,6 +14938,7 @@ function buildSpeciesGuideHtml(speciesId){
       faqHtml;
   }
   return '<div style="max-width:560px;margin:0 auto;padding:40px 20px 60px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Verdana,sans-serif;">'+
+    publicPageLangToggleHtml(isEn)+
     '<div style="text-align:center;margin-bottom:24px;">'+
       '<div style="font-family:Georgia,serif;font-size:13px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;">LOCUS Scales</div>'+
       '<h1 style="font-family:Georgia,serif;font-size:24px;margin:6px 0 0;color:var(--ink);">'+title+'</h1>'+
@@ -14931,7 +14957,7 @@ function initPublicSpeciesGuide(){
   const overlay = document.getElementById('public-view-overlay');
   if(!overlay) return;
   const html = buildSpeciesGuideHtml(speciesId);
-  const isEn = !(navigator.language||'').toLowerCase().startsWith('fr');
+  const isEn = detectPublicPageLang();
   overlay.style.display = 'block';
   overlay.innerHTML = html || ('<div style="max-width:520px;margin:0 auto;padding:60px 20px;text-align:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,Verdana,sans-serif;color:var(--ink-dim);">'+(isEn?'Guide not found.':'Fiche introuvable.')+'</div>');
 }
