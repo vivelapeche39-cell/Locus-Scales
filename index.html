@@ -1946,7 +1946,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.1.73';
+const APP_VERSION = '2026.09.02.1.75';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -6946,6 +6946,9 @@ function openLogbook(id){
       photosHtml+
     '</div>'+
     '<div class="modal-section"><h3>'+t('genealogyTitle')+'</h3>'+pedigreeHtml+pedigreeTreeHtml+'</div>'+
+    (s.geneticNotes && s.geneticNotes.length ? '<div class="modal-section" style="border-color:var(--gold);background:rgba(201,151,62,.06);"><h3>🔍 '+FEATURE_NAME+'</h3>'+
+      [...s.geneticNotes].sort((a,b)=>b.date.localeCompare(a.date)).map(n=>'<div class="modal-row" style="align-items:flex-start;"><span style="font-size:11.5px;line-height:1.5;">'+escapeHtml(n.text)+'<br/><small style="color:var(--ink-dim);">'+n.date+'</small></span></div>').join('')+
+    '</div>' : '')+
     '<div class="modal-section"><h3>'+t('weightHistoryTitle')+'</h3>'+weightSparklineSvg(s.health.weights)+weightsHtml+growthCompareHtml+'</div>'+
     '<div class="modal-section"><h3>'+t('lengthHistoryTitle')+'</h3>'+lengthsHtml+'</div>'+
     '<div class="modal-section"><h3>'+t('vetJournalTitle')+'</h3>'+
@@ -7685,7 +7688,7 @@ function saveElevage(){
   trackLocalChanges('expenses', expenses);
   trackLocalChanges('customers', customers);
   try{
-    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos }));
+    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos, geneticAmbiguities }));
     storageWriteFailed = false;
   }catch(e){
     console.warn('LOCUS: écriture élevage impossible', e);
@@ -7699,6 +7702,9 @@ var { pairings, layout, clutches, expenses, customers } = elevageData;
 (pairings||[]).forEach(p=>{ if(!p.follicleSizes) p.follicleSizes = []; }); // migration : suivi folliculaire ajouté après coup
 var customEvents = elevageData.customEvents || [];
 var todos = elevageData.todos || [];
+// [FEATURE_NAME] (2 septembre) — dossiers d'ambiguïté génétique en attente de résolution
+// rétroactive (cas 2 : confirmé chez l'un des deux parents, indéterminé lequel).
+var geneticAmbiguities = elevageData.geneticAmbiguities || [];
 // Projets multi-générations — regroupe des accouplements sur plusieurs saisons vers un objectif
 // génétique précis (ex. « Bumblebee project »). Stocké comme customEvents : local dans
 // locus_elevage_v1, synchronisé au serveur via app_state.projects (voir pushAllUserData/pullAllUserData).
@@ -7924,7 +7930,7 @@ async function pushAllUserData(forceAll){
         await sb.rpc('upsert_customer_encrypted', { p_id: cu.id, p_data: cu });
       }
     }
-    await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock, todos });
+    await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock, todos, genetic_ambiguities: geneticAmbiguities });
     saveAppStatePushedAt(Date.now());
     const profile = loadProfile();
     await sb.from('profiles').upsert({ user_id:currentUser.id, breeder_name: profile.breederName||null, email: profile.email||null, phone: profile.phone||null });
@@ -8003,6 +8009,7 @@ async function pullAllUserData(){
     if(stateRes.data && stateRes.data.layout && remoteAppStateWins){ layout = stateRes.data.layout; if(!layout.customFieldOptions) layout.customFieldOptions = { lighting:[], heating:[], substrate:[] }; }
     if(stateRes.data && stateRes.data.custom_events) customEvents = mergeById(customEvents, stateRes.data.custom_events);
     if(stateRes.data && stateRes.data.todos) todos = mergeById(todos, stateRes.data.todos);
+    if(stateRes.data && stateRes.data.genetic_ambiguities) geneticAmbiguities = mergeById(geneticAmbiguities, stateRes.data.genetic_ambiguities);
     if(stateRes.data && stateRes.data.projects) projects = mergeById(projects, stateRes.data.projects);
     if(stateRes.data && stateRes.data.feeder_stock && remoteAppStateWins) feederStock = stateRes.data.feeder_stock;
     if(stateRes.data && stateRes.data.dismissed_banners){
@@ -8049,7 +8056,7 @@ function exportBackup(){
   const payload = {
     app:'LOCUS', version:2, exportedAt:new Date().toISOString(),
     snakes: savedSnakes,
-    elevage: { racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos }
+    elevage: { racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos, geneticAmbiguities }
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
@@ -8093,6 +8100,7 @@ document.getElementById('import-file-input').addEventListener('change', (e)=>{
     customers = el.customers || [];
     customEvents = el.customEvents || [];
     todos = el.todos || [];
+    geneticAmbiguities = el.geneticAmbiguities || [];
     projects = el.projects || [];
     feederStock = el.feederStock || {};
     saveElevage();
@@ -8615,6 +8623,7 @@ function ensureSnakeMeta(s){
   if(!s.health.cleanings) s.health.cleanings = []; // journal de nettoyage/entretien du terrarium — {id, date, note}
   if(!s.health.defecations) s.health.defecations = []; // journal de défécation — {id, date, note} — suivi parasites/digestion
   if(!s.photos) s.photos = []; // photos ajoutées manuellement par l'éleveur — LOCUS n'en génère aucune
+  if(!s.geneticNotes) s.geneticNotes = []; // [FEATURE_NAME] — notes de divergence génétique datées, distinctes du journal de santé
   if(s.status===undefined) s.status = 'kept'; // 'kept' | 'forsale' | 'reserved' | 'sold'
   if(s.askingPrice===undefined) s.askingPrice = null;
   if(s.buyer===undefined) s.buyer = null;
@@ -11856,6 +11865,250 @@ function proveHetFromVisualBaby(babySnake){
   return proven;
 }
 
+/* ==================== [FEATURE_NAME] — détection de divergence génétique dominante/codominante
+   (2 septembre) — voir discussion complète dans le journal historique. Ne touche JAMAIS aux gènes
+   récessifs (déjà couverts correctement par proveHetFromVisualBaby, mécanisme différent). Ne
+   s'applique qu'aux types incdom/dominant, où une copie s'exprime toujours — donc si le bébé le
+   montre vraiment, un des deux parents le porte forcément (certitude mathématique), à condition que
+   la parenté père/mère soit bien liée sur la fiche (seule vraie limite qu'aucun logiciel ne peut lever). */
+const FEATURE_NAME = "Détective Génétique";
+const GENETIC_SURPRISE_TYPES = ['incdom', 'dominant'];
+
+// Nombre de "places" (sur 2) prises par des gènes CONFIRMÉS (pas "possible") à un locus donné —
+// sert à la déduction par élimination : un parent aux 2 places déjà prises ne peut pas en plus
+// porter un 3e gène du même locus, génétiquement impossible.
+function lociSlotsTaken(snake, locus){
+  if(!snake || !snake.genes) return 0;
+  let taken = 0;
+  GENES.forEach(g=>{
+    if(g.locus!==locus) return;
+    const raw = snake.genes[g.id];
+    if(!raw) return;
+    const norm = normalizeGeneEntry(raw);
+    if(norm.possible) return; // non confirmé -> pas une vraie place prise
+    taken += (norm.status==='homo' || norm.status==='visual') ? 2 : 1;
+  });
+  return Math.min(taken, 2);
+}
+
+// Détecte les gènes dominants/codominants confirmés chez le bébé mais génétiquement inexplicables
+// par les parents enregistrés. Limite v1 assumée : ne traite que les cas à une seule copie surprise
+// par locus (le cas très large majoritaire) — un cas plus complexe (ex. forme homozygote surprise)
+// n'ouvre pas la modale, laissé au signalement passif existant (checkBabyGeneticsConsistency).
+function detectGeneticSurprises(babySnake){
+  if(!babySnake.sireId || !babySnake.damId) return [];
+  const sire = savedSnakes.find(s=>s.id===babySnake.sireId);
+  const dam = savedSnakes.find(s=>s.id===babySnake.damId);
+  if(!sire || !dam) return [];
+  const babyAlleles = allelesFromSelections(babySnake.genes||{});
+  const sireAlleles = allelesFromSelections(sire.genes||{});
+  const damAlleles = allelesFromSelections(dam.genes||{});
+  const surprises = [];
+  Object.keys(babyAlleles).forEach(locus=>{
+    const p1 = sireAlleles[locus] || ['WT','WT'];
+    const p2 = damAlleles[locus] || ['WT','WT'];
+    const possiblePairs = crossLocus(p1, p2).map(o=>o.pair.slice().sort().join('+'));
+    const babyPair = babyAlleles[locus].slice().sort().join('+');
+    if(possiblePairs.includes(babyPair)) return; // rien d'anormal à ce locus
+    babyAlleles[locus].forEach(alleleId=>{
+      if(alleleId==='WT') return;
+      const gene = GENES.find(g=>g.id===alleleId);
+      if(!gene || !GENETIC_SURPRISE_TYPES.includes(gene.type)) return;
+      if(p1.includes(alleleId) || p2.includes(alleleId)) return; // ce gène précis est bien expliqué, c'est un AUTRE allèle du locus qui cause le problème
+      if(surprises.some(x=>x.gene.id===gene.id)) return;
+      surprises.push({ gene, locus });
+    });
+  });
+  return surprises;
+}
+
+// Classe une divergence : cas 1 (déductible, un parent au locus plein) ou cas 2 (indéterminable,
+// les deux ont une place libre — mais confirmé à 100% que l'un des deux le porte).
+function classifyGeneticSurprise(sire, dam, surprise){
+  const sireFull = lociSlotsTaken(sire, surprise.locus) >= 2;
+  const damFull = lociSlotsTaken(dam, surprise.locus) >= 2;
+  if(sireFull && !damFull) return { case:1, target:dam, other:sire };
+  if(damFull && !sireFull) return { case:1, target:sire, other:dam };
+  return { case:2 };
+}
+
+function openGeneticSurpriseModal(babyId, idx){
+  const isEn = currentLang==='en';
+  const baby = savedSnakes.find(s=>s.id===babyId);
+  if(!baby) return;
+  const surprises = detectGeneticSurprises(baby);
+  if(idx>=surprises.length){
+    showToast('✓ '+(isEn?'Genetics confirmed for ':'Génétique confirmée pour ')+baby.name+'.', 'success');
+    if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(babyId);
+    return;
+  }
+  const surprise = surprises[idx];
+  const sire = savedSnakes.find(s=>s.id===baby.sireId);
+  const dam = savedSnakes.find(s=>s.id===baby.damId);
+  const cls = classifyGeneticSurprise(sire, dam, surprise);
+  let body;
+  if(cls.case===1){
+    body = '<p style="font-size:12.5px;line-height:1.6;">'+(isEn
+      ? ('A genetic divergence was detected. The baby carries <b>'+surprise.gene.name+'</b>, absent or unconfirmed on either recorded parent. '+cls.other.name+' already has both slots at this locus taken by confirmed genes, so it can\'t be the source — by elimination, it must be <b>'+cls.target.name+'</b>.')
+      : ('Une divergence génétique a été détectée. Le bébé présente le gène <b>'+surprise.gene.name+'</b>, absent ou non confirmé chez les parents. '+cls.other.name+' a déjà ses 2 places prises à ce locus par des gènes confirmés — ça peut pas venir de lui. Par élimination, c\'est forcément <b>'+cls.target.name+'</b>.'))+'</p>'+
+      '<button class="save-btn" style="width:100%;" onclick="applyGeneticSurpriseResolution(\''+babyId+'\','+idx+',\'single\',\''+cls.target.id+'\')">'+(isEn?'Yes, update '+cls.target.name:'Oui, corriger '+cls.target.name)+'</button>'+
+      '<button class="sc-btn" style="width:100%;margin-top:8px;" onclick="skipGeneticSurprise(\''+babyId+'\','+idx+')">'+(isEn?'No, ignore':'Non, ignorer')+'</button>';
+  } else {
+    body = '<p style="font-size:12.5px;line-height:1.6;">'+(isEn
+      ? ('A genetic divergence was detected. The baby carries <b>'+surprise.gene.name+'</b>, absent or unconfirmed on either recorded parent. Both '+sire.name+' and '+dam.name+' have a free slot at this locus — either could be the source, no way to determine which yet.')
+      : ('Une divergence génétique a été détectée. Le bébé présente le gène <b>'+surprise.gene.name+'</b>, absent ou non confirmé chez les parents. '+sire.name+' et '+dam.name+' ont chacun une place libre à ce locus — impossible de déterminer lequel pour l\'instant.'))+'</p>'+
+      '<button class="save-btn" style="width:100%;" onclick="applyGeneticSurpriseResolution(\''+babyId+'\','+idx+',\'ambiguous\')">'+(isEn?'Yes, note both parents':'Oui, noter les deux parents')+'</button>'+
+      '<button class="sc-btn" style="width:100%;margin-top:8px;" onclick="skipGeneticSurprise(\''+babyId+'\','+idx+')">'+(isEn?'No, ignore':'Non, ignorer')+'</button>';
+  }
+  showQuickModal('🔍 '+FEATURE_NAME, body);
+}
+function skipGeneticSurprise(babyId, idx){
+  openGeneticSurpriseModal(babyId, idx+1);
+}
+function applyGeneticSurpriseResolution(babyId, idx, mode, targetParentId){
+  const isEn = currentLang==='en';
+  const baby = savedSnakes.find(s=>s.id===babyId);
+  if(!baby) return;
+  const surprises = detectGeneticSurprises(baby);
+  const surprise = surprises[idx];
+  if(!surprise){ openGeneticSurpriseModal(babyId, idx+1); return; }
+  const sire = savedSnakes.find(s=>s.id===baby.sireId);
+  const dam = savedSnakes.find(s=>s.id===baby.damId);
+  const today = new Date().toISOString().slice(0,10);
+
+  if(mode==='single'){
+    const target = savedSnakes.find(s=>s.id===targetParentId);
+    if(target){
+      target.genes = target.genes || {};
+      target.genes[surprise.gene.id] = 'single';
+      if(!target.geneticNotes) target.geneticNotes = [];
+      target.geneticNotes.push({ id:'gnote_'+Date.now(), date:today,
+        text: isEn
+          ? (FEATURE_NAME+': '+surprise.gene.name+' added — revealed by '+baby.name+'\'s genetics (deduced by elimination, the other parent\'s locus was full).')
+          : (FEATURE_NAME+' : '+surprise.gene.name+' ajouté — révélé par la génétique de '+baby.name+' (déduit par élimination, le locus de l\'autre parent était plein).')
+      });
+    }
+  } else if(mode==='ambiguous'){
+    // Enregistrement structuré (pas juste une note texte) pour permettre la résolution rétroactive
+    // automatique à une portée future — voir geneticAmbiguities, prochaine étape de la fonctionnalité.
+    if(!Array.isArray(geneticAmbiguities)) geneticAmbiguities = [];
+    const record = { id:'amb_'+Date.now(), geneId:surprise.gene.id, locus:surprise.locus,
+      candidateIds:[sire.id, dam.id], sourceBabyId:baby.id, sourceBabyName:baby.name,
+      createdAt:today, resolved:false };
+    geneticAmbiguities.push(record);
+    [sire, dam].forEach(parent=>{
+      if(!parent.geneticNotes) parent.geneticNotes = [];
+      parent.geneticNotes.push({ id:'gnote_'+Date.now()+'_'+parent.id, date:today, ambiguityId:record.id,
+        text: isEn
+          ? (FEATURE_NAME+': one of these two ('+sire.name+' / '+dam.name+') is confirmed to carry '+surprise.gene.name+', proven by '+baby.name+'\'s genetics — unclear which yet.')
+          : (FEATURE_NAME+' : un de ces deux ('+sire.name+' / '+dam.name+') est confirmé porteur de '+surprise.gene.name+', prouvé par la génétique de '+baby.name+' — indéterminé lequel pour l\'instant.')
+      });
+    });
+    saveElevage();
+  }
+  storage.save(savedSnakes);
+  openGeneticSurpriseModal(babyId, idx+1);
+}
+
+// Résolution rétroactive (2 septembre) — chaque fois qu'un bébé est confirmé, revérifie si un de
+// ses parents a un dossier d'ambiguïté en attente, et si CE bébé apporte la preuve qui manquait :
+// soit par élimination (l'autre parent de CETTE portée a une place libre au même locus), soit par
+// une forme super/homozygote (preuve directe, peu importe le partenaire — même mécanisme que la
+// confirmation d'origine).
+function checkRetroactiveGeneticResolutions(babySnake){
+  if(!babySnake.sireId || !babySnake.damId || !geneticAmbiguities.length) return [];
+  const resolved = [];
+  const babyAlleles = allelesFromSelections(babySnake.genes||{});
+  [babySnake.sireId, babySnake.damId].forEach(parentId=>{
+    const otherParentId = parentId===babySnake.sireId ? babySnake.damId : babySnake.sireId;
+    const pending = geneticAmbiguities.filter(a=>!a.resolved && a.candidateIds.includes(parentId));
+    pending.forEach(amb=>{
+      const pair = babyAlleles[amb.locus];
+      if(!pair) return; // ce bébé n'a rien à ce locus, aucune preuve possible ici
+      const count = pair.filter(a=>a===amb.geneId).length;
+      if(count===0) return; // ce bébé ne porte pas le gène en question
+      let proven = false;
+      if(count===2){
+        proven = true; // super/homozygote — preuve directe peu importe le partenaire
+      } else {
+        const otherParent = savedSnakes.find(s=>s.id===otherParentId);
+        if(otherParent && lociSlotsTaken(otherParent, amb.locus) < 2) proven = true; // élimination
+      }
+      if(proven && !resolved.some(r=>r.ambiguity.id===amb.id)){
+        resolved.push({ ambiguity:amb, confirmedParentId:parentId, viaBabyId:babySnake.id, viaBabyName:babySnake.name, homozygous:count===2 });
+      }
+    });
+  });
+  return resolved;
+}
+function openRetroactiveResolutionModal(babyId, idx){
+  const isEn = currentLang==='en';
+  const baby = savedSnakes.find(s=>s.id===babyId);
+  if(!baby) return;
+  const retro = checkRetroactiveGeneticResolutions(baby);
+  if(idx>=retro.length){
+    const surprises = detectGeneticSurprises(baby);
+    if(surprises.length){ openGeneticSurpriseModal(babyId, 0); return; }
+    showToast('✓ '+(isEn?'Genetics confirmed for ':'Génétique confirmée pour ')+baby.name+'.', 'success');
+    if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(babyId);
+    return;
+  }
+  const r = retro[idx];
+  const confirmedParent = savedSnakes.find(s=>s.id===r.confirmedParentId);
+  const otherCandidateId = r.ambiguity.candidateIds.find(cid=>cid!==r.confirmedParentId);
+  const otherCandidate = savedSnakes.find(s=>s.id===otherCandidateId);
+  const gene = GENES.find(g=>g.id===r.ambiguity.geneId);
+  const body = '<p style="font-size:12.5px;line-height:1.6;">'+(isEn
+    ? ('This clutch confirms that <b>'+confirmedParent.name+'</b> really carries <b>'+gene.name+'</b>'+(r.homozygous?' (a super/homozygous baby proves both current parents carry it)':' (the other parent in this clutch had no free slot at this locus, so it can only come from '+confirmedParent.name+')')+'. Do you want to resolve the uncertainty noted with <b>'+(otherCandidate?otherCandidate.name:'?')+'</b> since '+r.ambiguity.createdAt+'?')
+    : ('Cette portée confirme que <b>'+confirmedParent.name+'</b> porte réellement <b>'+gene.name+'</b>'+(r.homozygous?' (un bébé super/homozygote prouve que les deux parents actuels le portent)':' (l\'autre parent de cette portée n\'avait pas de place libre à ce locus, donc ça peut venir que de '+confirmedParent.name+')')+'. Veux-tu résoudre l\'incertitude notée avec <b>'+(otherCandidate?otherCandidate.name:'?')+'</b> depuis le '+r.ambiguity.createdAt+' ?'))+'</p>'+
+    '<button class="save-btn" style="width:100%;" onclick="applyRetroactiveResolution(\''+babyId+'\','+idx+')">'+(isEn?'Yes, resolve':'Oui, résoudre')+'</button>'+
+    '<button class="sc-btn" style="width:100%;margin-top:8px;" onclick="skipRetroactiveResolution(\''+babyId+'\','+idx+')">'+(isEn?'Not now':'Pas maintenant')+'</button>';
+  showQuickModal('🔍 '+FEATURE_NAME, body);
+}
+function skipRetroactiveResolution(babyId, idx){
+  openRetroactiveResolutionModal(babyId, idx+1);
+}
+function applyRetroactiveResolution(babyId, idx){
+  const isEn = currentLang==='en';
+  const baby = savedSnakes.find(s=>s.id===babyId);
+  if(!baby) return;
+  const retro = checkRetroactiveGeneticResolutions(baby);
+  const r = retro[idx];
+  if(!r){ openRetroactiveResolutionModal(babyId, idx+1); return; }
+  const amb = geneticAmbiguities.find(a=>a.id===r.ambiguity.id);
+  if(!amb || amb.resolved){ openRetroactiveResolutionModal(babyId, idx+1); return; }
+  const confirmedParent = savedSnakes.find(s=>s.id===r.confirmedParentId);
+  const otherCandidateId = amb.candidateIds.find(cid=>cid!==r.confirmedParentId);
+  const otherCandidate = savedSnakes.find(s=>s.id===otherCandidateId);
+  const gene = GENES.find(g=>g.id===amb.geneId);
+  const today = new Date().toISOString().slice(0,10);
+
+  if(confirmedParent){
+    confirmedParent.genes = confirmedParent.genes || {};
+    if(!confirmedParent.genes[gene.id]) confirmedParent.genes[gene.id] = 'single';
+    if(!confirmedParent.geneticNotes) confirmedParent.geneticNotes = [];
+    confirmedParent.geneticNotes.push({ id:'gnote_'+Date.now(), date:today,
+      text: isEn
+        ? (FEATURE_NAME+': resolved — confirmed carrier of '+gene.name+', proven by '+r.viaBabyName+'.')
+        : (FEATURE_NAME+' : résolu — porteur confirmé de '+gene.name+', prouvé par '+r.viaBabyName+'.')
+    });
+  }
+  if(otherCandidate){
+    if(otherCandidate.geneticNotes) otherCandidate.geneticNotes = otherCandidate.geneticNotes.filter(n=>n.ambiguityId!==amb.id);
+    else otherCandidate.geneticNotes = [];
+    otherCandidate.geneticNotes.push({ id:'gnote_'+Date.now()+'_x', date:today,
+      text: isEn
+        ? (FEATURE_NAME+': the uncertainty about '+gene.name+' (from '+amb.sourceBabyName+') is resolved — '+(confirmedParent?confirmedParent.name:'the other animal')+' was the carrier, not this animal.')
+        : (FEATURE_NAME+' : l\'incertitude sur '+gene.name+' (depuis '+amb.sourceBabyName+') est résolue — c\'était '+(confirmedParent?confirmedParent.name:'l\'autre animal')+' le porteur, pas cet animal.')
+    });
+  }
+  amb.resolved = true;
+  storage.save(savedSnakes);
+  saveElevage();
+  showToast('✓ '+(isEn?'Ambiguity resolved.':'Ambiguïté résolue.'), 'success');
+  openRetroactiveResolutionModal(babyId, idx+1);
+}
+
 function confirmGenetics(id){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
@@ -11868,6 +12121,19 @@ function confirmGenetics(id){
   const provenMsg = provenNames.length ? (currentLang==='en'
       ? ' Also auto-confirmed carrier status for '+provenNames.join(', ')+' on the parent(s).'
       : ' Statut porteur aussi confirmé automatiquement pour '+provenNames.join(', ')+' chez le(s) parent(s).') : '';
+  // [FEATURE_NAME] (2 septembre) — vérifie d'abord si CE bébé résout une ambiguïté en attente sur
+  // un de ses parents (résolution rétroactive), avant de vérifier si LUI-MÊME déclenche une
+  // nouvelle divergence. Les deux modales s'enchaînent proprement si les deux s'appliquent.
+  const retro = checkRetroactiveGeneticResolutions(s);
+  if(retro.length){
+    openRetroactiveResolutionModal(id, 0);
+    return;
+  }
+  const surprises = detectGeneticSurprises(s);
+  if(surprises.length){
+    openGeneticSurpriseModal(id, 0);
+    return;
+  }
   if(issues){
     showToast('⚠ '+(currentLang==='en'
       ? 'Confirmed, but flagged: '+issues.join(', ')+' doesn\'t match what\'s possible from the known parents. Worth double-checking the parent records.'
