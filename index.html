@@ -1946,7 +1946,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.1.77';
+const APP_VERSION = '2026.09.02.1.78';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -8831,6 +8831,74 @@ function isFeedingFlagged(s){
 // Statut couleur du Mode Tournée, basé sur le dernier événement fed/refused du journal.
 // Seuils centralisés ici : à modifier uniquement à cet endroit si l'éleveur veut ajuster les paliers.
 const FEEDING_THRESHOLDS = [ {max:5, status:'green'}, {max:8, status:'yellow'}, {max:9, status:'orange'} ];
+
+/* ==================== Rappels intelligents (2 septembre) — basés sur l'historique RÉEL de chaque
+   animal plutôt que des seuils génériques identiques pour tous. Deux ajustements :
+   1) Un adulte qui mange normalement aux 12-14 jours ne devrait pas être marqué "en retard" au
+      jour 9 juste parce que le seuil générique suppose un rythme hebdomadaire.
+   2) Un refus juste après une mue est très courant et normal — si CET animal a déjà montré ce
+      pattern par le passé, l'alerte se calme au lieu de sonner l'urgence à chaque fois. ==================== */
+
+// Intervalle personnel médian (en jours) entre repas réussis — la médiane résiste mieux aux
+// valeurs extrêmes qu'une moyenne (ex. un seul très long jeûne ne fausse pas tout le calcul).
+// Nécessite au moins 3 repas enregistrés pour être considéré fiable, sinon retourne null (on
+// retombe alors sur les seuils génériques FEEDING_THRESHOLDS, comme avant).
+function personalFeedingInterval(s){
+  if(!s.health || !s.health.events) return null;
+  const fedDates = s.health.events.filter(e=>e.type==='fed').map(e=>e.date).sort();
+  if(fedDates.length<3) return null;
+  const gaps = [];
+  for(let i=1;i<fedDates.length;i++){
+    const gap = Math.round((new Date(fedDates[i]+'T00:00:00').getTime() - new Date(fedDates[i-1]+'T00:00:00').getTime()) / 86400000);
+    if(gap>0) gaps.push(gap);
+  }
+  if(gaps.length<2) return null;
+  gaps.sort((a,b)=>a-b);
+  const mid = Math.floor(gaps.length/2);
+  return gaps.length%2 ? gaps[mid] : Math.round((gaps[mid-1]+gaps[mid])/2);
+}
+
+// Est-ce que CET animal a un historique établi de refuser après une mue ? Regarde, parmi ses
+// refus passés, combien sont survenus dans les 10 jours suivant une mue — besoin d'au moins 2
+// occurrences pour parler d'un vrai "pattern personnel", pas juste une coïncidence.
+function hasPostShedRefusalPattern(s){
+  if(!s.health || !s.health.events) return false;
+  const events = [...s.health.events].sort((a,b)=>a.date.localeCompare(b.date));
+  let matches = 0;
+  events.forEach((e,i)=>{
+    if(e.type!=='refused') return;
+    const priorShed = events.slice(0,i).reverse().find(ev=>ev.type==='shed');
+    if(!priorShed) return;
+    const gap = Math.floor((new Date(e.date+'T00:00:00').getTime() - new Date(priorShed.date+'T00:00:00').getTime()) / 86400000);
+    if(gap>=0 && gap<=10) matches++;
+  });
+  return matches>=2;
+}
+// Le dernier événement est-il un refus qui tombe dans les 10 jours suivant une mue ? (indépendant
+// du pattern historique — sert à vérifier si LE refus actuel correspond au pattern connu, pas juste
+// si le pattern existe en général)
+function isCurrentRefusalPostShed(s){
+  if(!s.health || !s.health.events) return false;
+  const events = [...s.health.events].sort((a,b)=>a.date.localeCompare(b.date));
+  const last = events[events.length-1];
+  if(!last || last.type!=='refused') return false;
+  const priorShed = [...events].reverse().slice(1).find(ev=>ev.type==='shed');
+  if(!priorShed) return false;
+  const gap = Math.floor((new Date(last.date+'T00:00:00').getTime() - new Date(priorShed.date+'T00:00:00').getTime()) / 86400000);
+  return gap>=0 && gap<=10;
+}
+// Explication lisible de pourquoi le statut actuel est ce qu'il est — jamais une "boîte noire",
+// dans le même esprit que le reste de l'app (Freeway/Possible, avertissements de santé, etc.).
+function feedingStatusExplanation(s){
+  const isEn = currentLang==='en';
+  if(isCurrentRefusalPostShed(s) && hasPostShedRefusalPattern(s)){
+    return isEn ? 'Refused shortly after shedding — usual for this animal, not flagged as urgent.' : 'Refus peu après une mue — habituel pour cet animal, pas signalé comme urgent.';
+  }
+  const interval = personalFeedingInterval(s);
+  if(interval) return isEn ? ('Personalized: this animal usually eats every ~'+interval+'d.') : ('Personnalisé : cet animal mange habituellement aux ~'+interval+'j.');
+  return null;
+}
+
 function feedingStatus(s){
   let etape = 'debut';
   try{
@@ -8839,9 +8907,25 @@ function feedingStatus(s){
     if(relevant.length===0) return 'red'; // jamais nourri depuis l'enregistrement = à surveiller
     etape = 'last';
     const last = relevant[relevant.length-1];
-    if(last.type==='refused') return 'red'; // dernier événement = un refus -> alerte immédiate
+    if(last.type==='refused'){
+      // Refus post-mue reconnu comme pattern personnel -> calmé à "yellow" plutôt qu'alarme rouge
+      // immédiate. Un refus qui ne correspond PAS à ce pattern reste "red" comme avant — c'est
+      // précisément le genre de refus qui mérite une vraie attention.
+      if(isCurrentRefusalPostShed(s) && hasPostShedRefusalPattern(s)) return 'yellow';
+      return 'red';
+    }
     etape = 'days';
     const days = Math.floor((Date.now() - new Date(last.date+'T00:00:00').getTime()) / 86400000);
+    etape = 'personal-interval';
+    const interval = personalFeedingInterval(s);
+    if(interval){
+      // Seuils mis à l'échelle de l'intervalle personnel plutôt que des seuils fixes identiques
+      // pour tous — un adulte qui mange aux 13j normalement n'est pas "en retard" au jour 9.
+      if(days <= interval*0.85) return 'green';
+      if(days <= interval*1.25) return 'yellow';
+      if(days <= interval*1.6) return 'orange';
+      return 'red';
+    }
     etape = 'tier-find';
     const tier = FEEDING_THRESHOLDS.find(t2=>days<=t2.max);
     if(tier) return tier.status;
@@ -9175,7 +9259,8 @@ function matchesSearch(s, term){
   });
 }
 function snakeTooltip(s){
-  return (s.sex==='male'?'♂ ':'♀ ')+s.name+'\n'+(summarizeGenes(s.genes)||(currentLang==='en'?'No gene':'Aucun gène'))+'\n'+feedingLabels()[feedingStatus(s)];
+  const explanation = feedingStatusExplanation(s);
+  return (s.sex==='male'?'♂ ':'♀ ')+s.name+'\n'+(summarizeGenes(s.genes)||(currentLang==='en'?'No gene':'Aucun gène'))+'\n'+feedingLabels()[feedingStatus(s)]+(explanation?'\n'+explanation:'');
 }
 
 function renderRackGrid(){
