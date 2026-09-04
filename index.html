@@ -1968,7 +1968,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.5';
+const APP_VERSION = '2026.09.02.2.6';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -15238,8 +15238,16 @@ function speciesUvbBlockHtml(uvbText, isEn){
   if(!uvbText) return '';
   return '<p style="font-size:12.5px;line-height:1.6;color:var(--ink);margin:0 0 16px;"><b style="color:var(--gold);">'+(isEn?'UVB: ':'UVB : ')+'</b>'+uvbText+'</p>';
 }
+// Pages statiques (2 septembre) — les nouveaux liens pointent vers /guides/*.html (vrai HTML,
+// lisible par les robots IA qui n'exécutent jamais de JavaScript), plutôt que ?guide=<id> qui
+// dépendait entièrement du rendu JS. L'ancien mécanisme JS reste fonctionnel plus bas (liens déjà
+// partagés avant ce changement continuent de marcher), mais les NOUVEAUX liens copiés utilisent
+// désormais l'URL statique. Regénérer les fichiers du dossier guides/ (script generate_static_guides.py)
+// à chaque changement de contenu d'espèce.
 function publicGuideUrl(speciesId){
-  return location.origin + location.pathname + '?guide=' + speciesId;
+  const slug = speciesId.replace(/_/g, '-');
+  const isEn = currentLang==='en';
+  return location.origin + '/guides/' + slug + (isEn ? '-en' : '') + '.html';
 }
 function buildSpeciesGuideHtml(speciesId){
   const isEn = detectPublicPageLang();
