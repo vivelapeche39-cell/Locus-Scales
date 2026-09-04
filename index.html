@@ -1968,7 +1968,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.3';
+const APP_VERSION = '2026.09.02.2.4';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -8073,6 +8073,14 @@ function skipBatchWeigh(){
 // seul summarizeGenes() est réutilisé pour l'affichage.
 const ELEVAGE_KEY = 'locus_elevage_v1';
 const DASH_SECTION_KEYS = ['alerts','today','birthdays','todos','lastnext','feeding','hatches'];
+// Ajoute toute nouvelle section pas encore connue à un dashSectionOrder déjà existant (2 septembre) —
+// sans ça, un compte qui a déjà utilisé l'app AVANT l'ajout d'une section n'aurait jamais cette
+// section dans sa liste sauvegardée, et ses contrôles (flèches/repli) n'apparaîtraient jamais.
+function ensureDashSectionOrder(){
+  if(!layout.dashSectionOrder) layout.dashSectionOrder = [...DASH_SECTION_KEYS];
+  else DASH_SECTION_KEYS.forEach(k=>{ if(!layout.dashSectionOrder.includes(k)) layout.dashSectionOrder.push(k); });
+  if(!layout.dashSectionCollapsed) layout.dashSectionCollapsed = {};
+}
 const DEFAULT_LAYOUT = { hideRacks:false, hideTerrariums:false, order:'racks-first', tourHideRacks:false, tourHideTerrariums:false, tourOrder:'racks-first', customFieldOptions:{ lighting:[], heating:[], substrate:[] }, dashSectionOrder:[...DASH_SECTION_KEYS], dashSectionCollapsed:{} };
 // Horodatage local du dernier envoi réussi de app_state (layout/feederStock) — contrairement aux
 // autres tables sync (snakes/racks/pairings/etc.), app_state est une seule ligne par utilisateur sans
@@ -8141,8 +8149,7 @@ if(!racks || racks.length===0) racks = [{id:'rack_1', name:'Rack 1', rows:[8,8,8
 var terrariums = elevageData.terrariums || [];
 if(!layout) layout = {...DEFAULT_LAYOUT};
 if(!layout.customFieldOptions) layout.customFieldOptions = { lighting:[], heating:[], substrate:[] }; // migration douce (31 août)
-if(!layout.dashSectionOrder) layout.dashSectionOrder = [...DASH_SECTION_KEYS]; // migration douce (2 septembre)
-if(!layout.dashSectionCollapsed) layout.dashSectionCollapsed = {};
+ensureDashSectionOrder(); // migration douce (2 septembre)
 if(!clutches) clutches = [];
 if(!expenses) expenses = [];
 if(!customers) customers = [];
@@ -8425,7 +8432,7 @@ async function pullAllUserData(){
     const serverStateUpdatedAt = (stateRes.data && stateRes.data.updated_at) ? Date.parse(stateRes.data.updated_at) : 0;
     const localStatePushedAt = loadAppStatePushedAt();
     const remoteAppStateWins = serverStateUpdatedAt > localStatePushedAt;
-    if(stateRes.data && stateRes.data.layout && remoteAppStateWins){ layout = stateRes.data.layout; if(!layout.customFieldOptions) layout.customFieldOptions = { lighting:[], heating:[], substrate:[] }; if(!layout.dashSectionOrder) layout.dashSectionOrder = [...DASH_SECTION_KEYS]; if(!layout.dashSectionCollapsed) layout.dashSectionCollapsed = {}; }
+    if(stateRes.data && stateRes.data.layout && remoteAppStateWins){ layout = stateRes.data.layout; if(!layout.customFieldOptions) layout.customFieldOptions = { lighting:[], heating:[], substrate:[] }; ensureDashSectionOrder(); }
     if(stateRes.data && stateRes.data.custom_events) customEvents = mergeById(customEvents, stateRes.data.custom_events);
     if(stateRes.data && stateRes.data.todos) todos = mergeById(todos, stateRes.data.todos);
     if(stateRes.data && stateRes.data.genetic_ambiguities) geneticAmbiguities = mergeById(geneticAmbiguities, stateRes.data.genetic_ambiguities);
@@ -8514,8 +8521,7 @@ document.getElementById('import-file-input').addEventListener('change', (e)=>{
     pairings.forEach(p=>{ if(!p.follicleSizes) p.follicleSizes = []; });
     layout = el.layout || {...DEFAULT_LAYOUT};
     if(!layout.customFieldOptions) layout.customFieldOptions = { lighting:[], heating:[], substrate:[] };
-    if(!layout.dashSectionOrder) layout.dashSectionOrder = [...DASH_SECTION_KEYS];
-    if(!layout.dashSectionCollapsed) layout.dashSectionCollapsed = {};
+    ensureDashSectionOrder();
     clutches = el.clutches || [];
     expenses = el.expenses || [];
     customers = el.customers || [];
