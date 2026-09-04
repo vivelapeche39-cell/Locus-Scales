@@ -1965,7 +1965,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.1';
+const APP_VERSION = '2026.09.02.2.2';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -8868,13 +8868,33 @@ function renderLineCtrls(targetId, collapsed, isFirst, isLast, onToggle, onMove)
 // Sections du tableau de bord réordonnables/repliables (2 septembre) — même principe que
 // Racks/Terrariums (flèches monter/descendre + repli), mais généralisé pour une liste de N
 // sections au lieu de 2. Ordre et état repliés persistés dans layout (cloud sync comme le reste).
+// Repli automatique des sections vides (2 septembre) — en plus du repli manuel, une section sans
+// vraies données se replie toute seule (surtout utile pour un compte neuf/de test). Le choix manuel
+// de l'utilisateur reste toujours prioritaire une fois qu'il a cliqué une fois sur une section —
+// "today" et "birthdays" gèrent déjà leur propre visibilité ailleurs, pas besoin de les dupliquer ici.
+function isDashSectionEmpty(key){
+  if(key==='todos') return todos.length===0;
+  if(key==='lastnext') return savedSnakes.length===0;
+  if(key==='feeding'){
+    if(savedSnakes.length===0) return true;
+    const todayStr = new Date().toISOString().slice(0,10);
+    const horizon = addDays(todayStr, 7);
+    return !savedSnakes.some(s=>nextFeedingDate(s)<=horizon);
+  }
+  if(key==='hatches') return clutches.filter(c=>!c.hatched).length===0;
+  return false;
+}
+function dashSectionEffectiveCollapsed(key){
+  const explicit = layout.dashSectionCollapsed ? layout.dashSectionCollapsed[key] : undefined;
+  return explicit!==undefined ? explicit : isDashSectionEmpty(key);
+}
 function applyDashSectionOrder(){
   const wrap = document.getElementById('dash-sortable-wrap');
   if(!wrap) return;
   (layout.dashSectionOrder || DASH_SECTION_KEYS).forEach(key=>{
     const el = document.getElementById('dash-sec-'+key);
     if(el) wrap.appendChild(el); // déplace le noeud existant à la fin, dans l'ordre voulu — ne recrée rien
-    if(el) el.classList.toggle('dash-collapsed', !!(layout.dashSectionCollapsed && layout.dashSectionCollapsed[key]));
+    if(el) el.classList.toggle('dash-collapsed', dashSectionEffectiveCollapsed(key));
   });
   renderDashSectionCtrls();
 }
@@ -8884,7 +8904,7 @@ function renderDashSectionCtrls(){
   order.forEach((key,i)=>{
     const ctrlsEl = document.getElementById('dash-ctrls-'+key);
     if(!ctrlsEl) return;
-    const collapsed = !!(layout.dashSectionCollapsed && layout.dashSectionCollapsed[key]);
+    const collapsed = dashSectionEffectiveCollapsed(key);
     ctrlsEl.innerHTML =
       '<button class="line-ctrl-btn'+(collapsed?' collapsed':'')+'" title="'+(collapsed?(isEn?'Show':'Afficher'):(isEn?'Hide':'Masquer'))+'">'+(collapsed?'🙈':'👁️')+'</button>'+
       '<button class="line-ctrl-btn" title="'+(isEn?'Move up':'Monter')+'"'+(i===0?' disabled':'')+'>▲</button>'+
@@ -8907,7 +8927,9 @@ function moveDashSection(key, dir){
 }
 function toggleDashSectionCollapse(key){
   if(!layout.dashSectionCollapsed) layout.dashSectionCollapsed = {};
-  layout.dashSectionCollapsed[key] = !layout.dashSectionCollapsed[key];
+  // Base la bascule sur l'état EFFECTIF actuel (auto ou explicite), pas juste la valeur brute —
+  // sinon cliquer sur une section auto-repliée (vide) pour la déplier faisait rien la première fois.
+  layout.dashSectionCollapsed[key] = !dashSectionEffectiveCollapsed(key);
   saveElevage();
   applyDashSectionOrder();
 }
