@@ -1188,9 +1188,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       </div>
       <input class="draft-name" id="draft-name" data-i18n-placeholder="namePlaceholder" placeholder="Nom (ex. Rex, Luna, #042)…" autocomplete="off"/>
       <div class="pedigree-row">
-        <label style="flex:1;display:flex;align-items:center;gap:8px;font-weight:400;cursor:pointer;">
-          <input type="checkbox" id="draft-is-ball-python" checked onchange="updateDraftSpeciesVisibility()" style="width:16px;height:16px;accent-color:var(--gold);"/>
-          <span data-i18n="speciesIsBallPython">Python royal (Ball Python)</span>
+        <label style="flex:1;"><span data-i18n="speciesLabel">Espèce</span>
+          <select id="draft-species-select" class="pedigree-select" style="width:100%;margin-top:4px;" onchange="updateDraftSpeciesVisibility()"></select>
         </label>
       </div>
       <div class="pedigree-row" id="draft-species-other-row" style="display:none;">
@@ -1219,8 +1218,6 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
             <select id="draft-prey-species" class="pedigree-select" style="flex:1;min-width:100px;" onchange="updateDraftPreySizeOptions()">
               <option value="" data-i18n="preySpeciesEllipsis">Espèce…</option>
-              <option value="mouse">🐁 Mouse</option>
-              <option value="rat">🐀 Rat</option>
             </select>
             <select id="draft-prey-size" class="pedigree-select" style="flex:1;min-width:100px;" disabled>
               <option value="" data-i18n="sizeEllipsis">Taille…</option>
@@ -1479,9 +1476,9 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 
   <div id="view-incubation" style="display:none;">
     <div class="pairing-form">
-      <select id="clutch-sire"></select>
+      <select id="clutch-sire" onchange="updateClutchIncubationDefault()"></select>
       <span style="color:var(--ink-dim);font-family:'Courier New',monospace;font-size:11px;">×</span>
-      <select id="clutch-dam"></select>
+      <select id="clutch-dam" onchange="updateClutchIncubationDefault()"></select>
       <input type="number" id="clutch-eggcount" min="1" max="30" placeholder="Nb d'œufs" style="width:90px;"/>
       <input type="date" id="clutch-laydate"/>
       <label style="display:flex;align-items:center;gap:6px;font-family:'Courier New',monospace;font-size:11px;color:var(--ink-dim);">
@@ -1968,7 +1965,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.6';
+const APP_VERSION = '2026.09.02.2.11';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3921,6 +3918,7 @@ const I18N = {
     geneticsConfirmedTag: '✓ confirmée',
     quickActionsTitle: 'Actions rapides',
     identityTitle: 'Identité',
+    speciesLabel: 'Espèce',
     speciesIsBallPython: 'Python royal (Ball Python)',
     speciesOtherLabel: 'Espèce (texte libre)',
     speciesOtherPlaceholder: 'Précise l\'espèce…',
@@ -4438,6 +4436,7 @@ const I18N = {
     geneticsConfirmedTag: '✓ confirmed',
     quickActionsTitle: 'Quick actions',
     identityTitle: 'Identity',
+    speciesLabel: 'Species',
     speciesIsBallPython: 'Ball Python',
     speciesOtherLabel: 'Species (free text)',
     speciesOtherPlaceholder: 'Specify the species…',
@@ -5389,6 +5388,9 @@ const SPECIES_REFERENCE = [
     feedFreqFr:'Bébé : chaque semaine. Juvénile : aux 7-10 jours. Adulte : aux 10-14 jours.', feedFreqEn:'Baby: weekly. Juvenile: every 7-10 days. Adult: every 10-14 days.',
     substrateFr:'Copeaux d\'aspen les plus courants, ou papier journal/essuie-tout (facile à surveiller). Fibre de coco possible aussi pour retenir un peu plus d\'humidité. Jamais de pin ni de cèdre — huiles toxiques.', substrateEn:'Aspen shavings most common, or paper towel/newspaper (easy to monitor). Coconut fiber also works to hold a bit more humidity. Never pine or cedar — toxic oils.',
     uvbFr:'Longtemps jugé inutile (espèce surtout crépusculaire), zone 1-2 de Ferguson selon les sources — un UVB faible (2-6%) est maintenant considéré bénéfique même si pas strictement obligatoire.', uvbEn:'Long considered unnecessary (mostly crepuscular species), Ferguson zone 1-2 depending on the source — low UVB (2-6%) is now considered beneficial even if not strictly required.',
+    incubationFr:'~60 jours (fourchette 50-70), 25-28°C, humidité 70-80%. Une des espèces les plus prévisibles/faciles à incuber — bon premier projet.', incubationEn:'~60 days (50-70 day range), 25-28°C, 70-80% humidity. One of the more predictable/easy species to incubate — a good first project.',
+    clutchesPerMatingFr:'Généralement 1 ponte par accouplement réussi par saison.', clutchesPerMatingEn:'Generally 1 clutch per successful mating per season.',
+    avgEggCountFr:'10-30 œufs.', avgEggCountEn:'10-30 eggs.',
     noteFr:'Fourchette classique 40-60% citée par la majorité des sources. Certaines sources récentes (ReptiFiles, The Bio Dude) argumentent plutôt pour 65-75% selon l\'habitat naturel réel — débat non tranché, ajuste selon tes observations.',
     noteEn:'Classic 40-60% range cited by most sources. Some more recent sources (ReptiFiles, The Bio Dude) argue for 65-75% based on actual native habitat — debate not settled, adjust based on your own observations.',
     enclosureBaby:'20×10×12po (8-20po de long)', enclosureBabyEn:'20×10×12in (8-20in long)',
@@ -5415,6 +5417,9 @@ const SPECIES_REFERENCE = [
     feedFreqFr:'Bébé : aux 5-7 jours. Juvénile : aux 7-10 jours. Adulte : aux 10-14 jours.', feedFreqEn:'Baby: every 5-7 days. Juvenile: every 7-10 days. Adult: every 10-14 days.',
     substrateFr:'Copeaux d\'aspen standards. Substrat meuble sécuritaire important pour cette espèce qui aime creuser. Jamais de pin ni de cèdre — huiles toxiques.', substrateEn:'Standard aspen shavings. A safe loose substrate matters for this species, which likes to dig. Never pine or cedar — toxic oils.',
     uvbFr:'Espèce plus diurne que la plupart des serpents de cette liste — zone 2 de Ferguson probable. Un UVB modéré (5-7%) est raisonnable même si pas documenté comme strictement essentiel.', uvbEn:'More diurnal than most snakes on this list — likely Ferguson zone 2. Moderate UVB (5-7%) is reasonable even if not documented as strictly essential.',
+    incubationFr:'~65 jours (fourchette 50-80), 25-28°C, humidité 70-80%.', incubationEn:'~65 days (50-80 day range), 25-28°C, 70-80% humidity.',
+    clutchesPerMatingFr:'Généralement 1 ponte par accouplement réussi par saison.', clutchesPerMatingEn:'Generally 1 clutch per successful mating per season.',
+    avgEggCountFr:'5-17 œufs.', avgEggCountEn:'5-17 eggs.',
     noteFr:'Origine climat sec (Californie/Arizona/Nevada) — presque toutes les sources s\'entendent sur une humidité modérée-basse, contrairement au king de Floride. Fait cocasse : les king snakes ont développé une résistance sanguine naturelle (anticorps/enzymes, pas un « anti-venin » injecté) au venin des vipères de leur propre région (crotales, mocassins) — ça leur permet de chasser et manger des serpents venimeux sans danger. Cette résistance est spécifique aux espèces locales, pas une immunité universelle envers tous les venins du monde.',
     noteEn:'Dry-climate origin (California/Arizona/Nevada) — nearly all sources agree on moderate-low humidity, unlike the Florida kingsnake. Fun fact: kingsnakes have evolved a natural blood-based resistance (antibodies/enzymes, not an injected "antivenom") to the venom of pit vipers native to their own region (rattlesnakes, cottonmouths) — letting them hunt and eat venomous snakes without harm. This resistance is specific to local species, not universal immunity to every venom worldwide.',
     enclosureBaby:'~60×30×40cm (10 gallons, jusqu\'à ~1 an)', enclosureBabyEn:'~24×12×16in (10 gallons, up to ~1 year old)',
@@ -5441,6 +5446,9 @@ const SPECIES_REFERENCE = [
     feedFreqFr:'Bébé : aux 5-7 jours. Juvénile : aux 7-10 jours. Adulte : aux 10-14 jours.', feedFreqEn:'Baby: every 5-7 days. Juvenile: every 7-10 days. Adult: every 10-14 days.',
     substrateFr:'Copeaux d\'aspen standards, en couche assez épaisse — cette espèce creuse activement. Jamais de pin ni de cèdre — huiles toxiques.', substrateEn:'Standard aspen shavings, in a fairly deep layer — this species digs actively. Never pine or cedar — toxic oils.',
     uvbFr:'Même logique que le king de Californie — zone 2 de Ferguson probable, UVB modéré (5-7%) raisonnable.', uvbEn:'Same logic as the California kingsnake — likely Ferguson zone 2, moderate UVB (5-7%) reasonable.',
+    incubationFr:'~65 jours (fourchette 50-80), même logique que le king de Californie.', incubationEn:'~65 days (50-80 day range), same logic as the California kingsnake.',
+    clutchesPerMatingFr:'Généralement 1 ponte par accouplement réussi par saison.', clutchesPerMatingEn:'Generally 1 clutch per successful mating per season.',
+    avgEggCountFr:'5-17 œufs.', avgEggCountEn:'5-17 eggs.',
     noteFr:'Origine climat humide du sud-est américain — besoin d\'humidité plus élevé que le king de Californie, souvent sous-estimé si on applique les mêmes règles génériques. Fait cocasse : comme les autres king snakes, résistant au venin des vipères de sa région (crotales, mocassins) grâce à des anticorps naturels dans le sang — lui permet de chasser des serpents venimeux sans danger.',
     noteEn:'Humid southeastern-US origin — needs higher humidity than the California kingsnake, often underestimated when generic kingsnake rules are applied. Fun fact: like other kingsnakes, resistant to the venom of pit vipers native to its region (rattlesnakes, cottonmouths) thanks to natural antibodies in its blood — letting it hunt venomous snakes without harm.',
     enclosureBaby:'~60×45×45cm (moins de 6 mois)', enclosureBabyEn:'~24×18×18in (under 6 months)',
@@ -5467,6 +5475,9 @@ const SPECIES_REFERENCE = [
     feedFreqFr:'Bébé : aux 5-7 jours. Juvénile : aux 7-10 jours. Adulte : aux 10-14 jours.', feedFreqEn:'Baby: every 5-7 days. Juvenile: every 7-10 days. Adult: every 10-14 days.',
     substrateFr:'Copeaux d\'aspen, en couche assez épaisse — c\'est le plus fouisseur des 3 king snakes de cette liste. Le plus sec des trois, jamais besoin d\'un substrat qui retient l\'humidité.', substrateEn:'Aspen shavings, in a fairly deep layer — the most burrowing-inclined of the 3 kingsnakes on this list. The driest of the three, never needs a moisture-retaining substrate.',
     uvbFr:'Plusieurs éleveurs le considèrent pas nécessaire (espèce nocturne, très fouisseuse) — mais suit la même tendance générale que les autres serpents de cette liste : un UVB faible (2-5%) reste raisonnable comme bonne pratique, même si plus optionnel ici que chez les 2 autres king snakes.', uvbEn:'Many breeders consider it unnecessary (nocturnal, heavily burrowing species) — but follows the same general trend as other snakes on this list: low UVB (2-5%) remains reasonable as best practice, even if more optional here than for the other 2 kingsnakes.',
+    incubationFr:'~65 jours (fourchette 50-80), même logique que les autres king snakes.', incubationEn:'~65 days (50-80 day range), same logic as the other kingsnakes.',
+    clutchesPerMatingFr:'Généralement 1 ponte par accouplement réussi par saison.', clutchesPerMatingEn:'Generally 1 clutch per successful mating per season.',
+    avgEggCountFr:'5-17 œufs.', avgEggCountEn:'5-17 eggs.',
     noteFr:'Le plus sec et le plus fouisseur des 3 king snakes de cette liste — contrairement au Californie et au Floride, l\'humidité est presque pas un enjeu ici. Couleur distinctive : noir profond/chocolat foncé avec un reflet bleuté sous la lumière directe, d\'où le surnom « king snake noir ». Fait cocasse : comme les autres king snakes, résistant au venin des vipères de sa région grâce à des anticorps naturels dans le sang.', noteEn:'The driest and most burrowing of the 3 kingsnakes on this list — unlike the California and Florida versions, humidity is almost a non-issue here. Distinctive color: deep black/dark chocolate with a blue sheen under direct light, hence the nickname "black kingsnake." Fun fact: like other kingsnakes, resistant to the venom of pit vipers native to its region thanks to natural antibodies in its blood.',
     enclosureBaby:'~50×25×25cm (20×10×10po)', enclosureBabyEn:'~20×10×10in',
     enclosureSub:'~75×30×30cm (30×12×12po)', enclosureSubEn:'~30×12×12in',
@@ -5492,6 +5503,9 @@ const SPECIES_REFERENCE = [
     feedFreqFr:'Juvénile 0-5 mois : aux 4-5 jours. 6-11 mois : aux 6-7 jours. Sub-adulte/adulte : aux 10-14 jours.', feedFreqEn:'Juvenile 0-5 months: every 4-5 days. 6-11 months: every 6-7 days. Sub-adult/adult: every 10-14 days.',
     substrateFr:'Le plus important de toute cette liste — espèce fouisseuse, a besoin d\'une couche assez épaisse (7-10cm+) de substrat meuble pour s\'enfouir complètement. Mélange terreau/sable de jeu, ou fibre de coco. Jamais un substrat trop compact ou trop mince.', substrateEn:'The most important on this whole list — fossorial species, needs a fairly deep layer (7-10cm/3-4in+) of loose substrate to fully burrow into. Topsoil/play-sand mix, or coconut fiber. Never a substrate that\'s too compact or too shallow.',
     uvbFr:'Zone 2 de Ferguson selon plusieurs sources (avec corn snake et python royal) — espèce fouisseuse mais qui sort parfois au soleil. UVB faible-modéré (5%) raisonnable.', uvbEn:'Ferguson zone 2 per several sources (alongside corn snakes and ball pythons) — a burrowing species that does surface into the sun sometimes. Low-moderate UVB (5%) reasonable.',
+    incubationFr:'~60 jours (fourchette 50-70), 28-30°C, humidité 65-75% — plus sec que la plupart des colubridés.', incubationEn:'~60 days (50-70 day range), 28-30°C, 65-75% humidity — drier than most colubrids.',
+    clutchesPerMatingFr:'Généralement 1 ponte par accouplement réussi par saison.', clutchesPerMatingEn:'Generally 1 clutch per successful mating per season.',
+    avgEggCountFr:'8-23 œufs.', avgEggCountEn:'8-23 eggs.',
     noteFr:'Espèce fouisseuse de climat semi-aride. Besoin d\'un substrat assez meuble pour s\'enfouir — priorise ce confort avant le calcul du risque d\'ingestion.',
     noteEn:'Fossorial species from a semi-arid climate. Needs loose enough substrate to burrow — prioritize that comfort need before weighing ingestion risk.',
     enclosureAdult:'36×12×12po suffit (espèce trapue mais petite — plus grand ne nuit pas)', enclosureAdultEn:'36×12×12in is enough (stocky but small species — bigger doesn\'t hurt)',
@@ -5514,6 +5528,9 @@ const SPECIES_REFERENCE = [
     feedFreqFr:'Bébé : chaque jour. Juvénile : 1 jour sur 2. Adulte : 2-3 fois/semaine.', feedFreqEn:'Baby: daily. Juvenile: every other day. Adult: 2-3 times/week.',
     substrateFr:'Tapis reptile ou papier essuie-tout jusqu\'à au moins 6 mois — zéro risque d\'impaction. Un adulte bien établi peut passer à un mélange terreau/sable/argile (ex. 60/30/10, ReptiFiles) qui permet de creuser. Jamais de sable de calcium ni de sable pur en vrac — risque réel d\'impaction, surtout chez un jeune.', substrateEn:'Reptile carpet or paper towel until at least 6 months old — zero impaction risk. A well-established adult can move to a soil/sand/clay mix (e.g. 60/30/10, ReptiFiles) that allows digging. Never calcium sand or plain loose sand — real impaction risk, especially in a young gecko.',
     uvbFr:'Historiquement jugé inutile (espèce crépusculaire), mais la recherche actuelle montre un vrai bénéfice à un UVB faible (2-7%, zone 1 de Ferguson) — active/couleur/comportement naturel améliorés. Toujours laisser une vraie zone d\'ombre.', uvbEn:'Historically considered unnecessary (crepuscular species), but current research shows a real benefit to low UVB (2-7%, Ferguson zone 1) — improved activity/color/natural behavior. Always leave a real shaded zone.',
+    incubationFr:'~50 jours (grande fourchette 35-90 selon la température). Détermination du sexe par la température (TSD) réellement confirmée chez cette espèce (contrairement au python royal) — température plus chaude tend vers plus de mâles.', incubationEn:'~50 days (wide 35-90 day range depending on temperature). Temperature-dependent sex determination (TSD) genuinely confirmed in this species (unlike the ball python) — warmer temperatures tend to produce more males.',
+    clutchesPerMatingFr:'Fait surprenant pour un débutant : la femelle retient le sperme et peut pondre 4 à 8 fois (parfois plus) d\'un seul accouplement, aux 15-30 jours sur toute la saison — très différent des serpents de cette liste qui pondent généralement une seule fois.', clutchesPerMatingEn:'A surprising fact for beginners: the female retains sperm and can lay 4 to 8 times (sometimes more) from a single mating, every 15-30 days across the season — very different from the snakes on this list, which generally lay just once.',
+    avgEggCountFr:'Toujours 1-2 œufs par ponte (jamais plus) — mais 8-16+ œufs cumulés sur la saison grâce aux pontes répétées.', avgEggCountEn:'Always 1-2 eggs per clutch (never more) — but 8-16+ eggs cumulative across the season thanks to repeated clutches.',
     noteFr:'Humidité ambiante basse par nature, mais garde toujours un accès à une cachette humide (shedding box) pour faciliter la mue.',
     noteEn:'Naturally low ambient humidity, but always keep access to a humid hide (shedding box) to support proper shedding.',
     enclosureAdult:'15-20 gallons par individu — voir la question cohabitation ci-dessous avant d\'en loger deux ensemble', enclosureAdultEn:'15-20 gallons per individual — see the cohabitation question below before housing two together',
@@ -5533,6 +5550,9 @@ const SPECIES_REFERENCE = [
     dietFr:'Omnivore — base d\'une poudre commerciale complète (Repashy, Pangea) mélangée à l\'eau, insectes (grillons, dubias) en supplément seulement.', dietEn:'Omnivore — base of a complete commercial powder (Repashy, Pangea) mixed with water, insects (crickets, dubia) as a supplement only.',
     feedFreqFr:'Juvénile : poudre 1 jour sur 2 à chaque jour + insectes 1-2x/semaine. Adulte : poudre 3-4x/semaine + insectes 0-1x/semaine.', feedFreqEn:'Juvenile: powder every day to every other day + insects 1-2x/week. Adult: powder 3-4x/week + insects 0-1x/week.',
     substrateFr:'Fibre de coco (Eco Earth) — le standard, retient bien l\'humidité. Seul ou en base d\'un montage bioactif. Jamais de sable ni de copeaux de bois.', substrateEn:'Coconut fiber (Eco Earth) — the standard, holds humidity well. Alone or as the base of a bioactive setup. Never sand or wood chips.',
+    incubationFr:'60-120 jours généralement, parfois jusqu\'à 140 par temps froid — la plus grande variabilité de toute cette liste. Débat non tranché sur la détermination du sexe par température (TSD) : une source affirme une vraie TSD avec seuils précis, une autre fiche de soins dit explicitement le contraire. Pas de consensus clair ici, contrairement au gecko léopard où la TSD est confirmée.', incubationEn:'60-120 days generally, sometimes up to 140 in cold conditions — the widest variability on this whole list. Unsettled debate on temperature-dependent sex determination (TSD): one source claims genuine TSD with precise thresholds, another care sheet explicitly says the opposite. No clear consensus here, unlike the leopard gecko where TSD is confirmed.',
+    clutchesPerMatingFr:'Comme le gecko léopard, rétention de sperme — 6 à 9 pontes par saison rapportées, aux 25-40 jours. Fait notable : certaines sources rapportent des femelles qui pondent même sans accouplement du tout après une longue période sans mâle.', clutchesPerMatingEn:'Like the leopard gecko, sperm retention — 6 to 9 clutches per season reported, every 25-40 days. Notable fact: some sources report females laying eggs even without any mating at all after a long period without a male.',
+    avgEggCountFr:'Toujours 2 œufs par ponte.', avgEggCountEn:'Always 2 eggs per clutch.',
     noteFr:'Espèce tropicale — débat actif dans la communauté sur la fourchette chaude idéale. École prudente (majoritaire dans les fiches génériques) : ne jamais dépasser 27-28°C, risque de stress thermique/mortalité au-delà. École plus chaude (appuyée par une étude expérimentale mesurant une température préférée de 30°C chez 26 individus, avec meilleur taux de croissance chez les animaux libres de se thermoréguler) : des éleveurs expérimentés rapportent des animaux nettement plus actifs et robustes à 28-30°C, cohérent avec les étés chauds de la Nouvelle-Calédonie. Les deux écoles s\'entendent sur l\'essentiel : toujours garder un vrai gradient avec une zone fraîche accessible, peu importe la température chaude visée.',
     noteEn:'Tropical species — active debate in the community over the ideal warm range. Cautious school (majority in generic care sheets): never exceed 27-28°C (80-82°F), risk of heat stress/death beyond that. Warmer school (backed by an experimental study measuring a 30°C preferred temperature across 26 individuals, with better growth rate in animals free to thermoregulate): experienced breeders report noticeably more active and robust animals at 28-30°C (82-86°F), consistent with New Caledonia\'s warm summers. Both schools agree on the essential: always keep a real gradient with an accessible cool zone, regardless of the warm-side target.',
     enclosureBaby:'~20×20×30cm (bébé, jusqu\'à ~5g)', enclosureBabyEn:'~8×8×12in (hatchling, up to ~5g)',
@@ -5560,6 +5580,9 @@ const SPECIES_REFERENCE = [
     dietFr:'Omnivore — le ratio s\'inverse avec l\'âge. Bébé : ~70-80% insectes. Adulte : ~70-80% végétal (légumes-feuilles), insectes en minorité.', dietEn:'Omnivore — the ratio flips with age. Baby: ~70-80% insects. Adult: ~70-80% plant matter (leafy greens), insects a minority.',
     feedFreqFr:'Bébé (0-3 mois) : insectes 2-3x/jour + légumes offerts chaque jour. Juvénile : le ratio insectes/végétal descend graduellement vers 50/50. Adulte (12+ mois) : légumes chaque jour, insectes seulement 2-3x/semaine.', feedFreqEn:'Baby (0-3 months): insects 2-3x/day + greens offered daily. Juvenile: insect/plant ratio gradually drops toward 50/50. Adult (12+ months): greens daily, insects only 2-3x/week.',
     substrateFr:'Tapis reptile ou papier essuie-tout pour un bébé — priorité sécurité. Un adulte bien établi peut passer à un mélange sable/terre compacté. Le sable fin en vrac pour bébé est largement déconseillé — risque d\'impaction plus élevé chez les jeunes (voir aussi la FAQ ci-dessous).', substrateEn:'Reptile carpet or paper towel for a baby — safety first. A well-established adult can move to a compacted sand-soil mix. Loose fine sand for babies is widely discouraged — higher impaction risk in young animals (see also the FAQ below).',
+    incubationFr:'~65 jours (fourchette 45-85), 29-30°C, une ponte compte souvent 15-35 œufs — beaucoup plus nombreux que les serpents/geckos de cette liste.', incubationEn:'~65 days (45-85 day range), 29-30°C, a clutch often has 15-35 eggs — far more than the snakes/geckos on this list.',
+    clutchesPerMatingFr:'2-3 pontes par saison possibles d\'un seul accouplement — la femelle peut retenir le sperme jusqu\'à environ 1 an.', clutchesPerMatingEn:'2-3 clutches per season possible from a single mating — the female can retain sperm for up to about a year.',
+    avgEggCountFr:'15-35 œufs par ponte.', avgEggCountEn:'15-35 eggs per clutch.',
     noteFr:'Espèce désertique — gradient large nécessaire. Zone chaude ambiante : ~33°C. Le point de bascule (surface exacte, sous la lampe) est nettement plus chaud — 40-45°C selon ReptiFiles, c\'est la zone la plus souvent sous-estimée par les débutants qui confondent température ambiante et température de surface. Humidité : 30-40% généralement citée, ReptiFiles élargit à 30-60%. Sources : ReptiFiles, PetMD. Fait notable : contrairement à la plupart des reptiles, le dragon barbu montre très peu de crainte envers l\'humain, même juvénile. Régime adulte/juvénile avancé à environ 80% végétal, le reste en insectes (jamais de lucioles, chenilles ou papillons — toxiques).',
     noteEn:'Desert species — needs a wide gradient. Warm ambient zone: ~91°F (33°C). The basking spot (exact surface, under the lamp) runs noticeably hotter — 104-113°F (40-45°C) per ReptiFiles, the zone most often underestimated by beginners who confuse ambient and surface temperature. Humidity: 30-40% commonly cited, ReptiFiles broadens that to 30-60%. Sources: ReptiFiles, PetMD. Notable fact: unlike most reptiles, bearded dragons show very little fear of humans, even as juveniles. Adult/advanced-juvenile diet is roughly 80% vegetal, the rest insects (never fireflies, caterpillars, or butterflies — toxic).',
     enclosureAdult:'48×18×18po minimum pour un couple (profondeur min. 18po vu la corpulence)', enclosureAdultEn:'48×18×18in minimum for a pair (min. 18in depth due to body bulk)',
@@ -5588,6 +5611,9 @@ const SPECIES_REFERENCE = [
     feedFreqFr:'Adulte : 3-4x/semaine. Juvénile : plus fréquent, petites proies aux 1-2 jours.', feedFreqEn:'Adult: 3-4x/week. Juvenile: more frequent, small prey every 1-2 days.',
     substrateFr:'Mélange qui retient l\'humidité — terreau/fibre de coco (ex. 60/40), ou montage bioactif complet fortement recommandé par plusieurs sources (springtails, isopodes, litière de feuilles).', substrateEn:'Moisture-retaining mix — topsoil/coco fiber (e.g. 60/40), or a full bioactive setup strongly recommended by several sources (springtails, isopods, leaf litter).',
     uvbFr:'Espèce crépusculaire — débat similaire aux autres espèces de cette liste. Historiquement jugé optionnel, mais plusieurs sources recommandent maintenant un UVB faible (zone 1 de Ferguson, UVI 0,5-1,4).', uvbEn:'Crepuscular species — debate similar to other species on this list. Historically considered optional, but several sources now recommend low UVB (Ferguson zone 1, UVI 0.5-1.4).',
+    incubationFr:'~65-75 jours (fourchette 55-90 selon les sources), 23-27°C. Particularité : la femelle pond UN SEUL œuf à la fois (pas une vraie ponte groupée), environ aux 4-6 semaines pendant la saison.', incubationEn:'~65-75 days (55-90 day range depending on the source), 23-27°C. Notable quirk: the female lays just ONE egg at a time (not a true grouped clutch), roughly every 4-6 weeks during the season.',
+    clutchesPerMatingFr:'Jusqu\'à 6 « pontes » par saison possibles (un seul œuf chacune) — la femelle a une seule trompe fonctionnelle, ce qui explique en partie ce rythme particulier.', clutchesPerMatingEn:'Up to 6 "clutches" per season possible (a single egg each) — the female has only one functional oviduct, which partly explains this unusual rhythm.',
+    avgEggCountFr:'Toujours 1 œuf à la fois — jamais une vraie ponte groupée.', avgEggCountEn:'Always 1 egg at a time — never a true grouped clutch.',
     noteFr:'Se distingue de son cousin proche T. novaeguineae (skink à œil blanc, fiche séparée) par un cercle orange-rouge vif complet autour de l\'œil (juste une petite tache pâle chez le novaeguineae) et des tubercules sur les flancs (écailles carénées chez l\'autre). Une des rares espèces de skink capable de vocaliser (petits cris/couinements) en détresse, en plus de faire le mort quand manipulée. ⚠️ Risque santé documenté chez les animaux sauvages fraîchement importés (infection bactérienne à Aeromonas hydrophila) — privilégier un animal né en captivité, et une vraie quarantaine à l\'arrivée si l\'origine est incertaine.', noteEn:'Distinguished from its close cousin T. novaeguineae (white-eyed skink, separate entry) by a complete bright orange-red ring around the eye (just a small pale patch in novaeguineae) and tubercles on the flanks (keeled scales in the other). One of the few skink species capable of vocalizing (small cries/squeaks) when distressed, in addition to playing dead when handled. ⚠️ Documented health risk in freshly wild-caught animals (Aeromonas hydrophila bacterial infection) — prioritize a captive-bred animal, and real quarantine on arrival if origin is uncertain.',
     enclosureBaby:'~30×30×30cm', enclosureBabyEn:'~12×12×12in',
     enclosureAdult:'90×45×45cm minimum, idéalement avec un point d\'eau assez grand pour nager', enclosureAdultEn:'90×45×45cm (36×18×18in) minimum, ideally with a water feature large enough to swim in',
@@ -5610,6 +5636,9 @@ const SPECIES_REFERENCE = [
     feedFreqFr:'Adulte : 3-4x/semaine. Juvénile : plus fréquent, petites proies aux 1-2 jours.', feedFreqEn:'Adult: 3-4x/week. Juvenile: more frequent, small prey every 1-2 days.',
     substrateFr:'Mélange qui retient l\'humidité — terreau/fibre de coco (ex. 60/40), ou montage bioactif complet fortement recommandé par plusieurs sources (springtails, isopodes, litière de feuilles).', substrateEn:'Moisture-retaining mix — topsoil/coco fiber (e.g. 60/40), or a full bioactive setup strongly recommended by several sources (springtails, isopods, leaf litter).',
     uvbFr:'Même débat que pour son cousin à œil rouge — espèce crépusculaire, historiquement jugé optionnel, mais UVB faible (zone 1 de Ferguson) de plus en plus recommandé.', uvbEn:'Same debate as its red-eyed cousin — crepuscular species, historically considered optional, but low UVB (Ferguson zone 1) increasingly recommended.',
+    incubationFr:'Même chose que son cousin à œil rouge — ~65-75 jours (fourchette 55-90), un seul œuf à la fois aux 4-6 semaines.', incubationEn:'Same as its red-eyed cousin — ~65-75 days (55-90 day range), a single egg at a time every 4-6 weeks.',
+    clutchesPerMatingFr:'Même chose que son cousin à œil rouge — jusqu\'à 6 « pontes » par saison possibles (un seul œuf chacune).', clutchesPerMatingEn:'Same as its red-eyed cousin — up to 6 "clutches" per season possible (a single egg each).',
+    avgEggCountFr:'Toujours 1 œuf à la fois — jamais une vraie ponte groupée.', avgEggCountEn:'Always 1 egg at a time — never a true grouped clutch.',
     noteFr:'Souvent confondu avec T. gracilis (skink à œil rouge, fiche séparée) — parfois même vendu par erreur sous ce nom. Se distingue par une petite tache orange-jaune pâle seulement à l\'avant de l\'œil (pas un cercle complet) et des écailles carénées sur les flancs (tubercules chez le gracilis). Mêmes traits notables que son cousin : vocalise en détresse, fait le mort quand manipulé. ⚠️ Même risque santé documenté chez les animaux sauvages fraîchement importés (Aeromonas hydrophila) — privilégier un animal né en captivité.', noteEn:'Often confused with T. gracilis (red-eyed skink, separate entry) — sometimes even mistakenly sold under that name. Distinguished by a small pale orange-yellow patch only at the front of the eye (not a full ring) and keeled scales on the flanks (tubercles in gracilis). Same notable traits as its cousin: vocalizes when distressed, plays dead when handled. ⚠️ Same documented health risk in freshly wild-caught animals (Aeromonas hydrophila) — prioritize a captive-bred animal.',
     enclosureBaby:'~30×30×30cm', enclosureBabyEn:'~12×12×12in',
     enclosureAdult:'90×45×45cm minimum, idéalement avec un point d\'eau assez grand pour nager', enclosureAdultEn:'90×45×45cm (36×18×18in) minimum, ideally with a water feature large enough to swim in',
@@ -5816,10 +5845,52 @@ function preyRecommendationForWeight(weight){
   return { label: isEn?entry.en:entry.fr, preyMin, preyMax };
 }
 
+// Peuple le menu déroulant d'espèce (2 septembre) — python royal en premier (espèce centrale de
+// LOCUS), puis les autres espèces regroupées par catégorie comme dans la liste des fiches
+// publiques, puis "Autre" en texte libre pour tout ce qui est pas encore dans le système. Avant,
+// c'était juste une case à cocher + texte libre — une simple étiquette qui reliait à rien. Le choix
+// ici stocke un vrai id (ex. 'crested_gecko') qui peut piloter de futurs ajustements par espèce
+// (listes de proies, rappels) plutôt que du texte qui identifie sans rien déclencher.
+function renderDraftSpeciesOptions(){
+  const isEn = currentLang==='en';
+  const sel = document.getElementById('draft-species-select');
+  if(!sel) return;
+  const categoryOrder = ['serpent','lezard','tortue'];
+  let html = '<option value="ball_python">'+(isEn?'Ball Python':'Python royal')+'</option>';
+  categoryOrder.forEach(cat=>{
+    const items = SPECIES_REFERENCE.filter(sp=>sp.category===cat);
+    if(!items.length) return;
+    const label = SPECIES_CATEGORY_LABELS[cat];
+    html += '<optgroup label="'+(isEn?label.en:label.fr)+'">'+
+      items.map(sp=>'<option value="'+sp.id+'">'+(isEn?sp.nameEn:sp.nameFr)+'</option>').join('')+
+    '</optgroup>';
+  });
+  html += '<option value="other">'+(isEn?'Other (specify)':'Autre (préciser)')+'</option>';
+  sel.innerHTML = html;
+}
+// Règle une fiche existante sur le bon choix du menu — soit une espèce connue du système (l'id
+// correspond directement à une option), soit une ancienne valeur en texte libre (données créées
+// avant ce changement, ou une espèce vraiment pas encore dans SPECIES_REFERENCE) qui retombe sur
+// "Autre" avec le texte original préservé.
+function setDraftSpeciesValue(species){
+  const sel = document.getElementById('draft-species-select');
+  const knownIds = ['ball_python', ...SPECIES_REFERENCE.map(sp=>sp.id)];
+  if(knownIds.includes(species)){
+    sel.value = species;
+    document.getElementById('draft-species-other').value = '';
+  } else {
+    sel.value = 'other';
+    document.getElementById('draft-species-other').value = species==='other' ? '' : species;
+  }
+  updateDraftSpeciesVisibility();
+}
 function updateDraftSpeciesVisibility(){
-  const isBallPython = document.getElementById('draft-is-ball-python').checked;
-  document.getElementById('draft-species-other-row').style.display = isBallPython ? 'none' : 'block';
+  const sel = document.getElementById('draft-species-select');
+  const isOther = sel && sel.value==='other';
+  const isBallPython = sel && sel.value==='ball_python';
+  document.getElementById('draft-species-other-row').style.display = isOther ? 'block' : 'none';
   document.getElementById('species-gene-note').style.display = isBallPython ? 'none' : 'block';
+  updateDraftPreySpeciesOptions();
 }
 function saveDraft(){
   if(!requireAuthOrPrompt()) return;
@@ -5830,8 +5901,8 @@ function saveDraft(){
   }
   const nameInput = document.getElementById('draft-name');
   const name = nameInput.value.trim() || 'Sans nom';
-  const isBallPython = document.getElementById('draft-is-ball-python').checked;
-  const species = isBallPython ? 'ball_python' : (document.getElementById('draft-species-other').value.trim() || 'other');
+  const speciesSelectVal = document.getElementById('draft-species-select').value;
+  const species = speciesSelectVal==='other' ? (document.getElementById('draft-species-other').value.trim() || 'other') : speciesSelectVal;
   // La base de gènes de LOCUS couvre le python royal seulement — on n'exige un gène
   // que pour cette espèce ; les autres espèces peuvent être suivies sans génétique.
   if(species==='ball_python' && Object.keys(state.draft).length===0){
@@ -5867,7 +5938,7 @@ function saveDraft(){
   nameInput.value = '';
   document.getElementById('draft-provenance').value = '';
   document.getElementById('draft-purchase-price').value = '';
-  document.getElementById('draft-is-ball-python').checked = true;
+  document.getElementById('draft-species-select').value = 'ball_python';
   document.getElementById('draft-species-other').value = '';
   document.getElementById('draft-prey-species').value = '';
   updateDraftPreySizeOptions();
@@ -5891,10 +5962,7 @@ function editSnake(id){
   document.getElementById('draft-provenance').value = snake.provenance || '';
   document.getElementById('draft-purchase-price').value = (snake.purchasePrice!=null) ? snake.purchasePrice : '';
   const species = snake.species || 'ball_python';
-  const isBallPython = species==='ball_python';
-  document.getElementById('draft-is-ball-python').checked = isBallPython;
-  document.getElementById('draft-species-other').value = isBallPython ? '' : species;
-  updateDraftSpeciesVisibility();
+  setDraftSpeciesValue(species);
   document.getElementById('draft-prey-species').value = snake.preySpecies || '';
   updateDraftPreySizeOptions();
   if(snake.preySpecies && snake.preySize) document.getElementById('draft-prey-size').value = snake.preySize;
@@ -5925,10 +5993,7 @@ function duplicateSnake(id){
   document.getElementById('draft-provenance').value = snake.provenance || '';
   document.getElementById('draft-purchase-price').value = (snake.purchasePrice!=null) ? snake.purchasePrice : '';
   const species = snake.species || 'ball_python';
-  const isBallPython = species==='ball_python';
-  document.getElementById('draft-is-ball-python').checked = isBallPython;
-  document.getElementById('draft-species-other').value = isBallPython ? '' : species;
-  updateDraftSpeciesVisibility();
+  setDraftSpeciesValue(species);
   document.getElementById('draft-prey-species').value = snake.preySpecies || '';
   updateDraftPreySizeOptions();
   if(snake.preySpecies && snake.preySize) document.getElementById('draft-prey-size').value = snake.preySize;
@@ -7269,12 +7334,11 @@ function openLogbook(id){
       '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">'+
         '<select onchange="updatePreySpecies(\''+id+'\', this.value)" style="flex:1;min-width:100px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:\'Courier New\',monospace;font-size:11.5px;padding:8px;">'+
           '<option value="">'+t('preySpeciesEllipsis')+'</option>'+
-          '<option value="mouse"'+(s.preySpecies==='mouse'?' selected':'')+'>🐁 Mouse</option>'+
-          '<option value="rat"'+(s.preySpecies==='rat'?' selected':'')+'>🐀 Rat</option>'+
+          preyTypesForSpecies(s.species).map(k=>'<option value="'+k+'"'+(s.preySpecies===k?' selected':'')+'>'+PREY_TYPES[k].icon+' '+(isEn?PREY_TYPES[k].labelEn:PREY_TYPES[k].labelFr)+'</option>').join('')+
         '</select>'+
-        (s.preySpecies ? '<select onchange="setPreyInfo(\''+id+'\', \''+s.preySpecies+'\', this.value)" style="flex:1;min-width:100px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:\'Courier New\',monospace;font-size:11.5px;padding:8px;">'+
+        (s.preySpecies && PREY_TYPES[s.preySpecies] ? '<select onchange="setPreyInfo(\''+id+'\', \''+s.preySpecies+'\', this.value)" style="flex:1;min-width:100px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:\'Courier New\',monospace;font-size:11.5px;padding:8px;">'+
           '<option value="">'+t('sizeEllipsis')+'</option>'+
-          PREY_SIZES[s.preySpecies].map(sz=>'<option value="'+sz+'"'+(s.preySize===sz?' selected':'')+'>'+sz+'</option>').join('')+
+          PREY_TYPES[s.preySpecies].sizes.map(sz=>'<option value="'+sz+'"'+(s.preySize===sz?' selected':'')+'>'+sz+'</option>').join('')+
         '</select>' : '')+
       '</div>'+
       '<div class="sex-toggle">'+
@@ -9425,10 +9489,33 @@ function feedingLabels(){ return currentLang==='en' ? FEEDING_LABELS_EN : FEEDIN
 
 // Nomenclature standard du milieu (anglais) — reste simple pour l'instant, une charte complète
 // (poids/grammes cibles par taille) pourra être ajoutée dans une future mise à jour.
-const PREY_SIZES = {
-  mouse: ['Pinky','Fuzzy','Hopper','Weanling','Adult'],
-  rat: ['Pinky','Fuzzy','Weanling','ASF (adulte)','Small','Medium','Large','X-Large','Jumbo'],
+// Liste de proie adaptative (2 septembre) — première brique concrète de la vision "app hybride"
+// qui s'ajuste selon l'espèce plutôt qu'un seul système pensé python royal partout. PREY_SIZES
+// reste un alias de compatibilité (mouse/rat identiques, rien de cassé pour les fiches existantes).
+const PREY_TYPES = {
+  mouse: { icon:'🐁', labelFr:'Souris', labelEn:'Mouse', sizes:['Pinky','Fuzzy','Hopper','Weanling','Adult'] },
+  rat: { icon:'🐀', labelFr:'Rat', labelEn:'Rat', sizes:['Pinky','Fuzzy','Weanling','ASF (adulte)','Small','Medium','Large','X-Large','Jumbo'] },
+  cricket: { icon:'🦗', labelFr:'Grillon', labelEn:'Cricket', sizes:['Small','Medium','Large','Adult'] },
+  dubia: { icon:'🪳', labelFr:'Blatte dubia', labelEn:'Dubia roach', sizes:['Small','Medium','Large','Adult'] },
+  mealworm: { icon:'🐛', labelFr:'Ver de farine', labelEn:'Mealworm', sizes:['Small','Medium','Large'] },
+  superworm: { icon:'🐛', labelFr:'Superworm', labelEn:'Superworm', sizes:['Regular','Giant'] },
+  phoenixworm: { icon:'🐛', labelFr:'Phoenix worm (BSFL)', labelEn:'Phoenix worm (BSFL)', sizes:['Small','Medium','Large'] },
+  snail: { icon:'🐌', labelFr:'Escargot', labelEn:'Snail', sizes:['Petit','Moyen','Gros'] },
+  earthworm: { icon:'🪱', labelFr:'Ver de terre', labelEn:'Earthworm', sizes:['Petit','Moyen','Gros'] },
+  mrp: { icon:'🥣', labelFr:'Poudre commerciale (MRP)', labelEn:'Commercial powder (MRP)', sizes:['Portion normale','Grosse portion'] },
 };
+const PREY_SIZES = { mouse: PREY_TYPES.mouse.sizes, rat: PREY_TYPES.rat.sizes };
+// Quelles proies proposer selon l'espèce du reptile — un petit nombre de groupes plutôt qu'une
+// règle par espèce individuelle, pour rester gérable. "Autre"/inconnu retombe sur rongeurs (le cas
+// le plus courant historiquement dans LOCUS) plutôt que de rien proposer du tout.
+function preyTypesForSpecies(speciesId){
+  const rodentEaters = ['ball_python','corn_snake','king_california','king_florida','king_mexican','hognose'];
+  if(!speciesId || rodentEaters.includes(speciesId)) return ['mouse','rat'];
+  if(speciesId==='crested_gecko') return ['mrp','cricket','dubia'];
+  if(speciesId==='leopard_gecko' || speciesId==='bearded_dragon') return ['cricket','dubia','mealworm','superworm','phoenixworm'];
+  if(speciesId==='croc_skink_red' || speciesId==='croc_skink_white') return ['cricket','dubia','mealworm','snail','earthworm'];
+  return ['mouse','rat'];
+}
 
 /* Coût de nourriture cumulé (estimé) — 25 août. On ne connaît pas le prix payé pour chaque proie
    individuelle (pas de saisie par repas), donc l'estimation est simple et transparente : le coût
@@ -9455,19 +9542,34 @@ function setFeedCost(id, value){
 // Formulaire d'ajout/édition — reconstruit les options de taille selon l'espèce de proie choisie.
 // PREY_SIZES est déclaré plus loin dans le fichier ; safe ici car appelée seulement via onchange,
 // donc toujours après que le script complet ait fini de s'exécuter une première fois (pas de TDZ).
+// Peuple le menu "Espèce de proie" du formulaire d'ajout selon l'espèce de reptile choisie —
+// appelée à chaque changement du menu d'espèce (draft-species-select), pas juste au chargement.
+function updateDraftPreySpeciesOptions(){
+  const isEn = currentLang==='en';
+  const speciesSelect = document.getElementById('draft-species-select');
+  const preySelect = document.getElementById('draft-prey-species');
+  if(!speciesSelect || !preySelect) return;
+  const reptileSpecies = speciesSelect.value==='other' ? null : speciesSelect.value;
+  const currentPrey = preySelect.value;
+  const keys = preyTypesForSpecies(reptileSpecies);
+  preySelect.innerHTML = '<option value="">'+(isEn?'Prey…':'Espèce…')+'</option>'+
+    keys.map(k=>'<option value="'+k+'">'+PREY_TYPES[k].icon+' '+(isEn?PREY_TYPES[k].labelEn:PREY_TYPES[k].labelFr)+'</option>').join('');
+  if(keys.includes(currentPrey)) preySelect.value = currentPrey; // garde le choix s'il reste valide pour la nouvelle espèce
+  updateDraftPreySizeOptions();
+}
 function updateDraftPreySizeOptions(){
   const speciesSelect = document.getElementById('draft-prey-species');
   const sizeSelect = document.getElementById('draft-prey-size');
   if(!speciesSelect || !sizeSelect) return;
   const species = speciesSelect.value;
-  if(!species){
+  if(!species || !PREY_TYPES[species]){
     sizeSelect.innerHTML = '<option value="">'+t('sizeEllipsis')+'</option>';
     sizeSelect.disabled = true;
     return;
   }
   sizeSelect.disabled = false;
   sizeSelect.innerHTML = '<option value="">'+t('sizeEllipsis')+'</option>'+
-    PREY_SIZES[species].map(sz=>'<option value="'+sz+'">'+sz+'</option>').join('');
+    PREY_TYPES[species].sizes.map(sz=>'<option value="'+sz+'">'+sz+'</option>').join('');
 }
 
 function updatePreySpecies(id, species){
@@ -12057,6 +12159,39 @@ function calcPreBuyCost(){
     '</div>';
 }
 
+// Durée d'incubation par espèce (2 septembre) — sourcé (Reptiles Magazine, Incubator Warehouse,
+// Exotic Pet Expos, care sheets croisées). Grande variabilité assumée pour le gecko à crête et le
+// gecko léopard — la fourchette min/max du champ s'ajuste aussi, pas juste la valeur par défaut.
+// Note sur la détermination du sexe par température (TSD) : confirmée chez le gecko léopard
+// (plusieurs sources scientifiques concordantes), mais DÉBATTUE chez le gecko à crête — une
+// source affirme une vraie TSD avec seuils précis, une autre fiche de soins dit explicitement le
+// contraire. Pas tranché ici, juste la durée d'incubation qui est ajustée.
+const INCUBATION_DAYS_BY_SPECIES = {
+  ball_python: { def:60, min:50, max:70 },
+  corn_snake: { def:60, min:50, max:70 },
+  king_california: { def:65, min:50, max:80 },
+  king_florida: { def:65, min:50, max:80 },
+  king_mexican: { def:65, min:50, max:80 },
+  hognose: { def:60, min:50, max:70 },
+  leopard_gecko: { def:50, min:35, max:90 },
+  crested_gecko: { def:90, min:55, max:140 },
+  bearded_dragon: { def:65, min:45, max:85 },
+  croc_skink_red: { def:70, min:55, max:90 },
+  croc_skink_white: { def:70, min:55, max:90 },
+};
+function updateClutchIncubationDefault(){
+  const sireId = document.getElementById('clutch-sire').value;
+  const damId = document.getElementById('clutch-dam').value;
+  const sire = savedSnakes.find(s=>s.id===sireId);
+  const dam = savedSnakes.find(s=>s.id===damId);
+  const speciesId = (dam && dam.species) || (sire && sire.species) || 'ball_python';
+  const conf = INCUBATION_DAYS_BY_SPECIES[speciesId] || INCUBATION_DAYS_BY_SPECIES.ball_python;
+  const input = document.getElementById('clutch-incubation-days');
+  if(!input) return;
+  input.min = conf.min;
+  input.max = conf.max;
+  input.value = conf.def;
+}
 function renderClutchForm(){
   const isEn = currentLang==='en';
   const sireSel = document.getElementById('clutch-sire');
@@ -12077,6 +12212,7 @@ function createClutchFromPairing(pairingId){
   renderClutchForm();
   if(p.maleId) document.getElementById('clutch-sire').value = p.maleId;
   if(p.femaleId) document.getElementById('clutch-dam').value = p.femaleId;
+  updateClutchIncubationDefault();
   document.getElementById('clutch-eggcount').focus();
 }
 
@@ -12209,7 +12345,13 @@ function addClutch(){
   const eggCount = parseInt(document.getElementById('clutch-eggcount').value, 10);
   const layDate = document.getElementById('clutch-laydate').value;
   let incubationDays = parseInt(document.getElementById('clutch-incubation-days').value, 10);
-  if(isNaN(incubationDays) || incubationDays<1) incubationDays = 60; // défaut si champ vidé/invalide
+  if(isNaN(incubationDays) || incubationDays<1){
+    // Repli sensible à l'espèce plutôt que toujours 60 — pertinent si le champ a été vidé/invalide.
+    const sireForFallback = savedSnakes.find(s2=>s2.id===sireId);
+    const damForFallback = savedSnakes.find(s2=>s2.id===damId);
+    const speciesForFallback = (damForFallback && damForFallback.species) || (sireForFallback && sireForFallback.species) || 'ball_python';
+    incubationDays = (INCUBATION_DAYS_BY_SPECIES[speciesForFallback] || INCUBATION_DAYS_BY_SPECIES.ball_python).def;
+  }
   if(!sireId || !damId || !layDate || isNaN(eggCount) || eggCount<1){ alert(isEn?'Select a sire, a dam, a lay date, and a valid egg count.':'Sélectionne un père, une mère, une date de ponte et un nombre d\'œufs valide.'); return; }
   const ref = generateClutchRef(layDate);
   const hatchDate = addDays(layDate, incubationDays);
@@ -15238,6 +15380,23 @@ function speciesUvbBlockHtml(uvbText, isEn){
   if(!uvbText) return '';
   return '<p style="font-size:12.5px;line-height:1.6;color:var(--ink);margin:0 0 16px;"><b style="color:var(--gold);">'+(isEn?'UVB: ':'UVB : ')+'</b>'+uvbText+'</p>';
 }
+// Bloc durée d'incubation (2 septembre) — sourcé, avec fourchette min-max plutôt qu'un chiffre
+// unique qui ferait croire à plus de précision qu'il en existe vraiment (surtout gecko à crête,
+// où la fourchette va du simple au triple selon la température).
+function speciesIncubationBlockHtml(incubationText, isEn){
+  if(!incubationText) return '';
+  return '<p style="font-size:12.5px;line-height:1.6;color:var(--ink);margin:0 0 16px;"><b style="color:var(--gold);">'+(isEn?'Incubation: ':'Incubation : ')+'</b>'+incubationText+'</p>';
+}
+// Bloc pontes/oeufs (2 septembre) — plusieurs geckos ont un vrai fait surprenant pour un débutant :
+// rétention de sperme, plusieurs pontes viables d'un seul accouplement, très différent des
+// serpents de cette liste qui pondent généralement une seule fois par accouplement réussi.
+function speciesClutchInfoBlockHtml(clutchesText, eggsText, isEn){
+  if(!clutchesText && !eggsText) return '';
+  return '<p style="font-size:12.5px;line-height:1.6;color:var(--ink);margin:0 0 16px;">'+
+    (clutchesText ? '<b style="color:var(--gold);">'+(isEn?'Clutches per mating: ':'Pontes par accouplement : ')+'</b>'+clutchesText+'<br/>' : '')+
+    (eggsText ? '<b style="color:var(--gold);">'+(isEn?'Average egg count: ':'Nombre d\'œufs en moyenne : ')+'</b>'+eggsText : '')+
+  '</p>';
+}
 // Pages statiques (2 septembre) — les nouveaux liens pointent vers /guides/*.html (vrai HTML,
 // lisible par les robots IA qui n'exécutent jamais de JavaScript), plutôt que ?guide=<id> qui
 // dépendait entièrement du rendu JS. L'ancien mécanisme JS reste fonctionnel plus bas (liens déjà
@@ -15264,7 +15423,9 @@ function buildSpeciesGuideHtml(speciesId){
       + speciesIdentityBlockHtml('Python regius', isEn?'West and Central Africa':'Afrique de l\'Ouest et centrale', isEn?'20-30 years, sometimes 40+ in captivity':'20-30 ans, parfois 40+ en captivité', isEn?'🌍 Terrestrial (occasional burrower)':'🌍 Terrestre (fouisseur occasionnel)', isEn)
       + speciesDietBlockHtml(isEn?'Carnivore — rodents (mice, rats), frozen-thawed.':'Carnivore — rongeurs (souris, rats), congelé-décongelé.', isEn?'Baby: weekly. Juvenile: every 7-10 days. Adult: every 10-14 days.':'Bébé : chaque semaine. Juvénile : aux 7-10 jours. Adulte : aux 10-14 jours.', isEn)
       + speciesSubstrateBlockHtml(isEn?'Aspen shavings most common, or paper towel/newspaper (easy to monitor, common in quarantine). Coconut fiber (Eco Earth) or a topsoil/coco mix works too, and holds humidity better for adults. Avoid pine and cedar — toxic oils.':'Copeaux d\'aspen les plus courants, ou papier journal/essuie-tout (facile à surveiller, courant en quarantaine). La fibre de coco (Eco Earth) ou un mélange terreau/coco fonctionne aussi, et retient mieux l\'humidité pour un adulte. Évite le pin et le cèdre — huiles toxiques.', isEn)
-      + speciesUvbBlockHtml(isEn?'Long considered unnecessary (mostly nocturnal/crepuscular), now recommended at low intensity (2-5%, Ferguson zone 1-2) as best practice — see the FAQ below for details.':'Longtemps jugé inutile (espèce surtout nocturne/crépusculaire), maintenant recommandé à faible intensité (2-5%, zone 1-2 de Ferguson) comme bonne pratique — voir la FAQ ci-dessous pour les détails.', isEn);
+      + speciesUvbBlockHtml(isEn?'Long considered unnecessary (mostly nocturnal/crepuscular), now recommended at low intensity (2-5%, Ferguson zone 1-2) as best practice — see the FAQ below for details.':'Longtemps jugé inutile (espèce surtout nocturne/crépusculaire), maintenant recommandé à faible intensité (2-5%, zone 1-2 de Ferguson) comme bonne pratique — voir la FAQ ci-dessous pour les détails.', isEn)
+      + speciesIncubationBlockHtml(isEn?'~60 days (50-70 day range), 31-32°C, 90-100% humidity. High humidity is critical — the female often coils around the eggs in the wild/maternal incubation.':'~60 jours (fourchette 50-70), 31-32°C, humidité 90-100%. L\'humidité élevée est critique — la femelle s\'enroule souvent autour des œufs en incubation maternelle.', isEn)
+      + speciesClutchInfoBlockHtml(isEn?'Generally 1 clutch per successful mating per season, unlike several geckos on this list which can lay multiple clutches from a single mating.':'Généralement 1 ponte par accouplement réussi par saison, contrairement à plusieurs geckos de cette liste qui peuvent pondre plusieurs fois d\'un seul accouplement.', isEn?'4-10 eggs.':'4-10 œufs.', isEn);
     const cat = HUSBANDRY_FAQ.find(c=>c.id==='entretien');
     bodyHtml = (cat ? cat.items : []).map(it=>
       '<div class="husbandry-qa" style="margin-bottom:18px;">'+
@@ -15327,7 +15488,9 @@ function buildSpeciesGuideHtml(speciesId){
       + speciesIdentityBlockHtml(ref.nameLatin, isEn?ref.originEn:ref.originFr, isEn?ref.lifespanEn:ref.lifespanFr, isEn?ref.habitatTypeEn:ref.habitatTypeFr, isEn)
       + speciesDietBlockHtml(isEn?ref.dietEn:ref.dietFr, isEn?ref.feedFreqEn:ref.feedFreqFr, isEn)
       + speciesSubstrateBlockHtml(isEn?ref.substrateEn:ref.substrateFr, isEn)
-      + speciesUvbBlockHtml(isEn?ref.uvbEn:ref.uvbFr, isEn);
+      + speciesUvbBlockHtml(isEn?ref.uvbEn:ref.uvbFr, isEn)
+      + speciesIncubationBlockHtml(isEn?ref.incubationEn:ref.incubationFr, isEn)
+      + speciesClutchInfoBlockHtml(isEn?ref.clutchesPerMatingEn:ref.clutchesPerMatingFr, isEn?ref.avgEggCountEn:ref.avgEggCountFr, isEn);
     const statCard = (label, val, unit) => val==null ? '' :
       '<div style="flex:1;min-width:110px;padding:12px;background:var(--bg-panel-2);border-radius:10px;text-align:center;"><div style="font-size:9.5px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:1px;">'+label+'</div><div style="font-size:20px;color:var(--gold);font-family:\'Courier New\',monospace;">'+val+unit+'</div></div>';
     const statsRow = statCard(isEn?'Warm side':'Côté chaud', ref.tempWarm, '°C') + statCard(isEn?'Cool side':'Côté froid', ref.tempCool, '°C') + statCard(isEn?'Humidity':'Humidité', ref.humidity, '%');
@@ -15407,6 +15570,8 @@ routeToScannedSnake();
 // santé pour un vrai reptile. La déplacer ici, après que toutes les déclarations du fichier aient
 // eu lieu, élimine cette classe de bug au complet plutôt qu'un seul symptôme à la fois.
 renderDashboard();
+renderDraftSpeciesOptions();
+updateDraftPreySpeciesOptions();
 
 
 
