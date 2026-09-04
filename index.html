@@ -655,6 +655,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 .tstep b{display:block;color:var(--ink);font-size:12px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Verdana,sans-serif;font-weight:600;margin-bottom:2px;}
 .tstep.next{border-left-color:var(--gold);}
 .tstep.next b{color:var(--gold);}
+.dash-collapsed .dash-sortable-body{ display:none !important; }
+.dash-collapsed .results-hdr{ border-bottom-color:transparent; margin-bottom:0; opacity:.6; }
 /* Stepper de saison 8 étapes (2 septembre) — vue d'ensemble "où on en est vraiment" basée sur les
    données déjà loggées (pas des projections comme .timeline-steps ci-dessus). Horizontal scrollable
    sur mobile plutôt que de wrap en plusieurs lignes illisibles. */
@@ -983,26 +985,42 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
     <div class="dash-greeting" id="dash-greeting"></div>
     <div id="dash-species-filter-wrap" style="display:none;margin-bottom:14px;"></div>
     <div class="dash-grid" id="dash-alert-grid"></div>
-    <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" id="dash-today-title">🌤️ <span data-i18n="todayWidgetTitle">Aujourd'hui — à surveiller</span></h2></div>
-    <div id="dash-today-widget"></div>
-    <div id="dash-birthdays-wrap" style="display:none;">
-      <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;">🎂 <span data-i18n="birthdaysWidgetTitle">Anniversaires ce mois-ci</span></h2></div>
-      <div id="dash-birthdays"></div>
+    <div id="dash-sortable-wrap">
+    <div class="dash-sortable" id="dash-sec-today">
+      <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" id="dash-today-title">🌤️ <span data-i18n="todayWidgetTitle">Aujourd'hui — à surveiller</span></h2><div class="section-line-ctrls" id="dash-ctrls-today"></div></div>
+      <div class="dash-sortable-body"><div id="dash-today-widget"></div></div>
     </div>
-    <div id="dash-todos-wrap">
-      <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;">📝 <span data-i18n="todosWidgetTitle">Tâches</span></h2></div>
-      <div id="todos-list"></div>
-      <div style="display:flex;gap:8px;margin-top:10px;">
-        <input type="text" id="todo-input" data-i18n-placeholder="todoInputPlaceholder" placeholder="Ex. Commander des rongeurs" style="flex:1;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" onkeydown="if(event.key==='Enter') addTodo();"/>
-        <button class="save-btn" onclick="addTodo()" data-i18n="addBtn">+ Ajouter</button>
+    <div class="dash-sortable" id="dash-sec-birthdays">
+      <div id="dash-birthdays-wrap" style="display:none;">
+        <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;">🎂 <span data-i18n="birthdaysWidgetTitle">Anniversaires ce mois-ci</span></h2><div class="section-line-ctrls" id="dash-ctrls-birthdays"></div></div>
+        <div class="dash-sortable-body"><div id="dash-birthdays"></div></div>
       </div>
     </div>
-    <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" data-i18n="lastNextMealTitle">🍽 Dernier repas / Prochain repas</h2></div>
-    <div id="dash-lastnext-list"></div>
-    <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" data-i18n="feedingCalendarTitle">📅 Calendrier de nourrissage — 7 prochains jours</h2></div>
-    <div id="dash-feeding-list"></div>
-    <div class="results-hdr" style="margin-top:22px;"><h2 style="font-size:16px;" data-i18n="nextHatchesTitle">🥚 Prochaines éclosions</h2></div>
-    <div id="dash-hatch-list" class="sale-list"></div>
+    <div class="dash-sortable" id="dash-sec-todos">
+      <div id="dash-todos-wrap">
+        <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;">📝 <span data-i18n="todosWidgetTitle">Tâches</span></h2><div class="section-line-ctrls" id="dash-ctrls-todos"></div></div>
+        <div class="dash-sortable-body">
+          <div id="todos-list"></div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <input type="text" id="todo-input" data-i18n-placeholder="todoInputPlaceholder" placeholder="Ex. Commander des rongeurs" style="flex:1;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" onkeydown="if(event.key==='Enter') addTodo();"/>
+            <button class="save-btn" onclick="addTodo()" data-i18n="addBtn">+ Ajouter</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dash-sortable" id="dash-sec-lastnext">
+      <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" data-i18n="lastNextMealTitle">🍽 Dernier repas / Prochain repas</h2><div class="section-line-ctrls" id="dash-ctrls-lastnext"></div></div>
+      <div class="dash-sortable-body"><div id="dash-lastnext-list"></div></div>
+    </div>
+    <div class="dash-sortable" id="dash-sec-feeding">
+      <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" data-i18n="feedingCalendarTitle">📅 Calendrier de nourrissage — 7 prochains jours</h2><div class="section-line-ctrls" id="dash-ctrls-feeding"></div></div>
+      <div class="dash-sortable-body"><div id="dash-feeding-list"></div></div>
+    </div>
+    <div class="dash-sortable" id="dash-sec-hatches">
+      <div class="results-hdr" style="margin-top:22px;"><h2 style="font-size:16px;" data-i18n="nextHatchesTitle">🥚 Prochaines éclosions</h2><div class="section-line-ctrls" id="dash-ctrls-hatches"></div></div>
+      <div class="dash-sortable-body"><div id="dash-hatch-list" class="sale-list"></div></div>
+    </div>
+    </div>
     <a href="https://www.facebook.com/share/1PukXjXpVP/?mibextid=wwXIfr" target="_blank" rel="noopener" id="dash-facebook-banner" style="text-decoration:none;">
       <div style="margin-top:26px;background:linear-gradient(135deg, rgba(24,119,242,.16), rgba(201,151,62,.08));border:1px solid #1877f2;border-radius:16px;padding:16px 20px;display:flex;align-items:center;gap:14px;">
         <span style="font-size:26px;flex-shrink:0;">📘</span>
@@ -1947,7 +1965,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.1.100';
+const APP_VERSION = '2026.09.02.2.1';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -8049,7 +8067,8 @@ function skipBatchWeigh(){
 // pour rackDims/pairings. Aucune dépendance vers la logique de calcul génétique,
 // seul summarizeGenes() est réutilisé pour l'affichage.
 const ELEVAGE_KEY = 'locus_elevage_v1';
-const DEFAULT_LAYOUT = { hideRacks:false, hideTerrariums:false, order:'racks-first', tourHideRacks:false, tourHideTerrariums:false, tourOrder:'racks-first', customFieldOptions:{ lighting:[], heating:[], substrate:[] } };
+const DASH_SECTION_KEYS = ['today','birthdays','todos','lastnext','feeding','hatches'];
+const DEFAULT_LAYOUT = { hideRacks:false, hideTerrariums:false, order:'racks-first', tourHideRacks:false, tourHideTerrariums:false, tourOrder:'racks-first', customFieldOptions:{ lighting:[], heating:[], substrate:[] }, dashSectionOrder:[...DASH_SECTION_KEYS], dashSectionCollapsed:{} };
 // Horodatage local du dernier envoi réussi de app_state (layout/feederStock) — contrairement aux
 // autres tables sync (snakes/racks/pairings/etc.), app_state est une seule ligne par utilisateur sans
 // granularité par item, donc pas de mergeById() possible ici. On compare plutôt son updated_at
@@ -8117,6 +8136,8 @@ if(!racks || racks.length===0) racks = [{id:'rack_1', name:'Rack 1', rows:[8,8,8
 var terrariums = elevageData.terrariums || [];
 if(!layout) layout = {...DEFAULT_LAYOUT};
 if(!layout.customFieldOptions) layout.customFieldOptions = { lighting:[], heating:[], substrate:[] }; // migration douce (31 août)
+if(!layout.dashSectionOrder) layout.dashSectionOrder = [...DASH_SECTION_KEYS]; // migration douce (2 septembre)
+if(!layout.dashSectionCollapsed) layout.dashSectionCollapsed = {};
 if(!clutches) clutches = [];
 if(!expenses) expenses = [];
 if(!customers) customers = [];
@@ -8399,7 +8420,7 @@ async function pullAllUserData(){
     const serverStateUpdatedAt = (stateRes.data && stateRes.data.updated_at) ? Date.parse(stateRes.data.updated_at) : 0;
     const localStatePushedAt = loadAppStatePushedAt();
     const remoteAppStateWins = serverStateUpdatedAt > localStatePushedAt;
-    if(stateRes.data && stateRes.data.layout && remoteAppStateWins){ layout = stateRes.data.layout; if(!layout.customFieldOptions) layout.customFieldOptions = { lighting:[], heating:[], substrate:[] }; }
+    if(stateRes.data && stateRes.data.layout && remoteAppStateWins){ layout = stateRes.data.layout; if(!layout.customFieldOptions) layout.customFieldOptions = { lighting:[], heating:[], substrate:[] }; if(!layout.dashSectionOrder) layout.dashSectionOrder = [...DASH_SECTION_KEYS]; if(!layout.dashSectionCollapsed) layout.dashSectionCollapsed = {}; }
     if(stateRes.data && stateRes.data.custom_events) customEvents = mergeById(customEvents, stateRes.data.custom_events);
     if(stateRes.data && stateRes.data.todos) todos = mergeById(todos, stateRes.data.todos);
     if(stateRes.data && stateRes.data.genetic_ambiguities) geneticAmbiguities = mergeById(geneticAmbiguities, stateRes.data.genetic_ambiguities);
@@ -8488,6 +8509,8 @@ document.getElementById('import-file-input').addEventListener('change', (e)=>{
     pairings.forEach(p=>{ if(!p.follicleSizes) p.follicleSizes = []; });
     layout = el.layout || {...DEFAULT_LAYOUT};
     if(!layout.customFieldOptions) layout.customFieldOptions = { lighting:[], heating:[], substrate:[] };
+    if(!layout.dashSectionOrder) layout.dashSectionOrder = [...DASH_SECTION_KEYS];
+    if(!layout.dashSectionCollapsed) layout.dashSectionCollapsed = {};
     clutches = el.clutches || [];
     expenses = el.expenses || [];
     customers = el.customers || [];
@@ -8842,6 +8865,52 @@ function renderLineCtrls(targetId, collapsed, isFirst, isLast, onToggle, onMove)
 // Filet de sécurité (28 août) — un bouton toujours visible, jamais lui-même repliable, qui réaffiche
 // les 4 sections (Racks/Terrariums, mode normal ET Mode Tournée) d'un coup peu importe leur état.
 // Existe en plus des chevrons individuels : le petit chevron reste facile à manquer, ce bouton ne l'est pas.
+// Sections du tableau de bord réordonnables/repliables (2 septembre) — même principe que
+// Racks/Terrariums (flèches monter/descendre + repli), mais généralisé pour une liste de N
+// sections au lieu de 2. Ordre et état repliés persistés dans layout (cloud sync comme le reste).
+function applyDashSectionOrder(){
+  const wrap = document.getElementById('dash-sortable-wrap');
+  if(!wrap) return;
+  (layout.dashSectionOrder || DASH_SECTION_KEYS).forEach(key=>{
+    const el = document.getElementById('dash-sec-'+key);
+    if(el) wrap.appendChild(el); // déplace le noeud existant à la fin, dans l'ordre voulu — ne recrée rien
+    if(el) el.classList.toggle('dash-collapsed', !!(layout.dashSectionCollapsed && layout.dashSectionCollapsed[key]));
+  });
+  renderDashSectionCtrls();
+}
+function renderDashSectionCtrls(){
+  const isEn = currentLang==='en';
+  const order = layout.dashSectionOrder || DASH_SECTION_KEYS;
+  order.forEach((key,i)=>{
+    const ctrlsEl = document.getElementById('dash-ctrls-'+key);
+    if(!ctrlsEl) return;
+    const collapsed = !!(layout.dashSectionCollapsed && layout.dashSectionCollapsed[key]);
+    ctrlsEl.innerHTML =
+      '<button class="line-ctrl-btn'+(collapsed?' collapsed':'')+'" title="'+(collapsed?(isEn?'Show':'Afficher'):(isEn?'Hide':'Masquer'))+'">'+(collapsed?'🙈':'👁️')+'</button>'+
+      '<button class="line-ctrl-btn" title="'+(isEn?'Move up':'Monter')+'"'+(i===0?' disabled':'')+'>▲</button>'+
+      '<button class="line-ctrl-btn" title="'+(isEn?'Move down':'Descendre')+'"'+(i===order.length-1?' disabled':'')+'>▼</button>';
+    const [btnToggle, btnUp, btnDown] = ctrlsEl.querySelectorAll('button');
+    btnToggle.onclick = ()=>toggleDashSectionCollapse(key);
+    if(i>0) btnUp.onclick = ()=>moveDashSection(key,'up');
+    if(i<order.length-1) btnDown.onclick = ()=>moveDashSection(key,'down');
+  });
+}
+function moveDashSection(key, dir){
+  const order = layout.dashSectionOrder || [...DASH_SECTION_KEYS];
+  const i = order.indexOf(key);
+  const j = dir==='up' ? i-1 : i+1;
+  if(i<0 || j<0 || j>=order.length) return;
+  [order[i], order[j]] = [order[j], order[i]];
+  layout.dashSectionOrder = order;
+  saveElevage();
+  applyDashSectionOrder();
+}
+function toggleDashSectionCollapse(key){
+  if(!layout.dashSectionCollapsed) layout.dashSectionCollapsed = {};
+  layout.dashSectionCollapsed[key] = !layout.dashSectionCollapsed[key];
+  saveElevage();
+  applyDashSectionOrder();
+}
 function showAllRacksTerrariums(){
   const isEn = currentLang==='en';
   layout.hideRacks = false;
@@ -13550,6 +13619,7 @@ function renderDashboard(){
   updateBackupReminderBanner();
   updateSampleDataBanner();
   renderTodos();
+  applyDashSectionOrder();
 
   const hour = new Date().getHours();
   const greeting = isEn
