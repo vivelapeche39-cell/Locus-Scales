@@ -440,6 +440,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 
 .toast-stack{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:100%;padding:0 16px;}
 .toast{background:#211B15;border:1px solid var(--gold);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Verdana,sans-serif;font-size:13px;padding:12px 20px;border-radius:26px;box-shadow:var(--shadow);opacity:0;transform:translateY(12px);transition:opacity .25s ease, transform .25s ease;max-width:440px;text-align:center;}
+.toast-undo-btn{background:transparent;border:1px solid var(--gold);color:var(--gold);font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:14px;margin-left:8px;cursor:pointer;white-space:nowrap;}
 .toast.show{opacity:1;transform:translateY(0);}
 .toast-success{border-color:var(--sage);}
 .toast-hatch{border-color:var(--gold);background:linear-gradient(135deg, rgba(201,151,62,.18), #211B15);}
@@ -975,7 +976,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
     <button class="tab-btn active" data-tab="dash" data-i18n="tabDash" onclick="showTab('dash')">📋 Tableau de bord</button>
     <button class="tab-btn" data-tab="mine" data-i18n="tabMine" onclick="showTab('mine')">🐍 Mes reptiles</button>
     <button class="tab-btn" data-tab="elevage" data-i18n="tabElevage" onclick="showTab('elevage')">🏠 Élevage</button>
-    <button class="tab-btn" data-tab="incubation" data-i18n="tabIncubation" onclick="showTab('incubation')">🥚 Incubation</button>
+    <button class="tab-btn" data-tab="incubation" data-i18n="tabIncubation" onclick="showTab('incubation')">🐣 Reproduction</button>
     <button class="tab-btn" data-tab="ventes" data-i18n="tabVentes" onclick="showTab('ventes')">🏷️ Ventes</button>
   </div>
 
@@ -1480,13 +1481,16 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 
   <div id="view-incubation" style="display:none;">
     <div class="pairing-form">
-      <select id="clutch-sire" onchange="updateClutchIncubationDefault()"></select>
+      <select id="clutch-sire" onchange="updateClutchReproductionFields()"></select>
       <span style="color:var(--ink-dim);font-family:'Courier New',monospace;font-size:11px;">×</span>
-      <select id="clutch-dam" onchange="updateClutchIncubationDefault()"></select>
+      <select id="clutch-dam" onchange="updateClutchReproductionFields()"></select>
       <input type="number" id="clutch-eggcount" min="1" max="30" placeholder="Nb d'œufs" style="width:90px;"/>
-      <input type="date" id="clutch-laydate"/>
+      <label id="clutch-date-wrap" style="display:flex;flex-direction:column;font-family:'Courier New',monospace;font-size:9px;color:var(--ink-dim);gap:2px;">
+        <span id="clutch-date-label">Date de ponte</span>
+        <input type="date" id="clutch-laydate"/>
+      </label>
       <label style="display:flex;align-items:center;gap:6px;font-family:'Courier New',monospace;font-size:11px;color:var(--ink-dim);">
-        Incubation
+        <span id="clutch-duration-label">Incubation</span>
         <input type="number" id="clutch-incubation-days" min="50" max="70" value="60" style="width:56px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:4px;color:var(--ink);font-family:'Courier New',monospace;font-size:12px;padding:7px 6px;text-align:center;"/>
         j
       </label>
@@ -1969,7 +1973,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.12';
+const APP_VERSION = '2026.09.02.2.15';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3074,7 +3078,7 @@ const PERSONALIZATION_FEATURES = [
   { key:'nourriture', sub:'nourriture', icon:'🍽', group:'elevage', fr:'Nourriture', en:'Feeding' },
   { key:'calendar', sub:'calendar', icon:'📅', group:'elevage', fr:'Calendrier de reproduction', en:'Breeding calendar' },
   { key:'objectif', sub:'objectif', icon:'🎯', group:'elevage', fr:'Objectif (planificateur)', en:'Goal (planner)' },
-  { key:'incubation', icon:'🥚', group:'elevage', fr:'Incubation', en:'Incubation' },
+  { key:'incubation', icon:'🐣', group:'elevage', fr:'Reproduction', en:'Reproduction' },
   { key:'listings', vsub:'listings', icon:'🏷️', group:'ventes', fr:'Annonces & MorphMarket', en:'Listings & MorphMarket' },
   { key:'clients', vsub:'clients', icon:'👤', group:'ventes', fr:'Clients', en:'Clients' },
   { key:'waitlist', vsub:'waitlist', icon:'📋', group:'ventes', fr:'Liste d\'attente', en:'Waitlist' },
@@ -3634,7 +3638,7 @@ const I18N = {
     tabMine: '🐍 Mes reptiles',
     tabElevage: '🏠 Élevage',
     tabVentes: '🏷️ Ventes',
-    tabIncubation: '🥚 Incubation',
+    tabIncubation: '🐣 Reproduction',
     backToApp: 'Retour à l\'app',
     mmImportTitle: 'Import depuis MorphMarket',
     mmImportDesc: 'Tu utilises déjà MorphMarket (Animal Manager) ? Exporte ta collection en CSV depuis là-bas, puis importe-la ici directement — pas besoin de tout ressaisir à la main. La génétique est extraite du titre/traits de chaque annonce et reste marquée « à vérifier » jusqu\'à confirmation.',
@@ -4154,7 +4158,7 @@ const I18N = {
     tabMine: '🐍 My Reptiles',
     tabElevage: '🏠 Husbandry',
     tabVentes: '🏷️ Sales',
-    tabIncubation: '🥚 Incubation',
+    tabIncubation: '🐣 Reproduction',
     backToApp: 'Back to app',
     mmImportTitle: 'Import from MorphMarket',
     mmImportDesc: 'Already using MorphMarket (Animal Manager)? Export your collection as CSV from there, then import it directly here — no need to retype everything by hand. Genetics are extracted from each ad\'s title/traits and stay marked "to verify" until confirmed.',
@@ -7792,6 +7796,28 @@ function exportSnakeSheet(id, vetMode){
   win.document.close();
 }
 
+// Annulation générique des événements de suivi (2 septembre) — un seul mécanisme réutilisé pour
+// les actions individuelles (nourri, mue, refus, changement d'eau) ET les actions en lot de Mode
+// Tournée. Garde une référence EXACTE de chaque événement ajouté (pas une recherche approximative
+// par date/type) pour ne retirer que ce qui vient vraiment d'être créé, rien d'autre.
+var lastEventUndo = null;
+function registerEventUndo(pairs){ lastEventUndo = pairs; }
+function undoLastLoggedEvent(){
+  if(!lastEventUndo) return;
+  const isEn = currentLang==='en';
+  lastEventUndo.forEach(({snakeId, event})=>{
+    const snake = savedSnakes.find(s=>s.id===snakeId);
+    if(!snake || !snake.health || !snake.health.events) return;
+    const idx = snake.health.events.indexOf(event);
+    if(idx>-1) snake.health.events.splice(idx,1);
+  });
+  storage.save(savedSnakes);
+  lastEventUndo = null;
+  renderRackGrid(); renderTerrariumList(); renderTourGrid();
+  if(document.getElementById('view-dash').style.display!=='none') renderDashboard();
+  if(document.getElementById('logbook-overlay').style.display==='flex' && currentLogbookId) openLogbook(currentLogbookId);
+  showToast(isEn?'↩ Undone.':'↩ Annulé.', 'success');
+}
 function logAction(id, type){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
@@ -7804,9 +7830,11 @@ function logAction(id, type){
   else if(type==='weigh'){ openWeighModal(id); return; }
   else if(type==='length'){ openLengthModal(id); return; }
   else if(type==='water'){
-    s.health.events.push({date:today, type:'water'});
+    const event = {date:today, type:'water'};
+    s.health.events.push(event);
     storage.save(savedSnakes);
-    showToast('💧 '+(isEn?'Water change logged for ':'Changement d\'eau noté pour ')+s.name+'.', 'success');
+    registerEventUndo([{snakeId:id, event}]);
+    showToast('💧 '+(isEn?'Water change logged for ':'Changement d\'eau noté pour ')+s.name+'.', 'success', 'undoLastLoggedEvent()');
     if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
     return;
   }
@@ -7840,8 +7868,10 @@ function confirmFed(id, quantity){
   const countInput = document.getElementById('fed-prey-count');
   const preyCount = countInput ? Math.max(1, parseInt(countInput.value)||1) : 1;
   s.health.consecutiveRefusals = 0;
-  s.health.events.push({date:today, type:'fed', quantity, preyType: s.preyType||'frozen', preyCount});
+  const event = {date:today, type:'fed', quantity, preyType: s.preyType||'frozen', preyCount};
+  s.health.events.push(event);
   storage.save(savedSnakes);
+  registerEventUndo([{snakeId:id, event}]);
   let stockMsg = '';
   if(s.preySpecies && s.preySize){
     const key = feederStockKey(s.preySpecies, s.preySize);
@@ -7855,7 +7885,7 @@ function confirmFed(id, quantity){
   }
   closeQuickModal();
   const countTag = preyCount>1 ? (isEn?' ('+preyCount+' prey)':' ('+preyCount+' proies)') : '';
-  showToast('🍽 '+s.name+(isEn?' ate':' a mangé')+(quantity==='partial'?(isEn?' (partial).':' (partiellement).'):'.')+countTag+stockMsg, 'success');
+  showToast('🍽 '+s.name+(isEn?' ate':' a mangé')+(quantity==='partial'?(isEn?' (partial).':' (partiellement).'):'.')+countTag+stockMsg, 'success', 'undoLastLoggedEvent()');
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
   renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderFirstSnakeTip();
   if(document.getElementById('view-dash').style.display!=='none') renderDashboard();
@@ -7969,10 +7999,12 @@ function confirmShed(id){
   const quality = qualEl ? qualEl.value : 'complete';
   const note = noteEl ? noteEl.value.trim() : '';
   const today = new Date().toISOString().slice(0,10);
-  s.health.events.push({date:today, type:'shed', quality, note});
+  const event = {date:today, type:'shed', quality, note};
+  s.health.events.push(event);
   storage.save(savedSnakes);
+  registerEventUndo([{snakeId:id, event}]);
   closeQuickModal();
-  showToast('✨ '+s.name+(isEn?' shed — ':' a mué — ')+shedQualityLabel(quality), quality==='complete'?'success':undefined);
+  showToast('✨ '+s.name+(isEn?' shed — ':' a mué — ')+shedQualityLabel(quality), quality==='complete'?'success':undefined, 'undoLastLoggedEvent()');
   renderFirstSnakeTip();
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
 }
@@ -8027,8 +8059,10 @@ function confirmRefused(id){
   const lostPrey = lostEl ? lostEl.checked : false;
   const today = new Date().toISOString().slice(0,10);
   s.health.consecutiveRefusals = (s.health.consecutiveRefusals||0)+1;
-  s.health.events.push({date:today, type:'refused', reason, note, lostPrey});
+  const event = {date:today, type:'refused', reason, note, lostPrey};
+  s.health.events.push(event);
   storage.save(savedSnakes);
+  registerEventUndo([{snakeId:id, event}]);
   // Une proie refusée n'est PAS déduite du stock par défaut — souvent réutilisable pour un autre
   // serpent (surtout congelé-décongelé). Décomptée seulement si "Proie perdue" est cochée.
   let stockMsg = '';
@@ -8043,7 +8077,7 @@ function confirmRefused(id){
     }
   }
   closeQuickModal();
-  showToast('⚠ '+(isEn?'Refusal noted for ':'Refus noté pour ')+s.name+' — '+refusalReasonLabel(reason)+(lostPrey?(isEn?' (prey lost).':' (proie perdue).'):'.')+stockMsg);
+  showToast('⚠ '+(isEn?'Refusal noted for ':'Refus noté pour ')+s.name+' — '+refusalReasonLabel(reason)+(lostPrey?(isEn?' (prey lost).':' (proie perdue).'):'.')+stockMsg, undefined, 'undoLastLoggedEvent()');
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
   renderRackGrid(); renderTerrariumList(); renderTourGrid();
 }
@@ -10989,6 +11023,7 @@ function applyTourAction(action){
   let fedCount = 0;
   let stockTouched = false;
   let lowStockMsgs = [];
+  const undoPairs = [];
   tourSelection.forEach(key=>{
     const snake = snakeFromKey(key);
     if(!snake) return;
@@ -10997,7 +11032,9 @@ function applyTourAction(action){
       const preyType = action==='fed_live' ? 'live' : 'frozen';
       snake.preyType = preyType; // le dernier type utilisé devient le nouveau défaut affiché (badge, stock)
       snake.health.consecutiveRefusals = 0;
-      snake.health.events.push({date:today, type:'fed', preyType});
+      const event = {date:today, type:'fed', preyType};
+      snake.health.events.push(event);
+      undoPairs.push({snakeId:snake.id, event});
       fedCount++;
       if(snake.preySpecies && snake.preySize){
         const key2 = feederStockKey(snake.preySpecies, snake.preySize);
@@ -11008,14 +11045,42 @@ function applyTourAction(action){
         }
       }
     }
-    else if(action==='refused'){ snake.health.consecutiveRefusals = (snake.health.consecutiveRefusals||0)+1; snake.health.events.push({date:today, type:'refused', reason:'unknown'}); }
-    else if(action==='shed'){ snake.health.events.push({date:today, type:'shed'}); }
-    else if(action==='water'){ snake.health.events.push({date:today, type:'water'}); }
+    else if(action==='refused'){
+      snake.health.consecutiveRefusals = (snake.health.consecutiveRefusals||0)+1;
+      const event = {date:today, type:'refused', reason:'unknown'};
+      snake.health.events.push(event);
+      undoPairs.push({snakeId:snake.id, event});
+    }
+    else if(action==='shed'){
+      const event = {date:today, type:'shed'};
+      snake.health.events.push(event);
+      undoPairs.push({snakeId:snake.id, event});
+    }
+    else if(action==='water'){
+      const event = {date:today, type:'water'};
+      snake.health.events.push(event);
+      undoPairs.push({snakeId:snake.id, event});
+    }
   });
   storage.save(savedSnakes);
   if(stockTouched) saveElevage();
   if(lowStockMsgs.length){
     showToast('⚠ '+(isEn?'Low stock: ':'Stock bas : ')+[...new Set(lowStockMsgs)].join(', '), 'warning');
+  }
+  // Confirmation qui manquait complètement ici (2 septembre) — c'était le vrai trou derrière les
+  // doubles-clics accidentels signalés par Alex : aucun retour visuel après une action en lot.
+  if(undoPairs.length){
+    registerEventUndo(undoPairs);
+    const n = undoPairs.length;
+    const actionLabels = {
+      fed_frozen: isEn ? n+' reptile(s) fed.' : n+' reptile(s) nourri(s).',
+      fed_live: isEn ? n+' reptile(s) fed.' : n+' reptile(s) nourri(s).',
+      refused: isEn ? n+' refusal(s) noted.' : n+' refus noté(s).',
+      shed: isEn ? n+' shed(s) noted.' : n+' mue(s) notée(s).',
+      water: isEn ? n+' water change(s) logged.' : n+' changement(s) d\'eau noté(s).',
+    };
+    const icons = { fed_frozen:'🍽', fed_live:'🍽', refused:'⚠', shed:'✨', water:'💧' };
+    showToast((icons[action]||'✓')+' '+(actionLabels[action]||(isEn?'Done.':'Fait.')), 'success', 'undoLastLoggedEvent()');
   }
   tourSelection.clear();
   renderTourGrid();
@@ -12213,32 +12278,54 @@ function calcPreBuyCost(){
 // (plusieurs sources scientifiques concordantes), mais DÉBATTUE chez le gecko à crête — une
 // source affirme une vraie TSD avec seuils précis, une autre fiche de soins dit explicitement le
 // contraire. Pas tranché ici, juste la durée d'incubation qui est ajustée.
-const INCUBATION_DAYS_BY_SPECIES = {
-  ball_python: { def:60, min:50, max:70 },
-  corn_snake: { def:60, min:50, max:70 },
-  king_california: { def:65, min:50, max:80 },
-  king_florida: { def:65, min:50, max:80 },
-  king_mexican: { def:65, min:50, max:80 },
-  hognose: { def:60, min:50, max:70 },
-  leopard_gecko: { def:50, min:35, max:90 },
-  crested_gecko: { def:90, min:55, max:140 },
-  bearded_dragon: { def:65, min:45, max:85 },
-  croc_skink_red: { def:70, min:55, max:90 },
-  croc_skink_white: { def:70, min:55, max:90 },
+// Mode de reproduction par espèce (2 septembre) — 'ovipare' (ponte, incubation externe) ou
+// 'ovovivipare' (gestation interne, mise bas directe — ex. boa constrictor, à ajouter). Piloté par
+// l'espèce des parents, exactement comme la liste de proie adaptative. Le boa sera le premier
+// exemple concret d'espèce ovovivipare dans le système.
+const REPRODUCTION_INFO_BY_SPECIES = {
+  ball_python: { mode:'ovipare', def:60, min:50, max:70 },
+  corn_snake: { mode:'ovipare', def:60, min:50, max:70 },
+  king_california: { mode:'ovipare', def:65, min:50, max:80 },
+  king_florida: { mode:'ovipare', def:65, min:50, max:80 },
+  king_mexican: { mode:'ovipare', def:65, min:50, max:80 },
+  hognose: { mode:'ovipare', def:60, min:50, max:70 },
+  leopard_gecko: { mode:'ovipare', def:50, min:35, max:90 },
+  crested_gecko: { mode:'ovipare', def:90, min:55, max:140 },
+  bearded_dragon: { mode:'ovipare', def:65, min:45, max:85 },
+  croc_skink_red: { mode:'ovipare', def:70, min:55, max:90 },
+  croc_skink_white: { mode:'ovipare', def:70, min:55, max:90 },
 };
-function updateClutchIncubationDefault(){
-  const sireId = document.getElementById('clutch-sire').value;
-  const damId = document.getElementById('clutch-dam').value;
+function reproductionModeForSnakes(sireId, damId){
   const sire = savedSnakes.find(s=>s.id===sireId);
   const dam = savedSnakes.find(s=>s.id===damId);
   const speciesId = (dam && dam.species) || (sire && sire.species) || 'ball_python';
-  const conf = INCUBATION_DAYS_BY_SPECIES[speciesId] || INCUBATION_DAYS_BY_SPECIES.ball_python;
+  return REPRODUCTION_INFO_BY_SPECIES[speciesId] || REPRODUCTION_INFO_BY_SPECIES.ball_python;
+}
+// Ajuste les champs du formulaire de ponte selon le mode de reproduction détecté depuis les
+// parents choisis — durée/libellés/visibilité, pas juste la valeur par défaut comme avant
+// (updateClutchIncubationDefault, renommée, gardait le même nom pour compat mais fait plus large).
+function updateClutchReproductionFields(){
+  const isEn = currentLang==='en';
+  const sireId = document.getElementById('clutch-sire').value;
+  const damId = document.getElementById('clutch-dam').value;
+  const conf = reproductionModeForSnakes(sireId, damId);
+  const isOvo = conf.mode==='ovovivipare';
   const input = document.getElementById('clutch-incubation-days');
+  const dateLabel = document.getElementById('clutch-date-label');
+  const durationLabel = document.getElementById('clutch-duration-label');
+  const eggCountInput = document.getElementById('clutch-eggcount');
   if(!input) return;
   input.min = conf.min;
   input.max = conf.max;
   input.value = conf.def;
+  dateLabel.textContent = isOvo ? (isEn?'Post-ov. shed':'Mue post-ov.') : (isEn?'Lay date':'Date de ponte');
+  durationLabel.textContent = isOvo ? (isEn?'Gestation':'Gestation') : (isEn?'Incubation':'Incubation');
+  // Le nombre d'œufs est connu à l'avance chez l'ovipare, mais inconnu tant que la mise bas n'a
+  // pas eu lieu chez l'ovovivipare (nés vivants/mort-nés/slugs saisis plus tard, à ce moment-là).
+  eggCountInput.style.display = isOvo ? 'none' : '';
 }
+// Alias de compatibilité — plusieurs endroits du code appellent encore l'ancien nom.
+function updateClutchIncubationDefault(){ updateClutchReproductionFields(); }
 function renderClutchForm(){
   const isEn = currentLang==='en';
   const sireSel = document.getElementById('clutch-sire');
@@ -12248,6 +12335,7 @@ function renderClutchForm(){
   sireSel.innerHTML = males.length ? males.map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+'</option>').join('') : '<option value="">'+(isEn?'No male registered':'Aucun mâle enregistré')+'</option>';
   damSel.innerHTML = females.length ? females.map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+'</option>').join('') : '<option value="">'+(isEn?'No female registered':'Aucune femelle enregistrée')+'</option>';
   if(!document.getElementById('clutch-laydate').value) document.getElementById('clutch-laydate').valueAsDate = new Date();
+  updateClutchReproductionFields();
 }
 // Amorce le formulaire de ponte depuis une fiche d'accouplement (2 septembre) — pré-remplit
 // sire/dam et retient le lien pour que addClutch() sache relier la ponte créée à cet accouplement.
@@ -12391,29 +12479,33 @@ function addClutch(){
   const damId = document.getElementById('clutch-dam').value;
   const eggCount = parseInt(document.getElementById('clutch-eggcount').value, 10);
   const layDate = document.getElementById('clutch-laydate').value;
+  const conf = reproductionModeForSnakes(sireId, damId);
+  const isOvo = conf.mode==='ovovivipare';
   let incubationDays = parseInt(document.getElementById('clutch-incubation-days').value, 10);
-  if(isNaN(incubationDays) || incubationDays<1){
-    // Repli sensible à l'espèce plutôt que toujours 60 — pertinent si le champ a été vidé/invalide.
-    const sireForFallback = savedSnakes.find(s2=>s2.id===sireId);
-    const damForFallback = savedSnakes.find(s2=>s2.id===damId);
-    const speciesForFallback = (damForFallback && damForFallback.species) || (sireForFallback && sireForFallback.species) || 'ball_python';
-    incubationDays = (INCUBATION_DAYS_BY_SPECIES[speciesForFallback] || INCUBATION_DAYS_BY_SPECIES.ball_python).def;
+  if(isNaN(incubationDays) || incubationDays<1) incubationDays = conf.def;
+  if(!sireId || !damId || !layDate || (!isOvo && (isNaN(eggCount) || eggCount<1))){
+    alert(isEn?'Select a sire, a dam, and a date (plus a valid egg count for oviparous species).':'Sélectionne un père, une mère et une date (plus un nombre d\'œufs valide pour une espèce ovipare).');
+    return;
   }
-  if(!sireId || !damId || !layDate || isNaN(eggCount) || eggCount<1){ alert(isEn?'Select a sire, a dam, a lay date, and a valid egg count.':'Sélectionne un père, une mère, une date de ponte et un nombre d\'œufs valide.'); return; }
   const ref = generateClutchRef(layDate);
   const hatchDate = addDays(layDate, incubationDays);
   clutches.push({
-    id:'cl_'+Date.now(), ref, sireId, damId, eggCount, layDate, incubationDays,
-    hatchDate, hatched:false, hatchedAt:null, pairingId:pendingPairingIdForClutch
+    id:'cl_'+Date.now(), ref, sireId, damId, mode:conf.mode,
+    eggCount: isOvo ? null : eggCount, layDate, incubationDays,
+    hatchDate, hatched:false, hatchedAt:null,
+    liveCount:null, stillbornCount:null, slugCount:null,
+    pairingId:pendingPairingIdForClutch
   });
   pendingPairingIdForClutch = null; // consommé — repasse en création "libre" par défaut
   saveElevage();
   document.getElementById('clutch-eggcount').value = '';
   renderClutches();
   try{ renderLastYearReference(); }catch(e){}
-  showToast(isEn
-    ? '🥚 Clutch '+ref+' recorded — hatch expected '+hatchDate+' ('+incubationDays+'d), the countdown is on!'
-    : '🥚 Portée '+ref+' enregistrée — éclosion prévue le '+hatchDate+' ('+incubationDays+'j), le compte à rebours est lancé !', 'success');
+  showToast(isOvo
+    ? (isEn ? '🐣 Litter '+ref+' recorded — birth expected '+hatchDate+' ('+incubationDays+'d gestation), the countdown is on!'
+            : '🐣 Portée '+ref+' enregistrée — mise bas prévue le '+hatchDate+' ('+incubationDays+'j de gestation), le compte à rebours est lancé !')
+    : (isEn ? '🥚 Clutch '+ref+' recorded — hatch expected '+hatchDate+' ('+incubationDays+'d), the countdown is on!'
+            : '🥚 Portée '+ref+' enregistrée — éclosion prévue le '+hatchDate+' ('+incubationDays+'j), le compte à rebours est lancé !'), 'success');
 }
 
 function deleteClutch(id){
@@ -12472,12 +12564,14 @@ function clutchProfitSummary(c, sire, dam){
   '</div>';
 }
 function renderClutches(){
+  const isEn = currentLang==='en';
   renderNextHatchBanner();
   const wrap = document.getElementById('clutch-list');
   if(clutches.length===0){ wrap.innerHTML = '<div class="empty">'+t('noClutchIncubating')+'</div>'; return; }
   const sorted = [...clutches].sort((a,b)=>a.hatchDate.localeCompare(b.hatchDate));
   wrap.innerHTML = '';
   sorted.forEach(c=>{
+    const isOvo = c.mode==='ovovivipare';
     const sire = savedSnakes.find(s=>s.id===c.sireId), dam = savedSnakes.find(s=>s.id===c.damId);
     const status = clutchStatus(c);
     const days = Math.floor((new Date(c.hatchDate+'T00:00:00').getTime() - Date.now()) / 86400000);
@@ -12488,11 +12582,20 @@ function renderClutches(){
     const card = document.createElement('div');
     card.className = 'clutch-card status-'+status;
 
+    const doneLabel = isOvo ? (isEn?'Born':'Née') : t('hatchedLabel');
+    const daysBeforeLabel = isOvo ? (isEn?'days before birth':'jours avant la mise bas') : t('daysBeforeHatch');
     const countdownHtml = c.hatched
-      ? '<div class="clutch-countdown hatched"><div class="cc-emoji">✅</div><div class="cc-num">'+t('hatchedLabel')+'</div><div class="cc-sub">'+t('onDateLabel')+' '+c.hatchedAt+'</div></div>'
+      ? '<div class="clutch-countdown hatched"><div class="cc-emoji">✅</div><div class="cc-num">'+doneLabel+'</div><div class="cc-sub">'+t('onDateLabel')+' '+c.hatchedAt+'</div></div>'
       : (days>=0
-          ? '<div class="clutch-countdown"><div class="cc-emoji">'+mood.emoji+'</div><div class="cc-num">'+days+'</div><div class="cc-sub">'+t('dayWord')+(days>1?'s':'')+' '+t('daysBeforeHatch')+'</div></div>'
+          ? '<div class="clutch-countdown"><div class="cc-emoji">'+mood.emoji+'</div><div class="cc-num">'+days+'</div><div class="cc-sub">'+t('dayWord')+(days>1?'s':'')+' '+daysBeforeLabel+'</div></div>'
           : '<div class="clutch-countdown overdue"><div class="cc-emoji">⏰</div><div class="cc-num">+'+Math.abs(days)+'</div><div class="cc-sub">'+t('dayWord')+(Math.abs(days)>1?'s':'')+' '+t('daysOverdue')+'</div></div>');
+
+    // Ligne "œufs"/"compteurs de naissance" — selon le mode et si la mise bas a déjà eu lieu.
+    const countRowHtml = !isOvo
+      ? mrow(t('eggsLabel'), c.eggCount)
+      : (c.hatched
+          ? mrow(isEn?'Live / stillborn / slugs':'Vivants / mort-nés / slugs', (c.liveCount||0)+' / '+(c.stillbornCount||0)+' / '+(c.slugCount||0))
+          : mrow(isEn?'Count':'Compte', isEn?'Known at birth':'Connu à la mise bas'));
 
     card.innerHTML =
       countdownHtml+
@@ -12501,9 +12604,9 @@ function renderClutches(){
       '<div class="clutch-body">'+
         mrow(t('fatherLabel'), sire?escapeHtml(sire.name):'?') +
         mrow(t('motherLabel'), dam?escapeHtml(dam.name):'?') +
-        mrow(t('eggsLabel'), c.eggCount) +
-        mrow(t('layDateLabel'), c.layDate) +
-        mrow(t('expectedHatchLabel'), c.hatchDate+' (+'+(c.incubationDays||60)+'j)') +
+        countRowHtml +
+        mrow(isOvo?(isEn?'Post-ov. shed':'Mue post-ov.'):t('layDateLabel'), c.layDate) +
+        mrow(isOvo?(isEn?'Expected birth':'Mise bas prévue'):t('expectedHatchLabel'), c.hatchDate+' (+'+(c.incubationDays||60)+'j)') +
       '</div>'+
       clutchProfitSummary(c, sire, dam)+
       (c.publicToken ? '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);">'+
@@ -12511,7 +12614,7 @@ function renderClutches(){
         '<div style="word-break:break-all;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--gold);">'+escapeHtml(clutchShareUrl(c.publicToken))+'</div>'+
       '</div>' : '')+
       '<div class="clutch-actions">'+
-        (c.hatched ? '' : '<button class="sc-btn accent" data-act="hatch" data-id="'+c.id+'">'+t('markHatchedBtn')+'</button>')+
+        (c.hatched ? '' : '<button class="sc-btn accent" data-act="hatch" data-id="'+c.id+'">'+(isOvo?(isEn?'Mark as born':'Marquer née'):t('markHatchedBtn'))+'</button>')+
         '<button class="sc-btn" data-act="toggleshowcase" data-id="'+c.id+'">🖼️ '+(c.publicToken?(isEn?'Disable showcase':'Retirer la vitrine'):(isEn?'Showcase link':'Lien vitrine'))+'</button>'+
         (c.publicToken ? '<button class="sc-btn" data-act="copyshowcase" data-id="'+c.id+'">📋 '+(isEn?'Copy':'Copier')+'</button>' : '')+
         '<button class="sc-btn danger" data-act="delclutch" data-id="'+c.id+'">'+t('deleteBtn')+'</button>'+
@@ -12531,7 +12634,50 @@ function markClutchHatched(id){
   if(!c) return;
   const sire = savedSnakes.find(s=>s.id===c.sireId), dam = savedSnakes.find(s=>s.id===c.damId);
   if(!sire || !dam){ alert(t('parentDeletedAlert')); return; }
+  // Ovovivipare (2 septembre) — pas de nombre d'œufs connu d'avance, on le demande maintenant
+  // (nés vivants / mort-nés / slugs) plutôt qu'un simple oui/non comme pour une ponte ovipare.
+  if(c.mode==='ovovivipare'){ openBirthCountsModal(id); return; }
   if(!confirm(t('markHatchedConfirm').replace('__REF__', c.ref).replace('__COUNT__', c.eggCount))) return;
+  proceedWithClutchBirth(id);
+}
+// Modale de mise bas pour une portée ovovivipare — collecte les 3 compteurs distincts (voir
+// discussion boa : les "slugs" sont des œufs non fécondés, distincts des vrais mort-nés).
+function openBirthCountsModal(id){
+  const isEn = currentLang==='en';
+  const c = clutches.find(x=>x.id===id);
+  if(!c) return;
+  const body =
+    '<p style="font-size:11.5px;color:var(--ink-dim);line-height:1.6;">'+(isEn
+      ? 'Enter the real outcome of the birth. "Slugs" are unfertilized eggs passed like a stillborn — common and normal, worth tracking separately from true stillborns.'
+      : 'Entre le vrai résultat de la mise bas. Les « slugs » sont des œufs non fécondés qui sortent comme un mort-né — fréquent et normal, ça vaut la peine de le distinguer d\'un vrai mort-né.')+'</p>'+
+    '<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Born alive':'Nés vivants')+'</span>'+
+      '<input type="number" id="birth-live-count" min="0" value="0" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
+    '<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Stillborn':'Mort-nés')+'</span>'+
+      '<input type="number" id="birth-stillborn-count" min="0" value="0" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
+    '<label style="display:block;margin-bottom:14px;"><span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Slugs (unfertilized)':'Slugs (non fécondés)')+'</span>'+
+      '<input type="number" id="birth-slug-count" min="0" value="0" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
+    '<button class="save-btn" style="width:100%;" onclick="confirmBirthCounts(\''+id+'\')">🐣 '+(isEn?'Confirm the birth':'Confirmer la mise bas')+'</button>';
+  showQuickModal('🐣 '+(isEn?'Birth — ':'Mise bas — ')+c.ref, body);
+}
+function confirmBirthCounts(id){
+  const isEn = currentLang==='en';
+  const c = clutches.find(x=>x.id===id);
+  if(!c) return;
+  const live = parseInt(document.getElementById('birth-live-count').value, 10) || 0;
+  const stillborn = parseInt(document.getElementById('birth-stillborn-count').value, 10) || 0;
+  const slug = parseInt(document.getElementById('birth-slug-count').value, 10) || 0;
+  if(live<1){ alert(isEn?'At least one baby born alive is required to continue — if the whole litter was lost, record it manually instead of using this flow.':'Au moins un bébé né vivant est requis pour continuer — si toute la portée est perdue, note-le manuellement plutôt que d\'utiliser ce flux.'); return; }
+  c.liveCount = live; c.stillbornCount = stillborn; c.slugCount = slug;
+  c.eggCount = live; // réutilise le champ existant pour le reste du flux (nombre de fiches à créer)
+  closeQuickModal();
+  proceedWithClutchBirth(id);
+}
+function proceedWithClutchBirth(id){
+  const isEn = currentLang==='en';
+  const c = clutches.find(x=>x.id===id);
+  if(!c) return;
+  const sire = savedSnakes.find(s=>s.id===c.sireId), dam = savedSnakes.find(s=>s.id===c.damId);
+  if(!sire || !dam){ alert(t('parentDeletedAlert')); return; }
 
   // Charge les parents dans le calculateur et calcule le croisement
   state.male = {...sire.genes};
@@ -12636,9 +12782,11 @@ function matchWaitlistToBabies(sireId, damId, createdIds){
 // si les parents/le nombre d'œufs étaient erronés, avant que les fiches ne se perdent dans la liste.
 function showHatchUndoModal(clutchId, createdIds, count, ref, sireId, damId){
   const isEn = currentLang==='en';
+  const cForMode = clutches.find(x=>x.id===clutchId);
+  const isOvo = cForMode && cForMode.mode==='ovovivipare';
   const waitlistMatchesHtml = (sireId && damId) ? matchWaitlistToBabies(sireId, damId, createdIds) : '';
   showQuickModal(isEn
-      ? '🎉 '+count+' '+(count>1?'babies':'baby')+' hatched!'
+      ? '🎉 '+count+' '+(count>1?'babies':'baby')+' '+(isOvo?'born':'hatched')+'!'
       : '🎉 '+count+' bébé'+(count>1?'s':'')+' bien arrivé'+(count>1?'s':'')+' !',
     isEn
       ? '<p style="font-size:12.5px;color:var(--ink-dim);line-height:1.6;margin:0 0 14px;">Records <b>'+ref+'-01</b> to <b>'+ref+'-'+String(count).padStart(2,'0')+'</b> created with the exact genetics from the draw. Sex not set — remember to sex them and add photos. Genetics stay marked <b style="color:#d8bb46;">"to verify"</b> until visually confirmed on each record.</p>'
@@ -13630,18 +13778,27 @@ document.getElementById('quick-modal-overlay').addEventListener('click', (e)=>{ 
 /* ==================== Notifications discrètes (toast) ==================== */
 // Remplace progressivement les alert() de confirmation par un feedback visuel non-bloquant.
 // Les confirm() destructeurs (suppression, etc.) restent des vraies confirmations bloquantes.
-function showToast(message, type){
+function showToast(message, type, undoOnclick){
+  const isEn = currentLang==='en';
   const stack = document.getElementById('toast-stack');
   if(!stack) return;
   const el = document.createElement('div');
   el.className = 'toast'+(type?' toast-'+type:'');
-  el.textContent = message;
+  if(undoOnclick){
+    // Bouton "Annuler" intégré (2 septembre) — pour les actions rapides (nourri, mue, changement
+    // d'eau, refus) qui n'avaient auparavant aucun moyen de revenir en arrière en cas de double-tap
+    // accidentel. Durée du toast allongée pour laisser le temps de réagir.
+    el.innerHTML = '<span>'+message+'</span> <button class="toast-undo-btn" onclick="'+undoOnclick+'">'+(isEn?'Undo':'Annuler')+'</button>';
+  } else {
+    el.textContent = message;
+  }
   stack.appendChild(el);
   requestAnimationFrame(()=> el.classList.add('show'));
+  const duration = undoOnclick ? 7000 : 4200;
   setTimeout(()=>{
     el.classList.remove('show');
     setTimeout(()=> el.remove(), 350);
-  }, 4200);
+  }, duration);
 }
 
 // Badge vivant du header : priorité à la prochaine éclosion (excitant, actionnable),
@@ -14960,15 +15117,16 @@ function setAssumedClutchSize(pairingId, val){
 // maintenir à la main, qui finirait par désynchroniser de la réalité).
 function seasonStageStatus(p){
   const linkedClutch = clutches.find(c=>c.pairingId===p.id);
+  const isOvo = linkedClutch && linkedClutch.mode==='ovovivipare';
   return [
     { key:'paired', labelFr:'Introduit', labelEn:'Paired', done:!!p.pairedDate },
     { key:'lock', labelFr:'Verrouillé', labelEn:'Locked', done:(p.lockDates||[]).length>0 },
     { key:'follicles', labelFr:'Follicules', labelEn:'Follicles', done:(p.follicleSizes||[]).length>0 },
     { key:'ovulation', labelFr:'Ovulation', labelEn:'Ovulation', done:!!p.ovulationConfirmed },
-    { key:'shed', labelFr:'Mue pré-ponte', labelEn:'Pre-lay shed', done:!!p.preLayShedDate },
-    { key:'eggs', labelFr:'Ponte', labelEn:'Eggs', done:!!linkedClutch },
-    { key:'incubation', labelFr:'Incubation', labelEn:'Incubation', done:!!linkedClutch && !linkedClutch.hatched },
-    { key:'hatch', labelFr:'Éclosion', labelEn:'Hatch', done:!!linkedClutch && !!linkedClutch.hatched },
+    { key:'shed', labelFr: isOvo?'Mue post-ov.':'Mue pré-ponte', labelEn: isOvo?'Post-ov. shed':'Pre-lay shed', done:!!p.preLayShedDate },
+    { key:'eggs', labelFr: isOvo?'Gestation confirmée':'Ponte', labelEn: isOvo?'Gestation confirmed':'Eggs', done:!!linkedClutch },
+    { key:'incubation', labelFr: isOvo?'Gestation':'Incubation', labelEn: isOvo?'Gestation':'Incubation', done:!!linkedClutch && !linkedClutch.hatched },
+    { key:'hatch', labelFr: isOvo?'Mise bas':'Éclosion', labelEn: isOvo?'Birth':'Hatch', done:!!linkedClutch && !!linkedClutch.hatched },
   ];
 }
 function seasonStepperHtml(p){
@@ -15067,10 +15225,12 @@ function renderTimeline(){
     // Lien vers la ponte (2 septembre) — si une ponte a déjà été créée depuis cet accouplement,
     // on l'affiche directement (référence + statut) au lieu du bouton de création.
     const linkedClutch = clutches.find(c=>c.pairingId===p.id);
+    const pairingMode = linkedClutch ? linkedClutch.mode : reproductionModeForSnakes(p.maleId, p.femaleId).mode;
+    const isOvoPairing = pairingMode==='ovovivipare';
     const clutchLinkHtml = '<div style="margin-top:10px;border-top:1px dashed var(--line);padding-top:10px;">'+
       (linkedClutch
-        ? '<div class="modal-row"><span>🥚 '+escapeHtml(linkedClutch.ref)+'</span><span>'+(linkedClutch.hatched?(currentLang==='en'?'Hatched':'Éclose'):(currentLang==='en'?'Expected '+linkedClutch.hatchDate:'Prévue '+linkedClutch.hatchDate))+'</span></div>'
-        : '<button class="sc-btn accent" data-act="mkclutch" data-id="'+p.id+'">🥚 '+(currentLang==='en'?'Create the clutch from this pairing':'Créer la ponte depuis cet accouplement')+'</button>')+
+        ? '<div class="modal-row"><span>'+(isOvoPairing?'🐣':'🥚')+' '+escapeHtml(linkedClutch.ref)+'</span><span>'+(linkedClutch.hatched?(isOvoPairing?(currentLang==='en'?'Born':'Née'):(currentLang==='en'?'Hatched':'Éclose')):(currentLang==='en'?'Expected '+linkedClutch.hatchDate:'Prévue '+linkedClutch.hatchDate))+'</span></div>'
+        : '<button class="sc-btn accent" data-act="mkclutch" data-id="'+p.id+'">'+(isOvoPairing?'🐣':'🥚')+' '+(isOvoPairing?(currentLang==='en'?'Create the litter from this pairing':'Créer la portée depuis cet accouplement'):(currentLang==='en'?'Create the clutch from this pairing':'Créer la ponte depuis cet accouplement'))+'</button>')+
     '</div>';
     card.innerHTML =
       '<div class="timeline-head"><span class="timeline-title">'+(male?escapeHtml(male.name):'?')+' × '+(female?escapeHtml(female.name):'?')+'</span>'+
