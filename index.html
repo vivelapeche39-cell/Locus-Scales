@@ -1973,7 +1973,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.16';
+const APP_VERSION = '2026.09.02.2.17';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -7377,6 +7377,7 @@ function openLogbook(id){
     '</div>'+
     '<div class="modal-row"><span>'+(isEn?'Cost per meal':'Coût par repas')+'</span><span><input type="number" class="price-input" style="width:70px;" min="0" step="0.25" value="'+(s.feedCost!=null?s.feedCost:'')+'" placeholder="0" onchange="setFeedCost(\''+id+'\', this.value)"/> $</span></div>'+
     (feedCount(s)>0 ? '<div class="modal-row"><span>'+(isEn?'Cumulative feeding cost (estimate)':'Coût de nourriture cumulé (estimé)')+'</span><span style="color:var(--gold);font-weight:600;">'+cumulativeFeedCost(s).toFixed(2)+' $</span></div>' : '')+
+    '<div class="modal-section"><h3>'+t('careJournalTourTitle')+'</h3>'+eventsHtml+'</div>'+
     '<div class="modal-section">'+
       '<div class="community-folder'+(helpFolderWasOpen?'':' collapsed')+'" id="'+helpFolderId+'">'+
         '<button class="community-folder-header" onclick="toggleCommunityFolder(\''+helpFolderId+'\')">'+
@@ -7493,7 +7494,6 @@ function openLogbook(id){
       '</div>'+
       '<div id="defecations-list-'+id+'">'+renderDefecationsHtml(s)+'</div>'+
     '</div>'+
-    '<div class="modal-section"><h3>'+t('careJournalTourTitle')+'</h3>'+eventsHtml+'</div>'+
     '<div class="modal-section"><h3>'+t('reproductionTitle')+'</h3>'+pairingsHtml+'</div>'+
     (function(){
       if(s.sex!=='female') return '';
