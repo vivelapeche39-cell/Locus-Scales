@@ -1973,7 +1973,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.15';
+const APP_VERSION = '2026.09.02.2.16';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -7243,8 +7243,16 @@ function openLogbook(id){
     : '<div class="modal-row"><span>'+t('noLengthRecorded')+'</span></div>';
 
   const eventsSorted = [...s.health.events].sort((a,b)=>b.date.localeCompare(a.date));
+  // Bouton de suppression par ligne (2 septembre) — pour retirer un doublon accidentel directement
+  // sur la fiche, sans devoir attendre la fenêtre de 7s du bouton "Annuler" du toast. indexOf() sur
+  // la référence exacte de l'objet (pas une recherche par date/type) — fiable même si 2 événements
+  // identiques se ressemblent en tout point, exactement le cas d'un doublon.
   const eventsHtml = eventsSorted.length
-    ? eventsSorted.map(e=>mrow(e.date, eventLabel(e.type)+(e.type==='weigh'?' ('+e.value+'g)':'')+(e.type==='length'?' ('+e.value+'cm)':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(currentLang==='en'?'partial':'partiel'):'')+feedPreyTag(e))).join('')
+    ? eventsSorted.map(e=>{
+        const idx = s.health.events.indexOf(e);
+        const label = eventLabel(e.type)+(e.type==='weigh'?' ('+e.value+'g)':'')+(e.type==='length'?' ('+e.value+'cm)':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(currentLang==='en'?'partial':'partiel'):'')+feedPreyTag(e);
+        return '<div class="modal-row"><span>'+e.date+'</span><span style="display:flex;align-items:center;gap:6px;">'+label+'<button class="sc-btn danger" style="padding:2px 8px;font-size:11px;line-height:1;" onclick="deleteHealthEvent(\''+id+'\','+idx+')">×</button></span></div>';
+      }).join('')
     : '<div class="modal-row"><span>'+t('noEventRecorded')+'</span></div>';
 
   const sire = s.sireId ? savedSnakes.find(x=>x.id===s.sireId) : null;
@@ -7817,6 +7825,21 @@ function undoLastLoggedEvent(){
   if(document.getElementById('view-dash').style.display!=='none') renderDashboard();
   if(document.getElementById('logbook-overlay').style.display==='flex' && currentLogbookId) openLogbook(currentLogbookId);
   showToast(isEn?'↩ Undone.':'↩ Annulé.', 'success');
+}
+// Suppression directe d'une entrée du journal (2 septembre) — pour retirer un doublon accidentel
+// (double-tap) directement sur la fiche, sans limite de temps contrairement au bouton "Annuler"
+// du toast qui disparaît après 7s. index précis (pas une recherche approximative) pour ne jamais
+// retirer la mauvaise entrée si deux se ressemblent en tout point.
+function deleteHealthEvent(snakeId, idx){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===snakeId);
+  if(!s || !s.health || !s.health.events || idx<0 || idx>=s.health.events.length) return;
+  if(!confirm(isEn?'Delete this journal entry?':'Supprimer cette entrée du journal ?')) return;
+  s.health.events.splice(idx, 1);
+  storage.save(savedSnakes);
+  showToast('🗑 '+(isEn?'Entry deleted.':'Entrée supprimée.'), 'success');
+  openLogbook(snakeId);
+  renderRackGrid(); renderTerrariumList(); renderTourGrid();
 }
 function logAction(id, type){
   const s = savedSnakes.find(x=>x.id===id);
