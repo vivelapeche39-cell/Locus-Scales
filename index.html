@@ -1308,6 +1308,10 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <span style="font-size:11px;color:var(--ink-dim);">📍 <span data-i18n="roomFilterLabel">Pièce</span> :</span>
         <select id="tour-room-filter" class="egg-select" onchange="setTourRoomFilter(this.value)"></select>
       </div>
+      <div id="tour-category-filter-wrap" style="display:none;margin-bottom:14px;">
+        <span style="font-size:11px;color:var(--ink-dim);"><span data-i18n="categoryFilterLabel">Type</span> :</span>
+        <select id="tour-category-filter" class="egg-select" onchange="setTourCategoryFilter(this.value)"></select>
+      </div>
       <button class="sc-btn" id="tour-show-all-btn" style="margin-bottom:14px;" onclick="showAllRacksTerrariums()">🔄 <span data-i18n="showAllSectionsBtn">Tout réafficher</span></button>
       <div id="tour-wrap">
         <div class="elevage-block" id="block-tour-racks">
@@ -1965,7 +1969,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.11';
+const APP_VERSION = '2026.09.02.2.12';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4056,6 +4060,8 @@ const I18N = {
     deselectBtn: 'Désélectionner',
     showAllSectionsBtn: 'Tout réafficher',
     roomFilterLabel: 'Pièce',
+    categoryFilterLabel: 'Type',
+    allCategoriesOption: 'Tous les types',
     allRoomsOption: 'Toutes les pièces',
     quickSelectPreyLabel: 'Sélection rapide par proie :',
     selectFrozenBtn: '❄️ Tout le décongelé',
@@ -4574,6 +4580,8 @@ const I18N = {
     deselectBtn: 'Deselect',
     showAllSectionsBtn: 'Show everything again',
     roomFilterLabel: 'Room',
+    categoryFilterLabel: 'Type',
+    allCategoriesOption: 'All types',
     allRoomsOption: 'All rooms',
     quickSelectPreyLabel: 'Quick select by prey:',
     selectFrozenBtn: '❄️ All frozen-thawed',
@@ -4979,6 +4987,15 @@ var tourSelection = new Set();
 // Filtre multi-pièces (2 septembre) — pour les éleveurs dont la collection est répartie entre
 // plusieurs pièces physiques (sous-sol, salon, chambre dédiée...). 'all' = pas de filtre.
 var tourRoomFilter = 'all';
+// Filtre par type d'espèce dans Mode Tournée (2 septembre) — serpent/lézard/tortue, distinct du
+// filtre par espèce précise du dashboard (dashSpeciesFilter). N'apparaît que si plus d'un type est
+// vraiment présent dans la collection, comme le filtre de pièce.
+var tourCategoryFilter = 'all';
+function speciesCategoryOf(speciesId){
+  if(!speciesId || speciesId==='ball_python' || speciesId==='other') return 'serpent';
+  const ref = SPECIES_REFERENCE.find(sp=>sp.id===speciesId);
+  return ref ? ref.category : 'serpent';
+}
 markSynced('snakes', savedSnakes);
 var editingId = null;
 // Lien ponte <-> accouplement (2 septembre) — pont temporaire entre createClutchFromPairing() et
@@ -10746,12 +10763,39 @@ function setTourRoomFilter(value){
   renderTourGrid();
   renderTourTerrariums();
 }
+function renderTourCategoryFilterOptions(){
+  const isEn = currentLang==='en';
+  const sel = document.getElementById('tour-category-filter');
+  const wrap = document.getElementById('tour-category-filter-wrap');
+  if(!sel || !wrap) return;
+  const distinctCats = [...new Set(savedSnakes.map(s=>speciesCategoryOf(s.species)))];
+  // Caché tant qu'un seul type est vraiment présent — pas la peine d'encombrer Mode Tournée pour
+  // un éleveur qui a juste des serpents, par exemple.
+  if(distinctCats.length<2){ wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  const order = ['serpent','lezard','tortue'].filter(c=>distinctCats.includes(c));
+  sel.innerHTML = '<option value="all">'+t('allCategoriesOption')+'</option>'+
+    order.map(c=>'<option value="'+c+'"'+(tourCategoryFilter===c?' selected':'')+'>'+(isEn?SPECIES_CATEGORY_LABELS[c].en:SPECIES_CATEGORY_LABELS[c].fr)+'</option>').join('');
+  sel.value = tourCategoryFilter;
+}
+function setTourCategoryFilter(value){
+  tourCategoryFilter = value;
+  renderTourGrid();
+  renderTourTerrariums();
+}
 function renderTourGrid(){
   const isEn = currentLang==='en';
   renderTourRoomFilterOptions();
+  renderTourCategoryFilterOptions();
   const grid = document.getElementById('tour-grid');
   grid.innerHTML = '';
-  const visibleRacks = tourRoomFilter==='all' ? racks : racks.filter(r=>r.room===tourRoomFilter);
+  let visibleRacks = tourRoomFilter==='all' ? racks : racks.filter(r=>r.room===tourRoomFilter);
+  if(tourCategoryFilter!=='all'){
+    // Un rack est montré seulement s'il contient au moins un occupant du type choisi — les racks
+    // sont presque toujours des serpents en pratique, donc filtrer sur "lézard"/"tortue" les
+    // cache généralement au complet, ce qui est le comportement attendu (rien à nourrir là pour ce type-là).
+    visibleRacks = visibleRacks.filter(r=>savedSnakes.some(s=>s.placement && s.placement.mode==='rack' && s.placement.rackId===r.id && speciesCategoryOf(s.species)===tourCategoryFilter));
+  }
   visibleRacks.forEach(rack=>{
     const unit = document.createElement('div');
     unit.className = 'rack-unit';
@@ -10857,6 +10901,9 @@ function renderTourTerrariums(){
       const te = s.placement.terrariumId ? getTerrarium(s.placement.terrariumId) : null;
       return te && te.room===tourRoomFilter;
     });
+  }
+  if(tourCategoryFilter!=='all'){
+    list = list.filter(s=>speciesCategoryOf(s.species)===tourCategoryFilter);
   }
   wrap.innerHTML = list.length ? '' : '<div class="empty">'+t('noTerrariumReptiles')+'</div>';
   list.forEach(s=>{
