@@ -1973,7 +1973,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.18';
+const APP_VERSION = '2026.09.02.2.19';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -15646,7 +15646,11 @@ function speciesClutchInfoBlockHtml(clutchesText, eggsText, isEn){
 // désormais l'URL statique. Regénérer les fichiers du dossier guides/ (script generate_static_guides.py)
 // à chaque changement de contenu d'espèce.
 function publicGuideUrl(speciesId){
-  const slug = speciesId.replace(/_/g, '-');
+  // Cas spécial (2 septembre) — l'id interne est 'prey_sizes' mais le fichier statique généré
+  // s'appelle prey-size-lexicon.html (nom plus descriptif choisi au moment de la génération). Sans
+  // ce mappage, le lien généré ici et le vrai fichier sur le serveur ne correspondent pas → 404.
+  const slugMap = { prey_sizes: 'prey-size-lexicon' };
+  const slug = slugMap[speciesId] || speciesId.replace(/_/g, '-');
   const isEn = currentLang==='en';
   return location.origin + '/guides/' + slug + (isEn ? '-en' : '') + '.html';
 }
