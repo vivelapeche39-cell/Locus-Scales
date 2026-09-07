@@ -1973,7 +1973,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.17';
+const APP_VERSION = '2026.09.02.2.18';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3835,7 +3835,7 @@ const I18N = {
     valeurTitle: 'Valeur & assurance',
     valeurTotalLabel: 'Valeur totale estimée du cheptel',
     valeurMissingLabel: 'Reptiles sans valeur renseignée',
-    valeurFootnote: "Basé sur le champ « Prix demandé » de chaque fiche (Journal de bord → Statut de vente). Renseigne-le même pour les reptiles conservés — utile uniquement pour estimer la valeur, pas pour la vente.",
+    valeurFootnote: "Utilise le prix demandé de chaque fiche s'il est renseigné, sinon le prix d'achat — pas besoin de remplir les deux. Un reptile conservé (jamais à vendre) peut donc avoir une valeur estimée sans jamais lui assigner de prix de vente.",
     valeurInventoryTitle: 'Inventaire complet',
     valeurGenerateReportBtn: '📄 Générer le rapport (impression / PDF)',
     reglementTitle: 'Réglementation — permis & CITES',
@@ -4355,7 +4355,7 @@ const I18N = {
     valeurTitle: 'Value & insurance',
     valeurTotalLabel: 'Estimated total collection value',
     valeurMissingLabel: 'Reptiles with no value entered',
-    valeurFootnote: "Based on the \"Asking price\" field on each record (Logbook → Sale status). Fill it in even for reptiles you're keeping — it's only used to estimate value, not for sale.",
+    valeurFootnote: "Uses each record's asking price if set, otherwise its purchase price — no need to fill in both. A reptile you're keeping (never for sale) can still have an estimated value without ever assigning it a sale price.",
     valeurInventoryTitle: 'Full inventory',
     valeurGenerateReportBtn: '📄 Generate report (print / PDF)',
     reglementTitle: 'Regulations — permits & CITES',
@@ -14866,23 +14866,35 @@ function renderFiscalView(){
 }
 
 /* ==================== CÔTÉ LÉGAL : Valeur & Assurance ==================== */
+// Valeur estimée d'un reptile pour le rapport Valeur & assurance (2 septembre) — avant, fallait
+// remplir "Prix demandé" même pour un reptile conservé (jamais à vendre), ce qui dupliquait une
+// donnée déjà entrée (coût d'acquisition). Repli intelligent : prix demandé si renseigné (estimation
+// de marché la plus à jour), sinon prix d'achat déjà au dossier — jamais besoin de tout ressaisir.
+function estimatedSnakeValue(s){
+  if(s.askingPrice) return s.askingPrice;
+  if(s.purchasePrice) return s.purchasePrice;
+  return 0;
+}
 function renderValeurView(){
   savedSnakes.forEach(ensureSnakeMeta);
-  const valued = savedSnakes.filter(s=>s.askingPrice);
-  const missing = savedSnakes.filter(s=>!s.askingPrice);
-  const total = valued.reduce((a,s)=>a+(s.askingPrice||0),0);
+  const valued = savedSnakes.filter(s=>estimatedSnakeValue(s)>0);
+  const missing = savedSnakes.filter(s=>estimatedSnakeValue(s)===0);
+  const total = valued.reduce((a,s)=>a+estimatedSnakeValue(s),0);
   document.getElementById('valeur-total').textContent = total.toLocaleString('fr-CA')+' $';
   document.getElementById('valeur-missing').textContent = missing.length;
   document.getElementById('valeur-count-label').textContent = savedSnakes.length+' '+t('totalReptilesLabel');
 
   const wrap = document.getElementById('valeur-list');
   wrap.innerHTML = savedSnakes.length ? '' : '<div class="empty">'+t('noReptileRegistered')+'</div>';
-  [...savedSnakes].sort((a,b)=>(b.askingPrice||0)-(a.askingPrice||0)).forEach(s=>{
+  [...savedSnakes].sort((a,b)=>estimatedSnakeValue(b)-estimatedSnakeValue(a)).forEach(s=>{
     const row = document.createElement('div');
     row.className = 'sale-row';
+    const val = estimatedSnakeValue(s);
+    const isEn = currentLang==='en';
+    const source = val===0 ? '' : (s.askingPrice ? '' : ' <small style="color:var(--ink-dim);">('+(isEn?'purchase price':'prix d\'achat')+')</small>');
     row.innerHTML =
       '<div class="sale-name">'+escapeHtml(s.name)+'<small>'+summarizeGenes(s.genes)+'</small></div>'+
-      '<div class="sale-price">'+(s.askingPrice ? s.askingPrice+' $' : '<span style="color:var(--ink-dim);">'+t('priceNotSet')+'</span>')+'</div>';
+      '<div class="sale-price">'+(val>0 ? val+' $'+source : '<span style="color:var(--ink-dim);">'+t('priceNotSet')+'</span>')+'</div>';
     wrap.appendChild(row);
   });
 }
@@ -14890,9 +14902,9 @@ function renderValeurView(){
 function exportValueReport(){
   if(!requireAuthOrPrompt()) return;
   savedSnakes.forEach(ensureSnakeMeta);
-  const total = savedSnakes.reduce((a,s)=>a+(s.askingPrice||0),0);
-  const rows = [...savedSnakes].sort((a,b)=>(b.askingPrice||0)-(a.askingPrice||0)).map(s=>
-    '<tr><td>'+escapeHtml(s.name)+'</td><td>'+(s.sex==='male'?t('sexMale'):s.sex==='female'?t('sexFemale'):t('sexUnknown'))+'</td><td>'+summarizeGenes(s.genes)+'</td><td>'+(s.askingPrice?s.askingPrice+' $':'—')+'</td></tr>'
+  const total = savedSnakes.reduce((a,s)=>a+estimatedSnakeValue(s),0);
+  const rows = [...savedSnakes].sort((a,b)=>estimatedSnakeValue(b)-estimatedSnakeValue(a)).map(s=>
+    '<tr><td>'+escapeHtml(s.name)+'</td><td>'+(s.sex==='male'?t('sexMale'):s.sex==='female'?t('sexFemale'):t('sexUnknown'))+'</td><td>'+summarizeGenes(s.genes)+'</td><td>'+(estimatedSnakeValue(s)?estimatedSnakeValue(s)+' $':'—')+'</td></tr>'
   ).join('');
   const win = window.open('', '_blank');
   win.document.write(
