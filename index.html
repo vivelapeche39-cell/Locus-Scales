@@ -44,6 +44,25 @@
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
 <meta name="twitter:card" content="summary_large_image"/>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "LOCUS Scales",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "description": "Application de gestion d'élevage de reptiles — calculateur génétique sourcé, suivi de racks et terrariums, reproduction (ponte et gestation), rappels de nourrissage intelligents, journal de santé, ventes, et gestion de colonies de rongeurs nourriciers. Bilingue français/anglais.",
+  "url": "https://app.locusscales.com",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "CAD",
+    "description": "Gratuit pendant la phase de test actuelle."
+  },
+  "publisher": { "@type": "Organization", "name": "LOCUS Scales" },
+  "inLanguage": ["fr", "en"]
+}
+</script>
 <!-- Anti-cache : double protection depuis le 29 août 2026. checkForNewVersion() plus bas reste le
      mécanisme principal et le plus fiable (vérifie version.txt à chaque chargement, fetch no-store).
      Les balises meta ci-dessous ont été retirées le 24 août puis RÉINTRODUITES le 29 août suite à un
@@ -2010,7 +2029,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.38';
+const APP_VERSION = '2026.09.02.2.39';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
