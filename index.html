@@ -1310,6 +1310,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <span style="font-size:11px;color:var(--ink-dim);"><span data-i18n="categoryFilterLabel">Type</span> :</span>
         <select id="tour-category-filter" class="egg-select" onchange="setTourCategoryFilter(this.value)"></select>
       </div>
+      <div id="tour-rack-filter-banner" style="display:none;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;padding:10px 14px;background:var(--bg-panel-2);border:1px solid var(--gold);border-radius:10px;font-size:12px;"></div>
       <button class="sc-btn" id="tour-show-all-btn" style="margin-bottom:14px;" onclick="showAllRacksTerrariums()">🔄 <span data-i18n="showAllSectionsBtn">Tout réafficher</span></button>
       <div id="tour-wrap">
         <div class="elevage-block" id="block-tour-racks">
@@ -2007,7 +2008,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.31';
+const APP_VERSION = '2026.09.02.2.32';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5058,6 +5059,9 @@ var tourSelection = new Set();
 // Filtre multi-pièces (2 septembre) — pour les éleveurs dont la collection est répartie entre
 // plusieurs pièces physiques (sous-sol, salon, chambre dédiée...). 'all' = pas de filtre.
 var tourRoomFilter = 'all';
+// Filtre par rack précis dans Mode Tournée (4 sept) — activé en scannant le QR d'un rack (voir
+// routeToScannedRack), prioritaire sur les filtres pièce/type puisqu'il cible un seul rack précis.
+var tourRackFilter = null;
 // Filtre par type d'espèce dans Mode Tournée (2 septembre) — serpent/lézard/tortue, distinct du
 // filtre par espèce précise du dashboard (dashSpeciesFilter). N'apparaît que si plus d'un type est
 // vraiment présent dans la collection, comme le filtre de pièce.
@@ -7728,6 +7732,34 @@ function buildQrData(s){
 }
 function qrImageUrl(data, size){
   return 'https://api.qrserver.com/v1/create-qr-code/?size='+size+'x'+size+'&data='+encodeURIComponent(data);
+}
+// QR de rack (4 sept) — même principe que ?snake= pour un animal individuel, mais pour tout un
+// rack. Scanné par l'éleveur connecté (n'importe quelle méthode — caméra native ou dans l'app),
+// ça saute direct dans Mode Tournée déjà filtré sur ce rack précis (voir routeToScannedRack),
+// combinant l'idée de code par rack de Husbandry Pro avec les actions en lot déjà plus rapides.
+function buildRackQrData(rack){
+  return location.origin + location.pathname + '?rack=' + encodeURIComponent(rack.id);
+}
+function printRackLabel(rackId){
+  if(!requireAuthOrPrompt()) return;
+  const isEn = currentLang==='en';
+  const rack = racks.find(r=>r.id===rackId);
+  if(!rack) return;
+  const win = window.open('', '_blank', 'width=420,height=520');
+  win.document.write(
+    '<html><head><title>'+(isEn?'Rack QR — ':'QR du rack — ')+escapeHtml(rack.name)+'</title><style>'+
+    'body{font-family:Arial,sans-serif;text-align:center;padding:24px;}'+
+    'img{width:200px;height:200px;}'+
+    'h1{font-size:20px;margin:12px 0 4px;}'+
+    'p{font-size:12px;color:#555;margin:2px 0;}'+
+    '@media print{ body{padding:0;} }'+
+    '</style></head><body>'+
+    '<img src="'+qrImageUrl(buildRackQrData(rack), 200)+'" onload="window.print()"/>'+
+    '<h1>'+escapeHtml(rack.name)+'</h1>'+
+    '<p>'+(isEn?'Scan to jump to Tour Mode, filtered to this rack':'Scanner pour ouvrir Mode Tournée, filtré sur ce rack')+'</p>'+
+    '</body></html>'
+  );
+  win.document.close();
 }
 
 function toggleQrCode(id){
@@ -10585,6 +10617,7 @@ function renderRackGrid(){
         '<input type="text" class="rack-name-input" value="'+escapeHtml(rack.name)+'" data-rack="'+rack.id+'"/>'+
         '<button class="sc-btn" data-act="addrow" data-rack="'+rack.id+'">'+t('addRowBtn')+'</button>'+
         '<button class="sc-btn" data-act="cleanrack" data-rack="'+rack.id+'">🧹 '+(isEn?'Cleaning':'Nettoyage')+(overdueTubs?' <span style="color:#e08a63;font-weight:700;">🚨 '+overdueTubs+'</span>':'')+'</button>'+
+        '<button class="sc-btn" onclick="printRackLabel(\''+rack.id+'\')">🏷️ '+(isEn?'Rack QR':'QR du rack')+'</button>'+
         (racks.length>1 ? '<button class="sc-btn danger" data-act="delrack" data-rack="'+rack.id+'">'+t('deleteThisRackBtn')+'</button>' : '')+
       '</div>'+
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">'+
@@ -11488,18 +11521,36 @@ function setTourCategoryFilter(value){
   renderTourGrid();
   renderTourTerrariums();
 }
+function clearTourRackFilter(){
+  tourRackFilter = null;
+  renderTourGrid();
+}
 function renderTourGrid(){
   const isEn = currentLang==='en';
   renderTourRoomFilterOptions();
   renderTourCategoryFilterOptions();
   const grid = document.getElementById('tour-grid');
   grid.innerHTML = '';
-  let visibleRacks = tourRoomFilter==='all' ? racks : racks.filter(r=>r.room===tourRoomFilter);
-  if(tourCategoryFilter!=='all'){
-    // Un rack est montré seulement s'il contient au moins un occupant du type choisi — les racks
-    // sont presque toujours des serpents en pratique, donc filtrer sur "lézard"/"tortue" les
-    // cache généralement au complet, ce qui est le comportement attendu (rien à nourrir là pour ce type-là).
-    visibleRacks = visibleRacks.filter(r=>savedSnakes.some(s=>s.placement && s.placement.mode==='rack' && s.placement.rackId===r.id && speciesCategoryOf(s.species)===tourCategoryFilter));
+  // Filtre par rack précis (4 sept) — activé par un scan de QR de rack, prioritaire sur les
+  // filtres pièce/type puisqu'il cible un seul rack. Bandeau visible + bouton pour en sortir.
+  const rackFilterBanner = document.getElementById('tour-rack-filter-banner');
+  if(tourRackFilter){
+    const targetRack = racks.find(r=>r.id===tourRackFilter);
+    if(rackFilterBanner){
+      rackFilterBanner.style.display = 'flex';
+      rackFilterBanner.innerHTML = '<span>🎯 '+(isEn?'Showing only: ':'Affichage limité à : ')+'<b>'+(targetRack?escapeHtml(targetRack.name):'?')+'</b></span>'+
+        '<button class="sc-btn" onclick="clearTourRackFilter()">'+(isEn?'Show all':'Tout réafficher')+'</button>';
+    }
+    var visibleRacks = targetRack ? [targetRack] : [];
+  } else {
+    if(rackFilterBanner) rackFilterBanner.style.display = 'none';
+    var visibleRacks = tourRoomFilter==='all' ? racks : racks.filter(r=>r.room===tourRoomFilter);
+    if(tourCategoryFilter!=='all'){
+      // Un rack est montré seulement s'il contient au moins un occupant du type choisi — les racks
+      // sont presque toujours des serpents en pratique, donc filtrer sur "lézard"/"tortue" les
+      // cache généralement au complet, ce qui est le comportement attendu (rien à nourrir là pour ce type-là).
+      visibleRacks = visibleRacks.filter(r=>savedSnakes.some(s=>s.placement && s.placement.mode==='rack' && s.placement.rackId===r.id && speciesCategoryOf(s.species)===tourCategoryFilter));
+    }
   }
   visibleRacks.forEach(rack=>{
     const unit = document.createElement('div');
@@ -16494,6 +16545,26 @@ function routeToScannedSnake(attempt){
   }
 }
 routeToScannedSnake();
+
+// Accès rapide par QR de rack (?rack=<id>) — 4 sept, miroir de routeToScannedSnake mais saute
+// dans Mode Tournée déjà filtré sur ce rack précis plutôt que sur une seule fiche animal.
+function routeToScannedRack(attempt){
+  const id = new URLSearchParams(location.search).get('rack');
+  if(!id) return;
+  const rack = racks.find(r=>r.id===id);
+  if(rack){
+    tourRackFilter = id;
+    showTab('elevage');
+    showSubtab('tour');
+    return;
+  }
+  if(!attempt){
+    setTimeout(()=>routeToScannedRack(1), 1800);
+  } else {
+    showToast('🔍 '+(currentLang==='en'?'Rack not found in this account — make sure you\'re logged in.':'Rack introuvable dans ce compte — vérifie que tu es bien connecté.'), 'warning');
+  }
+}
+routeToScannedRack();
 
 // renderDashboard() APPELÉE ICI, à la toute fin du script (30 août) — cause racine trouvée le 30
 // août via le journal de diagnostic global : cet appel était auparavant fait beaucoup plus tôt
