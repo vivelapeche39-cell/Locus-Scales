@@ -953,8 +953,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
     </div>
     <input type="file" id="import-file-input" accept="application/json" style="display:none;"/>
     <input type="file" id="csv-file-input" accept=".csv,text/csv" style="display:none;"/>
-    <button class="notif-bell" id="storage-indicator-btn" onclick="openStorageDetails()" data-i18n-title="storageIndicatorTitle" title="Espace de stockage utilisé" aria-label="Espace de stockage utilisé">💾</button>
-    <button class="notif-bell" id="notif-bell-btn" onclick="openNotifSettings()" title="Notifications" aria-label="Notifications">🔔</button>
+    <button class="tab-btn active" data-tab="dash" data-i18n="tabDash" onclick="showTab('dash')" style="white-space:nowrap;font-size:11px;padding:9px 14px;">📋 Agenda</button>
     <button class="tab-btn" data-tab="utilitaire" data-i18n="tabUtilitaire" onclick="showTab('utilitaire')" style="white-space:nowrap;font-size:11px;padding:9px 14px;">🛠️ Utilitaire</button>
     <div style="position:absolute;top:0;right:0;z-index:2;display:flex;gap:8px;align-items:center;">
       <button class="tab-btn" data-tab="calc" data-i18n="tabCalc" onclick="showTab('calc')" style="white-space:nowrap;font-size:11px;padding:9px 14px;">🧬 Calculateur</button>
@@ -973,7 +972,6 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   </div>
 
   <div class="tabs">
-    <button class="tab-btn active" data-tab="dash" data-i18n="tabDash" onclick="showTab('dash')">📋 Tableau de bord</button>
     <button class="tab-btn" data-tab="mine" data-i18n="tabMine" onclick="showTab('mine')">🐍 Mes reptiles</button>
     <button class="tab-btn" data-tab="elevage" data-i18n="tabElevage" onclick="showTab('elevage')">🏠 Élevage</button>
     <button class="tab-btn" data-tab="incubation" data-i18n="tabIncubation" onclick="showTab('incubation')">🐣 Reproduction</button>
@@ -1973,7 +1971,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.19';
+const APP_VERSION = '2026.09.02.2.20';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3620,7 +3618,7 @@ function openFaqModal(){
    dans le code JS qui génère le texte dynamiquement. */
 const I18N = {
   fr: {
-    tabDash: '📋 Tableau de bord',
+    tabDash: '📋 Agenda',
     alertsWidgetTitle: 'Résumé rapide',
     todayWidgetTitle: 'Aujourd\'hui — à surveiller',
     birthdaysWidgetTitle: 'Anniversaires ce mois-ci',
@@ -4140,7 +4138,7 @@ const I18N = {
     tourCountSuffix: ' bac/terrarium sélectionné(s)',
   },
   en: {
-    tabDash: '📋 Dashboard',
+    tabDash: '📋 Agenda',
     alertsWidgetTitle: 'Quick summary',
     todayWidgetTitle: 'Today — worth a look',
     birthdaysWidgetTitle: 'Birthdays this month',
