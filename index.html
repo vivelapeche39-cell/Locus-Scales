@@ -2008,7 +2008,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.32';
+const APP_VERSION = '2026.09.02.2.35';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3542,6 +3542,13 @@ function openContactModal(){
    Pour ajouter du contenu : une nouvelle entrée en haut du tableau correspondant (ordre décroissant,
    plus récent en premier) suffit — aucune autre logique à toucher. */
 const ANNOUNCEMENTS = [
+  { date:'2026-09-08',
+    title:{ fr:'Nouveau : gestion de rongeurs nourriciers', en:'New: feeder rodent management' },
+    body:{
+      fr:'Si tu élèves tes propres souris/rats/ASF, y\'a maintenant une vraie section pour ça — séparée de tes reptiles, dans Élevage → Rongeurs. Suis tes bacs reproducteurs (espèce, ratio, retrait du mâle en cours de gestation), logue tes portées avec le détail complet (nés, manquant/cannibalisme, transférés, euthanasiés), et vois un rapport de rentabilité qui repère les bacs les moins productifs pour toi. Le stade de croissance (pinky, fuzzy, hopper...) se calcule maintenant tout seul selon l\'âge — et les seuils sont ajustables si ta nourriture fait grandir tes petits plus vite ou plus lentement que la moyenne. Un rapport mensuel, un lien direct vers ton inventaire de proies, et un budget dédié avec calcul de ROI complètent le tout. Gros merci aux éleveurs de la communauté qui ont pris le temps de partager leur vrai fonctionnement — ça a vraiment façonné cette fonctionnalité.',
+      en:'If you breed your own mice/rats/ASF, there\'s now a real section for that — separate from your reptiles, under Breeding → Rodents. Track your breeding bins (species, ratio, removing the male mid-gestation), log litters with full detail (born, missing/cannibalism, transferred, euthanized), and see a profitability report that flags your least productive bins for you. Growth stage (pinky, fuzzy, hopper...) now calculates itself based on age — and the thresholds are adjustable if your feed makes your litters grow faster or slower than average. A monthly report, a direct link to your feeder stock, and a dedicated budget with ROI calculation round it all out. Big thanks to the breeders in the community who took the time to share how they really do things — it genuinely shaped this feature.'
+    }
+  },
   { date:'2026-08-31',
     title:{ fr:'Racks & Terrariums, en mieux', en:'Racks & Terrariums, improved' },
     body:{
@@ -7761,6 +7768,26 @@ function printRackLabel(rackId){
   );
   win.document.close();
 }
+// Journal du rack (4 sept) — même formatage que le journal de suivi global (health-log), mais
+// filtré aux occupants d'un seul rack. Précise la position (rangée/bac) puisque plusieurs animaux
+// partagent le même rack, contrairement à la fiche individuelle où c'est déjà évident.
+function openRackLogbookModal(rackId){
+  const isEn = currentLang==='en';
+  const rack = racks.find(r=>r.id===rackId);
+  if(!rack) return;
+  const occupants = savedSnakes.filter(s=>s.placement && s.placement.mode==='rack' && s.placement.rackId===rackId);
+  occupants.forEach(ensureSnakeMeta);
+  const all = [];
+  occupants.forEach(s=>{
+    (s.health.events||[]).forEach(e=> all.push({...e, snakeName:s.name, row:s.placement.row, tub:s.placement.tub}));
+  });
+  all.sort((a,b)=>b.date.localeCompare(a.date));
+  const recent = all.slice(0,60);
+  const body = recent.length ? recent.map(e=>
+    '<div class="modal-row"><span>'+e.date+' — '+escapeHtml(e.snakeName)+' <small style="color:var(--ink-dim);">(R'+e.row+'/B'+e.tub+')</small></span><span>'+eventLabel(e.type)+(e.type==='weigh'?' ('+e.value+'g)':'')+(e.type==='length'?' ('+e.value+'cm)':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(isEn?'partial':'partiel'):'')+feedPreyTag(e)+'</span></div>'
+  ).join('') : '<div class="empty">'+(isEn?'No activity logged in this rack yet.':'Aucune activité enregistrée dans ce rack pour l\'instant.')+'</div>';
+  showQuickModal('🗒️ '+(isEn?'Rack journal — ':'Journal du rack — ')+escapeHtml(rack.name), body);
+}
 
 function toggleQrCode(id){
   if(!requireAuthOrPrompt()) return;
@@ -10618,6 +10645,7 @@ function renderRackGrid(){
         '<button class="sc-btn" data-act="addrow" data-rack="'+rack.id+'">'+t('addRowBtn')+'</button>'+
         '<button class="sc-btn" data-act="cleanrack" data-rack="'+rack.id+'">🧹 '+(isEn?'Cleaning':'Nettoyage')+(overdueTubs?' <span style="color:#e08a63;font-weight:700;">🚨 '+overdueTubs+'</span>':'')+'</button>'+
         '<button class="sc-btn" onclick="printRackLabel(\''+rack.id+'\')">🏷️ '+(isEn?'Rack QR':'QR du rack')+'</button>'+
+        '<button class="sc-btn" onclick="openRackLogbookModal(\''+rack.id+'\')">🗒️ '+(isEn?'Rack journal':'Journal du rack')+'</button>'+
         (racks.length>1 ? '<button class="sc-btn danger" data-act="delrack" data-rack="'+rack.id+'">'+t('deleteThisRackBtn')+'</button>' : '')+
       '</div>'+
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">'+
