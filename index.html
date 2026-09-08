@@ -1727,6 +1727,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
     <select id="fiscal-year-select" class="egg-select"></select>
     <button class="sc-btn accent" onclick="exportBudgetExcel()" data-i18n="fiscalExportExcelBtn">📊 Exporter en Excel</button>
     <button class="sc-btn" onclick="exportInventoryExcel()">📋 <span data-i18n="inventoryExportBtn">Rapport d'inventaire complet</span></button>
+    <button class="sc-btn" onclick="exportInventoryPdf()">📄 <span data-i18n="inventoryPdfBtn">Version PDF (imprimable)</span></button>
+    <button class="sc-btn accent" onclick="showKpiDashboard()" data-i18n="kpiDashboardBtn">📊 Tableau de bord KPI</button>
   </div>
   <div class="value-bar" style="margin-top:0;border-top:none;padding-top:0;">
     <div class="value-box"><div class="vb-label" data-i18n="fiscalIncomeLabel">Revenus (ventes)</div><div class="vb-amount" id="fiscal-income">0 $</div></div>
@@ -2008,7 +2010,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.35';
+const APP_VERSION = '2026.09.02.2.38';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2346,8 +2348,8 @@ function setPageMeta(title, description, noindex){
         return g ? g.name : gid;
       }).join(', ') : (isEn?'Normal':'Normal');
       const sexIcon = b.sex==='male' ? '♂' : b.sex==='female' ? '♀' : '?';
-      const statusLabel = b.status==='sold' ? (isEn?'Sold':'Vendu') : b.status==='available' ? (isEn?'Available':'Disponible') : (isEn?'Not for sale':'Pas à vendre');
-      const statusColor = b.status==='sold' ? 'var(--ink-dim)' : b.status==='available' ? 'var(--sage)' : 'var(--gold)';
+      const statusLabel = b.status==='sold' ? (isEn?'Sold':'Vendu') : b.status==='reserved' ? (isEn?'Reserved':'Réservé') : b.status==='forsale' ? (isEn?'Available':'Disponible') : (isEn?'Not for sale':'Pas à vendre');
+      const statusColor = b.status==='sold' ? 'var(--ink-dim)' : b.status==='forsale' ? 'var(--sage)' : 'var(--gold)';
       const photo = (b.photos && b.photos.length) ? b.photos[0].dataUrl : null;
       return '<div style="background:var(--bg-panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;display:flex;gap:12px;align-items:center;">'+
         (photo ? '<img src="'+escapeHtml(photo)+'" style="width:64px;height:64px;object-fit:cover;border-radius:8px;flex-shrink:0;" alt="'+escapeHtml(b.name)+'"/>' : '<div style="width:64px;height:64px;border-radius:8px;background:var(--bg-panel-2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;">🐍</div>')+
@@ -3868,7 +3870,9 @@ const I18N = {
     storageIndicatorTitle: 'Espace de stockage utilisé',
     fiscalRapportTitle: 'Rapport fiscal',
     fiscalExportExcelBtn: '📊 Exporter en Excel',
+    kpiDashboardBtn: '📊 Tableau de bord KPI',
     inventoryExportBtn: 'Rapport d\'inventaire complet',
+    inventoryPdfBtn: 'Version PDF (imprimable)',
     fiscalSalesYearTitle: "Ventes de l'année",
     acquisitionCostsTitle: "Coûts d'acquisition (prix payé par animal)",
     acquisitionCostsDesc: "Sert au calcul de marge réalisée par animal et au profit par ponte. Modifie directement ici, ou depuis la fiche de l'animal.",
@@ -4400,7 +4404,9 @@ const I18N = {
     storageIndicatorTitle: 'Storage space used',
     fiscalRapportTitle: 'Tax report',
     fiscalExportExcelBtn: '📊 Export to Excel',
+    kpiDashboardBtn: '📊 KPI Dashboard',
     inventoryExportBtn: 'Full inventory report',
+    inventoryPdfBtn: 'PDF version (printable)',
     fiscalSalesYearTitle: "This year's sales",
     acquisitionCostsTitle: 'Acquisition costs (price paid per animal)',
     acquisitionCostsDesc: 'Used for the realized margin per animal and clutch profit calculations. Edit directly here, or from the animal\'s sheet.',
@@ -7302,6 +7308,18 @@ function openLogbook(id){
       + '<div class="modal-row"><span>'+(isEn?'Ship date':'Date d\'envoi')+'</span><span><input type="date" class="price-input" style="width:140px;" value="'+(s.shippingDate||'')+'" onchange="setShippingInfo(\''+id+'\',\'date\',this.value)"/></span></div>'
       + (s.shippingTracking ? '<div class="modal-row"><span></span><span><label style="font-size:11px;color:var(--ink-dim);"><input type="checkbox" '+(s.shippingDelivered?'checked':'')+' onchange="setShippingInfo(\''+id+'\',\'delivered\',this.checked)"/> '+(isEn?'Delivered':'Livré')+'</label></span></div>' : '')
       ) : '<div class="modal-row"><span>'+(isEn?'Shipping':'Expédition')+'</span><span style="color:var(--ink-dim);">🔒 '+(isEn?'Illimité':'Illimité')+'</span></div>')
+      + '<button class="sc-btn accent" style="width:100%;margin-top:8px;" onclick="generateInvoicePdf(\''+id+'\')">🧾 '+(isEn?'Generate invoice':'Générer une facture')+'</button>'
+    : s.status==='reserved' && s.reservation
+    ? mrow(isEn?'Buyer':'Acheteur', escapeHtml(s.reservation.buyerName||'—'))
+      + mrow(isEn?'Total price':'Prix total', s.reservation.totalPrice!=null?s.reservation.totalPrice+' $':'—')
+      + mrow(isEn?'Deposit received':'Acompte reçu', (s.reservation.depositAmount||0)+' $ — '+(s.reservation.depositDate||'—'))
+      + (s.reservation.totalPrice!=null ? mrow(isEn?'Balance due':'Solde dû', Math.max(0,s.reservation.totalPrice-(s.reservation.depositAmount||0))+' $') : '')
+      + (s.reservation.note ? mrow(isEn?'Note':'Note', escapeHtml(s.reservation.note)) : '')
+      + '<div style="display:flex;gap:8px;margin-top:8px;">'
+      + '<button class="sc-btn accent" style="flex:1;" onclick="convertReservationToSale(\''+id+'\')">✓ '+(isEn?'Convert to sale':'Convertir en vente')+'</button>'
+      + '<button class="sc-btn danger" style="flex:1;" onclick="cancelReservation(\''+id+'\')">'+(isEn?'Cancel':'Annuler')+'</button>'
+      + '</div>'
+      + '<button class="sc-btn" style="width:100%;margin-top:8px;" onclick="generateInvoicePdf(\''+id+'\')">🧾 '+(isEn?'Generate deposit receipt':'Générer un reçu d\'acompte')+'</button>'
     : '<div class="modal-row"><span>'+t('askedPriceLabel')+'</span><span><input type="number" class="price-input" style="width:90px;" value="'+(s.askingPrice||'')+'" placeholder="0" onchange="setAskingPrice(\''+id+'\', this.value)"/> $</span></div>';
 
   const weightsHtml = s.health.weights.length
@@ -7572,6 +7590,7 @@ function openLogbook(id){
       '</div>'+
       '<div id="defecations-list-'+id+'">'+renderDefecationsHtml(s)+'</div>'+
     '</div>'+
+    '<div class="modal-section"><h3>🤝 '+(isEn?'Loan':'Prêt')+'</h3>'+renderLoanSectionHtml(s)+'</div>'+
     '<div class="modal-section"><h3>'+t('reproductionTitle')+'</h3>'+pairingsHtml+'</div>'+
     (function(){
       if(s.sex!=='female') return '';
@@ -8277,6 +8296,83 @@ function deleteCleaning(id, cleaningId){
 
 // Journal de défécation — par reptile, suivi santé (fréquence/aspect anormal peut signaler
 // parasites ou problème digestif). Même pattern que le journal de nettoyage.
+// Suivi de prêt d'animal — "Breeder Loan System" (4 sept), trouvé chez Husbandry Pro et pas encore
+// couvert chez LOCUS. Sert à suivre un animal prêté TEMPORAIREMENT à un autre éleveur (ex. un mâle
+// prêté pour un accouplement ponctuel ailleurs) — distinct d'une vente ou d'un transfert définitif.
+// Historique complet gardé (s.loans[]), le prêt actif étant celui sans returnedDate.
+function activeLoanFor(s){
+  return (s.loans||[]).find(l=>!l.returnedDate) || null;
+}
+function isLoanOverdue(loan){
+  if(!loan || !loan.expectedReturnDate) return false;
+  return loan.expectedReturnDate < new Date().toISOString().slice(0,10);
+}
+function renderLoanSectionHtml(s){
+  const isEn = currentLang==='en';
+  const active = activeLoanFor(s);
+  const history = (s.loans||[]).filter(l=>l.returnedDate);
+  const historyHtml = history.length ? '<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);">'+
+    [...history].sort((a,b)=>b.loanDate.localeCompare(a.loanDate)).map(l=>
+      '<div class="modal-row"><span>'+l.loanDate+' → '+l.returnedDate+' — '+escapeHtml(l.borrowerName)+'</span><button class="sc-btn danger" style="padding:2px 8px;font-size:11px;" onclick="deleteLoanEntry(\''+s.id+'\',\''+l.id+'\')">×</button></span></div>'
+    ).join('') + '</div>' : '';
+  if(active){
+    const overdue = isLoanOverdue(active);
+    return '<div class="modal-row"><span>'+(isEn?'Currently loaned to':'Actuellement prêté à')+'</span><span style="font-weight:600;">'+escapeHtml(active.borrowerName)+'</span></div>'+
+      (active.borrowerContact ? '<div class="modal-row"><span>'+(isEn?'Contact':'Contact')+'</span><span>'+escapeHtml(active.borrowerContact)+'</span></div>' : '')+
+      '<div class="modal-row"><span>'+(isEn?'Loaned since':'Prêté depuis')+'</span><span>'+active.loanDate+'</span></div>'+
+      (active.expectedReturnDate ? '<div class="modal-row"><span>'+(isEn?'Expected return':'Retour prévu')+'</span><span'+(overdue?' style="color:var(--rust);font-weight:700;"':'')+'>'+active.expectedReturnDate+(overdue?' ⚠ '+(isEn?'overdue':'en retard'):'')+'</span></div>' : '')+
+      (active.note ? '<div class="modal-row"><span>'+(isEn?'Note':'Note')+'</span><span>'+escapeHtml(active.note)+'</span></div>' : '')+
+      '<button class="sc-btn accent" style="width:100%;margin-top:8px;" onclick="markLoanReturned(\''+s.id+'\')">✓ '+(isEn?'Mark as returned':'Marquer comme retourné')+'</button>'+
+      historyHtml;
+  }
+  return '<div class="pairing-form">'+
+      '<input type="text" id="loan-borrower-'+s.id+'" placeholder="'+(isEn?'Borrower name':'Nom de l\'emprunteur')+'" style="flex:1;min-width:120px;"/>'+
+      '<input type="text" id="loan-contact-'+s.id+'" placeholder="'+(isEn?'Contact (optional)':'Contact (optionnel)')+'" style="flex:1;min-width:120px;"/>'+
+      '<label style="display:flex;flex-direction:column;font-family:\'Courier New\',monospace;font-size:9px;color:var(--ink-dim);gap:2px;"><span>'+(isEn?'Loan date':'Date de prêt')+'</span><input type="date" id="loan-date-'+s.id+'" value="'+new Date().toISOString().slice(0,10)+'"/></label>'+
+      '<label style="display:flex;flex-direction:column;font-family:\'Courier New\',monospace;font-size:9px;color:var(--ink-dim);gap:2px;"><span>'+(isEn?'Expected return':'Retour prévu')+'</span><input type="date" id="loan-return-'+s.id+'"/></label>'+
+      '<input type="text" id="loan-note-'+s.id+'" placeholder="'+(isEn?'Note (e.g. pairing at their place)':'Note (ex. accouplement chez eux)')+'" style="flex:1;min-width:160px;"/>'+
+      '<button class="save-btn" onclick="startLoan(\''+s.id+'\')">🤝 '+(isEn?'Start loan':'Démarrer le prêt')+'</button>'+
+    '</div>'+historyHtml;
+}
+function startLoan(id){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  const borrowerName = document.getElementById('loan-borrower-'+id).value.trim();
+  const borrowerContact = document.getElementById('loan-contact-'+id).value.trim();
+  const loanDate = document.getElementById('loan-date-'+id).value || new Date().toISOString().slice(0,10);
+  const expectedReturnDate = document.getElementById('loan-return-'+id).value || null;
+  const note = document.getElementById('loan-note-'+id).value.trim();
+  if(!borrowerName){ showToast(isEn?'Enter a borrower name.':'Entre un nom d\'emprunteur.', 'error'); return; }
+  if(!s.loans) s.loans = [];
+  s.loans.push({ id:'loan_'+Date.now(), borrowerName, borrowerContact, loanDate, expectedReturnDate, returnedDate:null, note });
+  storage.save(savedSnakes);
+  openLogbook(id);
+  showToast('🤝 '+(isEn?'Loan started.':'Prêt démarré.'), 'success');
+}
+function markLoanReturned(id){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  const active = activeLoanFor(s);
+  if(!active) return;
+  active.returnedDate = new Date().toISOString().slice(0,10);
+  storage.save(savedSnakes);
+  openLogbook(id);
+  showToast('✓ '+(currentLang==='en'?'Marked as returned.':'Marqué comme retourné.'), 'success');
+}
+function deleteLoanEntry(id, loanId){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this loan record?':'Supprimer cet enregistrement de prêt ?')) return;
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  s.loans = (s.loans||[]).filter(l=>l.id!==loanId);
+  storage.save(savedSnakes);
+  openLogbook(id);
+}
+// Liste des prêts actifs, toute la collection — pour voir qui a quoi sans ouvrir chaque fiche.
+function allActiveLoans(){
+  return savedSnakes.map(s=>({ snake:s, loan:activeLoanFor(s) })).filter(x=>x.loan);
+}
 function renderDefecationsHtml(s){
   const isEn = currentLang==='en';
   const entries = (s.health && s.health.defecations) || [];
@@ -8608,7 +8704,9 @@ function snakeToRow(s){
     shipping_carrier: s.shippingCarrier||null, shipping_tracking: s.shippingTracking||null, shipping_date: s.shippingDate||null, shipping_delivered: !!s.shippingDelivered,
     purchase_price: s.purchasePrice!=null ? s.purchasePrice : null,
     genetics_history: s.geneticsHistory||[],
-    clutch_ref: s.clutchRef||null
+    clutch_ref: s.clutchRef||null,
+    loans: s.loans||[],
+    reservation: s.reservation||null
   };
 }
 function rowToSnake(r){
@@ -8623,7 +8721,7 @@ function rowToSnake(r){
     paidViaStripe: !!r.paid_via_stripe, careParams: r.care_params || {}, publicToken: r.public_token || null, feedCost: r.feed_cost!=null ? r.feed_cost : null, transferToken: r.transfer_token || null,
     shippingCarrier: r.shipping_carrier || null, shippingTracking: r.shipping_tracking || null, shippingDate: r.shipping_date || null, shippingDelivered: !!r.shipping_delivered,
     purchasePrice: r.purchase_price!=null ? r.purchase_price : null,
-    geneticsHistory: r.genetics_history||[], clutchRef: r.clutch_ref||null, updatedAt: r.updated_at ? Date.parse(r.updated_at) : 0
+    geneticsHistory: r.genetics_history||[], clutchRef: r.clutch_ref||null, loans: r.loans||[], reservation: r.reservation||null, updatedAt: r.updated_at ? Date.parse(r.updated_at) : 0
   };
 }
 
@@ -13902,13 +14000,84 @@ function setListingStatus(id, status){
     openSoldModal(id);
     return;
   }
-  s.status = status; s.buyer = null; s.soldDate = null; s.soldPrice = null;
+  if(status==='reserved'){
+    openReservationModal(id);
+    return;
+  }
+  s.status = status; s.buyer = null; s.soldDate = null; s.soldPrice = null; s.reservation = null;
   if(status==='forsale' && !s.listedDate) s.listedDate = new Date().toISOString().slice(0,10);
   storage.save(savedSnakes);
   renderSavedList();
   if(document.getElementById('view-ventes') && document.getElementById('view-ventes').style.display!=='none') renderSalesView();
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
   showToast(saleStatusLabel(status)+' — '+s.name+' — '+(currentLang==='en'?'updated.':'mis à jour.'), 'success');
+}
+// Réservation avec acompte — vrai trou trouvé (4 sept) : le statut "réservé" existait déjà mais ne
+// capturait aucune info (acheteur, acompte). Husbandry Pro vend ça comme argument central
+// ("holds, deposits"). Distinct du waitlist par accouplement qui existait déjà séparément.
+function openReservationModal(id){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  const isEn = currentLang==='en';
+  const r = s.reservation || {};
+  showQuickModal((isEn?'Reserve — ':'Réserver — ')+s.name,
+    '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Buyer name':'Nom de l\'acheteur')+'</label>'+
+    '<input type="text" id="res-buyer-input" class="draft-name" style="width:100%;margin:0 0 14px;" value="'+escapeHtml(r.buyerName||'')+'" placeholder="'+(isEn?'Buyer name':'Nom de l\'acheteur')+'"/>'+
+    '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Total price ($)':'Prix total ($)')+'</label>'+
+    '<input type="number" id="res-total-input" class="price-input" style="width:100%;padding:9px 10px;font-size:14px;margin-bottom:14px;" value="'+(r.totalPrice!=null?r.totalPrice:(s.askingPrice!=null?s.askingPrice:''))+'" placeholder="0"/>'+
+    '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Deposit received ($)':'Acompte reçu ($)')+'</label>'+
+    '<input type="number" id="res-deposit-input" class="price-input" style="width:100%;padding:9px 10px;font-size:14px;margin-bottom:14px;" value="'+(r.depositAmount!=null?r.depositAmount:'')+'" placeholder="0"/>'+
+    '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Deposit date':'Date de l\'acompte')+'</label>'+
+    '<input type="date" id="res-date-input" class="price-input" style="width:100%;padding:9px 10px;font-size:14px;margin-bottom:14px;" value="'+(r.depositDate||new Date().toISOString().slice(0,10))+'"/>'+
+    '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Note (optional)':'Note (optionnel)')+'</label>'+
+    '<input type="text" id="res-note-input" class="price-input" style="width:100%;padding:9px 10px;font-size:14px;" value="'+escapeHtml(r.note||'')+'" placeholder="'+(isEn?'e.g. balance due at pickup':'ex. solde dû à la livraison')+'"/>'+
+    '<button class="save-btn" style="margin-top:16px;width:100%;" onclick="confirmReservation(\''+id+'\')">🤝 '+(isEn?'Confirm reservation':'Confirmer la réservation')+'</button>'
+  );
+  setTimeout(()=>{ const inp = document.getElementById('res-buyer-input'); if(inp) inp.focus(); }, 60);
+}
+function confirmReservation(id){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  const isEn = currentLang==='en';
+  const buyerName = (document.getElementById('res-buyer-input').value||'').trim();
+  if(!buyerName){ showToast(isEn?'Enter the buyer\'s name.':'Entre le nom de l\'acheteur.', 'error'); return; }
+  const totalPrice = parseFloat(document.getElementById('res-total-input').value);
+  const depositAmount = parseFloat(document.getElementById('res-deposit-input').value) || 0;
+  const depositDate = document.getElementById('res-date-input').value || new Date().toISOString().slice(0,10);
+  const note = document.getElementById('res-note-input').value.trim();
+  s.status = 'reserved';
+  s.reservation = { buyerName, totalPrice: isNaN(totalPrice)?null:totalPrice, depositAmount, depositDate, note };
+  storage.save(savedSnakes);
+  closeQuickModal();
+  renderSavedList();
+  if(document.getElementById('view-ventes') && document.getElementById('view-ventes').style.display!=='none') renderSalesView();
+  if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
+  showToast('🤝 '+(isEn?'Reservation confirmed.':'Réservation confirmée.'), 'success');
+}
+// Convertit une réservation en vente — reprend l'acheteur/prix déjà saisis plutôt que ressaisir.
+function convertReservationToSale(id){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s || !s.reservation) return;
+  openSoldModal(id);
+  setTimeout(()=>{
+    const buyerInp = document.getElementById('quick-buyer-input');
+    const priceInp = document.getElementById('quick-soldprice-input');
+    if(buyerInp) buyerInp.value = s.reservation.buyerName||'';
+    if(priceInp && s.reservation.totalPrice!=null) priceInp.value = s.reservation.totalPrice;
+  }, 80);
+}
+function cancelReservation(id){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Cancel this reservation? The reptile goes back to "For sale".':'Annuler cette réservation ? Le reptile repasse à « À vendre ».')) return;
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  s.status = 'forsale';
+  s.reservation = null;
+  storage.save(savedSnakes);
+  renderSavedList();
+  if(document.getElementById('view-ventes') && document.getElementById('view-ventes').style.display!=='none') renderSalesView();
+  if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
+  showToast(isEn?'Reservation cancelled.':'Réservation annulée.', 'success');
 }
 
 function openSoldModal(id){
@@ -15527,7 +15696,7 @@ function exportInventoryExcel(){
   const headerRow = isEn
     ? ['Name','Sex','Species','Genetics','Birth date','Status','Last weight (g)','Provenance','Purchase price ($)','Asking/Sold price ($)','Location']
     : ['Nom','Sexe','Espèce','Génétique','Date de naissance','Statut','Dernier poids (g)','Provenance','Prix d\'achat ($)','Prix demandé/vendu ($)','Emplacement'];
-  const statusLabel = s => s.status==='sold' ? (isEn?'Sold':'Vendu') : s.status==='available' ? (isEn?'Available':'Disponible') : (isEn?'Not for sale':'Pas à vendre');
+  const statusLabel = s => s.status==='sold' ? (isEn?'Sold':'Vendu') : s.status==='reserved' ? (isEn?'Reserved':'Réservé') : s.status==='forsale' ? (isEn?'Available':'Disponible') : (isEn?'Not for sale':'Pas à vendre');
   const locationLabel = s => {
     if(s.placement.mode==='rack'){
       const rack = getRack(s.placement.rackId);
@@ -15553,6 +15722,46 @@ function exportInventoryExcel(){
   XLSX.utils.book_append_sheet(wb, ws, isEn?'Inventory':'Inventaire');
   XLSX.writeFile(wb, (isEn?'LOCUS-Scales-inventory-':'LOCUS-Scales-inventaire-')+new Date().toISOString().slice(0,10)+'.xlsx');
 }
+// Version PDF (imprimable) de l'inventaire (4 sept) — même approche que le rapport de valeur déjà
+// existant : une page HTML bien formatée + window.print() automatique, ce qui laisse le navigateur
+// gérer "Enregistrer en PDF" nativement plutôt que d'ajouter une librairie externe pour ça.
+function exportInventoryPdf(){
+  if(!requireAuthOrPrompt()) return;
+  const isEn = currentLang==='en';
+  savedSnakes.forEach(ensureSnakeMeta);
+  const statusLabel = s => s.status==='sold' ? (isEn?'Sold':'Vendu') : s.status==='reserved' ? (isEn?'Reserved':'Réservé') : s.status==='forsale' ? (isEn?'Available':'Disponible') : (isEn?'Not for sale':'Pas à vendre');
+  const locationLabel = s => {
+    if(s.placement.mode==='rack'){
+      const rack = getRack(s.placement.rackId);
+      return (rack?rack.name:'?')+' R'+s.placement.row+'/B'+s.placement.tub;
+    }
+    const te = s.placement.terrariumId ? getTerrarium(s.placement.terrariumId) : null;
+    return te ? te.name : (isEn?'Unassigned':'Non classé');
+  };
+  const rows = [...savedSnakes].sort((a,b)=>a.name.localeCompare(b.name)).map(s=>{
+    const speciesLabel = (s.species && s.species!=='ball_python') ? (SPECIES_REFERENCE.find(sp=>sp.id===s.species)||{}).nameFr||s.species : (isEn?'Ball Python':'Python royal');
+    return '<tr><td>'+escapeHtml(s.name)+'</td><td>'+(s.sex==='male'?t('sexMale'):s.sex==='female'?t('sexFemale'):t('sexUnknown'))+'</td><td>'+escapeHtml(speciesLabel)+'</td><td>'+summarizeGenes(s.genes)+'</td><td>'+statusLabel(s)+'</td><td>'+escapeHtml(locationLabel(s))+'</td></tr>';
+  }).join('');
+  const win = window.open('', '_blank');
+  win.document.write(
+    '<html><head><title>'+(isEn?'Full Inventory':'Inventaire complet')+'</title><style>'+
+    'body{font-family:Georgia,serif;color:#241d12;padding:36px;max-width:900px;margin:0 auto;}'+
+    'h1{font-size:24px;margin:0 0 4px;border-bottom:2px solid #C9973E;padding-bottom:10px;}'+
+    '.sub{font-family:Arial,sans-serif;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:20px;}'+
+    'table{width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:11px;margin-top:10px;}'+
+    'th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#888;border-bottom:2px solid #ddd;padding:6px 4px;}'+
+    'td{padding:6px 4px;border-bottom:1px solid #eee;}'+
+    '.footer{margin-top:30px;font-family:Arial,sans-serif;font-size:10px;color:#999;}'+
+    '</style></head><body>'+
+    '<h1>'+(isEn?'Full Inventory':'Inventaire complet')+'</h1>'+
+    '<div class="sub">'+(isEn?savedSnakes.length+' reptile(s) — generated on ':savedSnakes.length+' reptile(s) — généré le ')+new Date().toLocaleDateString(isEn?'en-CA':'fr-CA')+'</div>'+
+    '<table><tr><th>'+t('thName')+'</th><th>'+t('thSex')+'</th><th>'+(isEn?'Species':'Espèce')+'</th><th>'+t('thGenetics')+'</th><th>'+(isEn?'Status':'Statut')+'</th><th>'+(isEn?'Location':'Emplacement')+'</th></tr>'+rows+'</table>'+
+    '<div class="footer">LOCUS Scales — '+(isEn?'generated for personal record-keeping':'généré à des fins de tenue de registre personnel')+'</div>'+
+    '<script>window.onload=()=>window.print();<\/script>'+
+    '</body></html>'
+  );
+  win.document.close();
+}
 
 // Coûts d'acquisition (2 septembre) — le champ existait déjà (formulaire d'ajout, fiche
 // individuelle) mais Alex ne le trouvait pas en pensant "argent" -> onglet Fiscal. Liste éditable
@@ -15571,6 +15780,152 @@ function renderAcquisitionCostsList(){
       '<span><input type="number" class="price-input" style="width:90px;" value="'+(s.purchasePrice!=null?s.purchasePrice:'')+'" placeholder="0" onchange="setPurchasePrice(\''+s.id+'\', this.value)"/> $</span>';
     wrap.appendChild(row);
   });
+}
+// Tableau de bord KPI (4 sept) — rassemble des chiffres déjà calculés séparément ailleurs dans
+// l'app (valeur, fertilité, profit, ROI rongeurs, prêts) en une seule vue consolidée, plutôt que
+// d'obliger à naviguer entre plusieurs onglets pour avoir un portrait d'ensemble.
+function showKpiDashboard(){
+  const isEn = currentLang==='en';
+  savedSnakes.forEach(ensureSnakeMeta);
+
+  const totalValue = savedSnakes.reduce((a,s)=>a+estimatedSnakeValue(s),0);
+
+  const totalPairings = pairings.length;
+  const totalClutches = clutches.length;
+  const globalFertility = totalPairings ? Math.round((totalClutches/totalPairings)*100) : null;
+
+  const activeSnakes = savedSnakes.filter(s=>s.status!=='sold');
+  const onTrackCount = activeSnakes.filter(s=>feedingStatus(s)==='green').length;
+  const feedingCompliance = activeSnakes.length ? Math.round((onTrackCount/activeSnakes.length)*100) : null;
+
+  const thisYear = new Date().getFullYear().toString();
+  const revenueThisYear = savedSnakes.filter(s=>s.status==='sold' && s.soldDate && s.soldDate.startsWith(thisYear) && s.soldPrice!=null).reduce((a,s)=>a+s.soldPrice,0);
+  const expensesThisYear = expenses.filter(e=>e.date && e.date.startsWith(thisYear)).reduce((a,e)=>a+e.amount,0);
+  const netProfit = revenueThisYear - expensesThisYear;
+
+  const rodentStats = rodentBudgetStats();
+
+  const activeLoans = allActiveLoans();
+  const overdueLoans = activeLoans.filter(x=>isLoanOverdue(x.loan)).length;
+
+  const kpiRow = (label, value, color)=> '<div class="modal-row"><span>'+label+'</span><span'+(color?' style="color:'+color+';font-weight:700;"':' style="font-weight:600;"')+'>'+value+'</span></div>';
+
+  const body =
+    '<h3 style="font-size:13px;color:var(--gold);margin:0 0 6px;">'+(isEn?'Collection':'Cheptel')+'</h3>'+
+    kpiRow(isEn?'Total estimated value':'Valeur totale estimée', totalValue.toLocaleString('fr-CA')+' $')+
+    kpiRow(isEn?'Active reptiles':'Reptiles actifs', activeSnakes.length)+
+    '<h3 style="font-size:13px;color:var(--gold);margin:16px 0 6px;">'+(isEn?'Breeding':'Reproduction')+'</h3>'+
+    kpiRow(isEn?'Global fertility rate':'Taux de fertilité global', globalFertility!=null ? globalFertility+'% ('+totalClutches+'/'+totalPairings+')' : (isEn?'No data yet':'Pas encore de données'))+
+    '<h3 style="font-size:13px;color:var(--gold);margin:16px 0 6px;">'+(isEn?'Care compliance':'Conformité de soins')+'</h3>'+
+    kpiRow(isEn?'On-time feeding rate':'Taux de nourrissage à temps', feedingCompliance!=null ? feedingCompliance+'% ('+onTrackCount+'/'+activeSnakes.length+')' : (isEn?'No data yet':'Pas encore de données'), feedingCompliance!=null && feedingCompliance<70 ? 'var(--rust)' : null)+
+    '<h3 style="font-size:13px;color:var(--gold);margin:16px 0 6px;">'+(isEn?'Finances ('+thisYear+')':'Finances ('+thisYear+')')+'</h3>'+
+    kpiRow(isEn?'Revenue':'Revenus', revenueThisYear.toFixed(2)+' $')+
+    kpiRow(isEn?'Expenses':'Dépenses', expensesThisYear.toFixed(2)+' $')+
+    kpiRow(isEn?'Net profit':'Bénéfice net', (netProfit>=0?'+':'')+netProfit.toFixed(2)+' $', netProfit>=0?'var(--sage)':'var(--rust)')+
+    (rodentStats.totalCost>0 || rodentStats.totalTransferred>0 ? kpiRow(isEn?'Rodent ROI':'ROI rongeurs', (rodentStats.roi>=0?'+':'')+rodentStats.roi.toFixed(2)+' $', rodentStats.roi>=0?'var(--sage)':'var(--rust)') : '')+
+    '<h3 style="font-size:13px;color:var(--gold);margin:16px 0 6px;">'+(isEn?'Loans':'Prêts')+'</h3>'+
+    kpiRow(isEn?'Active loans':'Prêts actifs', activeLoans.length+(overdueLoans?' ('+overdueLoans+' '+(isEn?'overdue':'en retard')+')':''), overdueLoans>0?'var(--rust)':null)+
+    '<p style="font-size:9.5px;color:var(--ink-dim);margin-top:16px;">'+(isEn
+      ? '"On-time feeding" counts reptiles currently in green status. Fertility and finances reflect your full recorded history / current year.'
+      : '« Nourrissage à temps » compte les reptiles actuellement en statut vert. Fertilité et finances reflètent tout ton historique enregistré / l\'année courante.')+'</p>'+
+    '<button class="sc-btn accent" style="width:100%;margin-top:10px;" onclick="exportKpiPdf()">📄 '+(isEn?'Export as PDF':'Exporter en PDF')+'</button>';
+
+  showQuickModal('📊 '+(isEn?'KPI Dashboard':'Tableau de bord KPI'), body);
+}
+// Export PDF du tableau de bord KPI — recalcule les mêmes chiffres pour la page imprimable,
+// même approche window.print() que le reste des rapports PDF de LOCUS.
+function exportKpiPdf(){
+  const isEn = currentLang==='en';
+  savedSnakes.forEach(ensureSnakeMeta);
+  const totalValue = savedSnakes.reduce((a,s)=>a+estimatedSnakeValue(s),0);
+  const totalPairings = pairings.length;
+  const totalClutches = clutches.length;
+  const globalFertility = totalPairings ? Math.round((totalClutches/totalPairings)*100) : null;
+  const activeSnakes = savedSnakes.filter(s=>s.status!=='sold');
+  const onTrackCount = activeSnakes.filter(s=>feedingStatus(s)==='green').length;
+  const feedingCompliance = activeSnakes.length ? Math.round((onTrackCount/activeSnakes.length)*100) : null;
+  const thisYear = new Date().getFullYear().toString();
+  const revenueThisYear = savedSnakes.filter(s=>s.status==='sold' && s.soldDate && s.soldDate.startsWith(thisYear) && s.soldPrice!=null).reduce((a,s)=>a+s.soldPrice,0);
+  const expensesThisYear = expenses.filter(e=>e.date && e.date.startsWith(thisYear)).reduce((a,e)=>a+e.amount,0);
+  const netProfit = revenueThisYear - expensesThisYear;
+  const rodentStats = rodentBudgetStats();
+  const activeLoans = allActiveLoans();
+  const row = (label, value)=> '<tr><td>'+label+'</td><td style="text-align:right;font-weight:600;">'+value+'</td></tr>';
+  const win = window.open('', '_blank');
+  win.document.write(
+    '<html><head><title>'+(isEn?'KPI Dashboard':'Tableau de bord KPI')+'</title><style>'+
+    'body{font-family:Georgia,serif;color:#241d12;padding:36px;max-width:640px;margin:0 auto;}'+
+    'h1{font-size:24px;margin:0 0 4px;border-bottom:2px solid #C9973E;padding-bottom:10px;}'+
+    '.sub{font-family:Arial,sans-serif;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:20px;}'+
+    'table{width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:13px;margin-top:6px;margin-bottom:18px;}'+
+    'td{padding:7px 4px;border-bottom:1px solid #eee;}'+
+    '.footer{margin-top:20px;font-family:Arial,sans-serif;font-size:10px;color:#999;}'+
+    '</style></head><body>'+
+    '<h1>'+(isEn?'KPI Dashboard':'Tableau de bord KPI')+'</h1>'+
+    '<div class="sub">'+(isEn?'Generated on ':'Généré le ')+new Date().toLocaleDateString(isEn?'en-CA':'fr-CA')+'</div>'+
+    '<table>'+
+      row(isEn?'Total estimated value':'Valeur totale estimée', totalValue.toLocaleString('fr-CA')+' $')+
+      row(isEn?'Active reptiles':'Reptiles actifs', activeSnakes.length)+
+      row(isEn?'Global fertility rate':'Taux de fertilité global', globalFertility!=null?globalFertility+'%':'—')+
+      row(isEn?'On-time feeding rate':'Taux de nourrissage à temps', feedingCompliance!=null?feedingCompliance+'%':'—')+
+      row(isEn?'Revenue ('+thisYear+')':'Revenus ('+thisYear+')', revenueThisYear.toFixed(2)+' $')+
+      row(isEn?'Expenses ('+thisYear+')':'Dépenses ('+thisYear+')', expensesThisYear.toFixed(2)+' $')+
+      row(isEn?'Net profit':'Bénéfice net', (netProfit>=0?'+':'')+netProfit.toFixed(2)+' $')+
+      (rodentStats.totalCost>0||rodentStats.totalTransferred>0 ? row(isEn?'Rodent ROI':'ROI rongeurs', (rodentStats.roi>=0?'+':'')+rodentStats.roi.toFixed(2)+' $') : '')+
+      row(isEn?'Active loans':'Prêts actifs', activeLoans.length)+
+    '</table>'+
+    '<div class="footer">LOCUS Scales — '+(isEn?'generated for personal record-keeping':'généré à des fins de tenue de registre personnel')+'</div>'+
+    '<script>window.onload=()=>window.print();<\/script>'+
+    '</body></html>'
+  );
+  win.document.close();
+}
+// Facture/reçu (4 sept) — même pattern window.print() que le reste des exports PDF de LOCUS.
+// Fonctionne pour une vente conclue (facture complète) ou une réservation (reçu d'acompte, solde
+// dû visible) — les données existent déjà des deux côtés, juste jamais formatées pour le client.
+function generateInvoicePdf(id){
+  if(!requireAuthOrPrompt()) return;
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  const profile = loadProfile();
+  const sellerName = profile.breederName || 'LOCUS Scales';
+  const isSold = s.status==='sold';
+  const r = s.reservation || {};
+  const buyerName = isSold ? (s.buyer||'—') : (r.buyerName||'—');
+  const docDate = isSold ? (s.soldDate||new Date().toISOString().slice(0,10)) : (r.depositDate||new Date().toISOString().slice(0,10));
+  const total = isSold ? (s.soldPrice!=null?s.soldPrice:0) : (r.totalPrice!=null?r.totalPrice:0);
+  const deposit = isSold ? total : (r.depositAmount||0);
+  const balance = Math.max(0, total-deposit);
+  const speciesLabel = (s.species && s.species!=='ball_python') ? (SPECIES_REFERENCE.find(sp=>sp.id===s.species)||{}).nameFr||s.species : (isEn?'Ball Python':'Python royal');
+  const docTitle = isSold ? (isEn?'Invoice':'Facture') : (isEn?'Deposit Receipt':'Reçu d\'acompte');
+  const win = window.open('', '_blank');
+  win.document.write(
+    '<html><head><title>'+docTitle+' — '+escapeHtml(s.name)+'</title><style>'+
+    'body{font-family:Georgia,serif;color:#241d12;padding:36px;max-width:640px;margin:0 auto;}'+
+    'h1{font-size:24px;margin:0 0 4px;border-bottom:2px solid #C9973E;padding-bottom:10px;}'+
+    '.sub{font-family:Arial,sans-serif;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:20px;}'+
+    '.parties{display:flex;justify-content:space-between;font-family:Arial,sans-serif;font-size:12px;margin-bottom:22px;}'+
+    'table{width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:13px;margin-top:6px;}'+
+    'th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#888;border-bottom:2px solid #ddd;padding:6px 4px;}'+
+    'td{padding:8px 4px;border-bottom:1px solid #eee;}'+
+    '.totalrow td{border-bottom:none;font-weight:bold;font-size:15px;padding-top:14px;}'+
+    '.footer{margin-top:30px;font-family:Arial,sans-serif;font-size:10px;color:#999;}'+
+    '</style></head><body>'+
+    '<h1>'+docTitle+'</h1>'+
+    '<div class="sub">'+(isEn?'Date: ':'Date : ')+docDate+'</div>'+
+    '<div class="parties"><div><b>'+(isEn?'Seller':'Vendeur')+'</b><br/>'+escapeHtml(sellerName)+'</div><div style="text-align:right;"><b>'+(isEn?'Buyer':'Acheteur')+'</b><br/>'+escapeHtml(buyerName)+'</div></div>'+
+    '<table><tr><th>'+(isEn?'Item':'Article')+'</th><th>'+(isEn?'Details':'Détails')+'</th><th style="text-align:right;">'+(isEn?'Amount':'Montant')+'</th></tr>'+
+    '<tr><td>'+escapeHtml(s.name)+'</td><td>'+escapeHtml(speciesLabel)+' — '+summarizeGenes(s.genes)+'</td><td style="text-align:right;">'+total.toFixed(2)+' $</td></tr>'+
+    (!isSold ? '<tr><td colspan="2">'+(isEn?'Deposit received':'Acompte reçu')+'</td><td style="text-align:right;">−'+deposit.toFixed(2)+' $</td></tr>' : '')+
+    '<tr class="totalrow"><td colspan="2">'+(isSold?(isEn?'Total paid':'Total payé'):(isEn?'Balance due':'Solde dû'))+'</td><td style="text-align:right;">'+(isSold?total.toFixed(2):balance.toFixed(2))+' $</td></tr>'+
+    '</table>'+
+    (!isSold && r.note ? '<p style="font-family:Arial,sans-serif;font-size:11px;color:#555;margin-top:16px;">'+(isEn?'Note: ':'Note : ')+escapeHtml(r.note)+'</p>' : '')+
+    '<div class="footer">'+(isEn?'Generated via LOCUS Scales — for record-keeping purposes, not a legally binding contract unless otherwise agreed.':'Généré via LOCUS Scales — à des fins de tenue de registre, pas un contrat ayant force légale sauf entente contraire.')+'</div>'+
+    '<script>window.onload=()=>window.print();<\/script>'+
+    '</body></html>'
+  );
+  win.document.close();
 }
 function renderFiscalView(){
   const isEn = currentLang==='en';
