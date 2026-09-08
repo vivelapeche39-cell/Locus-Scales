@@ -1359,6 +1359,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <div id="rodent-unlocked-content">
       <button class="sc-btn accent" style="margin-bottom:14px;" onclick="showRodentProductivityReport()" data-i18n="rodentProductivityBtn">📊 Voir la rentabilité par bac</button>
       <button class="sc-btn" style="margin-bottom:14px;margin-left:8px;" onclick="showRodentMonthlyReport()" data-i18n="rodentMonthlyBtn">📅 Rapport mensuel</button>
+      <button class="sc-btn" style="margin-bottom:14px;margin-left:8px;" onclick="openRodentStageSettingsModal()" data-i18n="rodentStageSettingsBtn">⚙️ Rythme de croissance</button>
+      <button class="sc-btn accent" style="margin-bottom:14px;margin-left:8px;" onclick="openRodentBudgetModal()" data-i18n="rodentBudgetBtn">💰 Budget rongeurs</button>
       <div class="pairing-form">
         <input type="text" id="rodent-bin-label" data-i18n-placeholder="rodentBinLabelPlaceholder" placeholder="Ex. Bac A3" style="flex:1;min-width:100px;"/>
         <select id="rodent-bin-species">
@@ -2005,7 +2007,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.27';
+const APP_VERSION = '2026.09.02.2.31';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4103,6 +4105,8 @@ const I18N = {
     rodentSpeciesRat: 'Rat',
     rodentProductivityBtn: '📊 Voir la rentabilité par bac',
     rodentMonthlyBtn: '📅 Rapport mensuel',
+    rodentStageSettingsBtn: '⚙️ Rythme de croissance',
+    rodentBudgetBtn: '💰 Budget rongeurs',
     subObjectif: '🎯 Objectif',
     objectifHint: 'Choisis le(s) gène(s) visé(s), et l\'app scanne ta collection pour proposer les meilleurs accouplements possibles — classés par probabilité réelle, pas juste par intuition.',
     objectifFindBtn: '🎯 Trouver les meilleures paires',
@@ -4633,6 +4637,8 @@ const I18N = {
     rodentSpeciesRat: 'Rat',
     rodentProductivityBtn: '📊 View profitability by bin',
     rodentMonthlyBtn: '📅 Monthly report',
+    rodentStageSettingsBtn: '⚙️ Growth timing',
+    rodentBudgetBtn: '💰 Rodent budget',
     subObjectif: '🎯 Goal',
     objectifHint: 'Pick your target gene(s), and the app scans your collection to suggest the best possible pairings — ranked by real probability, not just a hunch.',
     objectifFindBtn: '🎯 Find the best pairs',
@@ -8338,8 +8344,8 @@ function saveAppStatePushedAt(ts){
 function loadElevage(){
   try{
     const raw = localStorage.getItem(ELEVAGE_KEY);
-    return raw ? JSON.parse(raw) : { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, todos:[], rodentBins:[] };
-  }catch(e){ console.warn('LOCUS: lecture élevage impossible', e); return { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, todos:[], rodentBins:[] }; }
+    return raw ? JSON.parse(raw) : { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, todos:[], rodentBins:[], rodentExpenses:[], rodentValuePerUnit:null };
+  }catch(e){ console.warn('LOCUS: lecture élevage impossible', e); return { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, todos:[], rodentBins:[], rodentExpenses:[], rodentValuePerUnit:null }; }
 }
 function saveElevage(){
   trackLocalChanges('racks', racks);
@@ -8349,7 +8355,7 @@ function saveElevage(){
   trackLocalChanges('expenses', expenses);
   trackLocalChanges('customers', customers);
   try{
-    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos, geneticAmbiguities, rodentBins }));
+    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit }));
     storageWriteFailed = false;
   }catch(e){
     console.warn('LOCUS: écriture élevage impossible', e);
@@ -8380,6 +8386,12 @@ var feederStock = elevageData.feederStock || {};
 // éleveur (Dale Burak, groupe Ball Python Lovers) qui ne suit pas du tout la taille/le stade mais
 // suit le volume produit par bac pour repérer et remplacer les couples peu productifs.
 var rodentBins = elevageData.rodentBins || [];
+// Budget rongeurs — Phase 6.6 (4 sept). Distinct du budget reptile (`expenses`), mais chaque
+// dépense peut être copiée vers le budget principal (voir importRodentExpensesToMainBudget) sans
+// jamais fusionner les deux structures de données. rodentValuePerUnit : valeur estimée ($) par
+// rongeur transféré, saisie par l'éleveur — sert au calcul de ROI, jamais un prix inventé par LOCUS.
+var rodentExpenses = elevageData.rodentExpenses || [];
+var rodentValuePerUnit = elevageData.rodentValuePerUnit != null ? elevageData.rodentValuePerUnit : null;
 var racks = elevageData.racks;
 // Migration : anciennes sauvegardes qui n'avaient qu'un seul rack uniforme (rackDims) —
 // converties une seule fois vers le nouveau modèle multi-racks, aucune perte de données.
@@ -8601,7 +8613,7 @@ async function pushAllUserData(forceAll){
         await sb.rpc('upsert_customer_encrypted', { p_id: cu.id, p_data: cu });
       }
     }
-    await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock, todos, genetic_ambiguities: geneticAmbiguities, rodent_bins: rodentBins });
+    await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock, todos, genetic_ambiguities: geneticAmbiguities, rodent_bins: rodentBins, rodent_expenses: rodentExpenses, rodent_value_per_unit: rodentValuePerUnit });
     saveAppStatePushedAt(Date.now());
     const profile = loadProfile();
     await sb.from('profiles').upsert({ user_id:currentUser.id, breeder_name: profile.breederName||null, email: profile.email||null, phone: profile.phone||null });
@@ -8683,6 +8695,8 @@ async function pullAllUserData(){
     if(stateRes.data && stateRes.data.genetic_ambiguities) geneticAmbiguities = mergeById(geneticAmbiguities, stateRes.data.genetic_ambiguities);
     if(stateRes.data && stateRes.data.projects) projects = mergeById(projects, stateRes.data.projects);
     if(stateRes.data && stateRes.data.rodent_bins) rodentBins = mergeById(rodentBins, stateRes.data.rodent_bins);
+    if(stateRes.data && stateRes.data.rodent_expenses) rodentExpenses = mergeById(rodentExpenses, stateRes.data.rodent_expenses);
+    if(stateRes.data && stateRes.data.rodent_value_per_unit!=null && remoteAppStateWins) rodentValuePerUnit = stateRes.data.rodent_value_per_unit;
     if(stateRes.data && stateRes.data.feeder_stock && remoteAppStateWins) feederStock = stateRes.data.feeder_stock;
     if(stateRes.data && stateRes.data.dismissed_banners){
       const mergedBanners = [...new Set([...loadDismissedBanners(), ...stateRes.data.dismissed_banners])];
@@ -8728,7 +8742,7 @@ function exportBackup(){
   const payload = {
     app:'LOCUS', version:2, exportedAt:new Date().toISOString(),
     snakes: savedSnakes,
-    elevage: { racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos, geneticAmbiguities, rodentBins }
+    elevage: { racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit }
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
@@ -8775,6 +8789,8 @@ document.getElementById('import-file-input').addEventListener('change', (e)=>{
     todos = el.todos || [];
     geneticAmbiguities = el.geneticAmbiguities || [];
     rodentBins = el.rodentBins || [];
+    rodentExpenses = el.rodentExpenses || [];
+    rodentValuePerUnit = el.rodentValuePerUnit != null ? el.rodentValuePerUnit : null;
     projects = el.projects || [];
     feederStock = el.feederStock || {};
     saveElevage();
@@ -9956,7 +9972,8 @@ function renderRodentBins(){
   const wrap = document.getElementById('rodent-bins-list');
   if(!wrap) return;
   if(!rodentBins.length){
-    wrap.innerHTML = '<div class="empty">'+(isEn?'No bin registered yet.':'Aucun bac enregistré pour l\'instant.')+'</div>';
+    wrap.innerHTML = '<div class="empty">'+(isEn?'No bin registered yet.':'Aucun bac enregistré pour l\'instant.')+'</div>'+
+      '<button class="sc-btn" style="width:100%;margin-top:10px;" onclick="loadSampleRodentBinsFromTab()">👀 '+(isEn?'See an example first':'Voir un exemple d\'abord')+'</button>';
     return;
   }
   wrap.innerHTML = '';
@@ -9981,7 +9998,16 @@ function renderRodentBins(){
           const stockBtn = (l.transferred>0 && !l.stockAdded)
             ? '<button class="sc-btn accent" style="padding:2px 8px;font-size:10.5px;line-height:1;" onclick="openRodentStockLinkModal(\''+bin.id+'\',\''+l.id+'\')">📦 '+(isEn?'Add to stock':'Ajouter au stock')+'</button>'
             : (l.stockAdded ? '<small style="color:var(--sage);">✓ '+(isEn?'in stock':'au stock')+'</small>' : '');
-          return '<div class="modal-row"><span>'+l.date+detail+'</span><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">'+l.count+' '+(isEn?'born':'nés')+(l.note?' — '+escapeHtml(l.note):'')+stockBtn+'<button class="sc-btn danger" style="padding:2px 8px;font-size:11px;line-height:1;" onclick="deleteRodentLitter(\''+bin.id+'\',\''+l.id+'\')">×</button></span></div>';
+          // Suivi de stade automatisé par âge (4 sept) — calculé depuis la date de la portée, sauf
+          // si l'éleveur a corrigé manuellement (icône 🔄 pour revenir à l'automatique).
+          const ageInDays = daysSinceDate(l.date);
+          const effectiveStage = l.stageManualOverride ? (l.stage||'Pinky') : computeRodentStageFromAge(ageInDays);
+          const stageOptions = ['Pinky','Fuzzy','Hopper','Weanling','Small','Medium','Large'];
+          const stageSelect = '<select onchange="updateRodentLitterStage(\''+bin.id+'\',\''+l.id+'\',this.value)" style="font-size:10px;padding:2px 4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:6px;color:var(--ink);" title="'+(isEn?'Auto-calculated from litter age — pick manually to override':'Calculé automatiquement selon l\'âge — choisis manuellement pour corriger')+'">'+
+            stageOptions.map(sz=>'<option value="'+sz+'"'+(effectiveStage===sz?' selected':'')+'>'+sz+'</option>').join('')+
+          '</select>'+
+          (l.stageManualOverride ? '<button class="sc-btn" style="padding:1px 4px;font-size:9px;" title="'+(isEn?'Back to automatic':'Revenir à l\'automatique')+'" onclick="resetRodentLitterStageToAuto(\''+bin.id+'\',\''+l.id+'\')">🔄</button>' : '');
+          return '<div class="modal-row"><span>'+l.date+detail+'</span><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">'+l.count+' '+(isEn?'born':'nés')+(l.note?' — '+escapeHtml(l.note):'')+stageSelect+stockBtn+'<button class="sc-btn danger" style="padding:2px 8px;font-size:11px;line-height:1;" onclick="deleteRodentLitter(\''+bin.id+'\',\''+l.id+'\')">×</button></span></div>';
         }).join('')
       : '<div class="modal-row"><span>'+(isEn?'No litter logged yet.':'Aucune portée enregistrée.')+'</span></div>';
     card.innerHTML =
@@ -9997,6 +10023,13 @@ function renderRodentBins(){
         (totalMissing ? mrow('🐭💀 '+(isEn?'Missing (cannibalism)':'Manquant (cannibalisme)'), ''+totalMissing) : '')+
         (totalTransferred ? mrow('➡️ '+(isEn?'Transferred to grow-out':'Transféré vers grow-out'), ''+totalTransferred) : '')+
         (totalEuthanized ? mrow('⚰️ '+(isEn?'Euthanized':'Euthanasié'), ''+totalEuthanized) : '')+
+        (function(){
+          const lastClean = lastCleaningEntry(bin.cleanings);
+          if(!lastClean) return mrow(isEn?'Last cleaning':'Dernier nettoyage', isEn?'Never':'Jamais');
+          const days = daysSinceDate(lastClean.date);
+          const overdue = days>=30;
+          return mrow(isEn?'Last cleaning':'Dernier nettoyage', '<span'+(overdue?' style="color:var(--rust);font-weight:600;"':'')+'>'+lastClean.date+' ('+days+(isEn?'d ago':'j')+')'+(overdue?' ⚠':'')+'</span>');
+        })()+
       '</div>'+
       littersHtml+
       '<div class="pairing-form" style="margin-top:10px;">'+
@@ -10008,6 +10041,7 @@ function renderRodentBins(){
         '<button class="sc-btn accent" onclick="addRodentLitter(\''+bin.id+'\')">+ '+(isEn?'Log litter':'Ajouter une portée')+'</button>'+
       '</div>'+
       '<div class="clutch-actions">'+
+        '<button class="sc-btn" onclick="openRodentBinCleaningModal(\''+bin.id+'\')">🧹 '+(isEn?'Cleaning':'Nettoyage')+'</button>'+
         '<button class="sc-btn" onclick="printRodentBinLabel(\''+bin.id+'\')">🏷️ '+(isEn?'Print label / QR':'Imprimer étiquette / QR')+'</button>'+
         '<button class="sc-btn danger" onclick="deleteRodentBin(\''+bin.id+'\')">'+t('deleteBtn')+'</button>'+
       '</div>';
@@ -10034,6 +10068,59 @@ function addRodentBin(){
 // l'œstrus post-partum survient 14-24h après la mise bas, donc un mâle laissé dans le bac remet
 // souvent la femelle enceinte immédiatement après avoir donné naissance. Retirer le mâle une fois
 // la femelle visiblement gestante évite ce cycle enchaîné, réduit le surpeuplement et le stress.
+// Nettoyage des bacs — même système que les terrariums (2 sept), reproduit ici pour les rongeurs.
+function openRodentBinCleaningModal(binId){
+  const bin = rodentBins.find(b=>b.id===binId);
+  if(!bin) return;
+  if(!bin.cleanings) bin.cleanings = [];
+  renderRodentBinCleaningModalBody(binId);
+}
+function renderRodentBinCleaningModalBody(binId){
+  const isEn = currentLang==='en';
+  const bin = rodentBins.find(b=>b.id===binId);
+  if(!bin) return;
+  const sorted = [...(bin.cleanings||[])].sort((a,b)=>b.date.localeCompare(a.date));
+  const historyHtml = sorted.length ? sorted.map(c=>
+    '<div class="husbandry-qa" style="border-bottom:1px dashed var(--line);padding-bottom:8px;margin-bottom:8px;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;">'+
+        '<span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--gold);">'+(c.type==='complete'?'🧹 '+(isEn?'Complete':'Complet'):'🧽 '+(isEn?'Partial':'Partiel'))+' — '+c.date+'</span>'+
+        '<button class="sc-btn danger" onclick="deleteRodentBinCleaning(\''+binId+'\',\''+c.id+'\')">×</button>'+
+      '</div>'+
+      (c.note?'<div style="font-size:11px;color:var(--ink-dim);margin-top:4px;">'+escapeHtml(c.note)+'</div>':'')+
+    '</div>'
+  ).join('') : '<p style="font-size:11px;color:var(--ink-dim);">'+(isEn?'No cleaning logged yet.':'Aucun nettoyage enregistré pour l\'instant.')+'</p>';
+  const body = historyHtml +
+    '<div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);">'+
+      '<select id="rbc-type" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+        '<option value="partial">'+(isEn?'Partial':'Partiel')+'</option>'+
+        '<option value="complete">'+(isEn?'Complete':'Complet')+'</option>'+
+      '</select>'+
+      '<input type="text" id="rbc-note" placeholder="'+(isEn?'Note (optional)':'Note (optionnel)')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
+      '<button class="sc-btn accent" style="width:100%;" onclick="logRodentBinCleaning(\''+binId+'\')">🧹 '+(isEn?'Log cleaning':'Enregistrer le nettoyage')+'</button>'+
+    '</div>';
+  showQuickModal((isEn?'Cleaning — ':'Nettoyage — ')+bin.label, body);
+}
+function logRodentBinCleaning(binId){
+  const bin = rodentBins.find(b=>b.id===binId);
+  if(!bin) return;
+  if(!bin.cleanings) bin.cleanings = [];
+  const type = document.getElementById('rbc-type').value;
+  const note = document.getElementById('rbc-note').value.trim();
+  bin.cleanings.push({ id:'clean_'+Date.now(), date:new Date().toISOString().slice(0,10), type, note });
+  saveElevage();
+  renderRodentBinCleaningModalBody(binId);
+  renderRodentBins();
+}
+function deleteRodentBinCleaning(binId, cleaningId){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this cleaning entry?':'Supprimer ce nettoyage ?')) return;
+  const bin = rodentBins.find(b=>b.id===binId);
+  if(!bin) return;
+  bin.cleanings = (bin.cleanings||[]).filter(c=>c.id!==cleaningId);
+  saveElevage();
+  renderRodentBinCleaningModalBody(binId);
+  renderRodentBins();
+}
 function toggleRodentMaleRemoval(binId){
   const isEn = currentLang==='en';
   const bin = rodentBins.find(b=>b.id===binId);
@@ -10048,6 +10135,87 @@ function toggleRodentMaleRemoval(binId){
   saveElevage();
   renderRodentBins();
 }
+// Budget rongeurs — Phase 6.6 (4 sept). Séparé du budget reptile par défaut (structures de
+// données distinctes), mais chaque dépense est copiable vers le budget principal sur demande.
+// Le ROI utilise une valeur par unité SAISIE PAR L'ÉLEVEUR (jamais un prix de marché inventé par
+// LOCUS) — appliquée au total transféré (les rongeurs qui ont vraiment servi), pas juste nés.
+function rodentBudgetStats(){
+  const totalCost = rodentExpenses.reduce((s,e)=>s+e.amount, 0);
+  const totalTransferred = rodentBins.reduce((s,bin)=>s+(bin.litters||[]).reduce((s2,l)=>s2+(l.transferred||0),0), 0);
+  const valuePerUnit = rodentValuePerUnit || 0;
+  const totalValue = totalTransferred * valuePerUnit;
+  const roi = totalValue - totalCost;
+  return { totalCost, totalTransferred, valuePerUnit, totalValue, roi };
+}
+function openRodentBudgetModal(){
+  const isEn = currentLang==='en';
+  renderRodentBudgetModalBody();
+}
+function renderRodentBudgetModalBody(){
+  const isEn = currentLang==='en';
+  const stats = rodentBudgetStats();
+  const sorted = [...rodentExpenses].sort((a,b)=>b.date.localeCompare(a.date));
+  const expensesHtml = sorted.length ? sorted.map(e=>
+    '<div class="modal-row"><span>'+e.date+' — '+escapeHtml(e.note||e.category)+'</span><span style="display:flex;align-items:center;gap:6px;">'+e.amount.toFixed(2)+' $'+(e.importedToMain?' <small style="color:var(--sage);">✓ '+(isEn?'imported':'importé')+'</small>':'')+'<button class="sc-btn danger" style="padding:2px 8px;font-size:11px;line-height:1;" onclick="deleteRodentExpense(\''+e.id+'\')">×</button></span></div>'
+  ).join('') : '<div class="modal-row"><span>'+(isEn?'No expense logged yet.':'Aucune dépense enregistrée.')+'</span></div>';
+  const notImportedCount = rodentExpenses.filter(e=>!e.importedToMain).length;
+  const body =
+    '<div style="margin-bottom:16px;">'+
+      '<label style="display:block;margin-bottom:10px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Date':'Date')+'</span><input type="date" id="rodent-exp-date" value="'+new Date().toISOString().slice(0,10)+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
+      '<label style="display:block;margin-bottom:10px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Amount ($)':'Montant ($)')+'</span><input type="number" id="rodent-exp-amount" min="0" step="0.01" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
+      '<label style="display:block;margin-bottom:10px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Note (e.g. feed, bedding)':'Note (ex. nourriture, litière)')+'</span><input type="text" id="rodent-exp-note" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
+      '<button class="save-btn" style="width:100%;" onclick="addRodentExpense()">+ '+(isEn?'Log expense':'Ajouter une dépense')+'</button>'+
+    '</div>'+
+    '<div style="border-top:1px dashed var(--line);padding-top:12px;margin-bottom:14px;">'+expensesHtml+'</div>'+
+    '<div style="border-top:1px solid var(--line);padding-top:14px;margin-bottom:14px;">'+
+      '<label style="display:block;margin-bottom:10px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Estimated value per rodent transferred ($)':'Valeur estimée par rongeur transféré ($)')+'</span><input type="number" id="rodent-value-per-unit" min="0" step="0.01" value="'+(rodentValuePerUnit||'')+'" placeholder="'+(isEn?'e.g. cost to buy frozen equivalent':'ex. coût pour acheter l\'équivalent congelé')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" onchange="setRodentValuePerUnit(this.value)"/></label>'+
+      '<div class="modal-row"><span>'+(isEn?'Total costs':'Coûts totaux')+'</span><span>'+stats.totalCost.toFixed(2)+' $</span></div>'+
+      '<div class="modal-row"><span>'+(isEn?'Rodents transferred':'Rongeurs transférés')+'</span><span>'+stats.totalTransferred+'</span></div>'+
+      '<div class="modal-row"><span>'+(isEn?'Value produced':'Valeur produite')+'</span><span>'+stats.totalValue.toFixed(2)+' $</span></div>'+
+      '<div class="modal-row" style="font-weight:700;"><span>'+(isEn?'Net ROI':'ROI net')+'</span><span style="color:'+(stats.roi>=0?'var(--sage)':'var(--rust)')+';">'+(stats.roi>=0?'+':'')+stats.roi.toFixed(2)+' $</span></div>'+
+    '</div>'+
+    (notImportedCount ? '<button class="sc-btn accent" style="width:100%;" onclick="importRodentExpensesToMainBudget()">📤 '+(isEn?'Import '+notImportedCount+' expense(s) into main budget':'Importer '+notImportedCount+' dépense(s) dans le budget principal')+'</button>' : '');
+  showQuickModal('💰 '+(isEn?'Rodent budget':'Budget rongeurs'), body);
+}
+function addRodentExpense(){
+  const isEn = currentLang==='en';
+  const date = document.getElementById('rodent-exp-date').value || new Date().toISOString().slice(0,10);
+  const amount = parseFloat(document.getElementById('rodent-exp-amount').value);
+  const note = document.getElementById('rodent-exp-note').value.trim();
+  if(isNaN(amount) || amount<=0){ showToast(isEn?'Enter a valid amount.':'Entre un montant valide.', 'error'); return; }
+  rodentExpenses.push({ id:'rexp_'+Date.now(), date, category:'Rongeurs (élevage)', amount, note, importedToMain:false });
+  saveElevage();
+  renderRodentBudgetModalBody();
+  showToast('💰 '+(isEn?'Expense logged.':'Dépense enregistrée.'), 'success');
+}
+function deleteRodentExpense(id){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this expense?':'Supprimer cette dépense ?')) return;
+  rodentExpenses = rodentExpenses.filter(e=>e.id!==id);
+  saveElevage();
+  renderRodentBudgetModalBody();
+}
+function setRodentValuePerUnit(value){
+  const n = parseFloat(value);
+  rodentValuePerUnit = isNaN(n) ? null : n;
+  saveElevage();
+  renderRodentBudgetModalBody();
+}
+// Copie (pas déplace) les dépenses pas encore importées vers le budget principal — reste aussi
+// visible/distinct dans le budget rongeurs (importedToMain:true empêche une double importation).
+function importRodentExpensesToMainBudget(){
+  const isEn = currentLang==='en';
+  const toImport = rodentExpenses.filter(e=>!e.importedToMain);
+  if(!toImport.length) return;
+  toImport.forEach(e=>{
+    expenses.push({ id:'exp_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), date:e.date, category:'Rongeurs (élevage)', amount:e.amount, note:e.note });
+    e.importedToMain = true;
+  });
+  saveElevage();
+  renderRodentBudgetModalBody();
+  try{ renderFiscalView(); }catch(err){}
+  showToast('📤 '+(isEn?toImport.length+' expense(s) imported into the main budget.':toImport.length+' dépense(s) importée(s) dans le budget principal.'), 'success');
+}
 function deleteRodentBin(id){
   const isEn = currentLang==='en';
   if(!confirm(isEn?'Delete this bin and all its litter history?':'Supprimer ce bac et tout son historique de portées ?')) return;
@@ -10055,6 +10223,86 @@ function deleteRodentBin(id){
   saveElevage();
   renderRodentBins();
   showToast('🗑 '+(isEn?'Bin deleted.':'Bac supprimé.'), 'success');
+}
+// Automatisation des stades de croissance par âge (4 sept) — sourcé et croisé sur plusieurs
+// chartes de proies (Pritchett's, Florida Feeder Rodents, Biology Insights) : Pinky 1-7j, Fuzzy
+// 7-14j, Hopper 14-21j, Weanling 21-28j, Small 28-42j, Medium 42-56j, Large 56j+. Même échelle
+// pour souris/rat/ASF par défaut. PERSONNALISABLE (4 sept) — la qualité de nourriture fait
+// vraiment varier la vitesse de croissance, donc les seuils sont ajustables plutôt que figés.
+const RODENT_STAGE_CHART_DEFAULT = [
+  { key:'pinky', maxDay:7, stage:'Pinky' },
+  { key:'fuzzy', maxDay:14, stage:'Fuzzy' },
+  { key:'hopper', maxDay:21, stage:'Hopper' },
+  { key:'weanling', maxDay:28, stage:'Weanling' },
+  { key:'small', maxDay:42, stage:'Small' },
+  { key:'medium', maxDay:56, stage:'Medium' },
+  { key:'large', maxDay:Infinity, stage:'Large' },
+];
+const RODENT_STAGE_PREFS_KEY = 'locus_rodent_stage_prefs_v1';
+function loadRodentStagePrefs(){
+  try{
+    const raw = localStorage.getItem(RODENT_STAGE_PREFS_KEY);
+    if(raw){
+      const saved = JSON.parse(raw);
+      return RODENT_STAGE_CHART_DEFAULT.map(d=>({...d, maxDay: (saved[d.key]!=null && d.key!=='large') ? saved[d.key] : d.maxDay }));
+    }
+  }catch(e){}
+  return [...RODENT_STAGE_CHART_DEFAULT];
+}
+var rodentStageChart = loadRodentStagePrefs();
+function saveRodentStagePrefs(){
+  const toSave = {};
+  rodentStageChart.forEach(r=>{ if(r.key!=='large') toSave[r.key] = r.maxDay; });
+  try{ localStorage.setItem(RODENT_STAGE_PREFS_KEY, JSON.stringify(toSave)); }catch(e){}
+}
+function computeRodentStageFromAge(days){
+  const match = rodentStageChart.find(r=>days<r.maxDay);
+  return match ? match.stage : 'Large';
+}
+function openRodentStageSettingsModal(){
+  const isEn = currentLang==='en';
+  const body =
+    '<p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 14px;">'+(isEn
+      ? 'Adjust the day thresholds if your feed quality makes growth faster or slower than average — each field is the day the NEXT stage begins.'
+      : 'Ajuste les seuils en jours si la qualité de ta nourriture rend la croissance plus rapide ou plus lente que la moyenne — chaque champ est le jour où le stade SUIVANT commence.')+'</p>'+
+    rodentStageChart.filter(r=>r.key!=='large').map(r=>
+      '<label style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'+
+        '<span style="font-size:12px;">'+r.stage+'</span>'+
+        '<input type="number" min="1" value="'+r.maxDay+'" style="width:70px;font-size:16px;padding:6px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);text-align:center;" onchange="updateRodentStageThreshold(\''+r.key+'\', this.value)"/>'+
+      '</label>'
+    ).join('')+
+    '<button class="sc-btn" style="width:100%;margin-top:8px;" onclick="resetRodentStageThresholds()">🔄 '+(isEn?'Reset to sourced defaults':'Revenir aux valeurs sourcées par défaut')+'</button>';
+  showQuickModal('⚙️ '+(isEn?'Growth stage timing':'Rythme des stades de croissance'), body);
+}
+function updateRodentStageThreshold(key, value){
+  const n = parseInt(value, 10);
+  if(isNaN(n) || n<1) return;
+  const entry = rodentStageChart.find(r=>r.key===key);
+  if(entry) entry.maxDay = n;
+  saveRodentStagePrefs();
+  renderRodentBins();
+}
+function resetRodentStageThresholds(){
+  rodentStageChart = [...RODENT_STAGE_CHART_DEFAULT];
+  saveRodentStagePrefs();
+  renderRodentBins();
+  closeQuickModal();
+}
+function updateRodentLitterStage(binId, litterId, stage){
+  const bin = rodentBins.find(b=>b.id===binId);
+  const litter = bin && (bin.litters||[]).find(l=>l.id===litterId);
+  if(!litter) return;
+  litter.stage = stage;
+  litter.stageManualOverride = true;
+  saveElevage();
+}
+function resetRodentLitterStageToAuto(binId, litterId){
+  const bin = rodentBins.find(b=>b.id===binId);
+  const litter = bin && (bin.litters||[]).find(l=>l.id===litterId);
+  if(!litter) return;
+  litter.stageManualOverride = false;
+  saveElevage();
+  renderRodentBins();
 }
 function addRodentLitter(binId){
   const isEn = currentLang==='en';
@@ -14388,6 +14636,41 @@ function renderTodos(){
    l'accueil, PAS automatique à l'inscription (choix explicite d'Alex : moins intrusif si quelqu'un
    a déjà ses propres animaux à entrer). Tout objet créé porte isSample:true, ce qui permet de les
    retrouver et de les effacer précisément, sans jamais toucher aux vraies données de l'utilisateur. ==================== */
+function loadSampleRodentBins(){
+  const isEn = currentLang==='en';
+  const prefix = isEn ? 'Sample — ' : 'Exemple — ';
+  if(rodentBins.some(b=>b.isSample)) return;
+  const d = (daysAgo)=> new Date(Date.now()-daysAgo*86400000).toISOString().slice(0,10);
+  rodentBins.push({
+    id:'rb_sample_good_'+Date.now(), label:prefix+(isEn?'Bin A1':'Bac A1'), species:'mouse', ratio:'2:1', room:null, isSample:true,
+    maleRemovedDate:null,
+    cleanings:[{ id:'clean_sample_'+Date.now(), date:d(12), type:'complete', note:'' }],
+    litters:[
+      { id:'rl_sample_1_'+Date.now(), date:d(60), count:8, missing:0, transferred:8, euthanized:0, stage:'Weanling', stockAdded:false },
+      { id:'rl_sample_2_'+Date.now(), date:d(35), count:9, missing:1, transferred:7, euthanized:0, stage:'Fuzzy', stockAdded:false },
+      { id:'rl_sample_3_'+Date.now(), date:d(10), count:7, missing:0, transferred:0, euthanized:0, stage:'Pinky', stockAdded:false },
+    ]
+  });
+  rodentBins.push({
+    id:'rb_sample_weak_'+Date.now(), label:prefix+(isEn?'Bin B3':'Bac B3'), species:'mouse', ratio:'2:1', room:null, isSample:true,
+    maleRemovedDate:d(5),
+    cleanings:[],
+    litters:[
+      { id:'rl_sample_4_'+Date.now(), date:d(55), count:3, missing:2, transferred:1, euthanized:0, stage:'Weanling', stockAdded:false },
+      { id:'rl_sample_5_'+Date.now(), date:d(20), count:2, missing:1, transferred:0, euthanized:0, stage:'Pinky', stockAdded:false },
+    ]
+  });
+}
+// Déclencheur scopé (4 sept) — pour quelqu'un qui arrive directement dans Rongeurs sans être passé
+// par le bouton général "Voir un exemple d'abord" de l'accueil. Ne touche à rien d'autre (pas de
+// reptiles/terrarium créés), juste les 2 bacs pour voir le rapport de rentabilité en action.
+function loadSampleRodentBinsFromTab(){
+  const isEn = currentLang==='en';
+  loadSampleRodentBins();
+  saveElevage();
+  renderRodentBins();
+  showToast('👀 '+(isEn?'Sample bins added — try the profitability report!':'Bacs d\'exemple ajoutés — essaie le rapport de rentabilité !'), 'success');
+}
 function loadSampleData(){
   const isEn = currentLang==='en';
   const prefix = isEn ? 'Sample — ' : 'Exemple — ';
@@ -14418,6 +14701,10 @@ function loadSampleData(){
     todos.push({ id:'todo_sample_'+Date.now(), title: isEn?'Sample task — try checking this off':'Tâche exemple — essaie de la cocher', done:false, createdAt:new Date().toISOString().slice(0,10), isSample:true });
   }
 
+  // Bacs de rongeurs d'exemple (4 sept) — un bon bac et un bac sous-performant, pour que le
+  // rapport de rentabilité (Phase 3) ait quelque chose de significatif à montrer dès le départ.
+  loadSampleRodentBins();
+
   storage.save(savedSnakes);
   saveElevage();
   dismissWelcome();
@@ -14431,6 +14718,7 @@ function clearSampleData(){
   savedSnakes = savedSnakes.filter(s=>!s.isSample);
   terrariums = terrariums.filter(t=>!t.isSample);
   todos = todos.filter(x=>!x.isSample);
+  rodentBins = rodentBins.filter(b=>!b.isSample);
   storage.save(savedSnakes);
   saveElevage();
   updateSampleDataBanner();
@@ -14439,7 +14727,7 @@ function clearSampleData(){
   showToast('🗑 '+(isEn?'Sample data removed.':'Données d\'exemple retirées.'), 'success');
 }
 function hasSampleData(){
-  return savedSnakes.some(s=>s.isSample) || terrariums.some(t=>t.isSample) || todos.some(t=>t.isSample);
+  return savedSnakes.some(s=>s.isSample) || terrariums.some(t=>t.isSample) || todos.some(t=>t.isSample) || rodentBins.some(b=>b.isSample);
 }
 function updateSampleDataBanner(){
   const isEn = currentLang==='en';
@@ -14893,6 +15181,7 @@ function updateHeaderBadge(){
 // si tu veux en ajouter/retirer, tout le reste (formulaire, répartition, totaux) suit automatiquement.
 var EXPENSE_CATEGORIES = [
   { name:'Nourriture', icon:'🐭' },
+  { name:'Rongeurs (élevage)', icon:'🐁' },
   { name:'Substrat / Litière', icon:'🌾' },
   { name:'Équipement (racks, thermostats, bacs)', icon:'🔧' },
   { name:'Électricité / Chauffage', icon:'💡' },
@@ -14908,6 +15197,7 @@ var EXPENSE_CATEGORIES = [
 // translateCat() pour les gènes.
 var EXPENSE_CAT_TRANSLATIONS = {
   'Nourriture': { fr:'Nourriture', en:'Food' },
+  'Rongeurs (élevage)': { fr:'Rongeurs (élevage)', en:'Rodents (breeding)' },
   'Substrat / Litière': { fr:'Substrat / Litière', en:'Substrate / Bedding' },
   'Équipement (racks, thermostats, bacs)': { fr:'Équipement (racks, thermostats, bacs)', en:'Equipment (racks, thermostats, tubs)' },
   'Électricité / Chauffage': { fr:'Électricité / Chauffage', en:'Electricity / Heating' },
