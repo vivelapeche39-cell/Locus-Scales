@@ -1255,8 +1255,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <button class="subtab-btn active" data-sub="racks" data-i18n="subRacks" onclick="showSubtab('racks')">🗄️ Racks &amp; Terrariums</button>
       <button class="subtab-btn" data-sub="tour" data-i18n="subTour" onclick="showSubtab('tour')">🔄 Mode Tournée</button>
       <button class="subtab-btn" data-sub="nourriture" data-i18n="subNourriture" onclick="showSubtab('nourriture')">🍽 Nourriture</button>
-      <button class="subtab-btn" data-sub="calendar" data-i18n="subCalendar" onclick="showSubtab('calendar')">📅 Calendrier</button>
-      <button class="subtab-btn" data-sub="objectif" data-i18n="subObjectif" onclick="showSubtab('objectif')">🎯 Objectif</button>
+      <button class="subtab-btn" data-sub="rongeurs" data-i18n="subRongeurs" onclick="showSubtab('rongeurs')">🐭 Rongeurs</button>
     </div>
 
     <div id="sub-racks">
@@ -1327,7 +1326,136 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       </div>
     </div>
 
-    <div id="sub-calendar" style="display:none;">
+    <div id="sub-nourriture" style="display:none;">
+      <div id="onboarding-banner-nourriture" class="onboarding-banner" style="display:none;"></div>
+      <div class="mine-filter-bar" style="margin-top:0;">
+        <select id="food-horizon-select" class="egg-select">
+          <option value="7" data-i18n="horizon7">7 prochains jours</option>
+          <option value="14" data-i18n="horizon14">14 prochains jours</option>
+          <option value="1" data-i18n="horizonToday">Aujourd'hui seulement</option>
+        </select>
+      </div>
+      <div class="results-hdr"><h2 style="font-size:16px;" data-i18n="defrostListTitle">📋 Liste de décongélation</h2></div>
+      <div id="defrost-list" class="expense-breakdown"></div>
+      <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" data-i18n="preyMissingTitle">⚠ Proie non renseignée</h2></div>
+      <div id="prey-missing-list" class="sale-list"></div>
+      <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" data-i18n="feederStockTitle">🧊 Stock de proies</h2></div>
+      <p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 12px;" data-i18n="feederStockHint">Décompte automatiquement quand tu loggues un repas pour un reptile dont l'espèce/taille de proie est renseignée. Global au congélateur, pas par animal.</p>
+      <div id="feeder-stock-list"></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
+        <select id="feeder-stock-species" onchange="renderFeederStockSizeOptions()" style="background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:'Courier New',monospace;font-size:11.5px;padding:8px;">
+          <option value="mouse">🐁 Mouse</option>
+          <option value="rat">🐀 Rat</option>
+        </select>
+        <select id="feeder-stock-size" style="background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:'Courier New',monospace;font-size:11.5px;padding:8px;"></select>
+        <input type="number" id="feeder-stock-qty" min="0" placeholder="0" class="price-input" style="width:70px;"/>
+        <button class="sc-btn accent" onclick="setFeederStock()" data-i18n="feederStockSetBtn">Régler le stock</button>
+      </div>
+    </div>
+
+    <div id="sub-rongeurs" style="display:none;">
+      <p style="font-size:11px;color:var(--ink-dim);line-height:1.6;margin:0 0 12px;" data-i18n="rodentBinsHint">Suivi de tes bacs reproducteurs de rongeurs nourriciers — séparé de tes reptiles. L'angle qui compte le plus : le volume produit par bac, pour repérer et remplacer les couples peu productifs.</p>
+      <div id="rodent-locked-msg" style="display:none;"></div>
+      <div id="rodent-unlocked-content">
+      <button class="sc-btn accent" style="margin-bottom:14px;" onclick="showRodentProductivityReport()" data-i18n="rodentProductivityBtn">📊 Voir la rentabilité par bac</button>
+      <button class="sc-btn" style="margin-bottom:14px;margin-left:8px;" onclick="showRodentMonthlyReport()" data-i18n="rodentMonthlyBtn">📅 Rapport mensuel</button>
+      <div class="pairing-form">
+        <input type="text" id="rodent-bin-label" data-i18n-placeholder="rodentBinLabelPlaceholder" placeholder="Ex. Bac A3" style="flex:1;min-width:100px;"/>
+        <select id="rodent-bin-species">
+          <option value="mouse">🐁 <span data-i18n="rodentSpeciesMouse">Souris</span></option>
+          <option value="rat">🐀 <span data-i18n="rodentSpeciesRat">Rat</span></option>
+          <option value="asf">🐭 ASF</option>
+        </select>
+        <select id="rodent-bin-ratio">
+          <option value="1:1">1:1</option>
+          <option value="2:1" selected>2:1</option>
+          <option value="3:1">3:1</option>
+          <option value="4:1">4:1</option>
+        </select>
+        <input type="text" id="rodent-bin-room" data-i18n-placeholder="rodentBinRoomPlaceholder" placeholder="Pièce (optionnel)" style="flex:1;min-width:100px;"/>
+        <button class="save-btn" onclick="addRodentBin()" data-i18n="rodentBinAddBtn">+ Ajouter un bac</button>
+      </div>
+      <div id="rodent-bins-list"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="view-ventes" style="display:none;">
+    <div class="subtabs">
+      <button class="subtab-btn active" data-vsub="listings" data-i18n="subListings" onclick="showVentesSubtab('listings')">📢 Annonces</button>
+      <button class="subtab-btn" data-vsub="clients" data-i18n="subClients" onclick="showVentesSubtab('clients')">👥 Clients</button>
+      <button class="subtab-btn" data-vsub="waitlist" data-i18n="subWaitlist" onclick="showVentesSubtab('waitlist')">📋 Liste d'attente</button>
+    </div>
+
+    <div id="vsub-listings">
+      <div id="onboarding-banner-listings" class="onboarding-banner" style="display:none;"></div>
+    <div class="value-bar" style="margin-top:0;border-top:none;padding-top:0;">
+      <div class="value-box"><div class="vb-label" data-i18n="statForSale">À vendre (stock)</div><div class="vb-amount" id="sales-stat-forsale">0 $</div></div>
+      <div class="value-box"><div class="vb-label" data-i18n="statReserved">Réservé</div><div class="vb-amount" id="sales-stat-reserved">0 $</div></div>
+      <div class="value-box actual"><div class="vb-label" data-i18n="statSoldMonth">Vendu ce mois-ci</div><div class="vb-amount" id="sales-stat-month">0 $</div></div>
+      <div class="value-box actual"><div class="vb-label" data-i18n="statSoldTotal">Vendu (total)</div><div class="vb-amount" id="sales-stat-total">0 $</div></div>
+    </div>
+    <div id="mm-bulk-export" style="margin-top:18px;"></div>
+    <div class="mine-filter-bar" style="margin-top:22px;">
+      <div class="mine-filter-group" id="sales-status-filters">
+        <button class="filter-chip active" data-status="forsale" data-i18n="filterForSale">À vendre</button>
+        <button class="filter-chip" data-status="reserved" data-i18n="filterReserved">Réservé</button>
+        <button class="filter-chip" data-status="sold" data-i18n="filterSold">Vendu</button>
+        <button class="filter-chip" data-status="all" data-i18n="salesFilterAll">Tout</button>
+      </div>
+      <select id="sales-sort-select" class="egg-select">
+        <option value="name" data-i18n="salesSortName">Trier : Nom</option>
+        <option value="price" data-i18n="salesSortPrice">Trier : Prix</option>
+        <option value="date" data-i18n="salesSortDate">Trier : Date</option>
+      </select>
+    </div>
+    <div id="sales-list" class="sale-list"></div>
+    </div>
+
+    <div id="vsub-clients" style="display:none;">
+      <div id="onboarding-banner-clients" class="onboarding-banner" style="display:none;"></div>
+      <div class="elevage-search">
+        <input type="text" id="client-search-input" data-i18n-placeholder="searchClientPlaceholder" placeholder="🔍 Rechercher un client…" autocomplete="off"/>
+      </div>
+      <div id="clients-list" class="sale-list"></div>
+    </div>
+
+    <div id="vsub-waitlist" style="display:none;">
+      <p class="footnote" style="margin-top:0;">Toutes les listes d'attente de tous les accouplements, regroupées en une seule vue pour trier/contacter d'un coup d'œil.</p>
+      <div id="waitlist-consolidated-list" class="sale-list"></div>
+    </div>
+  </div>
+
+  <div id="view-incubation" style="display:none;">
+    <div class="subtabs">
+      <button class="subtab-btn active" data-rsub="pontes" data-i18n="subReproPontes" onclick="showReproSubtab('pontes')">🐣 Portées</button>
+      <button class="subtab-btn" data-rsub="calendar" data-i18n="subCalendar" onclick="showReproSubtab('calendar')">📅 Calendrier</button>
+      <button class="subtab-btn" data-rsub="objectif" data-i18n="subObjectif" onclick="showReproSubtab('objectif')">🎯 Objectif</button>
+    </div>
+
+    <div id="sub-repro-pontes">
+    <div class="pairing-form">
+      <select id="clutch-sire" onchange="updateClutchReproductionFields()"></select>
+      <span style="color:var(--ink-dim);font-family:'Courier New',monospace;font-size:11px;">×</span>
+      <select id="clutch-dam" onchange="updateClutchReproductionFields()"></select>
+      <input type="number" id="clutch-eggcount" min="1" max="30" placeholder="Nb d'œufs" style="width:90px;"/>
+      <label id="clutch-date-wrap" style="display:flex;flex-direction:column;font-family:'Courier New',monospace;font-size:9px;color:var(--ink-dim);gap:2px;">
+        <span id="clutch-date-label">Date de ponte</span>
+        <input type="date" id="clutch-laydate"/>
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-family:'Courier New',monospace;font-size:11px;color:var(--ink-dim);">
+        <span id="clutch-duration-label">Incubation</span>
+        <input type="number" id="clutch-incubation-days" min="50" max="70" value="60" style="width:56px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:4px;color:var(--ink);font-family:'Courier New',monospace;font-size:12px;padding:7px 6px;text-align:center;"/>
+        j
+      </label>
+      <button class="save-btn" onclick="addClutch()">Enregistrer la portée</button>
+    </div>
+    <div id="next-hatch-banner"></div>
+    <div id="clutch-list" class="clutch-grid"></div>
+    </div>
+
+    <div id="sub-repro-calendar" style="display:none;">
       <div id="onboarding-banner-calendar" class="onboarding-banner" style="display:none;"></div>
       <div class="pairing-form">
         <select id="pairing-male"></select>
@@ -1391,34 +1519,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <div id="health-log-table" class="logtable-wrap" style="display:none;"></div>
     </div>
 
-    <div id="sub-nourriture" style="display:none;">
-      <div id="onboarding-banner-nourriture" class="onboarding-banner" style="display:none;"></div>
-      <div class="mine-filter-bar" style="margin-top:0;">
-        <select id="food-horizon-select" class="egg-select">
-          <option value="7" data-i18n="horizon7">7 prochains jours</option>
-          <option value="14" data-i18n="horizon14">14 prochains jours</option>
-          <option value="1" data-i18n="horizonToday">Aujourd'hui seulement</option>
-        </select>
-      </div>
-      <div class="results-hdr"><h2 style="font-size:16px;" data-i18n="defrostListTitle">📋 Liste de décongélation</h2></div>
-      <div id="defrost-list" class="expense-breakdown"></div>
-      <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" data-i18n="preyMissingTitle">⚠ Proie non renseignée</h2></div>
-      <div id="prey-missing-list" class="sale-list"></div>
-      <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" data-i18n="feederStockTitle">🧊 Stock de proies</h2></div>
-      <p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 12px;" data-i18n="feederStockHint">Décompte automatiquement quand tu loggues un repas pour un reptile dont l'espèce/taille de proie est renseignée. Global au congélateur, pas par animal.</p>
-      <div id="feeder-stock-list"></div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
-        <select id="feeder-stock-species" onchange="renderFeederStockSizeOptions()" style="background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:'Courier New',monospace;font-size:11.5px;padding:8px;">
-          <option value="mouse">🐁 Mouse</option>
-          <option value="rat">🐀 Rat</option>
-        </select>
-        <select id="feeder-stock-size" style="background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:'Courier New',monospace;font-size:11.5px;padding:8px;"></select>
-        <input type="number" id="feeder-stock-qty" min="0" placeholder="0" class="price-input" style="width:70px;"/>
-        <button class="sc-btn accent" onclick="setFeederStock()" data-i18n="feederStockSetBtn">Régler le stock</button>
-      </div>
-    </div>
-
-    <div id="sub-objectif" style="display:none;">
+    <div id="sub-repro-objectif" style="display:none;">
       <p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 12px;" data-i18n="objectifHint">Choisis le(s) gène(s) visé(s), et l'app scanne ta collection pour proposer les meilleurs accouplements possibles — classés par probabilité réelle, pas juste par intuition.</p>
       <div class="combo-wrap">
         <input class="combo-input" id="input-objectif" data-i18n-placeholder="searchGenePlaceholder" placeholder="Rechercher un gène (ex. Pastel, Mojave, Piebald)…" autocomplete="off"/>
@@ -1429,73 +1530,6 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <div class="results-hdr" style="margin-top:22px;"><h2 style="font-size:16px;" data-i18n="objectifResultsTitle">Meilleures paires dans ta collection</h2></div>
       <div id="pairing-planner-results"></div>
     </div>
-  </div>
-
-  <div id="view-ventes" style="display:none;">
-    <div class="subtabs">
-      <button class="subtab-btn active" data-vsub="listings" data-i18n="subListings" onclick="showVentesSubtab('listings')">📢 Annonces</button>
-      <button class="subtab-btn" data-vsub="clients" data-i18n="subClients" onclick="showVentesSubtab('clients')">👥 Clients</button>
-      <button class="subtab-btn" data-vsub="waitlist" data-i18n="subWaitlist" onclick="showVentesSubtab('waitlist')">📋 Liste d'attente</button>
-    </div>
-
-    <div id="vsub-listings">
-      <div id="onboarding-banner-listings" class="onboarding-banner" style="display:none;"></div>
-    <div class="value-bar" style="margin-top:0;border-top:none;padding-top:0;">
-      <div class="value-box"><div class="vb-label" data-i18n="statForSale">À vendre (stock)</div><div class="vb-amount" id="sales-stat-forsale">0 $</div></div>
-      <div class="value-box"><div class="vb-label" data-i18n="statReserved">Réservé</div><div class="vb-amount" id="sales-stat-reserved">0 $</div></div>
-      <div class="value-box actual"><div class="vb-label" data-i18n="statSoldMonth">Vendu ce mois-ci</div><div class="vb-amount" id="sales-stat-month">0 $</div></div>
-      <div class="value-box actual"><div class="vb-label" data-i18n="statSoldTotal">Vendu (total)</div><div class="vb-amount" id="sales-stat-total">0 $</div></div>
-    </div>
-    <div id="mm-bulk-export" style="margin-top:18px;"></div>
-    <div class="mine-filter-bar" style="margin-top:22px;">
-      <div class="mine-filter-group" id="sales-status-filters">
-        <button class="filter-chip active" data-status="forsale" data-i18n="filterForSale">À vendre</button>
-        <button class="filter-chip" data-status="reserved" data-i18n="filterReserved">Réservé</button>
-        <button class="filter-chip" data-status="sold" data-i18n="filterSold">Vendu</button>
-        <button class="filter-chip" data-status="all" data-i18n="salesFilterAll">Tout</button>
-      </div>
-      <select id="sales-sort-select" class="egg-select">
-        <option value="name" data-i18n="salesSortName">Trier : Nom</option>
-        <option value="price" data-i18n="salesSortPrice">Trier : Prix</option>
-        <option value="date" data-i18n="salesSortDate">Trier : Date</option>
-      </select>
-    </div>
-    <div id="sales-list" class="sale-list"></div>
-    </div>
-
-    <div id="vsub-clients" style="display:none;">
-      <div id="onboarding-banner-clients" class="onboarding-banner" style="display:none;"></div>
-      <div class="elevage-search">
-        <input type="text" id="client-search-input" data-i18n-placeholder="searchClientPlaceholder" placeholder="🔍 Rechercher un client…" autocomplete="off"/>
-      </div>
-      <div id="clients-list" class="sale-list"></div>
-    </div>
-
-    <div id="vsub-waitlist" style="display:none;">
-      <p class="footnote" style="margin-top:0;">Toutes les listes d'attente de tous les accouplements, regroupées en une seule vue pour trier/contacter d'un coup d'œil.</p>
-      <div id="waitlist-consolidated-list" class="sale-list"></div>
-    </div>
-  </div>
-
-  <div id="view-incubation" style="display:none;">
-    <div class="pairing-form">
-      <select id="clutch-sire" onchange="updateClutchReproductionFields()"></select>
-      <span style="color:var(--ink-dim);font-family:'Courier New',monospace;font-size:11px;">×</span>
-      <select id="clutch-dam" onchange="updateClutchReproductionFields()"></select>
-      <input type="number" id="clutch-eggcount" min="1" max="30" placeholder="Nb d'œufs" style="width:90px;"/>
-      <label id="clutch-date-wrap" style="display:flex;flex-direction:column;font-family:'Courier New',monospace;font-size:9px;color:var(--ink-dim);gap:2px;">
-        <span id="clutch-date-label">Date de ponte</span>
-        <input type="date" id="clutch-laydate"/>
-      </label>
-      <label style="display:flex;align-items:center;gap:6px;font-family:'Courier New',monospace;font-size:11px;color:var(--ink-dim);">
-        <span id="clutch-duration-label">Incubation</span>
-        <input type="number" id="clutch-incubation-days" min="50" max="70" value="60" style="width:56px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:4px;color:var(--ink);font-family:'Courier New',monospace;font-size:12px;padding:7px 6px;text-align:center;"/>
-        j
-      </label>
-      <button class="save-btn" onclick="addClutch()">Enregistrer la portée</button>
-    </div>
-    <div id="next-hatch-banner"></div>
-    <div id="clutch-list" class="clutch-grid"></div>
   </div>
 
   <div id="view-utilitaire" style="display:none;">
@@ -1971,7 +2005,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.20';
+const APP_VERSION = '2026.09.02.2.27';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2117,7 +2151,8 @@ const TIER_RANK = { gratuit:0, passionne:1, premiere_ponte:1, illimite:2 };
 // de la structure de paliers décidée le 25 août. À étendre au fil des sessions futures.
 const ILLIMITE_ONLY_FEATURES = [
   'objectifPlanner', 'bulkListingPrices', 'morphmarketImportCsv', 'shipping',
-  'fertility', 'multiGenProjects', 'seasonComparison', 'outcomesView', 'icsExport', 'fiscalSummary'
+  'fertility', 'multiGenProjects', 'seasonComparison', 'outcomesView', 'icsExport', 'fiscalSummary',
+  'rodentManagement'
 ];
 function currentUserTier(){
   if(typeof isAdminUser!=='undefined' && isAdminUser) return 'illimite'; // admin = accès complet peu importe le champ tier
@@ -3074,9 +3109,10 @@ const PERSONALIZATION_FEATURES = [
   { key:'racks', sub:'racks', icon:'🏠', group:'elevage', fr:'Racks & Terrariums', en:'Racks & Enclosures' },
   { key:'tour', sub:'tour', icon:'🚶', group:'elevage', fr:'Mode Tournée', en:'Tour Mode' },
   { key:'nourriture', sub:'nourriture', icon:'🍽', group:'elevage', fr:'Nourriture', en:'Feeding' },
-  { key:'calendar', sub:'calendar', icon:'📅', group:'elevage', fr:'Calendrier de reproduction', en:'Breeding calendar' },
-  { key:'objectif', sub:'objectif', icon:'🎯', group:'elevage', fr:'Objectif (planificateur)', en:'Goal (planner)' },
-  { key:'incubation', icon:'🐣', group:'elevage', fr:'Reproduction', en:'Reproduction' },
+  { key:'rongeurs', sub:'rongeurs', icon:'🐭', group:'elevage', fr:'Rongeurs', en:'Rodents' },
+  { key:'calendar', rsub:'calendar', icon:'📅', group:'incubation', fr:'Calendrier de reproduction', en:'Breeding calendar' },
+  { key:'objectif', rsub:'objectif', icon:'🎯', group:'incubation', fr:'Objectif (planificateur)', en:'Goal (planner)' },
+  { key:'incubation', maintab:'incubation', icon:'🐣', group:'outils', fr:'Reproduction', en:'Reproduction' },
   { key:'listings', vsub:'listings', icon:'🏷️', group:'ventes', fr:'Annonces & MorphMarket', en:'Listings & MorphMarket' },
   { key:'clients', vsub:'clients', icon:'👤', group:'ventes', fr:'Clients', en:'Clients' },
   { key:'waitlist', vsub:'waitlist', icon:'📋', group:'ventes', fr:'Liste d\'attente', en:'Waitlist' },
@@ -3087,6 +3123,7 @@ const PERSONALIZATION_FEATURES = [
 ];
 const PERSONALIZATION_GROUPS = [
   { id:'elevage', fr:'🏠 Élevage', en:'🏠 Breeding' },
+  { id:'incubation', fr:'🐣 Reproduction', en:'🐣 Reproduction' },
   { id:'ventes', fr:'💰 Ventes', en:'💰 Sales' },
   { id:'rapports', fr:'📊 Rapports', en:'📊 Reports' },
   { id:'outils', fr:'🛠️ Onglets principaux', en:'🛠️ Main tabs' },
@@ -3188,12 +3225,13 @@ function savePersonalization(){
 function applyPersonalizationUI(){
   PERSONALIZATION_FEATURES.forEach(f=>{
     if(f.sub){ const btn = document.querySelector('.subtab-btn[data-sub="'+f.sub+'"]'); if(btn) btn.style.display = personalizationPrefs[f.key] ? '' : 'none'; }
+    if(f.rsub){ const btn = document.querySelector('.subtab-btn[data-rsub="'+f.rsub+'"]'); if(btn) btn.style.display = personalizationPrefs[f.key] ? '' : 'none'; }
     if(f.vsub){ const btn = document.querySelector('.subtab-btn[data-vsub="'+f.vsub+'"]'); if(btn) btn.style.display = personalizationPrefs[f.key] ? '' : 'none'; }
     if(f.legal){ const btn = document.querySelector('.legal-tab-btn[data-legal="'+f.legal+'"]'); if(btn) btn.style.display = personalizationPrefs[f.key] ? '' : 'none'; }
     if(f.maintab){ const btn = document.querySelector('.tab-btn[data-tab="'+f.maintab+'"]'); if(btn) btn.style.display = personalizationPrefs[f.key] ? '' : 'none'; }
   });
   // Les onglets principaux Élevage/Ventes ne se cachent que si TOUTES leurs sous-sections le sont.
-  const elevageOn = ['racks','tour','calendar','nourriture','objectif'].some(k=>personalizationPrefs[k]);
+  const elevageOn = ['racks','tour','nourriture','rongeurs'].some(k=>personalizationPrefs[k]);
   const ventesOn = ['listings','clients','waitlist'].some(k=>personalizationPrefs[k]);
   const elevageBtn = document.querySelector('.tab-btn[data-tab="elevage"]');
   const ventesBtn = document.querySelector('.tab-btn[data-tab="ventes"]');
@@ -3212,6 +3250,11 @@ function applyPersonalizationUI(){
   if(activeSub && activeSub.dataset.sub && personalizationPrefs[activeSub.dataset.sub]===false && elevageOn){
     const firstVisible = PERSONALIZATION_FEATURES.find(f=>f.sub && personalizationPrefs[f.key]);
     if(firstVisible) showSubtab(firstVisible.sub);
+  }
+  const activeRsub = document.querySelector('#view-incubation .subtab-btn.active');
+  if(activeRsub && activeRsub.dataset.rsub && personalizationPrefs[activeRsub.dataset.rsub]===false){
+    const firstVisibleR = PERSONALIZATION_FEATURES.find(f=>f.rsub && personalizationPrefs[f.key]);
+    showReproSubtab(firstVisibleR ? firstVisibleR.rsub : 'pontes');
   }
   const activeVsub = document.querySelector('#view-ventes .subtab-btn.active');
   if(activeVsub && activeVsub.dataset.vsub && personalizationPrefs[activeVsub.dataset.vsub]===false && ventesOn){
@@ -4048,8 +4091,18 @@ const I18N = {
     // Phase 3 — Mode Tournée
     subRacks: '🗄️ Racks & Terrariums',
     subTour: '🔄 Mode Tournée',
+    subReproPontes: '🐣 Portées',
     subCalendar: '📅 Calendrier',
     subNourriture: '🍽 Nourriture',
+    subRongeurs: '🐭 Rongeurs',
+    rodentBinsHint: "Suivi de tes bacs reproducteurs de rongeurs nourriciers — séparé de tes reptiles. L'angle qui compte le plus : le volume produit par bac, pour repérer et remplacer les couples peu productifs.",
+    rodentBinLabelPlaceholder: 'Ex. Bac A3',
+    rodentBinRoomPlaceholder: 'Pièce (optionnel)',
+    rodentBinAddBtn: '+ Ajouter un bac',
+    rodentSpeciesMouse: 'Souris',
+    rodentSpeciesRat: 'Rat',
+    rodentProductivityBtn: '📊 Voir la rentabilité par bac',
+    rodentMonthlyBtn: '📅 Rapport mensuel',
     subObjectif: '🎯 Objectif',
     objectifHint: 'Choisis le(s) gène(s) visé(s), et l\'app scanne ta collection pour proposer les meilleurs accouplements possibles — classés par probabilité réelle, pas juste par intuition.',
     objectifFindBtn: '🎯 Trouver les meilleures paires',
@@ -4568,8 +4621,18 @@ const I18N = {
     // Phase 3 — Tour Mode
     subRacks: '🗄️ Racks & Terrariums',
     subTour: '🔄 Tour Mode',
+    subReproPontes: '🐣 Clutches',
     subCalendar: '📅 Calendar',
     subNourriture: '🍽 Feeding',
+    subRongeurs: '🐭 Rodents',
+    rodentBinsHint: "Tracking your feeder rodent breeding bins — separate from your reptiles. The angle that matters most: total volume produced per bin, to spot and replace low-producing pairs.",
+    rodentBinLabelPlaceholder: 'Ex. Bin A3',
+    rodentBinRoomPlaceholder: 'Room (optional)',
+    rodentBinAddBtn: '+ Add a bin',
+    rodentSpeciesMouse: 'Mouse',
+    rodentSpeciesRat: 'Rat',
+    rodentProductivityBtn: '📊 View profitability by bin',
+    rodentMonthlyBtn: '📅 Monthly report',
     subObjectif: '🎯 Goal',
     objectifHint: 'Pick your target gene(s), and the app scans your collection to suggest the best possible pairings — ranked by real probability, not just a hunch.',
     objectifFindBtn: '🎯 Find the best pairs',
@@ -8275,8 +8338,8 @@ function saveAppStatePushedAt(ts){
 function loadElevage(){
   try{
     const raw = localStorage.getItem(ELEVAGE_KEY);
-    return raw ? JSON.parse(raw) : { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, todos:[] };
-  }catch(e){ console.warn('LOCUS: lecture élevage impossible', e); return { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, todos:[] }; }
+    return raw ? JSON.parse(raw) : { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, todos:[], rodentBins:[] };
+  }catch(e){ console.warn('LOCUS: lecture élevage impossible', e); return { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, todos:[], rodentBins:[] }; }
 }
 function saveElevage(){
   trackLocalChanges('racks', racks);
@@ -8286,7 +8349,7 @@ function saveElevage(){
   trackLocalChanges('expenses', expenses);
   trackLocalChanges('customers', customers);
   try{
-    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos, geneticAmbiguities }));
+    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos, geneticAmbiguities, rodentBins }));
     storageWriteFailed = false;
   }catch(e){
     console.warn('LOCUS: écriture élevage impossible', e);
@@ -8311,6 +8374,12 @@ var projects = elevageData.projects || [];
 // décompté automatiquement à chaque repas loggé si l'animal a un preySpecies/preySize renseigné.
 // Global à la collection (pas par animal) : un seul congélateur, peu importe combien de bouches à nourrir.
 var feederStock = elevageData.feederStock || {};
+// Gestion de rongeurs nourriciers (4 sept, Phase 1) — bacs/couples reproducteurs, séparé du suivi
+// des reptiles. Chaque bac : {id, label, species(mouse/rat/asf), ratio, room, litters:[{id,date,count,note}]}.
+// Angle "rentabilité par reproducteur" plutôt que "stade de croissance" — vrai feedback obtenu d'un
+// éleveur (Dale Burak, groupe Ball Python Lovers) qui ne suit pas du tout la taille/le stade mais
+// suit le volume produit par bac pour repérer et remplacer les couples peu productifs.
+var rodentBins = elevageData.rodentBins || [];
 var racks = elevageData.racks;
 // Migration : anciennes sauvegardes qui n'avaient qu'un seul rack uniforme (rackDims) —
 // converties une seule fois vers le nouveau modèle multi-racks, aucune perte de données.
@@ -8532,7 +8601,7 @@ async function pushAllUserData(forceAll){
         await sb.rpc('upsert_customer_encrypted', { p_id: cu.id, p_data: cu });
       }
     }
-    await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock, todos, genetic_ambiguities: geneticAmbiguities });
+    await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock, todos, genetic_ambiguities: geneticAmbiguities, rodent_bins: rodentBins });
     saveAppStatePushedAt(Date.now());
     const profile = loadProfile();
     await sb.from('profiles').upsert({ user_id:currentUser.id, breeder_name: profile.breederName||null, email: profile.email||null, phone: profile.phone||null });
@@ -8613,6 +8682,7 @@ async function pullAllUserData(){
     if(stateRes.data && stateRes.data.todos) todos = mergeById(todos, stateRes.data.todos);
     if(stateRes.data && stateRes.data.genetic_ambiguities) geneticAmbiguities = mergeById(geneticAmbiguities, stateRes.data.genetic_ambiguities);
     if(stateRes.data && stateRes.data.projects) projects = mergeById(projects, stateRes.data.projects);
+    if(stateRes.data && stateRes.data.rodent_bins) rodentBins = mergeById(rodentBins, stateRes.data.rodent_bins);
     if(stateRes.data && stateRes.data.feeder_stock && remoteAppStateWins) feederStock = stateRes.data.feeder_stock;
     if(stateRes.data && stateRes.data.dismissed_banners){
       const mergedBanners = [...new Set([...loadDismissedBanners(), ...stateRes.data.dismissed_banners])];
@@ -8658,7 +8728,7 @@ function exportBackup(){
   const payload = {
     app:'LOCUS', version:2, exportedAt:new Date().toISOString(),
     snakes: savedSnakes,
-    elevage: { racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos, geneticAmbiguities }
+    elevage: { racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos, geneticAmbiguities, rodentBins }
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
@@ -8704,6 +8774,7 @@ document.getElementById('import-file-input').addEventListener('change', (e)=>{
     customEvents = el.customEvents || [];
     todos = el.todos || [];
     geneticAmbiguities = el.geneticAmbiguities || [];
+    rodentBins = el.rodentBins || [];
     projects = el.projects || [];
     feederStock = el.feederStock || {};
     saveElevage();
@@ -9566,7 +9637,8 @@ function feedingLabels(){ return currentLang==='en' ? FEEDING_LABELS_EN : FEEDIN
 // reste un alias de compatibilité (mouse/rat identiques, rien de cassé pour les fiches existantes).
 const PREY_TYPES = {
   mouse: { icon:'🐁', labelFr:'Souris', labelEn:'Mouse', sizes:['Pinky','Fuzzy','Hopper','Weanling','Adult'] },
-  rat: { icon:'🐀', labelFr:'Rat', labelEn:'Rat', sizes:['Pinky','Fuzzy','Weanling','ASF (adulte)','Small','Medium','Large','X-Large','Jumbo'] },
+  rat: { icon:'🐀', labelFr:'Rat', labelEn:'Rat', sizes:['Pinky','Fuzzy','Weanling','Small','Medium','Large','X-Large','Jumbo'] },
+  asf: { icon:'🐭', labelFr:'ASF (African Soft Fur)', labelEn:'ASF (African Soft Fur)', sizes:['Pinky','Fuzzy','Weanling','Adult'] },
   cricket: { icon:'🦗', labelFr:'Grillon', labelEn:'Cricket', sizes:['Small','Medium','Large','Adult'] },
   dubia: { icon:'🪳', labelFr:'Blatte dubia', labelEn:'Dubia roach', sizes:['Small','Medium','Large','Adult'] },
   mealworm: { icon:'🐛', labelFr:'Ver de farine', labelEn:'Mealworm', sizes:['Small','Medium','Large'] },
@@ -9582,7 +9654,7 @@ const PREY_SIZES = { mouse: PREY_TYPES.mouse.sizes, rat: PREY_TYPES.rat.sizes };
 // le plus courant historiquement dans LOCUS) plutôt que de rien proposer du tout.
 function preyTypesForSpecies(speciesId){
   const rodentEaters = ['ball_python','corn_snake','king_california','king_florida','king_mexican','hognose'];
-  if(!speciesId || rodentEaters.includes(speciesId)) return ['mouse','rat'];
+  if(!speciesId || rodentEaters.includes(speciesId)) return ['mouse','rat','asf'];
   if(speciesId==='crested_gecko') return ['mrp','cricket','dubia'];
   if(speciesId==='leopard_gecko' || speciesId==='bearded_dragon') return ['cricket','dubia','mealworm','superworm','phoenixworm'];
   if(speciesId==='croc_skink_red' || speciesId==='croc_skink_white') return ['cricket','dubia','mealworm','snail','earthworm'];
@@ -9862,6 +9934,324 @@ if(foodHorizonSelectEl){
   foodHorizonSelectEl.addEventListener('change', (e)=>{ foodHorizonDays = parseInt(e.target.value,10)||7; renderFoodView(); });
 }
 
+// Gestion de rongeurs nourriciers — Phase 1 (4 sept) : bacs + portées de base. Angle "rentabilité
+// par reproducteur" (volume total produit par bac, visible directement) plutôt que "stade de
+// croissance" — suit le vrai feedback obtenu d'un éleveur qui gère déjà ça avec un chiffrier Excel.
+function rodentSpeciesIconLabel(species, isEn){
+  if(species==='mouse') return '🐁 '+(isEn?'Mouse':'Souris');
+  if(species==='rat') return '🐀 '+(isEn?'Rat':'Rat');
+  return '🐭 ASF';
+}
+function renderRodentBins(){
+  const isEn = currentLang==='en';
+  const lockedMsg = document.getElementById('rodent-locked-msg');
+  const unlockedContent = document.getElementById('rodent-unlocked-content');
+  if(!hasAccess('rodentManagement')){
+    if(lockedMsg){ lockedMsg.style.display = ''; lockedMsg.innerHTML = lockedFeatureHtml(); }
+    if(unlockedContent) unlockedContent.style.display = 'none';
+    return;
+  }
+  if(lockedMsg) lockedMsg.style.display = 'none';
+  if(unlockedContent) unlockedContent.style.display = '';
+  const wrap = document.getElementById('rodent-bins-list');
+  if(!wrap) return;
+  if(!rodentBins.length){
+    wrap.innerHTML = '<div class="empty">'+(isEn?'No bin registered yet.':'Aucun bac enregistré pour l\'instant.')+'</div>';
+    return;
+  }
+  wrap.innerHTML = '';
+  [...rodentBins].sort((a,b)=>(a.label||'').localeCompare(b.label||'')).forEach(bin=>{
+    const litters = bin.litters || [];
+    const totalBabies = litters.reduce((sum,l)=>sum+(l.count||0),0);
+    const totalMissing = litters.reduce((sum,l)=>sum+(l.missing||0),0);
+    const totalTransferred = litters.reduce((sum,l)=>sum+(l.transferred||0),0);
+    const totalEuthanized = litters.reduce((sum,l)=>sum+(l.euthanized||0),0);
+    const card = document.createElement('div');
+    card.className = 'clutch-card';
+    const littersHtml = litters.length
+      ? [...litters].sort((a,b)=>b.date.localeCompare(a.date)).map(l=>{
+          const detailBits = [];
+          if(l.missing) detailBits.push('🐭💀 '+l.missing+' '+(isEn?'missing':'manquant(s)'));
+          if(l.transferred) detailBits.push('➡️ '+l.transferred+' '+(isEn?'transferred':'transféré(s)'));
+          if(l.euthanized) detailBits.push('⚰️ '+l.euthanized+' '+(isEn?'euthanized':'euthanasié(s)'));
+          const detail = detailBits.length ? '<br/><small style="color:var(--ink-dim);">'+detailBits.join(' · ')+'</small>' : '';
+          // Lien vers l'inventaire de proies — Phase 5 (4 sept). Optionnel, seulement si l'éleveur
+          // le souhaite : un bouton qui pousse le nombre transféré vers feederStock, plutôt qu'une
+          // ressaisie manuelle séparée. Se masque une fois utilisé pour cette portée (stockAdded).
+          const stockBtn = (l.transferred>0 && !l.stockAdded)
+            ? '<button class="sc-btn accent" style="padding:2px 8px;font-size:10.5px;line-height:1;" onclick="openRodentStockLinkModal(\''+bin.id+'\',\''+l.id+'\')">📦 '+(isEn?'Add to stock':'Ajouter au stock')+'</button>'
+            : (l.stockAdded ? '<small style="color:var(--sage);">✓ '+(isEn?'in stock':'au stock')+'</small>' : '');
+          return '<div class="modal-row"><span>'+l.date+detail+'</span><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">'+l.count+' '+(isEn?'born':'nés')+(l.note?' — '+escapeHtml(l.note):'')+stockBtn+'<button class="sc-btn danger" style="padding:2px 8px;font-size:11px;line-height:1;" onclick="deleteRodentLitter(\''+bin.id+'\',\''+l.id+'\')">×</button></span></div>';
+        }).join('')
+      : '<div class="modal-row"><span>'+(isEn?'No litter logged yet.':'Aucune portée enregistrée.')+'</span></div>';
+    card.innerHTML =
+      '<div class="clutch-ref">'+escapeHtml(bin.label)+'</div>'+
+      '<div class="clutch-body">'+
+        mrow(isEn?'Species':'Espèce', rodentSpeciesIconLabel(bin.species, isEn))+
+        mrow(isEn?'Ratio':'Ratio', bin.ratio||'—')+
+        (bin.room ? mrow(isEn?'Room':'Pièce', escapeHtml(bin.room)) : '')+
+        mrow(isEn?'Male':'Mâle', bin.maleRemovedDate
+          ? '<span style="color:var(--gold);">'+(isEn?'Removed ':'Retiré le ')+bin.maleRemovedDate+'</span> <button class="sc-btn" style="padding:1px 8px;font-size:10px;margin-left:6px;" onclick="toggleRodentMaleRemoval(\''+bin.id+'\')">'+(isEn?'Reintroduce':'Réintroduire')+'</button>'
+          : '<span style="color:var(--sage);">'+(isEn?'Present':'Présent')+'</span> <button class="sc-btn" style="padding:1px 8px;font-size:10px;margin-left:6px;" onclick="toggleRodentMaleRemoval(\''+bin.id+'\')">'+(isEn?'Remove':'Retirer')+'</button>')+
+        mrow(isEn?'Total born':'Total nés', totalBabies+' ('+litters.length+' '+(isEn?'litters':'portées')+')')+
+        (totalMissing ? mrow('🐭💀 '+(isEn?'Missing (cannibalism)':'Manquant (cannibalisme)'), ''+totalMissing) : '')+
+        (totalTransferred ? mrow('➡️ '+(isEn?'Transferred to grow-out':'Transféré vers grow-out'), ''+totalTransferred) : '')+
+        (totalEuthanized ? mrow('⚰️ '+(isEn?'Euthanized':'Euthanasié'), ''+totalEuthanized) : '')+
+      '</div>'+
+      littersHtml+
+      '<div class="pairing-form" style="margin-top:10px;">'+
+        '<input type="date" id="rodent-litter-date-'+bin.id+'"/>'+
+        '<label style="display:flex;flex-direction:column;font-family:\'Courier New\',monospace;font-size:9px;color:var(--ink-dim);gap:2px;"><span>'+(isEn?'Born':'Nés')+'</span><input type="number" id="rodent-litter-count-'+bin.id+'" min="1" style="width:70px;"/></label>'+
+        '<label style="display:flex;flex-direction:column;font-family:\'Courier New\',monospace;font-size:9px;color:var(--ink-dim);gap:2px;"><span>'+(isEn?'Missing':'Manquant')+'</span><input type="number" id="rodent-litter-missing-'+bin.id+'" min="0" value="0" style="width:70px;"/></label>'+
+        '<label style="display:flex;flex-direction:column;font-family:\'Courier New\',monospace;font-size:9px;color:var(--ink-dim);gap:2px;"><span>'+(isEn?'Transferred':'Transféré')+'</span><input type="number" id="rodent-litter-transferred-'+bin.id+'" min="0" value="0" style="width:70px;"/></label>'+
+        '<label style="display:flex;flex-direction:column;font-family:\'Courier New\',monospace;font-size:9px;color:var(--ink-dim);gap:2px;"><span>'+(isEn?'Euthanized':'Euthanasié')+'</span><input type="number" id="rodent-litter-euthanized-'+bin.id+'" min="0" value="0" style="width:70px;"/></label>'+
+        '<button class="sc-btn accent" onclick="addRodentLitter(\''+bin.id+'\')">+ '+(isEn?'Log litter':'Ajouter une portée')+'</button>'+
+      '</div>'+
+      '<div class="clutch-actions">'+
+        '<button class="sc-btn" onclick="printRodentBinLabel(\''+bin.id+'\')">🏷️ '+(isEn?'Print label / QR':'Imprimer étiquette / QR')+'</button>'+
+        '<button class="sc-btn danger" onclick="deleteRodentBin(\''+bin.id+'\')">'+t('deleteBtn')+'</button>'+
+      '</div>';
+    wrap.appendChild(card);
+  });
+}
+function addRodentBin(){
+  const isEn = currentLang==='en';
+  const labelInput = document.getElementById('rodent-bin-label');
+  const roomInput = document.getElementById('rodent-bin-room');
+  const label = labelInput.value.trim();
+  const species = document.getElementById('rodent-bin-species').value;
+  const ratio = document.getElementById('rodent-bin-ratio').value;
+  const room = roomInput.value.trim();
+  if(!label){ showToast(isEn?'Enter a name/label for the bin.':'Entre un nom/étiquette pour le bac.', 'error'); return; }
+  rodentBins.push({ id:'rb_'+Date.now(), label, species, ratio, room: room||null, litters:[] });
+  saveElevage();
+  labelInput.value = '';
+  roomInput.value = '';
+  renderRodentBins();
+  showToast('🐭 '+(isEn?'Bin added.':'Bac ajouté.'), 'success');
+}
+// Retrait du mâle en cours de gestation — Phase 6 (4 sept). Pratique réelle et bien documentée :
+// l'œstrus post-partum survient 14-24h après la mise bas, donc un mâle laissé dans le bac remet
+// souvent la femelle enceinte immédiatement après avoir donné naissance. Retirer le mâle une fois
+// la femelle visiblement gestante évite ce cycle enchaîné, réduit le surpeuplement et le stress.
+function toggleRodentMaleRemoval(binId){
+  const isEn = currentLang==='en';
+  const bin = rodentBins.find(b=>b.id===binId);
+  if(!bin) return;
+  if(bin.maleRemovedDate){
+    bin.maleRemovedDate = null;
+    showToast('🐭 '+(isEn?'Male reintroduced.':'Mâle réintroduit.'), 'success');
+  } else {
+    bin.maleRemovedDate = new Date().toISOString().slice(0,10);
+    showToast('🐭 '+(isEn?'Male removed — noted.':'Mâle retiré — noté.'), 'success');
+  }
+  saveElevage();
+  renderRodentBins();
+}
+function deleteRodentBin(id){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this bin and all its litter history?':'Supprimer ce bac et tout son historique de portées ?')) return;
+  rodentBins = rodentBins.filter(b=>b.id!==id);
+  saveElevage();
+  renderRodentBins();
+  showToast('🗑 '+(isEn?'Bin deleted.':'Bac supprimé.'), 'success');
+}
+function addRodentLitter(binId){
+  const isEn = currentLang==='en';
+  const bin = rodentBins.find(b=>b.id===binId);
+  if(!bin) return;
+  const dateInput = document.getElementById('rodent-litter-date-'+binId);
+  const countInput = document.getElementById('rodent-litter-count-'+binId);
+  const missingInput = document.getElementById('rodent-litter-missing-'+binId);
+  const transferredInput = document.getElementById('rodent-litter-transferred-'+binId);
+  const euthanizedInput = document.getElementById('rodent-litter-euthanized-'+binId);
+  const date = dateInput.value;
+  const count = parseInt(countInput.value, 10);
+  const missing = parseInt(missingInput.value, 10) || 0;
+  const transferred = parseInt(transferredInput.value, 10) || 0;
+  const euthanized = parseInt(euthanizedInput.value, 10) || 0;
+  if(!date || isNaN(count) || count<1){ showToast(isEn?'Enter a valid date and count.':'Entre une date et un nombre valides.', 'error'); return; }
+  if(!bin.litters) bin.litters = [];
+  bin.litters.push({ id:'rl_'+Date.now(), date, count, missing, transferred, euthanized });
+  saveElevage();
+  renderRodentBins();
+  showToast('🐭 '+(isEn?'Litter logged.':'Portée enregistrée.'), 'success');
+}
+function deleteRodentLitter(binId, litterId){
+  const isEn = currentLang==='en';
+  const bin = rodentBins.find(b=>b.id===binId);
+  if(!bin) return;
+  if(!confirm(isEn?'Delete this litter entry?':'Supprimer cette entrée de portée ?')) return;
+  bin.litters = (bin.litters||[]).filter(l=>l.id!==litterId);
+  saveElevage();
+  renderRodentBins();
+}
+// Lien vers l'inventaire de proies — Phase 5 (4 sept). Demande la taille au moment du transfert
+// plutôt que de deviner — le suivi de colonie reste volontairement sans stade (voir Phase 1), mais
+// feederStock (ce qui sert à nourrir les reptiles) a besoin d'une taille pour rester utile.
+function openRodentStockLinkModal(binId, litterId){
+  const isEn = currentLang==='en';
+  const bin = rodentBins.find(b=>b.id===binId);
+  const litter = bin && (bin.litters||[]).find(l=>l.id===litterId);
+  if(!bin || !litter) return;
+  const sizes = (PREY_TYPES[bin.species] && PREY_TYPES[bin.species].sizes) || ['Pinky'];
+  const body =
+    '<p style="font-size:11px;color:var(--ink-dim);margin:0 0 14px;">'+(isEn
+      ? 'Add the '+litter.transferred+' transferred rodent(s) from "'+escapeHtml(bin.label)+'" to your feeder stock — pick the size they\'ll be entered as.'
+      : 'Ajoute les '+litter.transferred+' rongeur(s) transféré(s) du bac « '+escapeHtml(bin.label)+' » à ton stock de proies — choisis la taille sous laquelle les entrer.')+'</p>'+
+    '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Size':'Taille')+'</span>'+
+      '<select id="rodent-stock-size" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+        sizes.map(sz=>'<option value="'+sz+'">'+sz+'</option>').join('')+
+      '</select></label>'+
+    '<button class="save-btn" style="width:100%;" onclick="confirmRodentStockLink(\''+binId+'\',\''+litterId+'\')">📦 '+(isEn?'Add to stock':'Ajouter au stock')+'</button>';
+  showQuickModal('📦 '+(isEn?'Add to feeder stock':'Ajouter au stock de proies'), body);
+}
+function confirmRodentStockLink(binId, litterId){
+  const isEn = currentLang==='en';
+  const bin = rodentBins.find(b=>b.id===binId);
+  const litter = bin && (bin.litters||[]).find(l=>l.id===litterId);
+  if(!bin || !litter) return;
+  const size = document.getElementById('rodent-stock-size').value;
+  const key = feederStockKey(bin.species, size);
+  feederStock[key] = (feederStock[key]||0) + litter.transferred;
+  litter.stockAdded = true;
+  saveElevage();
+  closeQuickModal();
+  renderRodentBins();
+  showToast('📦 '+(isEn?litter.transferred+' added to stock ('+size+').':litter.transferred+' ajouté(s) au stock ('+size+').'), 'success');
+}
+// Impression d'étiquette + QR pour un bac — optionnel, sur demande seulement (4 sept). Le QR encode
+// du texte descriptif simple (pas de lien public — contrairement aux reptiles, un bac de rongeurs
+// n'a pas de fiche publique), utile pour identifier un bac rapidement en scannant physiquement le rack.
+function buildRodentQrData(bin){
+  const isEn = currentLang==='en';
+  return (bin.label||'')+' — '+rodentSpeciesIconLabel(bin.species, isEn).replace(/^\S+\s/,'')+' ('+(bin.ratio||'')+')'+(bin.room?' — '+bin.room:'');
+}
+function printRodentBinLabel(binId){
+  const isEn = currentLang==='en';
+  const bin = rodentBins.find(b=>b.id===binId);
+  if(!bin) return;
+  const win = window.open('', '_blank', 'width=420,height=520');
+  win.document.write(
+    '<html><head><title>'+(isEn?'Label — ':'Étiquette — ')+escapeHtml(bin.label)+'</title><style>'+
+    'body{font-family:Arial,sans-serif;text-align:center;padding:24px;}'+
+    'img{width:200px;height:200px;}'+
+    'h1{font-size:20px;margin:12px 0 4px;}'+
+    'p{font-size:12px;color:#555;margin:2px 0;}'+
+    '@media print{ body{padding:0;} }'+
+    '</style></head><body>'+
+    '<img src="'+qrImageUrl(buildRodentQrData(bin), 200)+'" onload="window.print()"/>'+
+    '<h1>'+escapeHtml(bin.label)+'</h1>'+
+    '<p>'+rodentSpeciesIconLabel(bin.species, isEn)+' — '+(bin.ratio||'')+(bin.room?' — '+escapeHtml(bin.room):'')+'</p>'+
+    '</body></html>'
+  );
+  win.document.close();
+}
+// Vue de rentabilité par bac — Phase 3 (4 sept). L'angle exact que Dale nous a donné : le volume
+// NET produit (né moins manquant/cannibalisme) par portée, comparé aux autres bacs de la MÊME
+// espèce plutôt qu'un seuil universel arbitraire — un bac de souris et un bac d'ASF n'ont pas la
+// même échelle de productivité normale. Sert à repérer un couple à remplacer, pas à culpabiliser.
+function rodentBinProductivityStats(bin){
+  const litters = bin.litters || [];
+  const totalBorn = litters.reduce((s,l)=>s+(l.count||0),0);
+  const totalMissing = litters.reduce((s,l)=>s+(l.missing||0),0);
+  const netProduced = totalBorn - totalMissing;
+  const avgPerLitter = litters.length ? (netProduced/litters.length) : 0;
+  const lastDate = litters.length ? [...litters].sort((a,b)=>b.date.localeCompare(a.date))[0].date : null;
+  const daysSinceLast = lastDate ? Math.floor((Date.now() - new Date(lastDate+'T00:00:00').getTime())/86400000) : null;
+  return { totalBorn, totalMissing, netProduced, avgPerLitter, littersCount: litters.length, daysSinceLast };
+}
+function showRodentProductivityReport(){
+  const isEn = currentLang==='en';
+  if(!rodentBins.length){
+    showQuickModal('📊 '+(isEn?'Profitability by bin':'Rentabilité par bac'), '<div class="empty">'+(isEn?'No bin registered yet.':'Aucun bac enregistré pour l\'instant.')+'</div>');
+    return;
+  }
+  const statsPerBin = rodentBins.map(bin=>({ bin, stats: rodentBinProductivityStats(bin) }));
+  // Moyenne par espèce — la comparaison qui compte, pas un chiffre universel arbitraire.
+  const bySpecies = {};
+  statsPerBin.forEach(({bin, stats})=>{
+    if(stats.littersCount===0) return;
+    (bySpecies[bin.species] = bySpecies[bin.species] || []).push(stats.avgPerLitter);
+  });
+  const speciesAvg = {};
+  Object.keys(bySpecies).forEach(sp=> speciesAvg[sp] = bySpecies[sp].reduce((a,b)=>a+b,0)/bySpecies[sp].length);
+  const sorted = [...statsPerBin].sort((a,b)=>b.stats.avgPerLitter - a.stats.avgPerLitter);
+  const rowsHtml = sorted.map(({bin, stats})=>{
+    let status, color;
+    if(stats.littersCount===0){
+      status = isEn?'No production yet':'Aucune production'; color = 'var(--ink-dim)';
+    } else {
+      const avg = speciesAvg[bin.species] || stats.avgPerLitter;
+      const ratio = avg>0 ? stats.avgPerLitter/avg : 1;
+      const quiet = stats.daysSinceLast!=null && stats.daysSinceLast>60;
+      if(ratio<0.5 || quiet){ status = '🔴 '+(isEn?'Consider replacing':'Candidat à remplacer'); color = 'var(--rust)'; }
+      else if(ratio<0.8){ status = '🟡 '+(isEn?'Watch':'À surveiller'); color = 'var(--gold)'; }
+      else{ status = '🟢 '+(isEn?'Good':'Bon'); color = 'var(--sage)'; }
+    }
+    const sub = stats.littersCount
+      ? stats.littersCount+' '+(isEn?'litters':'portées')+' · '+(isEn?'avg':'moy.')+' '+stats.avgPerLitter.toFixed(1)+'/'+(isEn?'litter':'portée')+(stats.daysSinceLast!=null?' · '+stats.daysSinceLast+(isEn?'d ago':'j'):'')
+      : (isEn?'Never logged':'Jamais enregistrée');
+    return '<div class="sale-row"><div class="sale-name">'+escapeHtml(bin.label)+'<small>'+rodentSpeciesIconLabel(bin.species,isEn)+' · '+sub+'</small></div><div class="sale-price" style="color:'+color+';font-size:11px;font-weight:600;text-align:right;">'+status+'</div></div>';
+  }).join('');
+  showQuickModal('📊 '+(isEn?'Profitability by bin':'Rentabilité par bac'),
+    '<p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 14px;">'+(isEn
+      ? 'Ranked by net production per litter (born minus missing/cannibalism), compared to other bins of the same species — not a universal number. Also flags a bin quiet for 60+ days.'
+      : 'Classé par production nette par portée (nés moins manquant/cannibalisme), comparé aux autres bacs de la même espèce — pas un chiffre universel. Signale aussi un bac silencieux depuis 60 jours ou plus.')+'</p>'+
+    rowsHtml
+  );
+}
+// Rapport mensuel — Phase 4 (4 sept). Remplace les macros Excel manuelles de Dale (report des
+// numéros de bac d'un mois à l'autre) : nos portées sont déjà datées individuellement, donc rien à
+// "fermer"/remettre à zéro — juste un filtre à la demande sur le mois choisi, toujours à jour.
+function rodentMonthlyStatsForMonth(monthStr){
+  return rodentBins.map(bin=>{
+    const monthLitters = (bin.litters||[]).filter(l=>l.date.startsWith(monthStr));
+    const born = monthLitters.reduce((s,l)=>s+(l.count||0),0);
+    const missing = monthLitters.reduce((s,l)=>s+(l.missing||0),0);
+    const transferred = monthLitters.reduce((s,l)=>s+(l.transferred||0),0);
+    const euthanized = monthLitters.reduce((s,l)=>s+(l.euthanized||0),0);
+    return { bin, littersCount: monthLitters.length, born, missing, transferred, euthanized };
+  });
+}
+function showRodentMonthlyReport(monthStr){
+  const isEn = currentLang==='en';
+  const month = monthStr || new Date().toISOString().slice(0,7);
+  if(!rodentBins.length){
+    showQuickModal('📅 '+(isEn?'Monthly report':'Rapport mensuel'), '<div class="empty">'+(isEn?'No bin registered yet.':'Aucun bac enregistré pour l\'instant.')+'</div>');
+    return;
+  }
+  const stats = rodentMonthlyStatsForMonth(month).sort((a,b)=>b.born-a.born);
+  const totalBorn = stats.reduce((s,r)=>s+r.born,0);
+  const totalMissing = stats.reduce((s,r)=>s+r.missing,0);
+  const totalTransferred = stats.reduce((s,r)=>s+r.transferred,0);
+  const rowsHtml = stats.map(r=>
+    '<div class="sale-row"><div class="sale-name">'+escapeHtml(r.bin.label)+'<small>'+rodentSpeciesIconLabel(r.bin.species,isEn)+'</small></div><div class="sale-price" style="font-size:11px;text-align:right;">'+
+      (r.littersCount ? r.born+' '+(isEn?'born':'nés')+(r.missing?' · 🐭💀'+r.missing:'')+(r.transferred?' · ➡️'+r.transferred:'')+(r.euthanized?' · ⚰️'+r.euthanized:'') : '<span style="color:var(--ink-dim);">'+(isEn?'nothing this month':'rien ce mois-ci')+'</span>')+
+    '</div></div>'
+  ).join('');
+  showQuickModal('📅 '+(isEn?'Monthly report — ':'Rapport mensuel — ')+month,
+    '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Month':'Mois')+'</span>'+
+      '<input type="month" value="'+month+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" onchange="showRodentMonthlyReport(this.value)"/></label>'+
+    '<div class="modal-row" style="font-weight:700;"><span>'+(isEn?'Season total':'Total du mois')+'</span><span>'+totalBorn+' '+(isEn?'born':'nés')+(totalMissing?' · 🐭💀'+totalMissing:'')+(totalTransferred?' · ➡️'+totalTransferred:'')+'</span></div>'+
+    rowsHtml+
+    '<button class="sc-btn accent" style="width:100%;margin-top:14px;" onclick="exportRodentMonthlyExcel(\''+month+'\')">📤 '+(isEn?'Export this report (Excel)':'Exporter ce rapport (Excel)')+'</button>'
+  );
+}
+function exportRodentMonthlyExcel(monthStr){
+  const isEn = currentLang==='en';
+  const stats = rodentMonthlyStatsForMonth(monthStr).sort((a,b)=>b.born-a.born);
+  const headerRow = isEn
+    ? ['Bin','Species','Ratio','Litters this month','Born','Missing','Transferred','Euthanized']
+    : ['Bac','Espèce','Ratio','Portées ce mois','Nés','Manquant','Transféré','Euthanasié'];
+  const rows = stats.map(r=>[r.bin.label, rodentSpeciesIconLabel(r.bin.species,isEn).replace(/^\S+\s/,''), r.bin.ratio||'', r.littersCount, r.born, r.missing, r.transferred, r.euthanized]);
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([headerRow, ...rows]);
+  ws['!cols'] = [{wch:16},{wch:10},{wch:8},{wch:14},{wch:8},{wch:10},{wch:12},{wch:12}];
+  XLSX.utils.book_append_sheet(wb, ws, monthStr);
+  XLSX.writeFile(wb, (isEn?'LOCUS-Scales-rodents-':'LOCUS-Scales-rongeurs-')+monthStr+'.xlsx');
+}
+
 function setFeedingInterval(id, value){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
@@ -9892,14 +10282,26 @@ function showSubtab(sub){
   showOnboardingTip(sub);
   document.getElementById('sub-racks').style.display = sub==='racks' ? '' : 'none';
   document.getElementById('sub-tour').style.display = sub==='tour' ? '' : 'none';
-  document.getElementById('sub-calendar').style.display = sub==='calendar' ? '' : 'none';
   document.getElementById('sub-nourriture').style.display = sub==='nourriture' ? '' : 'none';
-  document.getElementById('sub-objectif').style.display = sub==='objectif' ? '' : 'none';
-  document.querySelectorAll('.subtab-btn').forEach(b=>b.classList.toggle('active', b.dataset.sub===sub));
+  document.getElementById('sub-rongeurs').style.display = sub==='rongeurs' ? '' : 'none';
+  document.querySelectorAll('#view-elevage .subtab-btn').forEach(b=>b.classList.toggle('active', b.dataset.sub===sub));
   if(sub==='racks'){ renderRackGrid(); renderTerrariumList(); }
   if(sub==='tour'){ renderTourGrid(); renderTourLayoutPrefs(); }
-  if(sub==='calendar'){ renderPairingForm(); renderTimeline(); renderHealthLog(); renderProjects(); }
   if(sub==='nourriture'){ renderFoodView(); }
+  if(sub==='rongeurs'){ renderRodentBins(); }
+}
+// Sous-onglets de Reproduction (2 septembre) — Calendrier et Objectif déménagés depuis Élevage
+// (thématiquement plus à leur place ici : c'est de la reproduction, pas du logement/nourrissage).
+// Fonction séparée de showSubtab() plutôt que fusionnée, pour éviter toute interférence entre les
+// deux groupes de boutons .subtab-btn qui coexistent maintenant dans des onglets différents.
+function showReproSubtab(sub){
+  document.querySelectorAll('#view-incubation .onboarding-banner').forEach(b=>b.style.display='none');
+  showOnboardingTip(sub);
+  document.getElementById('sub-repro-pontes').style.display = sub==='pontes' ? '' : 'none';
+  document.getElementById('sub-repro-calendar').style.display = sub==='calendar' ? '' : 'none';
+  document.getElementById('sub-repro-objectif').style.display = sub==='objectif' ? '' : 'none';
+  document.querySelectorAll('#view-incubation .subtab-btn').forEach(b=>b.classList.toggle('active', b.dataset.rsub===sub));
+  if(sub==='calendar'){ renderPairingForm(); renderTimeline(); renderHealthLog(); renderProjects(); }
   if(sub==='objectif'){ renderTags('objectif'); }
 }
 
@@ -12365,6 +12767,7 @@ function createClutchFromPairing(pairingId){
   if(!p) return;
   pendingPairingIdForClutch = pairingId;
   showTab('incubation');
+  showReproSubtab('pontes');
   renderClutchForm();
   if(p.maleId) document.getElementById('clutch-sire').value = p.maleId;
   if(p.femaleId) document.getElementById('clutch-dam').value = p.femaleId;
