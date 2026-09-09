@@ -1381,6 +1381,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <button class="sc-btn" style="margin-bottom:14px;margin-left:8px;" onclick="showRodentMonthlyReport()" data-i18n="rodentMonthlyBtn">📅 Rapport mensuel</button>
       <button class="sc-btn" style="margin-bottom:14px;margin-left:8px;" onclick="openRodentStageSettingsModal()" data-i18n="rodentStageSettingsBtn">⚙️ Rythme de croissance</button>
       <button class="sc-btn accent" style="margin-bottom:14px;margin-left:8px;" onclick="openRodentBudgetModal()" data-i18n="rodentBudgetBtn">💰 Budget rongeurs</button>
+      <button class="sc-btn" style="margin-bottom:14px;margin-left:8px;" onclick="openRodentFreezeModal()" data-i18n="rodentFreezeBtn">🧊 Congeler un lot</button>
       <div class="pairing-form">
         <input type="text" id="rodent-bin-label" data-i18n-placeholder="rodentBinLabelPlaceholder" placeholder="Ex. Bac A3" style="flex:1;min-width:100px;"/>
         <select id="rodent-bin-species">
@@ -1388,11 +1389,20 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
           <option value="rat">🐀 <span data-i18n="rodentSpeciesRat">Rat</span></option>
           <option value="asf">🐭 ASF</option>
         </select>
+        <select id="rodent-bin-type" onchange="toggleRodentBinTypeFields()">
+          <option value="reproduction" data-i18n="rodentBinTypeRepro">Reproduction</option>
+          <option value="stock" data-i18n="rodentBinTypeStock">Stock / Croissance</option>
+        </select>
         <select id="rodent-bin-ratio">
           <option value="1:1">1:1</option>
           <option value="2:1" selected>2:1</option>
           <option value="3:1">3:1</option>
           <option value="4:1">4:1</option>
+        </select>
+        <select id="rodent-bin-sexe" style="display:none;">
+          <option value="mixte" data-i18n="rodentSexeMixte">Mixte</option>
+          <option value="males" data-i18n="rodentSexeMales">Mâles seulement</option>
+          <option value="femelles" data-i18n="rodentSexeFemelles">Femelles seulement</option>
         </select>
         <input type="text" id="rodent-bin-room" data-i18n-placeholder="rodentBinRoomPlaceholder" placeholder="Pièce (optionnel)" style="flex:1;min-width:100px;"/>
         <button class="save-btn" onclick="addRodentBin()" data-i18n="rodentBinAddBtn">+ Ajouter un bac</button>
@@ -2029,7 +2039,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.42';
+const APP_VERSION = '2026.09.02.2.44';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4138,6 +4148,12 @@ const I18N = {
     rodentMonthlyBtn: '📅 Rapport mensuel',
     rodentStageSettingsBtn: '⚙️ Rythme de croissance',
     rodentBudgetBtn: '💰 Budget rongeurs',
+    rodentFreezeBtn: '🧊 Congeler un lot',
+    rodentBinTypeRepro: 'Reproduction',
+    rodentBinTypeStock: 'Stock / Croissance',
+    rodentSexeMales: 'Mâles seulement',
+    rodentSexeFemelles: 'Femelles seulement',
+    rodentSexeMixte: 'Mixte',
     subObjectif: '🎯 Objectif',
     objectifHint: 'Choisis le(s) gène(s) visé(s), et l\'app scanne ta collection pour proposer les meilleurs accouplements possibles — classés par probabilité réelle, pas juste par intuition.',
     objectifFindBtn: '🎯 Trouver les meilleures paires',
@@ -4672,6 +4688,12 @@ const I18N = {
     rodentMonthlyBtn: '📅 Monthly report',
     rodentStageSettingsBtn: '⚙️ Growth timing',
     rodentBudgetBtn: '💰 Rodent budget',
+    rodentFreezeBtn: '🧊 Freeze a batch',
+    rodentBinTypeRepro: 'Breeding',
+    rodentBinTypeStock: 'Stock / Grow-out',
+    rodentSexeMales: 'Males only',
+    rodentSexeFemelles: 'Females only',
+    rodentSexeMixte: 'Mixed',
     subObjectif: '🎯 Goal',
     objectifHint: 'Pick your target gene(s), and the app scans your collection to suggest the best possible pairings — ranked by real probability, not just a hunch.',
     objectifFindBtn: '🎯 Find the best pairs',
@@ -6580,8 +6602,8 @@ function batchMarkFed(){
     s.health.events.push({date:today, type:'fed', preyType: s.preyType||'frozen'});
     count++;
     if(s.preySpecies && s.preySize){
-      const key = feederStockKey(s.preySpecies, s.preySize);
-      if(feederStock[key]!=null){ feederStock[key] = Math.max(0, feederStock[key]-1); stockTouched = true; }
+      drawFromRodentSupply(s.preySpecies, s.preySize, 1);
+      stockTouched = true;
     }
   });
   storage.save(savedSnakes);
@@ -8242,11 +8264,11 @@ function confirmFed(id, quantity){
   registerEventUndo([{snakeId:id, event}]);
   let stockMsg = '';
   if(s.preySpecies && s.preySize){
-    const key = feederStockKey(s.preySpecies, s.preySize);
-    if(feederStock[key]!=null){
-      feederStock[key] = Math.max(0, feederStock[key]-preyCount);
-      saveElevage();
-      if(feederStock[key] <= FEEDER_LOW_STOCK_THRESHOLD){
+    const draw = drawFromRodentSupply(s.preySpecies, s.preySize, preyCount);
+    saveElevage();
+    if(!draw.fromBin || draw.takenFromBin < preyCount){
+      const key = feederStockKey(s.preySpecies, s.preySize);
+      if(feederStock[key]!=null && feederStock[key] <= FEEDER_LOW_STOCK_THRESHOLD){
         stockMsg = isEn ? ' ⚠ Low stock: '+feederStock[key]+' left.' : ' ⚠ Stock bas : '+feederStock[key]+' restant(s).';
       }
     }
@@ -8435,11 +8457,11 @@ function confirmRefused(id){
   // serpent (surtout congelé-décongelé). Décomptée seulement si "Proie perdue" est cochée.
   let stockMsg = '';
   if(lostPrey && s.preySpecies && s.preySize){
-    const key = feederStockKey(s.preySpecies, s.preySize);
-    if(feederStock[key]!=null){
-      feederStock[key] = Math.max(0, feederStock[key]-1);
-      saveElevage();
-      if(feederStock[key] <= FEEDER_LOW_STOCK_THRESHOLD){
+    const draw = drawFromRodentSupply(s.preySpecies, s.preySize, 1);
+    saveElevage();
+    if(!draw.fromBin){
+      const key = feederStockKey(s.preySpecies, s.preySize);
+      if(feederStock[key]!=null && feederStock[key] <= FEEDER_LOW_STOCK_THRESHOLD){
         stockMsg = isEn ? ' ⚠ Low stock: '+feederStock[key]+' left.' : ' ⚠ Stock bas : '+feederStock[key]+' restant(s).';
       }
     }
@@ -8699,8 +8721,8 @@ function saveAppStatePushedAt(ts){
 function loadElevage(){
   try{
     const raw = localStorage.getItem(ELEVAGE_KEY);
-    return raw ? JSON.parse(raw) : { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, todos:[], rodentBins:[], rodentExpenses:[], rodentValuePerUnit:null };
-  }catch(e){ console.warn('LOCUS: lecture élevage impossible', e); return { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, todos:[], rodentBins:[], rodentExpenses:[], rodentValuePerUnit:null }; }
+    return raw ? JSON.parse(raw) : { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, todos:[], rodentBins:[], rodentExpenses:[], rodentValuePerUnit:null, rodentPriorityBins:{} };
+  }catch(e){ console.warn('LOCUS: lecture élevage impossible', e); return { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, todos:[], rodentBins:[], rodentExpenses:[], rodentValuePerUnit:null, rodentPriorityBins:{} }; }
 }
 function saveElevage(){
   trackLocalChanges('racks', racks);
@@ -8710,7 +8732,7 @@ function saveElevage(){
   trackLocalChanges('expenses', expenses);
   trackLocalChanges('customers', customers);
   try{
-    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit }));
+    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, rodentPriorityBins }));
     storageWriteFailed = false;
   }catch(e){
     console.warn('LOCUS: écriture élevage impossible', e);
@@ -8747,6 +8769,7 @@ var rodentBins = elevageData.rodentBins || [];
 // rongeur transféré, saisie par l'éleveur — sert au calcul de ROI, jamais un prix inventé par LOCUS.
 var rodentExpenses = elevageData.rodentExpenses || [];
 var rodentValuePerUnit = elevageData.rodentValuePerUnit != null ? elevageData.rodentValuePerUnit : null;
+var rodentPriorityBins = elevageData.rodentPriorityBins || {};
 var racks = elevageData.racks;
 // Migration : anciennes sauvegardes qui n'avaient qu'un seul rack uniforme (rackDims) —
 // converties une seule fois vers le nouveau modèle multi-racks, aucune perte de données.
@@ -8970,7 +8993,7 @@ async function pushAllUserData(forceAll){
         await sb.rpc('upsert_customer_encrypted', { p_id: cu.id, p_data: cu });
       }
     }
-    await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock, todos, genetic_ambiguities: geneticAmbiguities, rodent_bins: rodentBins, rodent_expenses: rodentExpenses, rodent_value_per_unit: rodentValuePerUnit });
+    await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock, todos, genetic_ambiguities: geneticAmbiguities, rodent_bins: rodentBins, rodent_expenses: rodentExpenses, rodent_value_per_unit: rodentValuePerUnit, rodent_priority_bins: rodentPriorityBins });
     saveAppStatePushedAt(Date.now());
     const profile = loadProfile();
     await sb.from('profiles').upsert({ user_id:currentUser.id, breeder_name: profile.breederName||null, email: profile.email||null, phone: profile.phone||null });
@@ -9054,6 +9077,7 @@ async function pullAllUserData(){
     if(stateRes.data && stateRes.data.rodent_bins) rodentBins = mergeById(rodentBins, stateRes.data.rodent_bins);
     if(stateRes.data && stateRes.data.rodent_expenses) rodentExpenses = mergeById(rodentExpenses, stateRes.data.rodent_expenses);
     if(stateRes.data && stateRes.data.rodent_value_per_unit!=null && remoteAppStateWins) rodentValuePerUnit = stateRes.data.rodent_value_per_unit;
+    if(stateRes.data && stateRes.data.rodent_priority_bins && remoteAppStateWins) rodentPriorityBins = stateRes.data.rodent_priority_bins;
     if(stateRes.data && stateRes.data.feeder_stock && remoteAppStateWins) feederStock = stateRes.data.feeder_stock;
     if(stateRes.data && stateRes.data.dismissed_banners){
       const mergedBanners = [...new Set([...loadDismissedBanners(), ...stateRes.data.dismissed_banners])];
@@ -9099,7 +9123,7 @@ function exportBackup(){
   const payload = {
     app:'LOCUS', version:2, exportedAt:new Date().toISOString(),
     snakes: savedSnakes,
-    elevage: { racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit }
+    elevage: { racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, rodentPriorityBins }
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
@@ -9148,6 +9172,7 @@ document.getElementById('import-file-input').addEventListener('change', (e)=>{
     rodentBins = el.rodentBins || [];
     rodentExpenses = el.rodentExpenses || [];
     rodentValuePerUnit = el.rodentValuePerUnit != null ? el.rodentValuePerUnit : null;
+    rodentPriorityBins = el.rodentPriorityBins || {};
     projects = el.projects || [];
     feederStock = el.feederStock || {};
     saveElevage();
@@ -10012,6 +10037,8 @@ const PREY_TYPES = {
   mouse: { icon:'🐁', labelFr:'Souris', labelEn:'Mouse', sizes:['Pinky','Fuzzy','Hopper','Weanling','Adult'] },
   rat: { icon:'🐀', labelFr:'Rat', labelEn:'Rat', sizes:['Pinky','Fuzzy','Weanling','Small','Medium','Large','X-Large','Jumbo'] },
   asf: { icon:'🐭', labelFr:'ASF (African Soft Fur)', labelEn:'ASF (African Soft Fur)', sizes:['Pinky','Fuzzy','Weanling','Adult'] },
+  rabbit: { icon:'🐇', labelFr:'Lapin', labelEn:'Rabbit', sizes:['Petit','Moyen','Gros'] },
+  guineapig: { icon:'🐹', labelFr:'Cochon d\'Inde', labelEn:'Guinea pig', sizes:['Petit','Moyen','Gros'] },
   cricket: { icon:'🦗', labelFr:'Grillon', labelEn:'Cricket', sizes:['Small','Medium','Large','Adult'] },
   dubia: { icon:'🪳', labelFr:'Blatte dubia', labelEn:'Dubia roach', sizes:['Small','Medium','Large','Adult'] },
   mealworm: { icon:'🐛', labelFr:'Ver de farine', labelEn:'Mealworm', sizes:['Small','Medium','Large'] },
@@ -10032,8 +10059,12 @@ const PREY_SIZES = { mouse: PREY_TYPES.mouse.sizes, rat: PREY_TYPES.rat.sizes };
 // règle par espèce individuelle, pour rester gérable. "Autre"/inconnu retombe sur rongeurs (le cas
 // le plus courant historiquement dans LOCUS) plutôt que de rien proposer du tout.
 function preyTypesForSpecies(speciesId){
-  const rodentEaters = ['ball_python','corn_snake','king_california','king_florida','king_mexican','hognose','boa_bci','boa_bcc'];
+  const rodentEaters = ['ball_python','corn_snake','king_california','king_florida','king_mexican','hognose'];
   if(!speciesId || rodentEaters.includes(speciesId)) return ['mouse','rat','asf'];
+  // Les boas adultes (surtout la BCC, plus grosse) peuvent prendre des proies bien plus grosses
+  // qu'un python royal ou un corn snake à l'âge adulte — d'où l'ajout lapin/cochon d'Inde ici
+  // seulement, pas pour le reste des mangeurs de rongeurs de cette liste.
+  if(speciesId==='boa_bci' || speciesId==='boa_bcc') return ['mouse','rat','asf','guineapig','rabbit'];
   if(speciesId==='crested_gecko') return ['mrp','cricket','dubia'];
   if(speciesId==='leopard_gecko') return ['cricket','dubia','mealworm','superworm','phoenixworm'];
   if(speciesId==='bearded_dragon') return ['cricket','dubia','mealworm','superworm','phoenixworm','leafy','legume','fruit'];
@@ -10344,13 +10375,20 @@ function renderRodentBins(){
   }
   wrap.innerHTML = '';
   [...rodentBins].sort((a,b)=>(a.label||'').localeCompare(b.label||'')).forEach(bin=>{
+    const card = document.createElement('div');
+    card.className = 'clutch-card';
+    card.innerHTML = (bin.binType==='stock') ? rodentStockBinCardHtml(bin, isEn) : rodentReproBinCardHtml(bin, isEn);
+    wrap.appendChild(card);
+  });
+}
+// Gabarit de carte pour un bac Reproduction — extrait tel quel de l'ancien renderRodentBins (9 sept)
+// pour cohabiter avec le nouveau gabarit Stock, sans rien changer à son fonctionnement existant.
+function rodentReproBinCardHtml(bin, isEn){
     const litters = bin.litters || [];
     const totalBabies = litters.reduce((sum,l)=>sum+(l.count||0),0);
     const totalMissing = litters.reduce((sum,l)=>sum+(l.missing||0),0);
     const totalTransferred = litters.reduce((sum,l)=>sum+(l.transferred||0),0);
     const totalEuthanized = litters.reduce((sum,l)=>sum+(l.euthanized||0),0);
-    const card = document.createElement('div');
-    card.className = 'clutch-card';
     const littersHtml = litters.length
       ? [...litters].sort((a,b)=>b.date.localeCompare(a.date)).map(l=>{
           const detailBits = [];
@@ -10376,7 +10414,7 @@ function renderRodentBins(){
           return '<div class="modal-row"><span>'+l.date+detail+'</span><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">'+l.count+' '+(isEn?'born':'nés')+(l.note?' — '+escapeHtml(l.note):'')+stageSelect+stockBtn+'<button class="sc-btn danger" style="padding:2px 8px;font-size:11px;line-height:1;" onclick="deleteRodentLitter(\''+bin.id+'\',\''+l.id+'\')">×</button></span></div>';
         }).join('')
       : '<div class="modal-row"><span>'+(isEn?'No litter logged yet.':'Aucune portée enregistrée.')+'</span></div>';
-    card.innerHTML =
+    return (
       '<div class="clutch-ref">'+escapeHtml(bin.label)+'</div>'+
       '<div class="clutch-body">'+
         mrow(isEn?'Species':'Espèce', rodentSpeciesIconLabel(bin.species, isEn))+
@@ -10410,9 +10448,69 @@ function renderRodentBins(){
         '<button class="sc-btn" onclick="openRodentBinCleaningModal(\''+bin.id+'\')">🧹 '+(isEn?'Cleaning':'Nettoyage')+'</button>'+
         '<button class="sc-btn" onclick="printRodentBinLabel(\''+bin.id+'\')">🏷️ '+(isEn?'Print label / QR':'Imprimer étiquette / QR')+'</button>'+
         '<button class="sc-btn danger" onclick="deleteRodentBin(\''+bin.id+'\')">'+t('deleteBtn')+'</button>'+
-      '</div>';
-    wrap.appendChild(card);
-  });
+      '</div>'
+    );
+}
+// Gabarit de carte pour un bac Stock/Croissance (9 sept) — pas de portées, pas de ratio : un
+// compteur par stade (ajustable à la main, aucun calcul d'âge automatique — voir emptyRodentStageCounts),
+// plus le contrôle du bac prioritaire de l'espèce (celui qui décompte en silence à Nourrir/Congeler).
+function rodentStockBinCardHtml(bin, isEn){
+    if(!bin.stageCounts) bin.stageCounts = emptyRodentStageCounts();
+    const totalCount = RODENT_STAGE_CHART_DEFAULT.reduce((s,r)=>s+(bin.stageCounts[r.key]||0), 0);
+    const isPriority = rodentPriorityBins && rodentPriorityBins[bin.species]===bin.id;
+    const stageRowsHtml = RODENT_STAGE_CHART_DEFAULT.map(r=>
+      '<label style="display:flex;flex-direction:column;font-family:\'Courier New\',monospace;font-size:9px;color:var(--ink-dim);gap:2px;">'+
+        '<span>'+r.stage+'</span>'+
+        '<input type="number" min="0" value="'+(bin.stageCounts[r.key]||0)+'" style="width:64px;" onchange="updateRodentStockStageCount(\''+bin.id+'\',\''+r.key+'\',this.value)"/>'+
+      '</label>'
+    ).join('');
+    return (
+      '<div class="clutch-ref">'+escapeHtml(bin.label)+'</div>'+
+      '<div class="clutch-body">'+
+        mrow(isEn?'Species':'Espèce', rodentSpeciesIconLabel(bin.species, isEn))+
+        mrow(isEn?'Type':'Type', isEn?'Stock / Grow-out':'Stock / Croissance')+
+        mrow(isEn?'Group':'Groupe', rodentSexeGroupeLabel(bin.sexeGroupe, isEn))+
+        (bin.room ? mrow(isEn?'Room':'Pièce', escapeHtml(bin.room)) : '')+
+        mrow(isEn?'Total in bin':'Total dans le bac', ''+totalCount)+
+        mrow(isEn?'Priority bin':'Bac prioritaire', isPriority
+          ? '<span style="color:var(--gold);">⭐ '+(isEn?'Yes (for this species)':'Oui (pour cette espèce)')+'</span> <button class="sc-btn" style="padding:1px 8px;font-size:10px;margin-left:6px;" onclick="setRodentPriorityBin(\''+bin.species+'\',\''+bin.id+'\')">'+(isEn?'Clear':'Retirer')+'</button>'
+          : '<button class="sc-btn" style="padding:1px 8px;font-size:10px;" onclick="setRodentPriorityBin(\''+bin.species+'\',\''+bin.id+'\')">☆ '+(isEn?'Set as priority':'Définir comme prioritaire')+'</button>')+
+        (function(){
+          const lastClean = lastCleaningEntry(bin.cleanings);
+          if(!lastClean) return mrow(isEn?'Last cleaning':'Dernier nettoyage', isEn?'Never':'Jamais');
+          const days = daysSinceDate(lastClean.date);
+          const overdue = days>=30;
+          return mrow(isEn?'Last cleaning':'Dernier nettoyage', '<span'+(overdue?' style="color:var(--rust);font-weight:600;"':'')+'>'+lastClean.date+' ('+days+(isEn?'d ago':'j')+')'+(overdue?' ⚠':'')+'</span>');
+        })()+
+      '</div>'+
+      '<p style="font-size:10px;color:var(--ink-dim);margin:8px 0 4px;">'+(isEn?'Adjust counts by hand as you observe growth — no automatic age calculation here (bins get re-sorted physically over time).':'Ajuste les chiffres à la main selon ce que tu observes — pas de calcul d\'âge automatique ici (les bacs sont re-triés physiquement au fil du temps).')+'</p>'+
+      '<div class="pairing-form" style="margin-top:6px;">'+stageRowsHtml+'</div>'+
+      '<div class="clutch-actions">'+
+        '<button class="sc-btn" onclick="openRodentBinCleaningModal(\''+bin.id+'\')">🧹 '+(isEn?'Cleaning':'Nettoyage')+'</button>'+
+        '<button class="sc-btn" onclick="printRodentBinLabel(\''+bin.id+'\')">🏷️ '+(isEn?'Print label / QR':'Imprimer étiquette / QR')+'</button>'+
+        '<button class="sc-btn danger" onclick="deleteRodentBin(\''+bin.id+'\')">'+t('deleteBtn')+'</button>'+
+      '</div>'
+    );
+}
+function updateRodentStockStageCount(binId, stageKey, value){
+  const bin = rodentBins.find(b=>b.id===binId);
+  if(!bin) return;
+  const n = parseInt(value, 10);
+  if(!bin.stageCounts) bin.stageCounts = emptyRodentStageCounts();
+  bin.stageCounts[stageKey] = isNaN(n) || n<0 ? 0 : n;
+  saveElevage();
+  renderRodentBins();
+}
+// Type de bac (9 sept) — un bac Reproduction (ratio M:F, portées trackées, entre dans le rapport
+// de rentabilité) ou un bac Stock/Croissance (pas de ratio, juste un sexe de groupe, sert à faire
+// grandir des rongeurs déjà sevrés — pas de portées, exclu du rapport de rentabilité). Les bacs
+// existants sans binType sont traités comme Reproduction (rétrocompatible, aucune migration requise).
+function toggleRodentBinTypeFields(){
+  const type = document.getElementById('rodent-bin-type').value;
+  const ratioEl = document.getElementById('rodent-bin-ratio');
+  const sexeEl = document.getElementById('rodent-bin-sexe');
+  if(ratioEl) ratioEl.style.display = (type==='stock') ? 'none' : '';
+  if(sexeEl) sexeEl.style.display = (type==='stock') ? '' : 'none';
 }
 function addRodentBin(){
   const isEn = currentLang==='en';
@@ -10420,10 +10518,16 @@ function addRodentBin(){
   const roomInput = document.getElementById('rodent-bin-room');
   const label = labelInput.value.trim();
   const species = document.getElementById('rodent-bin-species').value;
-  const ratio = document.getElementById('rodent-bin-ratio').value;
+  const binType = document.getElementById('rodent-bin-type').value;
   const room = roomInput.value.trim();
   if(!label){ showToast(isEn?'Enter a name/label for the bin.':'Entre un nom/étiquette pour le bac.', 'error'); return; }
-  rodentBins.push({ id:'rb_'+Date.now(), label, species, ratio, room: room||null, litters:[] });
+  if(binType==='stock'){
+    const sexeGroupe = document.getElementById('rodent-bin-sexe').value;
+    rodentBins.push({ id:'rb_'+Date.now(), label, species, binType:'stock', sexeGroupe, room: room||null, stageCounts: emptyRodentStageCounts() });
+  } else {
+    const ratio = document.getElementById('rodent-bin-ratio').value;
+    rodentBins.push({ id:'rb_'+Date.now(), label, species, binType:'reproduction', ratio, room: room||null, litters:[] });
+  }
   saveElevage();
   labelInput.value = '';
   roomInput.value = '';
@@ -10625,6 +10729,62 @@ function computeRodentStageFromAge(days){
   const match = rodentStageChart.find(r=>days<r.maxDay);
   return match ? match.stage : 'Large';
 }
+// Bacs Stock/Croissance (9 sept) — pas de cohorte par date de naissance : dans les faits, les
+// rongeurs sont retriés par grosseur d'un bac à l'autre au fil du temps, donc une date de naissance
+// figée par lot n'aurait pas suivi la réalité physique. Un compteur direct par stade (ajusté à la
+// main par l'éleveur au fil de ce qu'il observe) est plus simple et plus robuste.
+function emptyRodentStageCounts(){
+  const counts = {};
+  RODENT_STAGE_CHART_DEFAULT.forEach(r=>{ counts[r.key] = 0; });
+  return counts;
+}
+// Les tailles de proie (PREY_TYPES[espèce].sizes, utilisées par feederStock et le repas d'un
+// reptile) ne suivent pas exactement les mêmes paliers que la charte de croissance par âge (pas de
+// "Hopper" pour rat/ASF, "Adulte"/"X-Large"/"Jumbo" au-delà de ce que l'âge seul peut distinguer).
+// Mapping volontairement simple : tout ce qui dépasse "Large" retombe dans le seau "large" du bac.
+function preySizeToStageKey(size){
+  const map = { pinky:'pinky', fuzzy:'fuzzy', hopper:'hopper', weanling:'weanling', small:'small', medium:'medium', large:'large', adult:'large', 'x-large':'large', jumbo:'large' };
+  return map[(size||'').toLowerCase()] || null;
+}
+function rodentSexeGroupeLabel(sexeGroupe, isEn){
+  if(sexeGroupe==='males') return isEn?'Males only':'Mâles seulement';
+  if(sexeGroupe==='femelles') return isEn?'Females only':'Femelles seulement';
+  return isEn?'Mixed':'Mixte';
+}
+// Bac prioritaire par espèce (9 sept) — LA source silencieuse pour Nourrir (vivant) et Congeler :
+// un seul bac à la fois par espèce, jamais une matrice espèce×stade à gérer. Persisté comme
+// rodentValuePerUnit (valeur simple, pas un tableau) — voir saveElevage/pushAllUserData/pullAllUserData.
+function setRodentPriorityBin(species, binId){
+  const isEn = currentLang==='en';
+  rodentPriorityBins[species] = (rodentPriorityBins[species]===binId) ? null : binId;
+  saveElevage();
+  renderRodentBins();
+  showToast(rodentPriorityBins[species]
+    ? '⭐ '+(isEn?'Priority bin set.':'Bac prioritaire défini.')
+    : '☆ '+(isEn?'Priority bin cleared.':'Bac prioritaire retiré.'), 'success');
+}
+// Décompte réel au moment du geste physique (nourrir vivant OU congeler un lot) — jamais au moment
+// où le rongeur finit par être mangé une fois congelé, puisqu'à ce stade il est déjà anonymisé dans
+// feederStock. Le bac prioritaire de l'espèce décompte en silence ; si rien de dispo au bon stade
+// (ou pas de bac prioritaire), on retombe sur feederStock comme avant — comportement inchangé.
+function drawFromRodentSupply(species, size, qty){
+  const stageKey = preySizeToStageKey(size);
+  const binId = rodentPriorityBins ? rodentPriorityBins[species] : null;
+  const bin = binId ? rodentBins.find(b=>b.id===binId && b.binType==='stock') : null;
+  if(bin && stageKey && bin.stageCounts && bin.stageCounts[stageKey]>0){
+    const taken = Math.min(qty, bin.stageCounts[stageKey]);
+    bin.stageCounts[stageKey] -= taken;
+    const remaining = qty - taken;
+    if(remaining>0){
+      const key = feederStockKey(species, size);
+      if(feederStock[key]!=null) feederStock[key] = Math.max(0, feederStock[key]-remaining);
+    }
+    return { fromBin:bin, takenFromBin:taken };
+  }
+  const key = feederStockKey(species, size);
+  if(feederStock[key]!=null) feederStock[key] = Math.max(0, feederStock[key]-qty);
+  return { fromBin:null, takenFromBin:0 };
+}
 function openRodentStageSettingsModal(){
   const isEn = currentLang==='en';
   const body =
@@ -10703,28 +10863,72 @@ function deleteRodentLitter(binId, litterId){
 // Lien vers l'inventaire de proies — Phase 5 (4 sept). Demande la taille au moment du transfert
 // plutôt que de deviner — le suivi de colonie reste volontairement sans stade (voir Phase 1), mais
 // feederStock (ce qui sert à nourrir les reptiles) a besoin d'une taille pour rester utile.
+function toggleRodentStockLinkDest(){
+  const dest = document.getElementById('rodent-stock-dest').value;
+  const freezerEl = document.getElementById('rodent-stock-dest-freezer');
+  const binEl = document.getElementById('rodent-stock-dest-bin');
+  if(freezerEl) freezerEl.style.display = (dest==='bin') ? 'none' : '';
+  if(binEl) binEl.style.display = (dest==='bin') ? '' : 'none';
+}
 function openRodentStockLinkModal(binId, litterId){
   const isEn = currentLang==='en';
   const bin = rodentBins.find(b=>b.id===binId);
   const litter = bin && (bin.litters||[]).find(l=>l.id===litterId);
   if(!bin || !litter) return;
   const sizes = (PREY_TYPES[bin.species] && PREY_TYPES[bin.species].sizes) || ['Pinky'];
+  // Destination du transfert (9 sept) — congélo direct (comportement d'origine, Phase 5) OU un bac
+  // Stock/Croissance de la même espèce, à un stade choisi (Weanling par défaut — c'est justement le
+  // moment où les bébés sont typiquement libérés du bac reproducteur vers un bac de croissance).
+  const targetBins = rodentBins.filter(b=>b.binType==='stock' && b.species===bin.species);
+  const binOptionsHtml = targetBins.length
+    ? targetBins.map(b=>'<option value="'+b.id+'">'+escapeHtml(b.label)+'</option>').join('')
+    : '<option value="">'+(isEn?'No stock bin for this species yet':'Aucun bac Stock pour cette espèce')+'</option>';
   const body =
     '<p style="font-size:11px;color:var(--ink-dim);margin:0 0 14px;">'+(isEn
-      ? 'Add the '+litter.transferred+' transferred rodent(s) from "'+escapeHtml(bin.label)+'" to your feeder stock — pick the size they\'ll be entered as.'
-      : 'Ajoute les '+litter.transferred+' rongeur(s) transféré(s) du bac « '+escapeHtml(bin.label)+' » à ton stock de proies — choisis la taille sous laquelle les entrer.')+'</p>'+
-    '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Size':'Taille')+'</span>'+
-      '<select id="rodent-stock-size" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
-        sizes.map(sz=>'<option value="'+sz+'">'+sz+'</option>').join('')+
+      ? 'Where do the '+litter.transferred+' transferred rodent(s) from "'+escapeHtml(bin.label)+'" go?'
+      : 'Où vont les '+litter.transferred+' rongeur(s) transféré(s) du bac « '+escapeHtml(bin.label)+' » ?')+'</p>'+
+    '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Destination':'Destination')+'</span>'+
+      '<select id="rodent-stock-dest" onchange="toggleRodentStockLinkDest()" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+        '<option value="freezer">'+(isEn?'Freezer, directly':'Congélo, direct')+'</option>'+
+        '<option value="bin">'+(isEn?'Stock/grow-out bin':'Bac Stock / Croissance')+'</option>'+
       '</select></label>'+
-    '<button class="save-btn" style="width:100%;" onclick="confirmRodentStockLink(\''+binId+'\',\''+litterId+'\')">📦 '+(isEn?'Add to stock':'Ajouter au stock')+'</button>';
-  showQuickModal('📦 '+(isEn?'Add to feeder stock':'Ajouter au stock de proies'), body);
+    '<div id="rodent-stock-dest-freezer">'+
+      '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Size':'Taille')+'</span>'+
+        '<select id="rodent-stock-size" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+          sizes.map(sz=>'<option value="'+sz+'">'+sz+'</option>').join('')+
+        '</select></label>'+
+    '</div>'+
+    '<div id="rodent-stock-dest-bin" style="display:none;">'+
+      '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Target bin':'Bac cible')+'</span>'+
+        '<select id="rodent-stock-target-bin" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+binOptionsHtml+'</select></label>'+
+      '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Enters at stage':'Entre au stade')+'</span>'+
+        '<select id="rodent-stock-target-stage" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+          RODENT_STAGE_CHART_DEFAULT.map(r=>'<option value="'+r.key+'"'+(r.key==='weanling'?' selected':'')+'>'+r.stage+'</option>').join('')+
+        '</select></label>'+
+    '</div>'+
+    '<button class="save-btn" style="width:100%;" onclick="confirmRodentStockLink(\''+binId+'\',\''+litterId+'\')">📦 '+(isEn?'Confirm':'Confirmer')+'</button>';
+  showQuickModal('📦 '+(isEn?'Transfer destination':'Destination du transfert'), body);
 }
 function confirmRodentStockLink(binId, litterId){
   const isEn = currentLang==='en';
   const bin = rodentBins.find(b=>b.id===binId);
   const litter = bin && (bin.litters||[]).find(l=>l.id===litterId);
   if(!bin || !litter) return;
+  const dest = document.getElementById('rodent-stock-dest').value;
+  if(dest==='bin'){
+    const targetId = document.getElementById('rodent-stock-target-bin').value;
+    const stage = document.getElementById('rodent-stock-target-stage').value;
+    const targetBin = rodentBins.find(b=>b.id===targetId && b.binType==='stock');
+    if(!targetBin){ showToast(isEn?'Pick a valid target bin.':'Choisis un bac cible valide.', 'error'); return; }
+    if(!targetBin.stageCounts) targetBin.stageCounts = emptyRodentStageCounts();
+    targetBin.stageCounts[stage] = (targetBin.stageCounts[stage]||0) + litter.transferred;
+    litter.stockAdded = true;
+    saveElevage();
+    closeQuickModal();
+    renderRodentBins();
+    showToast('📦 '+(isEn?litter.transferred+' moved to "'+targetBin.label+'".':litter.transferred+' déplacé(s) vers « '+targetBin.label+' ».'), 'success');
+    return;
+  }
   const size = document.getElementById('rodent-stock-size').value;
   const key = feederStockKey(bin.species, size);
   feederStock[key] = (feederStock[key]||0) + litter.transferred;
@@ -10734,17 +10938,83 @@ function confirmRodentStockLink(binId, litterId){
   renderRodentBins();
   showToast('📦 '+(isEn?litter.transferred+' added to stock ('+size+').':litter.transferred+' ajouté(s) au stock ('+size+').'), 'success');
 }
+// Congeler un lot (9 sept) — geste général (pas lié à un bac précis dans le HTML) : décompte le
+// bac Stock choisi (le bac prioritaire de l'espèce est présélectionné, mais changeable — "précis à
+// côté du paresseux" plutôt que 2 flux séparés) et ajoute la quantité au stock de proies congelé.
+function openRodentFreezeModal(){
+  renderRodentFreezeModalBody('mouse');
+}
+function renderRodentFreezeModalBody(species, keepBinId){
+  const isEn = currentLang==='en';
+  const bins = rodentBins.filter(b=>b.binType==='stock' && b.species===species);
+  const priorityId = rodentPriorityBins ? rodentPriorityBins[species] : null;
+  const selectedBinId = (keepBinId && bins.some(b=>b.id===keepBinId)) ? keepBinId : ((priorityId && bins.some(b=>b.id===priorityId)) ? priorityId : (bins[0] ? bins[0].id : ''));
+  const selectedBin = bins.find(b=>b.id===selectedBinId);
+  const binOptionsHtml = bins.length
+    ? bins.map(b=>'<option value="'+b.id+'"'+(b.id===selectedBinId?' selected':'')+'>'+escapeHtml(b.label)+(b.id===priorityId?' ⭐':'')+'</option>').join('')
+    : '<option value="">'+(isEn?'No stock bin for this species':'Aucun bac Stock pour cette espèce')+'</option>';
+  const stageOptionsHtml = RODENT_STAGE_CHART_DEFAULT.map(r=>{
+    const count = (selectedBin && selectedBin.stageCounts) ? (selectedBin.stageCounts[r.key]||0) : 0;
+    return '<option value="'+r.key+'"'+(count>0?'':' disabled')+'>'+r.stage+' — '+count+'</option>';
+  }).join('');
+  const sizes = (PREY_TYPES[species] && PREY_TYPES[species].sizes) || ['Pinky'];
+  const body =
+    '<p style="font-size:11px;color:var(--ink-dim);margin:0 0 14px;">'+(isEn
+      ? 'Move rodents out of a stock bin into your feeder stock (frozen/ready) — decrements the bin right away.'
+      : 'Retire des rongeurs d\'un bac Stock vers ton stock de proies (congelé/prêt) — décompte le bac immédiatement.')+'</p>'+
+    '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Species':'Espèce')+'</span>'+
+      '<select id="rf-species" onchange="renderRodentFreezeModalBody(this.value)" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+        '<option value="mouse"'+(species==='mouse'?' selected':'')+'>🐁 '+(isEn?'Mouse':'Souris')+'</option>'+
+        '<option value="rat"'+(species==='rat'?' selected':'')+'>🐀 Rat</option>'+
+        '<option value="asf"'+(species==='asf'?' selected':'')+'>🐭 ASF</option>'+
+      '</select></label>'+
+    '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Bin (priority bin pre-selected)':'Bac (bac prioritaire présélectionné)')+'</span>'+
+      '<select id="rf-bin" onchange="renderRodentFreezeModalBody(document.getElementById(\'rf-species\').value, this.value)" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+binOptionsHtml+'</select></label>'+
+    '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Stage':'Stade')+'</span>'+
+      '<select id="rf-stage" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+stageOptionsHtml+'</select></label>'+
+    '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Quantity':'Quantité')+'</span>'+
+      '<input type="number" id="rf-qty" min="1" value="1" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
+    '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Enters feeder stock as size':'Entre au stock de proies sous la taille')+'</span>'+
+      '<select id="rf-size" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+        sizes.map(sz=>'<option value="'+sz+'">'+sz+'</option>').join('')+
+      '</select></label>'+
+    '<button class="save-btn" style="width:100%;" onclick="confirmRodentFreeze(\''+species+'\')">🧊 '+(isEn?'Freeze':'Congeler')+'</button>';
+  showQuickModal('🧊 '+(isEn?'Freeze a batch':'Congeler un lot'), body);
+}
+function confirmRodentFreeze(species){
+  const isEn = currentLang==='en';
+  const binId = document.getElementById('rf-bin').value;
+  const bin = rodentBins.find(b=>b.id===binId && b.binType==='stock');
+  const stage = document.getElementById('rf-stage').value;
+  const size = document.getElementById('rf-size').value;
+  const qtyInput = document.getElementById('rf-qty');
+  const qty = Math.max(1, parseInt(qtyInput.value,10)||1);
+  if(!bin){ showToast(isEn?'Pick a valid bin.':'Choisis un bac valide.', 'error'); return; }
+  if(!bin.stageCounts) bin.stageCounts = emptyRodentStageCounts();
+  const available = bin.stageCounts[stage]||0;
+  if(available<=0){ showToast(isEn?'Nothing at that stage in this bin.':'Rien à ce stade dans ce bac.', 'error'); return; }
+  const taken = Math.min(qty, available);
+  bin.stageCounts[stage] -= taken;
+  const key = feederStockKey(species, size);
+  feederStock[key] = (feederStock[key]||0) + taken;
+  saveElevage();
+  closeQuickModal();
+  renderRodentBins();
+  showToast('🧊 '+(isEn?taken+' moved from "'+bin.label+'" to feeder stock ('+size+').':taken+' déplacé(s) du bac « '+bin.label+' » vers le stock de proies ('+size+').'), 'success');
+}
 // Impression d'étiquette + QR pour un bac — optionnel, sur demande seulement (4 sept). Le QR encode
 // du texte descriptif simple (pas de lien public — contrairement aux reptiles, un bac de rongeurs
 // n'a pas de fiche publique), utile pour identifier un bac rapidement en scannant physiquement le rack.
 function buildRodentQrData(bin){
   const isEn = currentLang==='en';
-  return (bin.label||'')+' — '+rodentSpeciesIconLabel(bin.species, isEn).replace(/^\S+\s/,'')+' ('+(bin.ratio||'')+')'+(bin.room?' — '+bin.room:'');
+  const detail = (bin.binType==='stock') ? rodentSexeGroupeLabel(bin.sexeGroupe, isEn) : (bin.ratio||'');
+  return (bin.label||'')+' — '+rodentSpeciesIconLabel(bin.species, isEn).replace(/^\S+\s/,'')+' ('+detail+')'+(bin.room?' — '+bin.room:'');
 }
 function printRodentBinLabel(binId){
   const isEn = currentLang==='en';
   const bin = rodentBins.find(b=>b.id===binId);
   if(!bin) return;
+  const detail = (bin.binType==='stock') ? rodentSexeGroupeLabel(bin.sexeGroupe, isEn) : (bin.ratio||'');
   const win = window.open('', '_blank', 'width=420,height=520');
   win.document.write(
     '<html><head><title>'+(isEn?'Label — ':'Étiquette — ')+escapeHtml(bin.label)+'</title><style>'+
@@ -10756,7 +11026,7 @@ function printRodentBinLabel(binId){
     '</style></head><body>'+
     '<img src="'+qrImageUrl(buildRodentQrData(bin), 200)+'" onload="window.print()"/>'+
     '<h1>'+escapeHtml(bin.label)+'</h1>'+
-    '<p>'+rodentSpeciesIconLabel(bin.species, isEn)+' — '+(bin.ratio||'')+(bin.room?' — '+escapeHtml(bin.room):'')+'</p>'+
+    '<p>'+rodentSpeciesIconLabel(bin.species, isEn)+' — '+detail+(bin.room?' — '+escapeHtml(bin.room):'')+'</p>'+
     '</body></html>'
   );
   win.document.close();
@@ -10777,11 +11047,14 @@ function rodentBinProductivityStats(bin){
 }
 function showRodentProductivityReport(){
   const isEn = currentLang==='en';
-  if(!rodentBins.length){
-    showQuickModal('📊 '+(isEn?'Profitability by bin':'Rentabilité par bac'), '<div class="empty">'+(isEn?'No bin registered yet.':'Aucun bac enregistré pour l\'instant.')+'</div>');
+  // Bacs Stock/Croissance exclus (9 sept) — pas de ratio ni de portées, donc rien de comparable :
+  // ce rapport reste 100% dédié aux bacs Reproduction, comme conçu à l'origine.
+  const reproBins = rodentBins.filter(b=>b.binType!=='stock');
+  if(!reproBins.length){
+    showQuickModal('📊 '+(isEn?'Profitability by bin':'Rentabilité par bac'), '<div class="empty">'+(isEn?'No breeding bin registered yet.':'Aucun bac de reproduction enregistré pour l\'instant.')+'</div>');
     return;
   }
-  const statsPerBin = rodentBins.map(bin=>({ bin, stats: rodentBinProductivityStats(bin) }));
+  const statsPerBin = reproBins.map(bin=>({ bin, stats: rodentBinProductivityStats(bin) }));
   // Moyenne par espèce — la comparaison qui compte, pas un chiffre universel arbitraire.
   const bySpecies = {};
   statsPerBin.forEach(({bin, stats})=>{
@@ -10819,7 +11092,8 @@ function showRodentProductivityReport(){
 // numéros de bac d'un mois à l'autre) : nos portées sont déjà datées individuellement, donc rien à
 // "fermer"/remettre à zéro — juste un filtre à la demande sur le mois choisi, toujours à jour.
 function rodentMonthlyStatsForMonth(monthStr){
-  return rodentBins.map(bin=>{
+  // Même exclusion que le rapport de rentabilité (9 sept) — un bac Stock n'a jamais de portée.
+  return rodentBins.filter(b=>b.binType!=='stock').map(bin=>{
     const monthLitters = (bin.litters||[]).filter(l=>l.date.startsWith(monthStr));
     const born = monthLitters.reduce((s,l)=>s+(l.count||0),0);
     const missing = monthLitters.reduce((s,l)=>s+(l.missing||0),0);
@@ -10831,8 +11105,8 @@ function rodentMonthlyStatsForMonth(monthStr){
 function showRodentMonthlyReport(monthStr){
   const isEn = currentLang==='en';
   const month = monthStr || new Date().toISOString().slice(0,7);
-  if(!rodentBins.length){
-    showQuickModal('📅 '+(isEn?'Monthly report':'Rapport mensuel'), '<div class="empty">'+(isEn?'No bin registered yet.':'Aucun bac enregistré pour l\'instant.')+'</div>');
+  if(!rodentBins.filter(b=>b.binType!=='stock').length){
+    showQuickModal('📅 '+(isEn?'Monthly report':'Rapport mensuel'), '<div class="empty">'+(isEn?'No breeding bin registered yet.':'Aucun bac de reproduction enregistré pour l\'instant.')+'</div>');
     return;
   }
   const stats = rodentMonthlyStatsForMonth(month).sort((a,b)=>b.born-a.born);
