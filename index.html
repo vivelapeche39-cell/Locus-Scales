@@ -2029,7 +2029,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.41';
+const APP_VERSION = '2026.09.02.2.42';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -10020,6 +10020,12 @@ const PREY_TYPES = {
   snail: { icon:'🐌', labelFr:'Escargot', labelEn:'Snail', sizes:['Petit','Moyen','Gros'] },
   earthworm: { icon:'🪱', labelFr:'Ver de terre', labelEn:'Earthworm', sizes:['Petit','Moyen','Gros'] },
   mrp: { icon:'🥣', labelFr:'Poudre commerciale (MRP)', labelEn:'Commercial powder (MRP)', sizes:['Portion normale','Grosse portion'] },
+  // Végétaux (4 sept) — par CATÉGORIE plutôt que par aliment précis (salade, carotte, etc.) : ce qui
+  // compte pour la santé, c'est le ratio verdure/légumineuse/fruit respecté, pas l'ingrédient exact
+  // d'un repas donné. Une liste d'aliments précis aurait vite explosé sans vrai gain de suivi.
+  leafy: { icon:'🥬', labelFr:'Verdure feuillue', labelEn:'Leafy greens', sizes:['Petite portion','Portion normale','Grosse portion'] },
+  legume: { icon:'🫘', labelFr:'Légumineuse / graine', labelEn:'Legume / seed', sizes:['Petite portion','Portion normale','Grosse portion'] },
+  fruit: { icon:'🍓', labelFr:'Fruit', labelEn:'Fruit', sizes:['Petite portion','Portion normale','Grosse portion'] },
 };
 const PREY_SIZES = { mouse: PREY_TYPES.mouse.sizes, rat: PREY_TYPES.rat.sizes };
 // Quelles proies proposer selon l'espèce du reptile — un petit nombre de groupes plutôt qu'une
@@ -10029,9 +10035,11 @@ function preyTypesForSpecies(speciesId){
   const rodentEaters = ['ball_python','corn_snake','king_california','king_florida','king_mexican','hognose','boa_bci','boa_bcc'];
   if(!speciesId || rodentEaters.includes(speciesId)) return ['mouse','rat','asf'];
   if(speciesId==='crested_gecko') return ['mrp','cricket','dubia'];
-  if(speciesId==='leopard_gecko' || speciesId==='bearded_dragon') return ['cricket','dubia','mealworm','superworm','phoenixworm'];
-  if(speciesId==='croc_skink_red' || speciesId==='croc_skink_white' || speciesId==='blue_tongue_skink') return ['cricket','dubia','mealworm','snail','earthworm'];
-  if(speciesId && speciesId.startsWith('uro_')) return ['cricket','dubia'];
+  if(speciesId==='leopard_gecko') return ['cricket','dubia','mealworm','superworm','phoenixworm'];
+  if(speciesId==='bearded_dragon') return ['cricket','dubia','mealworm','superworm','phoenixworm','leafy','legume','fruit'];
+  if(speciesId==='croc_skink_red' || speciesId==='croc_skink_white') return ['cricket','dubia','mealworm','snail','earthworm'];
+  if(speciesId==='blue_tongue_skink') return ['cricket','dubia','mealworm','snail','earthworm','leafy','legume','fruit'];
+  if(speciesId && speciesId.startsWith('uro_')) return ['leafy','legume','fruit'];
   return ['mouse','rat'];
 }
 
