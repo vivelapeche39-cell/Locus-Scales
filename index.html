@@ -148,6 +148,10 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 .clutch-card.status-imminent{border-top-color:var(--gold);background:rgba(201,151,62,.10);box-shadow:0 0 0 1px rgba(201,151,62,.35);animation:hatch-pulse 2.4s ease-in-out infinite;}
 .clutch-card.status-hatched{border-top-color:var(--ink-dim);opacity:.55;}
 @keyframes hatch-pulse{0%,100%{box-shadow:0 0 0 1px rgba(201,151,62,.35);}50%{box-shadow:0 0 0 4px rgba(201,151,62,.18);}}
+/* Nudge visuel (10 sept) — attire l'œil vers l'onglet "Mes reptiles" tant que la collection est
+   vide, même si la bannière de bienvenue a été fermée sans qu'on clique son bouton. Réutilise
+   l'animation hatch-pulse déjà en place ailleurs pour rester cohérent visuellement. */
+.tab-btn.needs-attention{animation:hatch-pulse 2.4s ease-in-out infinite;border:1px solid var(--gold) !important;}
 
 .clutch-countdown{margin-bottom:10px;}
 .clutch-countdown .cc-emoji{font-size:26px;line-height:1;}
@@ -1394,7 +1398,10 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <button class="sc-btn" style="margin-bottom:14px;margin-left:8px;" onclick="openRodentFreezeModal()" data-i18n="rodentFreezeBtn">🧊 Congeler un lot</button>
       <h3 style="font-size:14px;margin:18px 0 6px;color:var(--ink);" data-i18n="rodentRackSectionTitle">🧬 Racks de bacs reproducteurs (lignées)</h3>
       <p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 10px;" data-i18n="rodentRackSectionHint">Clique un bac vide pour créer une lignée (numérotée automatiquement) ou y placer un bac existant.</p>
+      <div id="rodent-goal-progress" style="margin-bottom:10px;"></div>
+      <div id="rodent-resting-males-list"></div>
       <button class="sc-btn accent" style="margin-bottom:14px;" onclick="addRodentRack()" data-i18n="rodentRackAddBtn">➕ Ajouter un rack</button>
+      <button class="sc-btn" style="margin-bottom:14px;margin-left:8px;" onclick="openRodentGoalModal()" data-i18n="rodentGoalBtn">🎯 Objectif</button>
       <div id="rodent-racks-container"></div>
       <h3 style="font-size:14px;margin:18px 0 6px;color:var(--ink);" data-i18n="rodentStockSectionTitle">🐭 Bacs (détail et bacs Stock)</h3>
       <div class="pairing-form">
@@ -2055,7 +2062,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.53';
+const APP_VERSION = '2026.09.02.2.57';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4219,6 +4226,7 @@ const I18N = {
     rodentRackAddBtn: '➕ Ajouter un rack',
     rodentStockSectionTitle: '🐭 Bacs (détail et bacs Stock)',
     rodentBinFormHint: 'Pour un bac Reproduction, le rack ci-dessus assigne automatiquement une lignée — ce formulaire reste surtout utile pour les bacs Stock/Croissance.',
+    rodentGoalBtn: '🎯 Objectif',
     subObjectif: '🎯 Objectif',
     objectifHint: 'Choisis le(s) gène(s) visé(s), et l\'app scanne ta collection pour proposer les meilleurs accouplements possibles — classés par probabilité réelle, pas juste par intuition.',
     objectifFindBtn: '🎯 Trouver les meilleures paires',
@@ -4764,6 +4772,7 @@ const I18N = {
     rodentRackAddBtn: '➕ Add a rack',
     rodentStockSectionTitle: '🐭 Bins (detail and Stock bins)',
     rodentBinFormHint: 'For a Breeding bin, the rack above automatically assigns a lineage — this form is mainly useful for Stock/Grow-out bins.',
+    rodentGoalBtn: '🎯 Goal',
     subObjectif: '🎯 Goal',
     objectifHint: 'Pick your target gene(s), and the app scans your collection to suggest the best possible pairings — ranked by real probability, not just a hunch.',
     objectifFindBtn: '🎯 Find the best pairs',
@@ -8818,8 +8827,8 @@ function saveAppStatePushedAt(ts){
 function loadElevage(){
   try{
     const raw = localStorage.getItem(ELEVAGE_KEY);
-    return raw ? JSON.parse(raw) : { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, todos:[], rodentBins:[], rodentExpenses:[], rodentValuePerUnit:null, rodentPriorityBins:{}, rodentRacks:[{id:'rrack_1', name:'Rack 1', rows:[8,8]}] };
-  }catch(e){ console.warn('LOCUS: lecture élevage impossible', e); return { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, todos:[], rodentBins:[], rodentExpenses:[], rodentValuePerUnit:null, rodentPriorityBins:{}, rodentRacks:[{id:'rrack_1', name:'Rack 1', rows:[8,8]}] }; }
+    return raw ? JSON.parse(raw) : { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, todos:[], rodentBins:[], rodentExpenses:[], rodentValuePerUnit:null, rodentPriorityBins:{}, rodentRacks:[{id:'rrack_1', name:'Rack 1', rows:[8,8]}], rodentGoal:{unit:'females',target:null,mode:'expansion'} };
+  }catch(e){ console.warn('LOCUS: lecture élevage impossible', e); return { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, todos:[], rodentBins:[], rodentExpenses:[], rodentValuePerUnit:null, rodentPriorityBins:{}, rodentRacks:[{id:'rrack_1', name:'Rack 1', rows:[8,8]}], rodentGoal:{unit:'females',target:null,mode:'expansion'} }; }
 }
 function saveElevage(){
   trackLocalChanges('racks', racks);
@@ -8829,7 +8838,7 @@ function saveElevage(){
   trackLocalChanges('expenses', expenses);
   trackLocalChanges('customers', customers);
   try{
-    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, rodentPriorityBins, rodentRacks }));
+    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, rodentPriorityBins, rodentRacks, rodentGoal }));
     storageWriteFailed = false;
   }catch(e){
     console.warn('LOCUS: écriture élevage impossible', e);
@@ -8867,6 +8876,11 @@ var rodentBins = elevageData.rodentBins || [];
 var rodentExpenses = elevageData.rodentExpenses || [];
 var rodentValuePerUnit = elevageData.rodentValuePerUnit != null ? elevageData.rodentValuePerUnit : null;
 var rodentPriorityBins = elevageData.rodentPriorityBins || {};
+// Objectif & modes Expansion/Croisière (10 sept, Phase 4) — target:null = pas d'objectif défini,
+// mode par défaut 'expansion' tant qu'aucun objectif n'est atteint. La progression se calcule en
+// direct à partir des bacs reproducteurs déjà actifs — aucun geste séparé à faire, fonder une
+// nouvelle lignée sur le rack EST le geste qui fait avancer la progression (voir Phase 1).
+var rodentGoal = elevageData.rodentGoal || { unit:'females', target:null, mode:'expansion' };
 // Racks de bacs reproducteurs (10 sept) — grille visuelle même esprit que racks/terrariums pour les
 // reptiles, mais pour les bacs de rongeurs reproducteurs. Système de lignées génétiques par bac
 // (voir addRodentRackSlot/nextAvailableLineageNumber) construit par-dessus cette grille.
@@ -9104,7 +9118,7 @@ async function pushAllUserData(forceAll){
         await sb.rpc('upsert_customer_encrypted', { p_id: cu.id, p_data: cu });
       }
     }
-    await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock, todos, genetic_ambiguities: geneticAmbiguities, rodent_bins: rodentBins, rodent_expenses: rodentExpenses, rodent_value_per_unit: rodentValuePerUnit, rodent_priority_bins: rodentPriorityBins, rodent_racks: rodentRacks });
+    await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock, todos, genetic_ambiguities: geneticAmbiguities, rodent_bins: rodentBins, rodent_expenses: rodentExpenses, rodent_value_per_unit: rodentValuePerUnit, rodent_priority_bins: rodentPriorityBins, rodent_racks: rodentRacks, rodent_goal: rodentGoal });
     saveAppStatePushedAt(Date.now());
     const profile = loadProfile();
     await sb.from('profiles').upsert({ user_id:currentUser.id, breeder_name: profile.breederName||null, email: profile.email||null, phone: profile.phone||null });
@@ -9191,6 +9205,7 @@ async function pullAllUserData(){
     if(stateRes.data && stateRes.data.rodent_value_per_unit!=null && remoteAppStateWins) rodentValuePerUnit = stateRes.data.rodent_value_per_unit;
     if(stateRes.data && stateRes.data.rodent_priority_bins && remoteAppStateWins) rodentPriorityBins = stateRes.data.rodent_priority_bins;
     if(stateRes.data && stateRes.data.rodent_racks && remoteAppStateWins) rodentRacks = stateRes.data.rodent_racks;
+    if(stateRes.data && stateRes.data.rodent_goal && remoteAppStateWins) rodentGoal = stateRes.data.rodent_goal;
     if(stateRes.data && stateRes.data.feeder_stock && remoteAppStateWins) feederStock = stateRes.data.feeder_stock;
     if(stateRes.data && stateRes.data.dismissed_banners){
       const mergedBanners = [...new Set([...loadDismissedBanners(), ...stateRes.data.dismissed_banners])];
@@ -9236,7 +9251,7 @@ function exportBackup(){
   const payload = {
     app:'LOCUS', version:2, exportedAt:new Date().toISOString(),
     snakes: savedSnakes,
-    elevage: { racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, rodentPriorityBins, rodentRacks }
+    elevage: { racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, rodentPriorityBins, rodentRacks, rodentGoal }
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
@@ -9287,6 +9302,7 @@ document.getElementById('import-file-input').addEventListener('change', (e)=>{
     rodentValuePerUnit = el.rodentValuePerUnit != null ? el.rodentValuePerUnit : null;
     rodentPriorityBins = el.rodentPriorityBins || {};
     rodentRacks = el.rodentRacks || [];
+    rodentGoal = el.rodentGoal || { unit:'females', target:null, mode:'expansion' };
     projects = el.projects || [];
     feederStock = el.feederStock || {};
     saveElevage();
@@ -10484,6 +10500,9 @@ function renderRodentBins(){
   if(lockedMsg) lockedMsg.style.display = 'none';
   if(unlockedContent) unlockedContent.style.display = '';
   renderRodentRackGrid();
+  renderRodentGoalProgress();
+  renderRodentRestingList();
+  checkRodentGoalReached();
   const wrap = document.getElementById('rodent-bins-list');
   if(!wrap) return;
   if(!rodentBins.length){
@@ -10547,8 +10566,11 @@ function rodentReproBinCardHtml(bin, isEn){
         (bin.notIndependentNote ? '<div class="modal-row"><span style="color:var(--rust);">⚠️ '+escapeHtml(bin.notIndependentNote)+'</span></div>' : '')+
         (bin.room ? mrow(isEn?'Room':'Pièce', escapeHtml(bin.room)) : '')+
         mrow(isEn?'Male':'Mâle', bin.maleRemovedDate
-          ? '<span style="color:var(--gold);">'+(isEn?'Removed ':'Retiré le ')+bin.maleRemovedDate+'</span> <button class="sc-btn" style="padding:1px 8px;font-size:10px;margin-left:6px;" onclick="toggleRodentMaleRemoval(\''+bin.id+'\')">'+(isEn?'Reintroduce':'Réintroduire')+'</button>'
+          ? '<span style="color:var(--gold);">'+(isEn?'Removed ':'Retiré le ')+bin.maleRemovedDate+'</span>'+(bin.maleRemovedNote?' <small style="color:var(--ink-dim);">('+escapeHtml(bin.maleRemovedNote)+')</small>':'')+' <button class="sc-btn" style="padding:1px 8px;font-size:10px;margin-left:6px;" onclick="toggleRodentMaleRemoval(\''+bin.id+'\')">'+(isEn?'Reintroduce':'Réintroduire')+'</button>'
           : '<span style="color:var(--sage);">'+(isEn?'Present':'Présent')+'</span> <button class="sc-btn" style="padding:1px 8px;font-size:10px;margin-left:6px;" onclick="toggleRodentMaleRemoval(\''+bin.id+'\')">'+(isEn?'Remove':'Retirer')+'</button>')+
+        (!bin.maleRemovedDate && (bin.litterCountSinceRest||0)>=RODENT_REST_SUGGEST_THRESHOLD
+          ? '<div class="modal-row"><span style="color:var(--gold);">🔔 '+(isEn?(bin.litterCountSinceRest)+' litters in a row — consider a rest?':(bin.litterCountSinceRest)+' portées d\'affilée — envisager un repos?')+'</span></div>'
+          : '')+
         mrow(isEn?'Total born':'Total nés', totalBabies+' ('+litters.length+' '+(isEn?'litters':'portées')+')')+
         (totalMissing ? mrow('🐭💀 '+(isEn?'Missing (cannibalism)':'Manquant (cannibalisme)'), ''+totalMissing) : '')+
         (totalTransferred ? mrow('➡️ '+(isEn?'Transferred to grow-out':'Transféré vers grow-out'), ''+totalTransferred) : '')+
@@ -10723,9 +10745,14 @@ function toggleRodentMaleRemoval(binId){
   if(!bin) return;
   if(bin.maleRemovedDate){
     bin.maleRemovedDate = null;
+    bin.maleRemovedNote = null;
+    bin.litterCountSinceRest = 0;
     showToast('🐭 '+(isEn?'Male reintroduced.':'Mâle réintroduit.'), 'success');
   } else {
+    const note = prompt(isEn?'Reason (optional):':'Raison (optionnel) :', '');
+    if(note===null) return; // annulé
     bin.maleRemovedDate = new Date().toISOString().slice(0,10);
+    bin.maleRemovedNote = note.trim()||null;
     showToast('🐭 '+(isEn?'Male removed — noted.':'Mâle retiré — noté.'), 'success');
   }
   saveElevage();
@@ -11276,6 +11303,101 @@ function confirmAssignExistingRodentBin(rackId, row, col){
   showToast(isEn?'Bin placed.':'Bac placé.', 'success');
 }
 
+// ==================== Objectif & modes Expansion/Croisière (10 sept, Phase 4) ====================
+// La progression se calcule en direct à partir des bacs reproducteurs déjà actifs — fonder une
+// nouvelle lignée sur le rack (Phase 1) EST le geste qui fait avancer la progression, aucun geste
+// séparé à apprendre (pas de doublon avec Mode Tournée, qui reste 100% dédié aux reptiles).
+function rodentFemaleCountForRatio(ratio){
+  const n = parseInt((ratio||'1:1').split(':')[0], 10);
+  return isNaN(n) ? 1 : n;
+}
+function rodentGoalCurrentCount(){
+  const activeBins = rodentBins.filter(b=>b.binType==='reproduction');
+  if(rodentGoal.unit==='bins') return activeBins.length;
+  return activeBins.reduce((sum,b)=>sum+rodentFemaleCountForRatio(b.ratio), 0);
+}
+function openRodentGoalModal(){
+  const isEn = currentLang==='en';
+  const current = rodentGoal.target!=null ? rodentGoal.target : '';
+  const body =
+    '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Unit':'Unité')+'</span>'+
+      '<select id="rodent-goal-unit" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+        '<option value="females"'+(rodentGoal.unit==='females'?' selected':'')+'>'+(isEn?'Number of females':'Nombre de femelles')+'</option>'+
+        '<option value="bins"'+(rodentGoal.unit==='bins'?' selected':'')+'>'+(isEn?'Number of bins/lineages':'Nombre de bacs/lignées')+'</option>'+
+      '</select></label>'+
+    '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Target':'Cible')+'</span>'+
+      '<input type="number" id="rodent-goal-target" min="1" value="'+current+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
+    '<button class="save-btn" style="width:100%;" onclick="confirmRodentGoal()">🎯 '+(isEn?'Save':'Enregistrer')+'</button>';
+  showQuickModal('🎯 '+(isEn?'Colony goal':'Objectif de colonie'), body);
+}
+function confirmRodentGoal(){
+  const isEn = currentLang==='en';
+  const unit = document.getElementById('rodent-goal-unit').value;
+  const target = parseInt(document.getElementById('rodent-goal-target').value, 10);
+  if(!target || target<1){ showToast(isEn?'Enter a valid target.':'Entre une cible valide.', 'error'); return; }
+  rodentGoal = { unit, target, mode:'expansion' };
+  saveElevage();
+  closeQuickModal();
+  renderRodentBins();
+  showToast('🎯 '+(isEn?'Goal set.':'Objectif défini.'), 'success');
+}
+function renderRodentGoalProgress(){
+  const isEn = currentLang==='en';
+  const el = document.getElementById('rodent-goal-progress');
+  if(!el) return;
+  if(rodentGoal.target==null){ el.innerHTML = ''; return; }
+  const count = rodentGoalCurrentCount();
+  const unitLabel = rodentGoal.unit==='bins' ? (isEn?'bins':'bacs') : (isEn?'females':'femelles');
+  const modeLabel = rodentGoal.mode==='cruise' ? (isEn?'🛳 Cruise mode':'🛳 Mode Croisière') : (isEn?'📈 Expansion mode':'📈 Mode Expansion');
+  const pct = Math.min(100, Math.round((count/rodentGoal.target)*100));
+  el.innerHTML =
+    '<div style="font-size:11px;color:var(--ink-dim);margin-bottom:4px;">'+modeLabel+' — '+count+'/'+rodentGoal.target+' '+unitLabel+'</div>'+
+    '<div style="height:6px;border-radius:3px;background:var(--bg-panel-2);overflow:hidden;"><div style="height:100%;width:'+pct+'%;background:var(--gold);"></div></div>';
+}
+// Vérifie si l'objectif vient d'être atteint — appelé à chaque rendu de l'onglet Rongeurs, puisque
+// l'app n'a pas de minuteur d'arrière-plan ; suffisant vu que ça se déclenche à chaque fois qu'une
+// nouvelle lignée est fondée (le seul moment où le compte peut augmenter).
+function checkRodentGoalReached(){
+  const isEn = currentLang==='en';
+  if(rodentGoal.mode!=='expansion' || rodentGoal.target==null) return;
+  const count = rodentGoalCurrentCount();
+  if(count < rodentGoal.target) return;
+  const unitLabel = rodentGoal.unit==='bins' ? (isEn?'bins':'bacs') : (isEn?'females':'femelles');
+  const wantsCruise = confirm(isEn
+    ? '🎯 Goal reached! '+count+'/'+rodentGoal.target+' '+unitLabel+'. Switch to Cruise mode?'
+    : '🎯 Objectif atteint! '+count+'/'+rodentGoal.target+' '+unitLabel+'. Passer en Mode Croisière?');
+  if(wantsCruise){
+    rodentGoal.mode = 'cruise';
+    saveElevage();
+    showToast(isEn?'Switched to Cruise mode.':'Passage en Mode Croisière.', 'success');
+  } else {
+    const nextTarget = prompt(isEn?'New target:':'Nouvel objectif :', String(rodentGoal.target + Math.max(1, Math.round(rodentGoal.target*0.2))));
+    const n = parseInt(nextTarget, 10);
+    if(n && n>count){ rodentGoal.target = n; saveElevage(); showToast(isEn?'New goal set.':'Nouvel objectif défini.', 'success'); }
+  }
+  renderRodentGoalProgress();
+}
+
+// ==================== Repos des mâles (10 sept) ====================
+// Réutilise le retrait de mâle déjà construit (Phase 6 du chantier rongeurs original, pensé pour
+// l'œstrus post-partum) plutôt que d'inventer un 2e mécanisme parallèle — mécaniquement c'est le
+// même geste (mâle retiré, date notée, réintroduit plus tard), peu importe la vraie raison. Juste
+// une note ajoutée pour dire pourquoi, et une liste séparée pour les consulter d'un coup d'œil.
+// Neutre pour la lignée (confirmé par Alex) : même mâle qui revient, aucun effet sur lettre/génération.
+const RODENT_REST_SUGGEST_THRESHOLD = 3; // portées consécutives avant la suggestion douce
+function renderRodentRestingList(){
+  const isEn = currentLang==='en';
+  const el = document.getElementById('rodent-resting-males-list');
+  if(!el) return;
+  const resting = rodentBins.filter(b=>b.binType==='reproduction' && b.maleRemovedDate);
+  if(!resting.length){ el.innerHTML = ''; return; }
+  el.innerHTML = '<h3 style="font-size:14px;margin:18px 0 6px;color:var(--ink);">😴 '+(isEn?'Males currently removed':'Mâles actuellement retirés')+'</h3>'+
+    resting.map(b=>
+      '<div class="modal-row"><span>🧬 '+escapeHtml(rodentLineageCode(b))+' — '+(isEn?'since':'depuis')+' '+b.maleRemovedDate+(b.maleRemovedNote?'<br/><small style="color:var(--ink-dim);">'+escapeHtml(b.maleRemovedNote)+'</small>':'')+'</span>'+
+      '<button class="sc-btn" onclick="toggleRodentMaleRemoval(\''+b.id+'\')">🔙 '+(isEn?'Bring back':'Retour')+'</button></div>'
+    ).join('');
+}
+
 function setRodentPriorityBin(species, binId){
   const isEn = currentLang==='en';
   rodentPriorityBins[species] = (rodentPriorityBins[species]===binId) ? null : binId;
@@ -11369,6 +11491,7 @@ function addRodentLitter(binId){
   if(!date || isNaN(count) || count<1){ showToast(isEn?'Enter a valid date and count.':'Entre une date et un nombre valides.', 'error'); return; }
   if(!bin.litters) bin.litters = [];
   bin.litters.push({ id:'rl_'+Date.now(), date, count, missing, transferred, euthanized });
+  bin.litterCountSinceRest = (bin.litterCountSinceRest||0) + 1;
   saveElevage();
   renderRodentBins();
   showToast('🐭 '+(isEn?'Litter logged.':'Portée enregistrée.'), 'success');
@@ -15828,21 +15951,32 @@ function snoozeBackupReminder(){
 function renderWelcomeHero(){
   const isEn = currentLang==='en';
   const hero = document.getElementById('welcome-hero');
-  const showIt = savedSnakes.length===0 && !isWelcomeDismissed();
+  // Correctif du 10 sept : plus de bouton × tant qu'il y a zéro reptile — un testeur a fermé cette
+  // bannière par erreur et s'est retrouvé devant un tableau de bord vide sans savoir quoi faire.
+  // La bannière disparaît automatiquement dès le 1er reptile ajouté, donc pas besoin de "fermer" —
+  // isWelcomeDismissed() n'a plus d'effet tant que la collection reste vide.
+  const showIt = savedSnakes.length===0;
   if(!showIt){ hero.style.display = 'none'; return; }
   hero.style.display = 'block';
   hero.innerHTML =
-    '<button class="wh-close" onclick="dismissWelcome()" aria-label="'+(isEn?'Close welcome':"Fermer l'accueil")+'">×</button>'+
     '<h2>'+(isEn?'Welcome to LOCUS Scales 🐍':'Bienvenue dans LOCUS Scales 🐍')+'</h2>'+
     '<p>'+(isEn
       ? 'Your complete ball python breeding management tool — genetics, racks, sales, incubation, and admin, all in one place. Here are three ways to get started:'
       : 'Ton outil complet de gestion d\'élevage de pythons royaux — génétique, racks, ventes, incubation et administration, tout au même endroit. Voici trois façons de commencer :')+'</p>'+
     '<div class="wh-actions">'+
-      '<button class="wh-btn primary" onclick="dismissWelcome(); showTab(\'mine\'); document.getElementById(\'draft-name\').focus();"><span class="wh-icon">🐍</span> '+(isEn?'Add my first reptile':'Ajouter mon premier reptile')+'</button>'+
-      '<button class="wh-btn" onclick="dismissWelcome(); showTab(\'calc\');"><span class="wh-icon">🧬</span> '+(isEn?'Try the calculator':'Essayer le calculateur')+'</button>'+
-      '<button class="wh-btn" onclick="dismissWelcome(); showTab(\'export\');"><span class="wh-icon">📂</span> '+(isEn?'Import my existing data':'Importer mes données existantes')+'</button>'+
+      '<button class="wh-btn primary" onclick="showTab(\'mine\'); document.getElementById(\'draft-name\').focus();"><span class="wh-icon">🐍</span> '+(isEn?'Add my first reptile':'Ajouter mon premier reptile')+'</button>'+
+      '<button class="wh-btn" onclick="showTab(\'calc\');"><span class="wh-icon">🧬</span> '+(isEn?'Try the calculator':'Essayer le calculateur')+'</button>'+
+      '<button class="wh-btn" onclick="showTab(\'export\');"><span class="wh-icon">📂</span> '+(isEn?'Import my existing data':'Importer mes données existantes')+'</button>'+
       '<button class="wh-btn" onclick="loadSampleData();"><span class="wh-icon">👀</span> '+(isEn?'See an example first':'Voir un exemple d\'abord')+'</button>'+
     '</div>';
+}
+// Nudge persistant (10 sept) — indépendant de isWelcomeDismissed() : reste actif même si la
+// bannière de bienvenue a été fermée sans qu'on clique son bouton. Retiré automatiquement dès
+// qu'un premier reptile existe, aucune action manuelle requise pour le faire disparaître.
+function renderFirstSnakeNudge(){
+  const tabBtn = document.querySelector('.tab-btn[data-tab="mine"]');
+  if(!tabBtn) return;
+  tabBtn.classList.toggle('needs-attention', savedSnakes.length===0);
 }
 
 function setDashSpeciesFilter(v){
@@ -16011,6 +16145,7 @@ function renderDashboard(){
   savedSnakes.forEach(ensureSnakeMeta);
   renderBetaBanner();
   renderWelcomeHero();
+  renderFirstSnakeNudge();
   updateBackupReminderBanner();
   updateSampleDataBanner();
   renderTodos();
