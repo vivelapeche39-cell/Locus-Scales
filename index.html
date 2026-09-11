@@ -37,6 +37,16 @@
 <meta charset="utf-8"/>
 <meta name="description" content="LOCUS Scales — gestion d'élevage complète pour le python royal (Ball Python) : calculateur génétique, suivi de racks, ventes, incubation et administration, tout au même endroit."/>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>"/>
+<!-- Fondation PWA (10 sept) — additif seulement, ne change rien au fonctionnement actuel pour
+     personne. Prépare le terrain pour un emballage natif (Capacitor) éventuel, interrupteur
+     laissé à off : aucun service worker enregistré, voir service-worker.js à la racine. -->
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png"/>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png"/>
+<meta name="theme-color" content="#161210"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="LOCUS"/>
 <meta property="og:title" content="LOCUS Scales"/>
 <meta property="og:description" content="Gestion d'élevage complète pour le python royal — génétique, ventes, incubation et administration."/>
 <meta property="og:type" content="website"/>
@@ -2039,7 +2049,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.44';
+const APP_VERSION = '2026.09.02.2.46';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2908,6 +2918,33 @@ var storageWriteFailed = false; // vrai dès qu'une écriture localStorage écho
 // un piège de "temporal dead zone" — voir la règle permanente à ce sujet dans CLAUDE.md.
 var dirtySyncIds = { snakes:new Set(), racks:new Set(), terrariums:new Set(), pairings:new Set(), clutches:new Set(), expenses:new Set(), customers:new Set() };
 var lastSyncSnapshot = { snakes:{}, racks:{}, terrariums:{}, pairings:{}, clutches:{}, expenses:{}, customers:{} };
+// Persistance de dirtySyncIds (10 sept) — avant ce correctif, dirtySyncIds était une simple variable
+// JS qui repartait vide à CHAQUE rechargement de page. Si un push échouait ou était interrompu (onglet
+// fermé/iOS qui suspend la page avant la fin de la requête réseau), la modification restait pourtant
+// bel et bien enregistrée en local — mais son statut "pas encore confirmée envoyée" était perdu au
+// prochain chargement. Résultat : une vraie perte de données silencieuse, découverte le 10 sept
+// (repas mobile jamais parvenu au serveur pendant 4 jours). Cette persistance + la vérification dans
+// mergeById (voir plus bas) garantissent qu'une modification locale non confirmée ne peut plus jamais
+// perdre une fusion contre une copie serveur, peu importe combien de temps s'est écoulé.
+const DIRTY_SYNC_STORAGE_KEY = 'locus_dirty_sync_v1';
+function saveDirtySyncState(){
+  try{
+    const out = {};
+    Object.keys(dirtySyncIds).forEach(k=>{ out[k] = [...dirtySyncIds[k]]; });
+    localStorage.setItem(DIRTY_SYNC_STORAGE_KEY, JSON.stringify(out));
+  }catch(e){ /* mode privé / quota — tant pis, pas pire qu'avant ce correctif */ }
+}
+function loadDirtySyncState(){
+  try{
+    const raw = localStorage.getItem(DIRTY_SYNC_STORAGE_KEY);
+    if(!raw) return;
+    const saved = JSON.parse(raw);
+    Object.keys(dirtySyncIds).forEach(k=>{
+      if(saved[k]) saved[k].forEach(id=> dirtySyncIds[k].add(id));
+    });
+  }catch(e){ /* rien à restaurer, comportement identique à avant le correctif */ }
+}
+loadDirtySyncState();
 // Suppressions locales pas encore envoyées au cloud (2 sept) — trackLocalChanges() détecte quand un
 // id connu du dernier snapshot a disparu du tableau actuel (donc supprimé localement) et l'ajoute
 // ici ; pushAllUserData() envoie ensuite un vrai DELETE Supabase pour chaque id, puis vide l'ensemble.
@@ -2915,14 +2952,28 @@ var lastSyncSnapshot = { snakes:{}, racks:{}, terrariums:{}, pairings:{}, clutch
 // l'item revenait systématiquement au pull suivant (mergeById n'a aucune façon de représenter "ceci a
 // été supprimé", seulement de comparer deux copies existantes par horodatage).
 var dirtyDeletedIds = { snakes:new Set(), racks:new Set(), terrariums:new Set(), pairings:new Set(), clutches:new Set(), expenses:new Set(), customers:new Set() };
+// contentSignature() servait un simple JSON.stringify avant (9 sept) — mais Postgres/JSONB ne
+// garantit PAS de préserver l'ordre des clés d'un objet entre l'écriture et la relecture. Un aller-
+// retour par le serveur pouvait donc changer l'ORDRE des clés sans changer une seule vraie valeur,
+// et JSON.stringify est sensible à l'ordre — ça faisait paraître "changé" un objet identique,
+// déclenchant un ré-envoi inutile qui gonflait artificiellement l'horodatage du serveur (voir le
+// vrai bug de perte de données du 10 sept, corrigé dans mergeById plus bas). stableStringify() trie
+// récursivement les clés à chaque niveau pour que la comparaison ignore l'ordre, pas juste le contenu.
+function stableStringify(value){
+  if(value===null || typeof value!=='object') return JSON.stringify(value);
+  if(Array.isArray(value)) return '['+value.map(stableStringify).join(',')+']';
+  const keys = Object.keys(value).filter(k=>k!=='updatedAt').sort();
+  return '{'+keys.map(k=>JSON.stringify(k)+':'+stableStringify(value[k])).join(',')+'}';
+}
 function contentSignature(item){
-  return JSON.stringify(item, (k,v)=> k==='updatedAt' ? undefined : v);
+  return stableStringify(item);
 }
 // Compare chaque élément à sa dernière version connue ; si le contenu a changé, lui donne un nouvel
 // horodatage local et le marque à pousser vers le cloud au prochain pushAllUserData().
 function trackLocalChanges(kind, arr){
   const snap = lastSyncSnapshot[kind];
   const currentIds = new Set();
+  let changed = false;
   (arr||[]).forEach(item=>{
     if(!item || item.id==null) return;
     currentIds.add(item.id);
@@ -2931,6 +2982,7 @@ function trackLocalChanges(kind, arr){
       item.updatedAt = Date.now();
       dirtySyncIds[kind].add(item.id);
       snap[item.id] = sig;
+      changed = true;
     }
   });
   Object.keys(snap).forEach(id=>{
@@ -2938,8 +2990,10 @@ function trackLocalChanges(kind, arr){
       dirtyDeletedIds[kind].add(id);
       dirtySyncIds[kind].delete(id);
       delete snap[id];
+      changed = true;
     }
   });
+  if(changed) saveDirtySyncState();
 }
 // Marque le contenu actuel comme "connu" sans le pousser — utilisé au chargement initial et juste
 // après un tirage cloud, pour qu'un simple rechargement de page ne déclenche pas un envoi inutile.
@@ -8821,10 +8875,20 @@ var debutOccupation = 0;
 function mergeById(localArr, cloudArr, kind){
   const byId = {};
   (cloudArr||[]).forEach(item=>{ if(item && item.id!=null) byId[item.id] = item; });
+  // Correctif du 10 sept — vrai bug de perte de données trouvé : avant, seul l'horodatage décidait
+  // qui gagne. Mais un ré-envoi périmé du serveur (voir contentSignature plus haut) pouvait gonfler
+  // artificiellement son propre horodatage sans changer son contenu, ce qui faisait paraître le
+  // serveur "plus récent" que le vrai. Un repas enregistré sur mobile s'est ainsi fait effacer
+  // silencieusement pendant 4 jours, sans jamais se corriger tout seul. Règle maintenant : un
+  // enregistrement encore marqué "à pousser" (édition locale pas encore confirmée envoyée avec
+  // succès) gagne TOUJOURS la fusion, peu importe l'horodatage — l'horodatage ne sert à départager
+  // que les enregistrements qui n'ont AUCUNE modification locale en attente.
+  const pendingDirty = kind && dirtySyncIds[kind];
   (localArr||[]).forEach(item=>{
     if(!item || item.id==null) return;
     const cloudItem = byId[item.id];
-    if(!cloudItem || (item.updatedAt||0) >= (cloudItem.updatedAt||0)) byId[item.id] = item;
+    const stillPending = pendingDirty && pendingDirty.has(item.id);
+    if(!cloudItem || stillPending || (item.updatedAt||0) >= (cloudItem.updatedAt||0)) byId[item.id] = item;
   });
   // Une suppression locale pas encore poussée (voir dirtyDeletedIds/trackLocalChanges) ne doit jamais
   // être ramenée par un tirage qui arrive avant que le DELETE ait fini d'être envoyé — sinon l'item
@@ -9007,6 +9071,7 @@ async function pushAllUserData(forceAll){
       }
     }
     ['snakes','racks','terrariums','pairings','clutches','expenses','customers'].forEach(kind=> dirtySyncIds[kind].clear());
+    saveDirtySyncState();
   }catch(e){
     console.warn('LOCUS: échec envoi des données', e);
     showToast('⚠️ '+(currentLang==='en'?'Data upload failed — try signing out and back in.':'Envoi des données échoué — essaie de te déconnecter puis reconnecter.'), 'error');
