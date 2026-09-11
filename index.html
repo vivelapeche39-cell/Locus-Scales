@@ -1012,8 +1012,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   </div>
 
   <div id="view-dash">
-    <div id="beta-banner" class="onboarding-banner" style="display:none;"></div>
     <div id="welcome-hero" class="welcome-hero" style="display:none;"></div>
+    <div id="beta-banner" class="onboarding-banner" style="display:none;"></div>
     <div class="dash-greeting" id="dash-greeting"></div>
     <div id="dash-species-filter-wrap" style="display:none;margin-bottom:14px;"></div>
     <div id="dash-sortable-wrap">
@@ -2062,7 +2062,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.57';
+const APP_VERSION = '2026.09.02.2.59';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3640,6 +3640,16 @@ function openContactModal(){
    Pour ajouter du contenu : une nouvelle entrée en haut du tableau correspondant (ordre décroissant,
    plus récent en premier) suffit — aucune autre logique à toucher. */
 const ANNOUNCEMENTS = [
+  // Épinglée (10 sept) — reprend le contenu de l'ancienne bannière bêta du tableau de bord, retirée
+  // pour ne plus pousser le bouton "Créer mon premier reptile" en bas de l'écran sur mobile. Ancrée
+  // ici : si quelqu'un la loupe au premier tour, elle reste accessible via ☰ → Annonces.
+  { date:'2026-09-10', pinned:true,
+    title:{ fr:'Phase de test bêta', en:'Beta testing phase' },
+    body:{
+      fr:'Application actuellement en phase de test — gratuite pendant cette période. Un système de paliers payants sera mis en place plus tard, avec annonce à l\'avance avant la date officielle du lancement — jamais de surprise. Pour profiter au maximum des fonctions, la création d\'un compte est préférable — aucune obligation de paiement plus tard pour autant. Un bug trouvé? Tu peux le signaler via ☰ → Signaler un bug — ça aide à peaufiner l\'app avant le vrai lancement.',
+      en:'The app is currently in beta — free during this period. A paid tier system will roll out later, always announced ahead of the official launch date — no surprises. For the best experience, creating an account is recommended — no future payment obligation attached. Found a bug? You can report it via ☰ → Report a bug — it helps polish the app before the real launch.'
+    }
+  },
   { date:'2026-09-08',
     title:{ fr:'Nouveau : gestion de rongeurs nourriciers', en:'New: feeder rodent management' },
     body:{
@@ -3707,11 +3717,12 @@ function updateNewsBadges(){
 function openAnnouncementsModal(){
   const isEn = currentLang==='en';
   markNewsSeen('announcements');
+  const sorted = [...ANNOUNCEMENTS].sort((a,b)=> (b.pinned?1:0) - (a.pinned?1:0));
   const body = ANNOUNCEMENTS.length===0
     ? '<div class="empty">'+(isEn?'No announcements yet.':'Aucune annonce pour l\'instant.')+'</div>'
-    : '<div style="max-height:60vh;overflow-y:auto;">'+ANNOUNCEMENTS.map(a=>
-        '<div class="announcement-card">'+
-          '<div class="announcement-date">'+a.date+'</div>'+
+    : '<div style="max-height:60vh;overflow-y:auto;">'+sorted.map(a=>
+        '<div class="announcement-card"'+(a.pinned?' style="border-color:var(--gold);"':'')+'>'+
+          '<div class="announcement-date">'+(a.pinned?'📌 ':'')+a.date+'</div>'+
           '<div class="announcement-title">'+(isEn?a.title.en:a.title.fr)+'</div>'+
           '<div class="announcement-body">'+escapeHtml(isEn?a.body.en:a.body.fr)+'</div>'+
         '</div>'
@@ -16143,7 +16154,6 @@ function updateSampleDataBanner(){
 function renderDashboard(){
   const isEn = currentLang==='en';
   savedSnakes.forEach(ensureSnakeMeta);
-  renderBetaBanner();
   renderWelcomeHero();
   renderFirstSnakeNudge();
   updateBackupReminderBanner();
