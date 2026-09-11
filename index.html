@@ -2049,7 +2049,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.46';
+const APP_VERSION = '2026.09.02.2.47';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -6032,6 +6032,33 @@ const SPECIES_REFERENCE = [
       {q:'Why does it need less humidity than other uromastyx?', a:'It\'s the most humidity-sensitive in the whole genus — aim for only 10-30%, versus 20-25% for the other species on this list. Excess humidity causes real respiratory issues specifically in this species.'},
       {q:'How big does it actually get?', a:'24-30 inches long as an adult — the largest species in the genus, notably more imposing than the "niger" or Mali. Plan for the adult enclosure from the start rather than being surprised down the line.'},
       {q:'Do I really need to feed it insects?', a:'No — an almost strict herbivore like the other uromastyx.'},
+    ]},
+  { id:'orvet', category:'lezard', nameFr:'Orvet', nameEn:'Slow Worm', tempWarm:23, tempCool:16, humidity:65,
+    nameLatin:'Anguis fragilis', originFr:'Presque toute l\'Europe (dont le Royaume-Uni), jusqu\'à l\'ouest de l\'Asie mineure', originEn:'Nearly all of Europe (including the UK), west into parts of Asia Minor', lifespanFr:'Sauvage : 10-15 ans (jusqu\'à ~25 ans estimé). Captivité : record documenté de 54 ans — parmi les plus longues longévités connues chez un petit reptile.', lifespanEn:'Wild: 10-15 years (up to ~25 years estimated). Captivity: documented record of 54 years — among the longest known lifespans for a small reptile.',
+    habitatTypeFr:'🌍 Fossorial/semi-fossorial — passe la majorité de son temps caché sous des roches plates, des bûches ou dans la litière/le compost, bascule rarement au soleil direct (thigmothermie : se réchauffe par contact avec une surface déjà chauffée plutôt qu\'en s\'exposant).', habitatTypeEn:'🌍 Fossorial/semi-fossorial — spends most of its time hidden under flat rocks, logs, or in leaf litter/compost, rarely basks in open sun (thigmothermic: warms up by contact with an already-heated surface rather than direct exposure).',
+    dietFr:'Carnivore très spécialisé — limaces en très grande majorité, plus vers de terre et autres invertébrés à corps mou (araignées, chenilles sans poils). Diète nettement plus difficile à reproduire en captivité que la plupart des reptiles de cette liste, surtout pour un adulte capturé sauvage.', dietEn:'Highly specialized carnivore — mostly slugs, plus earthworms and other soft-bodied invertebrates (spiders, hairless caterpillars). Notably harder to replicate in captivity than most reptiles on this list, especially for a wild-caught adult.',
+    feedFreqFr:'Pas de fréquence précise bien documentée dans les sources consultées — les jeunes mangent plus souvent (aux 1-2 jours) que les adultes (aux 2-4 jours). À ajuster selon l\'appétit réel, observé plutôt qu\'imposé.', feedFreqEn:'No precisely documented frequency in sources consulted — juveniles eat more often (every 1-2 days) than adults (every 2-4 days). Adjust based on observed appetite rather than a fixed schedule.',
+    substrateFr:'Substrat profond et meuble qui retient l\'humidité (terre sablonneuse + fibre de coco ou tourbe, ratio ~2:1), 15-25cm de profondeur pour permettre le vrai fouissage — pas juste une couche décorative.', substrateEn:'Deep, loose, moisture-retentive substrate (sandy soil + coconut fiber or peat, ~2:1 ratio), 6-10in deep to allow real burrowing — not just a decorative layer.',
+    uvbFr:'UVB faible à modéré recommandé si logé à l\'intérieur, avec accès facile à l\'ombre — espèce qui évite le soleil direct dans la nature, donc jamais de UVB fort/désertique.', uvbEn:'Low-to-moderate UVB recommended if housed indoors, with easy shade access — a species that avoids direct sun in the wild, so never strong/desert-type UVB.',
+    incubationFr:'Espèce ovovivipare (mise bas, pas de ponte). Accouplement au printemps, mise bas typiquement fin août à début octobre — gestation estimée ~90-120 jours selon le patron saisonnier observé (pas de compte de jours précis trouvé dans les sources consultées).', incubationEn:'Ovoviviparous species (live birth, no egg-laying). Mating in spring, births typically late August to early October — gestation estimated at ~90-120 days based on the observed seasonal pattern (no precise day-count found in sources consulted).',
+    clutchesPerMatingFr:'Généralement 1 mise bas par accouplement réussi par saison.', clutchesPerMatingEn:'Generally 1 birth per successful mating per season.',
+    avgEggCountFr:'6-12 nouveau-nés vivants par portée.', avgEggCountEn:'6-12 live newborns per litter.',
+    noteFr:'Fait étonnant : malgré son allure discrète, l\'orvet détient un des records de longévité connus chez un petit reptile — un individu documenté a vécu au moins 54 ans en captivité. À savoir avant d\'en garder un : (1) c\'est un LÉZARD sans pattes, pas un serpent — il a des paupières mobiles (il peut cligner des yeux, contrairement à un serpent) et des ouvertures auriculaires visibles, et sa mue sort en morceaux plutôt qu\'en une seule pièce complète ; (2) espèce protégée dans plusieurs régions de son aire de répartition (notamment au Royaume-Uni, où le capturer/le blesser est illégal) — privilégier toujours un spécimen né en captivité ; (3) sa diète très spécialisée (surtout des limaces) le rend nettement plus exigeant qu\'il n\'en a l\'air, pas une espèce recommandée pour un débutant malgré son apparence discrète ; (4) espèce tempérée, pas tropicale — a besoin de températures nettement plus fraîches que le reste des espèces de cette liste, et bénéficie d\'une vraie période d\'hivernage (brumation) fraîche pour son cycle naturel.', 
+    noteEn:'Surprising fact: despite its unassuming look, the slow worm holds one of the longest documented lifespans known for a small reptile — one recorded individual lived at least 54 years in captivity. Worth knowing before keeping one: (1) it\'s a legless LIZARD, not a snake — it has movable eyelids (it can blink, unlike a snake) and visible ear openings, and its shed comes off in pieces rather than one complete piece; (2) a protected species across parts of its range (notably the UK, where capturing/harming one is illegal) — always favor a captive-bred specimen; (3) its highly specialized diet (mostly slugs) makes it notably more demanding than it looks, not a beginner-friendly species despite its unassuming appearance; (4) a temperate species, not tropical — needs noticeably cooler temperatures than the rest of the species on this list, and benefits from a real cool winter brumation period matching its natural cycle.',
+    enclosureBaby:'45×30×30cm (18×12×12po)', enclosureBabyEn:'18×12×12in',
+    enclosureSub:'75×45×30cm (30×18×12po)', enclosureSubEn:'30×18×12in',
+    enclosureAdult:'90×45×45cm minimum (36×18×18po)', enclosureAdultEn:'36×18×18in minimum',
+    faqFr:[
+      {q:'C\'est un serpent ou un lézard ?', a:'Un lézard sans pattes, malgré l\'allure de serpent. Différences observables : il a des paupières (il peut cligner des yeux, un serpent ne le peut pas), des ouvertures auriculaires visibles, et il peut perdre sa queue comme les autres lézards (autotomie) — un serpent ne le peut pas.'},
+      {q:'Pourquoi il mange presque juste des limaces ?', a:'C\'est sa vraie diète naturelle, très spécialisée — c\'est justement ce qui rend l\'espèce plus difficile à bien nourrir en captivité que la plupart des reptiles de compagnie. Les vers de terre sont généralement mieux acceptés que les proies commerciales standards (grillons, etc.).'},
+      {q:'Est-ce que je peux en attraper un dans la nature ?', a:'Non recommandé, et carrément illégal dans plusieurs régions (le Royaume-Uni notamment, où l\'espèce est protégée). Privilégie toujours un éleveur qui vend des spécimens nés en captivité.'},
+      {q:'Faut-il vraiment une période d\'hivernage ?', a:'Fortement recommandé pour le bien-être à long terme et essentiel pour la reproduction — dans la nature, l\'orvet hiberne d\'octobre à mars. Une période fraîche hivernale reproduit ce cycle naturel plutôt que de maintenir une température estivale à l\'année.'},
+    ],
+    faqEn:[
+      {q:'Is it a snake or a lizard?', a:'A legless lizard, despite looking like a snake. Observable differences: it has eyelids (it can blink, a snake can\'t), visible ear openings, and it can drop its tail like other lizards (autotomy) — a snake cannot.'},
+      {q:'Why does it eat mostly slugs?', a:'That\'s its real natural diet, and a highly specialized one — which is exactly what makes the species harder to feed well in captivity than most pet reptiles. Earthworms are generally better accepted than standard commercial feeder insects.'},
+      {q:'Can I catch one in the wild?', a:'Not recommended, and outright illegal in several regions (notably the UK, where the species is protected). Always favor a breeder selling captive-bred specimens.'},
+      {q:'Does it really need a winter cool-down period?', a:'Strongly recommended for long-term wellbeing and essential for breeding — in the wild, slow worms hibernate from October to March. A cool winter period replicates this natural cycle rather than holding a summer temperature year-round.'},
     ]},
 ];
 // Retourne un bloc HTML taille de terrarium si au moins une donnée sourcée existe pour l'espèce,
@@ -10136,6 +10163,9 @@ function preyTypesForSpecies(speciesId){
   if(speciesId==='croc_skink_red' || speciesId==='croc_skink_white') return ['cricket','dubia','mealworm','snail','earthworm'];
   if(speciesId==='blue_tongue_skink') return ['cricket','dubia','mealworm','snail','earthworm','leafy','legume','fruit'];
   if(speciesId && speciesId.startsWith('uro_')) return ['leafy','legume','fruit'];
+  // Orvet (10 sept) — diète spécialisée limaces/vers de terre, très différente du reste de la liste ;
+  // grillon/dubia gardés en soutien pour les rares individus qui les acceptent, jamais en base.
+  if(speciesId==='orvet') return ['snail','earthworm','cricket','dubia'];
   return ['mouse','rat'];
 }
 
@@ -13697,6 +13727,9 @@ const REPRODUCTION_INFO_BY_SPECIES = {
   uro_maliensis: { mode:'ovipare', def:70, min:58, max:92 },
   uro_ornata: { mode:'ovipare', def:70, min:58, max:92 },
   uro_aegyptia: { mode:'ovipare', def:70, min:58, max:92 },
+  // Estimation basée sur le patron saisonnier (accouplement printemps, mise bas fin été/début automne)
+  // plutôt qu'un compte de jours précis sourcé — aucune source consultée n'en donnait un.
+  orvet: { mode:'ovovivipare', def:105, min:90, max:120 },
 };
 function reproductionModeForSnakes(sireId, damId){
   const sire = savedSnakes.find(s=>s.id===sireId);
