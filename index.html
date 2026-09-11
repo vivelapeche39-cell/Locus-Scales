@@ -641,6 +641,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 .tub:hover{border-color:var(--gold);}
 .tub.selected{border-color:var(--gold);background:rgba(201,151,62,.16);box-shadow:0 0 0 1px var(--gold) inset;}
 .tub.empty{color:var(--ink-dim);font-family:'Courier New',monospace;font-style:italic;}
+/* Sélection multiple pour bacs rongeurs (10 sept) — même ratio à plusieurs bacs vides d'un coup. */
+.tub.multi-selected{background:rgba(201,151,62,.22) !important;border-color:var(--gold) !important;color:var(--ink) !important;font-style:normal;}
 .tub .tub-name{font-weight:600;color:var(--ink);line-height:1.25;}
 .tub .tub-tag{font-family:'Courier New',monospace;font-size:8.5px;color:var(--ink-dim);margin-top:3px;}
 .tub .tub-alert{position:absolute;top:5px;right:6px;font-size:10px;}
@@ -1402,6 +1404,10 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <div id="rodent-resting-males-list"></div>
       <button class="sc-btn accent" style="margin-bottom:14px;" onclick="addRodentRack()" data-i18n="rodentRackAddBtn">➕ Ajouter un rack</button>
       <button class="sc-btn" style="margin-bottom:14px;margin-left:8px;" onclick="openRodentGoalModal()" data-i18n="rodentGoalBtn">🎯 Objectif</button>
+      <button class="sc-btn" id="rodent-multiselect-toggle-btn" style="margin-bottom:14px;margin-left:8px;" onclick="toggleRodentMultiSelectMode()" data-i18n="rodentMultiSelectBtn">☑️ Sélection multiple</button>
+      <button class="sc-btn" id="rodent-selectall-btn" style="display:none;margin-bottom:14px;margin-left:8px;" onclick="selectAllEmptyRodentSlots()" data-i18n="rodentSelectAllBtn">☑️ Tout sélectionner</button>
+      <button class="sc-btn" style="margin-bottom:14px;margin-left:8px;" onclick="openRodentLineageDirectoryModal()" data-i18n="rodentLineageDirectoryBtn">📋 Toutes les lignées</button>
+      <div id="rodent-multiselect-actionbar" style="display:none;margin-bottom:10px;"></div>
       <div id="rodent-racks-container"></div>
       <h3 style="font-size:14px;margin:18px 0 6px;color:var(--ink);" data-i18n="rodentStockSectionTitle">🐭 Bacs (détail et bacs Stock)</h3>
       <div class="pairing-form">
@@ -2062,7 +2068,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.59';
+const APP_VERSION = '2026.09.02.2.67';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4238,6 +4244,9 @@ const I18N = {
     rodentStockSectionTitle: '🐭 Bacs (détail et bacs Stock)',
     rodentBinFormHint: 'Pour un bac Reproduction, le rack ci-dessus assigne automatiquement une lignée — ce formulaire reste surtout utile pour les bacs Stock/Croissance.',
     rodentGoalBtn: '🎯 Objectif',
+    rodentMultiSelectBtn: '☑️ Sélection multiple',
+    rodentSelectAllBtn: '☑️ Tout sélectionner',
+    rodentLineageDirectoryBtn: '📋 Toutes les lignées',
     subObjectif: '🎯 Objectif',
     objectifHint: 'Choisis le(s) gène(s) visé(s), et l\'app scanne ta collection pour proposer les meilleurs accouplements possibles — classés par probabilité réelle, pas juste par intuition.',
     objectifFindBtn: '🎯 Trouver les meilleures paires',
@@ -4784,6 +4793,9 @@ const I18N = {
     rodentStockSectionTitle: '🐭 Bins (detail and Stock bins)',
     rodentBinFormHint: 'For a Breeding bin, the rack above automatically assigns a lineage — this form is mainly useful for Stock/Grow-out bins.',
     rodentGoalBtn: '🎯 Goal',
+    rodentMultiSelectBtn: '☑️ Multi-select',
+    rodentSelectAllBtn: '☑️ Select all',
+    rodentLineageDirectoryBtn: '📋 All lineages',
     subObjectif: '🎯 Goal',
     objectifHint: 'Pick your target gene(s), and the app scans your collection to suggest the best possible pairings — ranked by real probability, not just a hunch.',
     objectifFindBtn: '🎯 Find the best pairs',
@@ -10567,7 +10579,8 @@ function rodentReproBinCardHtml(bin, isEn){
       '<div class="clutch-ref">'+escapeHtml(bin.label)+
         (bin.lineageNumber!=null ? ' <span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--gold);cursor:pointer;" title="'+(isEn?'Click to rename this lineage':'Clique pour renommer cette lignée')+'" onclick="renameRodentLineage(\''+bin.id+'\')">🧬 '+escapeHtml(rodentLineageCode(bin))+' ✎</span>'+
           ' <button class="sc-btn" style="padding:1px 6px;font-size:9.5px;" title="'+(isEn?'Male replaced / bin aging':'Mâle remplacé / vieillissement du bac')+'" onclick="openRodentLineageLetterModal(\''+bin.id+'\')">🔄</button>'+
-          ' <button class="sc-btn" style="padding:1px 6px;font-size:9.5px;" title="'+(isEn?'Lineage history':'Historique de la lignée')+'" onclick="openRodentLineageHistoryModal(\''+bin.id+'\')">🕒</button>'
+          ' <button class="sc-btn" style="padding:1px 6px;font-size:9.5px;" title="'+(isEn?'Lineage history':'Historique de la lignée')+'" onclick="openRodentLineageHistoryModal(\''+bin.id+'\')">🕒</button>'+
+          ' <button class="sc-btn" style="padding:1px 6px;font-size:9.5px;" title="'+(isEn?'Move male/female to another bin':'Déplacer un mâle/une femelle vers un autre bac')+'" onclick="openRodentMoveAnimalModal(\''+bin.id+'\')">↔️</button>'
           : '')+
       '</div>'+
       '<div class="clutch-body">'+
@@ -10605,24 +10618,33 @@ function rodentReproBinCardHtml(bin, isEn){
       '</div>'+
       '<div class="clutch-actions">'+
         '<button class="sc-btn" onclick="openRodentBinCleaningModal(\''+bin.id+'\')">🧹 '+(isEn?'Cleaning':'Nettoyage')+'</button>'+
+        '<button class="sc-btn" onclick="openRodentWaterChangeModal(\''+bin.id+'\')">💧 '+(isEn?'Water':'Eau')+'</button>'+
+        '<button class="sc-btn" onclick="openRodentBinJournalModal(\''+bin.id+'\')">🕒 '+(isEn?'Journal':'Journal')+'</button>'+
         '<button class="sc-btn" onclick="printRodentBinLabel(\''+bin.id+'\')">🏷️ '+(isEn?'Print label / QR':'Imprimer étiquette / QR')+'</button>'+
         '<button class="sc-btn danger" onclick="deleteRodentBin(\''+bin.id+'\')">'+t('deleteBtn')+'</button>'+
       '</div>'
     );
 }
-// Gabarit de carte pour un bac Stock/Croissance (9 sept) — pas de portées, pas de ratio : un
-// compteur par stade (ajustable à la main, aucun calcul d'âge automatique — voir emptyRodentStageCounts),
-// plus le contrôle du bac prioritaire de l'espèce (celui qui décompte en silence à Nourrir/Congeler).
+// Gabarit de carte pour un bac Stock/Croissance (9 sept, converti aux lots le 10 sept) — pas de
+// portées, pas de ratio : des lots avec date de référence (réelle ou calculée depuis un stade
+// déclaré), stade toujours calculé en direct, plus le contrôle du bac prioritaire de l'espèce
+// (celui qui décompte en silence à Nourrir/Congeler).
 function rodentStockBinCardHtml(bin, isEn){
-    if(!bin.stageCounts) bin.stageCounts = emptyRodentStageCounts();
-    const totalCount = RODENT_STAGE_CHART_DEFAULT.reduce((s,r)=>s+(bin.stageCounts[r.key]||0), 0);
+    if(!bin.stockBatches) bin.stockBatches = [];
+    const totalCount = rodentStockBinTotalCount(bin);
     const isPriority = rodentPriorityBins && rodentPriorityBins[bin.species]===bin.id;
-    const stageRowsHtml = RODENT_STAGE_CHART_DEFAULT.map(r=>
-      '<label style="display:flex;flex-direction:column;font-family:\'Courier New\',monospace;font-size:9px;color:var(--ink-dim);gap:2px;">'+
-        '<span>'+r.stage+'</span>'+
-        '<input type="number" min="0" value="'+(bin.stageCounts[r.key]||0)+'" style="width:64px;" onchange="updateRodentStockStageCount(\''+bin.id+'\',\''+r.key+'\',this.value)"/>'+
-      '</label>'
-    ).join('');
+    const batchesHtml = bin.stockBatches.length
+      ? [...bin.stockBatches].sort((a,b)=>a.referenceDate.localeCompare(b.referenceDate)).map(batch=>{
+          const stage = computeRodentStageFromAge(daysSinceDate(batch.referenceDate));
+          return '<div class="modal-row"><span>'+batch.quantity+' — <span style="color:var(--gold);">'+stage+'</span>'+
+            (batch.note?' <small style="color:var(--ink-dim);">('+escapeHtml(batch.note)+')</small>':'')+
+            '<br/><small style="color:var(--ink-dim);">'+(isEn?'since':'depuis')+' '+batch.referenceDate+'</small></span>'+
+            '<span style="display:flex;gap:4px;align-items:flex-start;">'+
+              '<button class="sc-btn" style="padding:2px 8px;font-size:10.5px;" onclick="openRodentStockLossModal(\''+bin.id+'\',\''+batch.id+'\')">'+(isEn?'Loss':'Perte')+'</button>'+
+              '<button class="sc-btn danger" style="padding:2px 8px;font-size:11px;" onclick="deleteRodentStockBatch(\''+bin.id+'\',\''+batch.id+'\')">×</button>'+
+            '</span></div>';
+        }).join('')
+      : '<div class="modal-row"><span>'+(isEn?'No batch yet.':'Aucun lot pour l\'instant.')+'</span></div>';
     return (
       '<div class="clutch-ref">'+escapeHtml(bin.label)+'</div>'+
       '<div class="clutch-body">'+
@@ -10642,21 +10664,106 @@ function rodentStockBinCardHtml(bin, isEn){
           return mrow(isEn?'Last cleaning':'Dernier nettoyage', '<span'+(overdue?' style="color:var(--rust);font-weight:600;"':'')+'>'+lastClean.date+' ('+days+(isEn?'d ago':'j')+')'+(overdue?' ⚠':'')+'</span>');
         })()+
       '</div>'+
-      '<p style="font-size:10px;color:var(--ink-dim);margin:8px 0 4px;">'+(isEn?'Adjust counts by hand as you observe growth — no automatic age calculation here (bins get re-sorted physically over time).':'Ajuste les chiffres à la main selon ce que tu observes — pas de calcul d\'âge automatique ici (les bacs sont re-triés physiquement au fil du temps).')+'</p>'+
-      '<div class="pairing-form" style="margin-top:6px;">'+stageRowsHtml+'</div>'+
-      '<div class="clutch-actions">'+
+      '<p style="font-size:10px;color:var(--ink-dim);margin:8px 0 4px;">'+(isEn?'Stage is calculated automatically from each batch\'s reference date — same growth chart as litters.':'Le stade se calcule automatiquement selon la date de référence de chaque lot — même charte que les portées.')+'</p>'+
+      batchesHtml+
+      '<div class="clutch-actions" style="margin-top:8px;">'+
+        '<button class="sc-btn accent" onclick="openRodentAddStockBatchModal(\''+bin.id+'\')">➕ '+(isEn?'Add a batch':'Ajouter un lot')+'</button>'+
         '<button class="sc-btn" onclick="openRodentBinCleaningModal(\''+bin.id+'\')">🧹 '+(isEn?'Cleaning':'Nettoyage')+'</button>'+
+        '<button class="sc-btn" onclick="openRodentWaterChangeModal(\''+bin.id+'\')">💧 '+(isEn?'Water':'Eau')+'</button>'+
+        '<button class="sc-btn" onclick="openRodentBinJournalModal(\''+bin.id+'\')">🕒 '+(isEn?'Journal':'Journal')+'</button>'+
         '<button class="sc-btn" onclick="printRodentBinLabel(\''+bin.id+'\')">🏷️ '+(isEn?'Print label / QR':'Imprimer étiquette / QR')+'</button>'+
         '<button class="sc-btn danger" onclick="deleteRodentBin(\''+bin.id+'\')">'+t('deleteBtn')+'</button>'+
       '</div>'
     );
 }
-function updateRodentStockStageCount(binId, stageKey, value){
+// Ajout d'un lot (10 sept) — 2 chemins, comme pour les portées : date de naissance connue (le
+// stade se calcule depuis cette vraie date), ou stade actuel déclaré si la date exacte est inconnue
+// (convertie en date de référence équivalente, puis le vieillissement suit pareil à partir de là).
+function openRodentAddStockBatchModal(binId){
+  const isEn = currentLang==='en';
   const bin = rodentBins.find(b=>b.id===binId);
   if(!bin) return;
-  const n = parseInt(value, 10);
-  if(!bin.stageCounts) bin.stageCounts = emptyRodentStageCounts();
-  bin.stageCounts[stageKey] = isNaN(n) || n<0 ? 0 : n;
+  const today = new Date().toISOString().slice(0,10);
+  const body =
+    '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Quantity':'Quantité')+'</span>'+
+      '<input type="number" id="rodent-batch-qty" min="1" value="1" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
+    '<label style="display:block;margin-bottom:10px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'How do you know their age?':'Comment tu connais leur âge?')+'</span>'+
+      '<select id="rodent-batch-method" onchange="toggleRodentBatchMethodFields()" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+        '<option value="birthdate">'+(isEn?'I know the birth date':'Je connais la date de naissance')+'</option>'+
+        '<option value="stage">'+(isEn?'I don\'t — but I know their current stage':'Non — mais je connais leur stade actuel')+'</option>'+
+      '</select></label>'+
+    '<div id="rodent-batch-birthdate-field">'+
+      '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Birth date':'Date de naissance')+'</span>'+
+        '<input type="date" id="rodent-batch-birthdate" value="'+today+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
+    '</div>'+
+    '<div id="rodent-batch-stage-field" style="display:none;">'+
+      '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Current stage':'Stade actuel')+'</span>'+
+        '<select id="rodent-batch-stage" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+          rodentStageChart.map(r=>'<option value="'+r.key+'">'+r.stage+'</option>').join('')+
+        '</select></label>'+
+    '</div>'+
+    '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Note (optional)':'Note (optionnel)')+'</span>'+
+      '<input type="text" id="rodent-batch-note" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
+    '<button class="save-btn" style="width:100%;" onclick="confirmRodentAddStockBatch(\''+binId+'\')">➕ '+(isEn?'Add batch':'Ajouter le lot')+'</button>';
+  showQuickModal('➕ '+(isEn?'New batch — ':'Nouveau lot — ')+escapeHtml(bin.label), body);
+}
+function toggleRodentBatchMethodFields(){
+  const method = document.getElementById('rodent-batch-method').value;
+  document.getElementById('rodent-batch-birthdate-field').style.display = (method==='stage') ? 'none' : '';
+  document.getElementById('rodent-batch-stage-field').style.display = (method==='stage') ? '' : 'none';
+}
+function confirmRodentAddStockBatch(binId){
+  const isEn = currentLang==='en';
+  const bin = rodentBins.find(b=>b.id===binId);
+  if(!bin) return;
+  const qty = parseInt(document.getElementById('rodent-batch-qty').value, 10);
+  if(!qty || qty<1){ showToast(isEn?'Enter a valid quantity.':'Entre une quantité valide.', 'error'); return; }
+  const method = document.getElementById('rodent-batch-method').value;
+  const note = document.getElementById('rodent-batch-note').value.trim();
+  const referenceDate = method==='stage'
+    ? rodentReferenceDateForStartingStage(document.getElementById('rodent-batch-stage').value)
+    : document.getElementById('rodent-batch-birthdate').value;
+  if(!referenceDate){ showToast(isEn?'Pick a date.':'Choisis une date.', 'error'); return; }
+  if(!bin.stockBatches) bin.stockBatches = [];
+  bin.stockBatches.push({ id:'batch_'+Date.now(), quantity:qty, referenceDate, note: note||null });
+  saveElevage();
+  closeQuickModal();
+  renderRodentBins();
+  showToast('➕ '+(isEn?'Batch added.':'Lot ajouté.'), 'success');
+}
+// Perte (10 sept) — cannibalisme, mort inconnue, peu importe la raison, décompte le lot précis.
+function openRodentStockLossModal(binId, batchId){
+  const isEn = currentLang==='en';
+  const bin = rodentBins.find(b=>b.id===binId);
+  const batch = bin && (bin.stockBatches||[]).find(b=>b.id===batchId);
+  if(!bin || !batch) return;
+  const body =
+    '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Quantity lost':'Quantité perdue')+'</span>'+
+      '<input type="number" id="rodent-loss-qty" min="1" max="'+batch.quantity+'" value="1" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
+    '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Reason (optional)':'Raison (optionnel)')+'</span>'+
+      '<input type="text" id="rodent-loss-reason" placeholder="'+(isEn?'e.g. cannibalism, found dead':'ex. cannibalisme, trouvé mort')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
+    '<button class="save-btn" style="width:100%;" onclick="confirmRodentStockLoss(\''+binId+'\',\''+batchId+'\')">'+(isEn?'Log loss':'Enregistrer la perte')+'</button>';
+  showQuickModal((isEn?'Loss — ':'Perte — ')+batch.quantity+' '+(isEn?'available':'disponible(s)'), body);
+}
+function confirmRodentStockLoss(binId, batchId){
+  const isEn = currentLang==='en';
+  const bin = rodentBins.find(b=>b.id===binId);
+  const batch = bin && (bin.stockBatches||[]).find(b=>b.id===batchId);
+  if(!bin || !batch) return;
+  const qty = Math.max(1, Math.min(batch.quantity, parseInt(document.getElementById('rodent-loss-qty').value,10)||1));
+  batch.quantity -= qty;
+  bin.stockBatches = bin.stockBatches.filter(b=>b.quantity>0);
+  saveElevage();
+  closeQuickModal();
+  renderRodentBins();
+  showToast((isEn?qty+' lost.':qty+' perdu(s).'), 'error');
+}
+function deleteRodentStockBatch(binId, batchId){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this batch entirely?':'Supprimer ce lot au complet?')) return;
+  const bin = rodentBins.find(b=>b.id===binId);
+  if(!bin) return;
+  bin.stockBatches = (bin.stockBatches||[]).filter(b=>b.id!==batchId);
   saveElevage();
   renderRodentBins();
 }
@@ -10682,7 +10789,7 @@ function addRodentBin(){
   if(!label){ showToast(isEn?'Enter a name/label for the bin.':'Entre un nom/étiquette pour le bac.', 'error'); return; }
   if(binType==='stock'){
     const sexeGroupe = document.getElementById('rodent-bin-sexe').value;
-    rodentBins.push({ id:'rb_'+Date.now(), label, species, binType:'stock', sexeGroupe, room: room||null, stageCounts: emptyRodentStageCounts() });
+    rodentBins.push({ id:'rb_'+Date.now(), label, species, binType:'stock', sexeGroupe, room: room||null, stockBatches: [] });
   } else {
     const ratio = document.getElementById('rodent-bin-ratio').value;
     rodentBins.push({ id:'rb_'+Date.now(), label, species, binType:'reproduction', ratio, room: room||null, litters:[] });
@@ -10749,6 +10856,187 @@ function deleteRodentBinCleaning(binId, cleaningId){
   saveElevage();
   renderRodentBinCleaningModalBody(binId);
   renderRodentBins();
+}
+// Changement d'eau (10 sept) — miroir exact du nettoyage ci-dessus, juste un tableau distinct
+// (bin.waterChanges) pour ne pas mélanger les deux dans l'historique de nettoyage existant.
+function openRodentWaterChangeModal(binId){
+  const bin = rodentBins.find(b=>b.id===binId);
+  if(!bin) return;
+  if(!bin.waterChanges) bin.waterChanges = [];
+  renderRodentWaterChangeModalBody(binId);
+}
+function renderRodentWaterChangeModalBody(binId){
+  const isEn = currentLang==='en';
+  const bin = rodentBins.find(b=>b.id===binId);
+  if(!bin) return;
+  const sorted = [...(bin.waterChanges||[])].sort((a,b)=>b.date.localeCompare(a.date));
+  const historyHtml = sorted.length ? sorted.map(c=>
+    '<div class="husbandry-qa" style="border-bottom:1px dashed var(--line);padding-bottom:8px;margin-bottom:8px;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;">'+
+        '<span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--gold);">💧 '+c.date+'</span>'+
+        '<button class="sc-btn danger" onclick="deleteRodentWaterChange(\''+binId+'\',\''+c.id+'\')">×</button>'+
+      '</div>'+
+      (c.note?'<div style="font-size:11px;color:var(--ink-dim);margin-top:4px;">'+escapeHtml(c.note)+'</div>':'')+
+    '</div>'
+  ).join('') : '<p style="font-size:11px;color:var(--ink-dim);">'+(isEn?'No water change logged yet.':'Aucun changement d\'eau enregistré pour l\'instant.')+'</p>';
+  const body = historyHtml +
+    '<div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);">'+
+      '<input type="text" id="rbw-note" placeholder="'+(isEn?'Note (optional)':'Note (optionnel)')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
+      '<button class="sc-btn accent" style="width:100%;" onclick="logRodentWaterChange(\''+binId+'\')">💧 '+(isEn?'Log water change':'Enregistrer le changement d\'eau')+'</button>'+
+    '</div>';
+  showQuickModal((isEn?'Water change — ':'Changement d\'eau — ')+bin.label, body);
+}
+function logRodentWaterChange(binId){
+  const bin = rodentBins.find(b=>b.id===binId);
+  if(!bin) return;
+  if(!bin.waterChanges) bin.waterChanges = [];
+  const note = document.getElementById('rbw-note').value.trim();
+  bin.waterChanges.push({ id:'water_'+Date.now(), date:new Date().toISOString().slice(0,10), note });
+  saveElevage();
+  renderRodentWaterChangeModalBody(binId);
+  renderRodentBins();
+}
+function deleteRodentWaterChange(binId, entryId){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this water change entry?':'Supprimer ce changement d\'eau ?')) return;
+  const bin = rodentBins.find(b=>b.id===binId);
+  if(!bin) return;
+  bin.waterChanges = (bin.waterChanges||[]).filter(c=>c.id!==entryId);
+  saveElevage();
+  renderRodentWaterChangeModalBody(binId);
+  renderRodentBins();
+}
+// Journal combiné (10 sept) — fusionne nettoyage + changement d'eau + historique de lignée (si bac
+// reproducteur) en une seule chronologie, plutôt que 3 endroits séparés à consulter un par un.
+function openRodentBinJournalModal(binId){
+  const isEn = currentLang==='en';
+  const bin = rodentBins.find(b=>b.id===binId);
+  if(!bin) return;
+  const entries = [];
+  (bin.cleanings||[]).forEach(c=>entries.push({ date:c.date, icon:(c.type==='complete'?'🧹':'🧽'), label:(c.type==='complete'?(isEn?'Complete cleaning':'Nettoyage complet'):(isEn?'Partial cleaning':'Nettoyage partiel')), note:c.note }));
+  (bin.waterChanges||[]).forEach(c=>entries.push({ date:c.date, icon:'💧', label:(isEn?'Water change':'Changement d\'eau'), note:c.note }));
+  if(bin.binType==='reproduction'){
+    (bin.litters||[]).forEach(l=>entries.push({ date:l.date, icon:'🐭', label:(isEn?l.count+' born':l.count+' né(s)'), note:l.note }));
+    (bin.lineageHistory||[]).filter(h=>h.date).forEach((h,i)=>entries.push({ date:h.date, icon:'🧬', label:(i===0?(isEn?'Lineage founded':'Lignée fondée'):(isEn?'Lineage advanced':'Lignée avancée')), note:h.reason }));
+    if(bin.maleRemovedDate) entries.push({ date:bin.maleRemovedDate, icon:'😴', label:(isEn?'Male removed':'Mâle retiré'), note:bin.maleRemovedNote });
+  }
+  entries.sort((a,b)=>b.date.localeCompare(a.date));
+  const body = entries.length
+    ? entries.map(e=>
+        '<div class="modal-row"><span>'+e.icon+' '+e.label+(e.note?' — <small style="color:var(--ink-dim);">'+escapeHtml(e.note)+'</small>':'')+'</span><span style="color:var(--ink-dim);">'+e.date+'</span></div>'
+      ).join('')
+    : '<div class="empty">'+(isEn?'Nothing logged yet.':'Rien d\'enregistré pour l\'instant.')+'</div>';
+  showQuickModal('🕒 '+(isEn?'Journal — ':'Journal — ')+escapeHtml(bin.label), body);
+}
+// Vue consolidée de toutes les lignées (10 sept) — au lieu de chercher à travers les cartes
+// individuelles, un seul endroit qui liste chaque lignée avec sa position, son empreinte cumulative
+// et le statut de son mâle. Triée par numéro de lignée pour repérer une lignée précise rapidement.
+function openRodentLineageDirectoryModal(){
+  const isEn = currentLang==='en';
+  const lineageBins = rodentBins.filter(b=>b.binType==='reproduction' && b.lineageNumber!=null)
+    .sort((a,b)=>a.lineageNumber-b.lineageNumber);
+  if(!lineageBins.length){
+    showQuickModal('📋 '+(isEn?'All lineages':'Toutes les lignées'), '<div class="empty">'+(isEn?'No lineage founded yet.':'Aucune lignée fondée pour l\'instant.')+'</div>');
+    return;
+  }
+  const rows = lineageBins.map(b=>{
+    const rack = b.rackId ? getRodentRack(b.rackId) : null;
+    const position = rack ? (rack.name+' — '+(isEn?'row':'rangée')+' '+b.row+', '+(isEn?'slot':'bac')+' '+b.col) : (isEn?'Not placed':'Non placé');
+    const footprintStr = (b.cumulativeFootprint && b.cumulativeFootprint.length) ? b.cumulativeFootprint.map(e=>e.number+'.'+e.generation).join(', ') : '—';
+    const maleStatus = b.maleRemovedDate ? ('😴 '+(isEn?'removed '+b.maleRemovedDate:'retiré le '+b.maleRemovedDate)) : ('✓ '+(isEn?'present':'présent'));
+    return '<div class="modal-row" style="align-items:flex-start;">'+
+      '<span><span style="font-family:\'Courier New\',monospace;color:var(--gold);">🧬 '+escapeHtml(rodentLineageCode(b))+'</span> — '+rodentSpeciesIconLabel(b.species, isEn)+' ('+(b.ratio||'—')+')'+
+        '<br/><small style="color:var(--ink-dim);">'+escapeHtml(position)+'</small>'+
+        '<br/><small style="color:var(--ink-dim);">'+(isEn?'Related':'Apparentées')+': '+footprintStr+'</small>'+
+      '</span>'+
+      '<span style="text-align:right;font-size:11px;">'+maleStatus+'</span>'+
+    '</div>';
+  }).join('');
+  showQuickModal('📋 '+(isEn?'All lineages ('+lineageBins.length+')':'Toutes les lignées ('+lineageBins.length+')'), rows);
+}
+// Déplacer un mâle/une femelle vers un autre bac, en un geste (10 sept) — avant, ça demandait 2
+// actions manuelles séparées (retirer le mâle ici, puis aller définir son origine là-bas). Un mâle
+// déplacé fait avancer la lettre du bac destination (mêmes femelles côté destination = lien
+// maintenu) ; une femelle déplacée ajoute juste son empreinte au bac destination, sans toucher aux
+// lettres/générations de personne (une femelle seule n'a jamais cet effet-là, voir mémoire).
+function openRodentMoveAnimalModal(sourceBinId){
+  const isEn = currentLang==='en';
+  const sourceBin = rodentBins.find(b=>b.id===sourceBinId);
+  if(!sourceBin) return;
+  const otherBins = rodentBins.filter(b=>b.binType==='reproduction' && b.id!==sourceBinId && b.lineageNumber!=null);
+  if(!otherBins.length){
+    showToast(isEn?'No other lineage bin to move to yet.':'Aucun autre bac de lignée où déplacer pour l\'instant.', 'error');
+    return;
+  }
+  const destOptionsHtml = otherBins.map(b=>'<option value="'+b.id+'">🧬 '+escapeHtml(rodentLineageCode(b))+'</option>').join('');
+  const body =
+    '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Who are you moving?':'Qui déplaces-tu?')+'</span>'+
+      '<select id="rodent-move-who" onchange="updateRodentMoveConflictPreview(\''+sourceBinId+'\')" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+        '<option value="male">'+(isEn?'The male':'Le mâle')+'</option>'+
+        '<option value="female">'+(isEn?'A female':'Une femelle')+'</option>'+
+      '</select></label>'+
+    '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'To which bin?':'Vers quel bac?')+'</span>'+
+      '<select id="rodent-move-dest" onchange="updateRodentMoveConflictPreview(\''+sourceBinId+'\')" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+destOptionsHtml+'</select></label>'+
+    '<div id="rodent-move-conflict-preview"></div>'+
+    '<button class="save-btn" style="width:100%;" onclick="confirmRodentMoveAnimal(\''+sourceBinId+'\')">↔️ '+(isEn?'Move':'Déplacer')+'</button>';
+  showQuickModal('↔️ '+(isEn?'Move from '+rodentLineageCode(sourceBin):'Déplacer depuis '+rodentLineageCode(sourceBin)), body);
+  updateRodentMoveConflictPreview(sourceBinId);
+}
+function updateRodentMoveConflictPreview(sourceBinId){
+  const el = document.getElementById('rodent-move-conflict-preview');
+  if(!el) return;
+  const isEn = currentLang==='en';
+  const sourceBin = rodentBins.find(b=>b.id===sourceBinId);
+  const destBinId = document.getElementById('rodent-move-dest').value;
+  const destBin = rodentBins.find(b=>b.id===destBinId);
+  const who = document.getElementById('rodent-move-who').value;
+  if(!sourceBin || !destBin){ el.innerHTML=''; return; }
+  const hasConflict = who==='male'
+    ? rodentFootprintConflict(rodentBinFootprint(destBin), sourceBin.lineageNumber)
+    : rodentFootprintConflict(rodentBinFootprint(sourceBin), destBin.maleOrigin);
+  el.innerHTML = rodentConflictPreviewHtml(hasConflict, isEn);
+}
+function confirmRodentMoveAnimal(sourceBinId){
+  const isEn = currentLang==='en';
+  const sourceBin = rodentBins.find(b=>b.id===sourceBinId);
+  const destBinId = document.getElementById('rodent-move-dest').value;
+  const destBin = rodentBins.find(b=>b.id===destBinId);
+  const who = document.getElementById('rodent-move-who').value;
+  if(!sourceBin || !destBin) return;
+  if(who==='male'){
+    const destFootprintBefore = rodentBinFootprint(destBin);
+    if(rodentFootprintConflict(destFootprintBefore, sourceBin.lineageNumber)){
+      if(!confirm(isEn
+        ? '⚠️ Inbreeding risk: this male shares a lineage with '+rodentLineageCode(destBin)+'\'s females. Move him anyway?'
+        : '⚠️ Risque de consanguinité : ce mâle partage une lignée avec les femelles de '+rodentLineageCode(destBin)+'. Le déplacer quand même?')) return;
+    }
+    sourceBin.maleRemovedDate = new Date().toISOString().slice(0,10);
+    sourceBin.maleRemovedNote = (isEn?'Moved to ':'Déplacé vers ')+rodentLineageCode(destBin);
+    ensureRodentLineageHistory(destBin);
+    const newLetter = nextRodentLetter(destBin.lineageLetter);
+    if(newLetter){
+      destBin.lineageHistory.push({ generation:destBin.lineageGeneration||1, letter:newLetter, date:new Date().toISOString().slice(0,10), reason:(isEn?'Male from ':'Mâle depuis ')+rodentLineageCode(sourceBin), linkedToPrevious:true });
+      destBin.lineageLetter = newLetter;
+    }
+    destBin.maleOrigin = sourceBin.lineageNumber;
+    destBin.maleRemovedDate = null;
+    destBin.maleRemovedNote = null;
+  } else {
+    const sourceFootprint = rodentBinFootprint(sourceBin);
+    const existingKeys = new Set((destBin.cumulativeFootprint||[]).map(e=>e.number+'|'+e.generation));
+    const newEntries = sourceFootprint.filter(e=>!existingKeys.has(e.number+'|'+e.generation));
+    if(!destBin.cumulativeFootprint) destBin.cumulativeFootprint = [];
+    destBin.cumulativeFootprint.push(...newEntries);
+    const checkFootprint = rodentBinFootprint(destBin);
+    if(rodentFootprintConflict(checkFootprint, destBin.maleOrigin)){
+      showToast(isEn?'⚠️ This female may be related to the current male — check the lineage.':'⚠️ Cette femelle pourrait être apparentée au mâle actuel — vérifie la lignée.', 'error');
+    }
+  }
+  saveElevage();
+  closeQuickModal();
+  renderRodentBins();
+  renderRodentRackGrid();
+  showToast('↔️ '+(isEn?'Move recorded.':'Déplacement enregistré.'), 'success');
 }
 function toggleRodentMaleRemoval(binId){
   const isEn = currentLang==='en';
@@ -10893,14 +11181,45 @@ function computeRodentStageFromAge(days){
   const match = rodentStageChart.find(r=>days<r.maxDay);
   return match ? match.stage : 'Large';
 }
-// Bacs Stock/Croissance (9 sept) — pas de cohorte par date de naissance : dans les faits, les
-// rongeurs sont retriés par grosseur d'un bac à l'autre au fil du temps, donc une date de naissance
-// figée par lot n'aurait pas suivi la réalité physique. Un compteur direct par stade (ajusté à la
-// main par l'éleveur au fil de ce qu'il observe) est plus simple et plus robuste.
-function emptyRodentStageCounts(){
-  const counts = {};
-  RODENT_STAGE_CHART_DEFAULT.forEach(r=>{ counts[r.key] = 0; });
-  return counts;
+// Lots de stock (10 sept, remplace le compteur manuel par stade) — chaque lot ajouté à un bac garde
+// une vraie date de référence, réelle (naissance connue) ou calculée (stade de départ déclaré au
+// moment de l'ajout) — le stade affiché est TOUJOURS recalculé en direct depuis cette date, jamais
+// stocké figé, exactement comme pour les portées. Une portée transférée vers un bac Stock utilise
+// carrément sa vraie date de naissance, aucun calcul à faire.
+function rodentStageStartDay(stageKey){
+  const idx = rodentStageChart.findIndex(r=>r.key===stageKey);
+  if(idx<=0) return 0;
+  return rodentStageChart[idx-1].maxDay;
+}
+function rodentReferenceDateForStartingStage(stageKey){
+  const offsetDays = rodentStageStartDay(stageKey);
+  const d = new Date();
+  d.setDate(d.getDate() - offsetDays);
+  return d.toISOString().slice(0,10);
+}
+function rodentBatchStageKey(batch){
+  const stageName = computeRodentStageFromAge(daysSinceDate(batch.referenceDate));
+  const found = rodentStageChart.find(r=>r.stage===stageName);
+  return found ? found.key : 'large';
+}
+function rodentStockBinTotalCount(bin){
+  return (bin.stockBatches||[]).reduce((s,b)=>s+b.quantity, 0);
+}
+// Décompte réel depuis les lots d'un bac pour un stade donné — utilisé par Nourrir/Refus (drawFrom-
+// RodentSupply) et par Congeler (confirmRodentFreeze), pris depuis le(s) lot(s) les plus vieux
+// d'abord (déjà proches d'un stade plus tardif = logique de rotation naturelle).
+function decrementRodentStockStage(bin, stageKey, qty){
+  let remaining = qty;
+  const batches = [...(bin.stockBatches||[])].filter(b=>rodentBatchStageKey(b)===stageKey && b.quantity>0)
+    .sort((a,b)=>a.referenceDate.localeCompare(b.referenceDate));
+  batches.forEach(b=>{
+    if(remaining<=0) return;
+    const take = Math.min(remaining, b.quantity);
+    b.quantity -= take;
+    remaining -= take;
+  });
+  bin.stockBatches = (bin.stockBatches||[]).filter(b=>b.quantity>0);
+  return qty - remaining;
 }
 // Les tailles de proie (PREY_TYPES[espèce].sizes, utilisées par feederStock et le repas d'un
 // reptile) ne suivent pas exactement les mêmes paliers que la charte de croissance par âge (pas de
@@ -10982,13 +11301,25 @@ function openRodentLineageLetterModal(binId){
         '<option value="non">'+(isEn?'No':'Non')+'</option>'+
       '</select></label>'+
     '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'New male — where does he come from?':'Nouveau mâle — d\'où vient-il?')+'</span>'+
-      '<select id="rodent-letter-male-origin" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+      '<select id="rodent-letter-male-origin" onchange="updateRodentLetterConflictPreview(\''+binId+'\')" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
         '<option value="">'+(isEn?'External (no known link)':'Externe (aucun lien connu)')+'</option>'+maleOriginOptionsHtml+
       '</select></label>'+
+    '<div id="rodent-letter-conflict-preview"></div>'+
     '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Reason (optional)':'Raison (optionnel)')+'</span>'+
       '<input type="text" id="rodent-letter-reason" placeholder="'+(isEn?'e.g. male passed away, aging, sold':'ex. mâle décédé, vieillissement, vendu')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
     '<button class="save-btn" style="width:100%;" onclick="confirmRodentLineageLetterIncrement(\''+binId+'\')">🔄 '+(isEn?'Advance letter':'Avancer la lettre')+'</button>';
   showQuickModal('🧬 '+(isEn?'New letter — lineage '+rodentLineageCode(bin):'Nouvelle lettre — lignée '+rodentLineageCode(bin)), body);
+}
+function updateRodentLetterConflictPreview(binId){
+  const el = document.getElementById('rodent-letter-conflict-preview');
+  if(!el) return;
+  const isEn = currentLang==='en';
+  const bin = rodentBins.find(b=>b.id===binId);
+  if(!bin) return;
+  const maleOriginRaw = document.getElementById('rodent-letter-male-origin').value;
+  const maleOrigin = maleOriginRaw ? parseInt(maleOriginRaw,10) : null;
+  if(maleOrigin==null){ el.innerHTML=''; return; }
+  el.innerHTML = rodentConflictPreviewHtml(rodentFootprintConflict(rodentBinFootprint(bin), maleOrigin), isEn);
 }
 function confirmRodentLineageLetterIncrement(binId){
   const isEn = currentLang==='en';
@@ -11053,7 +11384,50 @@ function openRodentLineageHistoryModal(binId){
 const RODENT_SPECIES_EMOJI = { mouse:'🐁', rat:'🐀', asf:'🐭' };
 function getRodentRack(rackId){ return rodentRacks.find(r=>r.id===rackId); }
 function rodentBinAt(rackId, row, col){
-  return rodentBins.find(b=>b.binType==='reproduction' && b.rackId===rackId && b.row===row && b.col===col);
+  return rodentBins.find(b=>b.rackId===rackId && b.row===row && b.col===col);
+}
+// Sélection multiple pour bacs rongeurs (10 sept) — état transitoire, pas persisté (repart à zéro
+// à chaque rechargement, comme un mode d'édition temporaire). Clé = rackId+'|'+row+'|'+col.
+var rodentMultiSelectMode = false;
+var rodentMultiSelectedSlots = new Set();
+function toggleRodentMultiSelectMode(){
+  rodentMultiSelectMode = !rodentMultiSelectMode;
+  rodentMultiSelectedSlots.clear();
+  renderRodentRackGrid();
+  renderRodentMultiSelectUi();
+}
+function toggleRodentSlotSelection(rackId, row, col){
+  const key = rackId+'|'+row+'|'+col;
+  if(rodentMultiSelectedSlots.has(key)) rodentMultiSelectedSlots.delete(key);
+  else rodentMultiSelectedSlots.add(key);
+  renderRodentRackGrid();
+  renderRodentMultiSelectUi();
+}
+function selectAllEmptyRodentSlots(){
+  rodentRacks.forEach(rack=>{
+    rack.rows.forEach((colCount, rowIdx)=>{
+      const row = rowIdx+1;
+      for(let col=1; col<=colCount; col++){
+        if(!rodentBinAt(rack.id, row, col)) rodentMultiSelectedSlots.add(rack.id+'|'+row+'|'+col);
+      }
+    });
+  });
+  renderRodentRackGrid();
+  renderRodentMultiSelectUi();
+}
+function renderRodentMultiSelectUi(){
+  const isEn = currentLang==='en';
+  const toggleBtn = document.getElementById('rodent-multiselect-toggle-btn');
+  const selectAllBtn = document.getElementById('rodent-selectall-btn');
+  const bar = document.getElementById('rodent-multiselect-actionbar');
+  if(toggleBtn) toggleBtn.textContent = rodentMultiSelectMode ? '✕ '+(isEn?'Cancel selection':'Annuler la sélection') : '☑️ '+(isEn?'Multi-select':'Sélection multiple');
+  if(selectAllBtn) selectAllBtn.style.display = rodentMultiSelectMode ? '' : 'none';
+  if(!bar) return;
+  if(!rodentMultiSelectMode || rodentMultiSelectedSlots.size===0){ bar.style.display = 'none'; return; }
+  bar.style.display = 'block';
+  bar.innerHTML = '<button class="save-btn" onclick="openRodentBulkAssignModal()">⚙️ '+(isEn
+    ? 'Configure '+rodentMultiSelectedSlots.size+' selected bin(s)'
+    : 'Configurer '+rodentMultiSelectedSlots.size+' bac(s) sélectionné(s)')+'</button>';
 }
 function renderRodentRackGrid(){
   const isEn = currentLang==='en';
@@ -11081,9 +11455,10 @@ function renderRodentRackGrid(){
         const cell = document.createElement('div');
         cell.className = 'tub' + (bin?'':' empty');
         if(bin){
-          cell.setAttribute('data-tooltip', escapeHtml(bin.label)+' — '+rodentSpeciesIconLabel(bin.species, isEn)+' — '+(bin.ratio||''));
+          const isStock = bin.binType==='stock';
+          cell.setAttribute('data-tooltip', escapeHtml(bin.label)+' — '+rodentSpeciesIconLabel(bin.species, isEn)+' — '+(isStock ? rodentSexeGroupeLabel(bin.sexeGroupe, isEn) : (bin.ratio||'')));
           cell.innerHTML = '<button class="tub-remove" title="'+(isEn?'Remove from this slot':'Retirer de ce bac')+'">✕</button>'+
-            '<div class="tub-name">🧬 '+escapeHtml(rodentLineageCode(bin))+'</div>'+
+            '<div class="tub-name">'+(isStock ? '📦 '+(isEn?'Stock':'Stock') : '🧬 '+escapeHtml(rodentLineageCode(bin)))+'</div>'+
             '<div class="tub-tag">'+(RODENT_SPECIES_EMOJI[bin.species]||'🐭')+'</div>';
           cell.addEventListener('click', ()=>{
             const card = document.getElementById('rodent-bin-card-'+bin.id);
@@ -11092,7 +11467,13 @@ function renderRodentRackGrid(){
           cell.querySelector('.tub-remove').addEventListener('click', (e)=>{ e.stopPropagation(); unassignRodentBinSlot(rack.id, row, col); });
         } else {
           cell.textContent = (isEn?'Slot ':'Bac ')+col+(isEn?' — empty':' — vide');
-          cell.addEventListener('click', ()=>openAssignRodentSlotModal(rack.id, row, col));
+          const slotKey = rack.id+'|'+row+'|'+col;
+          if(rodentMultiSelectMode){
+            if(rodentMultiSelectedSlots.has(slotKey)) cell.classList.add('multi-selected');
+            cell.addEventListener('click', ()=>toggleRodentSlotSelection(rack.id, row, col));
+          } else {
+            cell.addEventListener('click', ()=>openAssignRodentSlotModal(rack.id, row, col));
+          }
         }
         rowEl.appendChild(cell);
       }
@@ -11136,7 +11517,7 @@ function deleteRodentRack(rackId){
   const isEn = currentLang==='en';
   const rack = getRodentRack(rackId);
   if(!rack) return;
-  const occupants = rodentBins.filter(b=>b.binType==='reproduction' && b.rackId===rackId);
+  const occupants = rodentBins.filter(b=>b.rackId===rackId);
   const msg = occupants.length
     ? (isEn ? 'Delete "'+rack.name+'"? '+occupants.length+' bin(s) will become unplaced (not deleted).' : 'Supprimer "'+rack.name+'" ? '+occupants.length+' bac(s) deviendront non assignés (pas supprimés).')
     : (isEn ? 'Delete rack "'+rack.name+'"?' : 'Supprimer le rack "'+rack.name+'" ?');
@@ -11159,7 +11540,7 @@ function removeLastRodentRackRow(rackId){
   const rack = getRodentRack(rackId);
   if(!rack || rack.rows.length<=1) return;
   const row = rack.rows.length;
-  const occupants = rodentBins.filter(b=>b.binType==='reproduction' && b.rackId===rackId && b.row===row);
+  const occupants = rodentBins.filter(b=>b.rackId===rackId && b.row===row);
   if(occupants.length && !confirm(isEn
     ? ('This row contains '+occupants.length+' bin(s) — they will become unplaced. Continue?')
     : ('Cette rangée contient '+occupants.length+' bac(s) — ils deviendront non assignés. Continuer ?'))) return;
@@ -11199,7 +11580,7 @@ function unassignRodentBinSlot(rackId, row, col){
 }
 function openAssignRodentSlotModal(rackId, row, col){
   const isEn = currentLang==='en';
-  const unplaced = rodentBins.filter(b=>b.binType==='reproduction' && b.rackId==null);
+  const unplaced = rodentBins.filter(b=>b.rackId==null);
   const existingBlockHtml = unplaced.length
     ? '<div style="margin:16px 0 0;padding-top:16px;border-top:1px dashed var(--line);">'+
         '<p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 8px;">'+(isEn?'Or place an existing unplaced bin:':'Ou placer un bac existant non assigné :')+'</p>'+
@@ -11216,7 +11597,7 @@ function openAssignRodentSlotModal(rackId, row, col){
   const existingLineages = rodentBins.filter(b=>b.binType==='reproduction' && b.lineageNumber!=null);
   const femaleOriginsHtml = existingLineages.length
     ? '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">'+
-        existingLineages.map(b=>'<label style="display:flex;align-items:center;gap:4px;font-size:11px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:14px;padding:4px 10px;"><input type="checkbox" class="rodent-slot-female-origin" value="'+b.lineageNumber+'" style="margin:0;"/> 🧬 '+escapeHtml(rodentLineageCode(b))+'</label>').join('')+
+        existingLineages.map(b=>'<label style="display:flex;align-items:center;gap:4px;font-size:11px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:14px;padding:4px 10px;"><input type="checkbox" class="rodent-slot-female-origin" value="'+b.lineageNumber+'" style="margin:0;" onchange="updateRodentSlotConflictPreview()"/> 🧬 '+escapeHtml(rodentLineageCode(b))+'</label>').join('')+
       '</div>'
     : '';
   const maleOriginOptionsHtml = existingLineages.map(b=>'<option value="'+b.lineageNumber+'">🧬 '+escapeHtml(rodentLineageCode(b))+'</option>').join('');
@@ -11225,20 +11606,55 @@ function openAssignRodentSlotModal(rackId, row, col){
       '<select id="rodent-slot-species" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
         '<option value="mouse">🐁 '+(isEn?'Mouse':'Souris')+'</option><option value="rat">🐀 Rat</option><option value="asf">🐭 ASF</option>'+
       '</select></label>'+
-    '<label style="display:block;margin-bottom:10px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Ratio':'Ratio')+'</span>'+
-      '<select id="rodent-slot-ratio" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
-        '<option value="1:1">1:1</option><option value="2:1" selected>2:1</option><option value="3:1">3:1</option><option value="4:1">4:1</option>'+
+    '<label style="display:block;margin-bottom:10px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Bin type':'Type de bac')+'</span>'+
+      '<select id="rodent-slot-bintype" onchange="toggleRodentSlotBinTypeFields()" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+        '<option value="repro">'+(isEn?'Breeding (ratio)':'Reproduction (ratio)')+'</option>'+
+        '<option value="stock">'+(isEn?'No ratio — feeder/grow-out stock':'Pas de ratio — bac de nourriture/croissance')+'</option>'+
       '</select></label>'+
-    (existingLineages.length ? '<p style="font-size:10.5px;color:var(--ink-dim);margin:12px 0 6px;">'+(isEn?'Where do the females come from? (check all that apply — leave blank for a fresh/origin lineage)':'D\'où viennent les femelles? (coche tout ce qui s\'applique — laisse vide si lignée d\'origine)')+'</p>'+femaleOriginsHtml : '')+
-    '<label style="display:block;margin-bottom:6px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Male — where does he come from?':'Mâle — d\'où vient-il?')+'</span>'+
-      '<select id="rodent-slot-male-origin" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
-        '<option value="">'+(isEn?'External (no known link)':'Externe (aucun lien connu)')+'</option>'+maleOriginOptionsHtml+
-      '</select></label>'+
-    '<label style="display:block;margin-bottom:10px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Not actually independent? Note why (optional)':'Pas vraiment indépendante? Note pourquoi (optionnel)')+'</span>'+
-      '<input type="text" id="rodent-slot-note" placeholder="'+(isEn?'e.g. bought from the same breeder as lineage 4':'ex. achetée du même éleveur que la lignée 4')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
-    '<button class="save-btn" style="width:100%;" onclick="confirmAssignNewRodentLineage(\''+rackId+'\','+row+','+col+')">➕ '+(isEn?'Create new lineage':'Créer une nouvelle lignée')+'</button>'+
+    '<div id="rodent-slot-repro-fields">'+
+      '<label style="display:block;margin-bottom:10px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Ratio':'Ratio')+'</span>'+
+        '<select id="rodent-slot-ratio" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+          '<option value="1:1">1:1</option><option value="2:1" selected>2:1</option><option value="3:1">3:1</option><option value="4:1">4:1</option>'+
+        '</select></label>'+
+      (existingLineages.length ? '<p style="font-size:10.5px;color:var(--ink-dim);margin:12px 0 6px;">'+(isEn?'Where do the females come from? (check all that apply — leave blank for a fresh/origin lineage)':'D\'où viennent les femelles? (coche tout ce qui s\'applique — laisse vide si lignée d\'origine)')+'</p>'+femaleOriginsHtml : '')+
+      '<label style="display:block;margin-bottom:6px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Male — where does he come from?':'Mâle — d\'où vient-il?')+'</span>'+
+        '<select id="rodent-slot-male-origin" onchange="updateRodentSlotConflictPreview()" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+          '<option value="">'+(isEn?'External (no known link)':'Externe (aucun lien connu)')+'</option>'+maleOriginOptionsHtml+
+        '</select></label>'+
+      '<div id="rodent-slot-conflict-preview"></div>'+
+      '<label style="display:block;margin-bottom:10px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Not actually independent? Note why (optional)':'Pas vraiment indépendante? Note pourquoi (optionnel)')+'</span>'+
+        '<input type="text" id="rodent-slot-note" placeholder="'+(isEn?'e.g. bought from the same breeder as lineage 4':'ex. achetée du même éleveur que la lignée 4')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
+      '<button class="save-btn" style="width:100%;" onclick="confirmAssignNewRodentLineage(\''+rackId+'\','+row+','+col+')">➕ '+(isEn?'Create new lineage':'Créer une nouvelle lignée')+'</button>'+
+    '</div>'+
+    '<div id="rodent-slot-stock-fields" style="display:none;">'+
+      '<label style="display:block;margin-bottom:10px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Group':'Groupe')+'</span>'+
+        '<select id="rodent-slot-sexe" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+          '<option value="mixte">'+(isEn?'Mixed':'Mixte')+'</option><option value="males">'+(isEn?'Males only':'Mâles seulement')+'</option><option value="femelles">'+(isEn?'Females only':'Femelles seulement')+'</option>'+
+        '</select></label>'+
+      '<p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 10px;">'+(isEn?'For growing out weaned feeders — one depot bin is fine, or split by size if you prefer.':'Pour faire grandir des sevrés destinés à devenir des proies — un seul bac dépôt suffit, ou plusieurs triés par taille si tu préfères.')+'</p>'+
+      '<button class="save-btn" style="width:100%;" onclick="confirmAssignNewRodentStockBin(\''+rackId+'\','+row+','+col+')">➕ '+(isEn?'Create stock bin':'Créer le bac de stock')+'</button>'+
+    '</div>'+
     existingBlockHtml;
   showQuickModal('🧬 '+(isEn?'Row '+row+' — slot '+col:'Rangée '+row+' — bac '+col), body);
+}
+function toggleRodentSlotBinTypeFields(){
+  const type = document.getElementById('rodent-slot-bintype').value;
+  const reproEl = document.getElementById('rodent-slot-repro-fields');
+  const stockEl = document.getElementById('rodent-slot-stock-fields');
+  if(reproEl) reproEl.style.display = (type==='stock') ? 'none' : '';
+  if(stockEl) stockEl.style.display = (type==='stock') ? '' : 'none';
+}
+function confirmAssignNewRodentStockBin(rackId, row, col){
+  const isEn = currentLang==='en';
+  const species = document.getElementById('rodent-slot-species').value;
+  const sexeGroupe = document.getElementById('rodent-slot-sexe').value;
+  const bin = { id:'rb_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), label:(isEn?'Stock bin':'Bac de stock'), binType:'stock', species, sexeGroupe, room:null, rackId, row, col, stockBatches: [] };
+  rodentBins.push(bin);
+  saveElevage();
+  closeQuickModal();
+  renderRodentRackGrid();
+  renderRodentBins();
+  showToast('📦 '+(isEn?'Stock bin created.':'Bac de stock créé.'), 'success');
 }
 // Filet anti-consanguinité (10 sept, Phase 3 — simplifié le même jour grâce au système
 // number.generation+lettre) — cœur du système. Empreinte = liste de {number, generation}. Deux
@@ -11256,24 +11672,35 @@ function rodentFootprintConflict(footprint, candidateNumber){
   const candidateGen = candidateBin.lineageGeneration||1;
   return footprint.some(entry=> entry.number===candidateNumber && entry.generation===candidateGen);
 }
-function confirmAssignNewRodentLineage(rackId, row, col){
+// Aperçu de conflit en direct (10 sept) — la modale de sélection cache le rack en dessous, donc une
+// vraie surbrillance jaune sur les bacs serait invisible pendant la sélection. Même valeur livrée
+// autrement : un encadré qui se met à jour à chaque changement de choix, directement dans la modale.
+function rodentConflictPreviewHtml(hasConflict, isEn){
+  return hasConflict
+    ? '<p style="background:rgba(163,77,44,.15);border:1px solid var(--rust);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--rust);margin:0 0 10px;">⚠️ '+(isEn?'This male shares a lineage with the selected females.':'Ce mâle partage une lignée avec les femelles choisies.')+'</p>'
+    : '<p style="background:rgba(124,131,99,.15);border:1px solid var(--sage);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--sage);margin:0 0 10px;">✓ '+(isEn?'No conflict detected.':'Aucun conflit détecté.')+'</p>';
+}
+function updateRodentSlotConflictPreview(){
+  const el = document.getElementById('rodent-slot-conflict-preview');
+  if(!el) return;
   const isEn = currentLang==='en';
-  const species = document.getElementById('rodent-slot-species').value;
-  const ratio = document.getElementById('rodent-slot-ratio').value;
-  const note = document.getElementById('rodent-slot-note').value.trim();
   const maleOriginRaw = document.getElementById('rodent-slot-male-origin').value;
   const maleOrigin = maleOriginRaw ? parseInt(maleOriginRaw,10) : null;
+  if(maleOrigin==null){ el.innerHTML=''; return; }
   const femaleOriginNumbers = Array.from(document.querySelectorAll('.rodent-slot-female-origin:checked')).map(cb=>parseInt(cb.value,10));
-  const num = nextAvailableLineageNumber();
-  if(num==null){
-    showToast(isEn
-      ? 'You\'ve reached 100 lineages — email support@locusscales.com, we\'ll help sort this out.'
-      : 'Tu as atteint 100 lignées — écris à support@locusscales.com, on va t\'aider à régler ça.', 'error');
-    return;
-  }
-  // Empreinte cumulative = union des empreintes {numéro,génération} de chaque lignée d'origine des
-  // femelles (10 sept, simplifié le même jour avec le système number.generation+lettre).
   const rawFootprint = femaleOriginNumbers.flatMap(n=>{
+    const sourceBin = rodentBins.find(b=>b.binType==='reproduction' && b.lineageNumber===n);
+    return sourceBin ? rodentBinFootprint(sourceBin) : [{number:n, generation:1}];
+  });
+  el.innerHTML = rodentConflictPreviewHtml(rodentFootprintConflict(rawFootprint, maleOrigin), isEn);
+}// Construit un bac de lignée SANS le pousser dans rodentBins — permet au code appelant de gérer
+// l'avertissement de consanguinité avant de vraiment créer le bac (10 sept, extrait pour être
+// réutilisé par la sélection multiple sans dupliquer toute cette logique).
+function buildRodentLineageBin({species, ratio, rackId, row, col, femaleOriginNumbers, maleOrigin, note}){
+  const isEn = currentLang==='en';
+  const num = nextAvailableLineageNumber();
+  if(num==null) return null;
+  const rawFootprint = (femaleOriginNumbers||[]).flatMap(n=>{
     const sourceBin = rodentBins.find(b=>b.binType==='reproduction' && b.lineageNumber===n);
     return sourceBin ? rodentBinFootprint(sourceBin) : [{number:n, generation:1}];
   });
@@ -11283,23 +11710,101 @@ function confirmAssignNewRodentLineage(rackId, row, col){
     if(seenKeys.has(key)) return false;
     seenKeys.add(key); return true;
   });
-  const checkFootprint = [{number:num, generation:1}, ...cumulativeFootprint];
+  return { id:'rb_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), label:(isEn?'Lineage ':'Lignée ')+num+'.1', binType:'reproduction', species, ratio, room:null, litters:[],
+    lineageNumber:num, lineageGeneration:1, lineageLetter:null, lineageCustomName:null, rackId, row, col,
+    lineageHistory:[{ generation:1, letter:null, date:new Date().toISOString().slice(0,10), reason:null, linkedToPrevious:null }],
+    cumulativeFootprint, notIndependentNote: note||null, maleOrigin };
+}
+function confirmAssignNewRodentLineage(rackId, row, col){
+  const isEn = currentLang==='en';
+  const species = document.getElementById('rodent-slot-species').value;
+  const ratio = document.getElementById('rodent-slot-ratio').value;
+  const note = document.getElementById('rodent-slot-note').value.trim();
+  const maleOriginRaw = document.getElementById('rodent-slot-male-origin').value;
+  const maleOrigin = maleOriginRaw ? parseInt(maleOriginRaw,10) : null;
+  const femaleOriginNumbers = Array.from(document.querySelectorAll('.rodent-slot-female-origin:checked')).map(cb=>parseInt(cb.value,10));
+  const bin = buildRodentLineageBin({species, ratio, rackId, row, col, femaleOriginNumbers, maleOrigin, note});
+  if(!bin){
+    showToast(isEn
+      ? 'You\'ve reached 100 lineages — email support@locusscales.com, we\'ll help sort this out.'
+      : 'Tu as atteint 100 lignées — écris à support@locusscales.com, on va t\'aider à régler ça.', 'error');
+    return;
+  }
+  const checkFootprint = [{number:bin.lineageNumber, generation:1}, ...bin.cumulativeFootprint];
   if(rodentFootprintConflict(checkFootprint, maleOrigin)){
     const maleBin = rodentBins.find(b=>b.binType==='reproduction' && b.lineageNumber===maleOrigin);
     if(!confirm(isEn
       ? '⚠️ Inbreeding risk: this male shares lineage '+maleOrigin+' with the females you selected ('+(maleBin?rodentLineageCode(maleBin):maleOrigin)+'). Create this lineage anyway?'
       : '⚠️ Risque de consanguinité : ce mâle partage la lignée '+maleOrigin+' avec les femelles choisies ('+(maleBin?rodentLineageCode(maleBin):maleOrigin)+'). Créer cette lignée quand même?')) return;
   }
-  const bin = { id:'rb_'+Date.now(), label:(isEn?'Lineage ':'Lignée ')+num+'.1', binType:'reproduction', species, ratio, room:null, litters:[],
-    lineageNumber:num, lineageGeneration:1, lineageLetter:null, lineageCustomName:null, rackId, row, col,
-    lineageHistory:[{ generation:1, letter:null, date:new Date().toISOString().slice(0,10), reason:null, linkedToPrevious:null }],
-    cumulativeFootprint, notIndependentNote: note||null, maleOrigin };
   rodentBins.push(bin);
   saveElevage();
   closeQuickModal();
   renderRodentRackGrid();
   renderRodentBins();
-  showToast('🧬 '+(isEn?'Lineage '+num+'.1 created.':'Lignée '+num+'.1 créée.'), 'success');
+  showToast('🧬 '+(isEn?'Lineage '+bin.lineageNumber+'.1 created.':'Lignée '+bin.lineageNumber+'.1 créée.'), 'success');
+}
+// Création en lot (10 sept) — même modale/logique que la création simple, mais applique le même
+// species/ratio/origine à tous les bacs vides sélectionnés en mode multi-sélection.
+function openRodentBulkAssignModal(){
+  const isEn = currentLang==='en';
+  const existingLineages = rodentBins.filter(b=>b.binType==='reproduction' && b.lineageNumber!=null);
+  const femaleOriginsHtml = existingLineages.length
+    ? '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">'+
+        existingLineages.map(b=>'<label style="display:flex;align-items:center;gap:4px;font-size:11px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:14px;padding:4px 10px;"><input type="checkbox" class="rodent-bulk-female-origin" value="'+b.lineageNumber+'" style="margin:0;"/> 🧬 '+escapeHtml(rodentLineageCode(b))+'</label>').join('')+
+      '</div>'
+    : '';
+  const maleOriginOptionsHtml = existingLineages.map(b=>'<option value="'+b.lineageNumber+'">🧬 '+escapeHtml(rodentLineageCode(b))+'</option>').join('');
+  const body =
+    '<p style="font-size:11px;color:var(--ink-dim);margin:0 0 14px;">'+(isEn
+      ? 'Applies to all '+rodentMultiSelectedSlots.size+' selected slots — each still becomes its own separate lineage.'
+      : 'S\'applique aux '+rodentMultiSelectedSlots.size+' bacs sélectionnés — chacun devient quand même sa propre lignée distincte.')+'</p>'+
+    '<label style="display:block;margin-bottom:10px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Species':'Espèce')+'</span>'+
+      '<select id="rodent-bulk-species" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+        '<option value="mouse">🐁 '+(isEn?'Mouse':'Souris')+'</option><option value="rat">🐀 Rat</option><option value="asf">🐭 ASF</option>'+
+      '</select></label>'+
+    '<label style="display:block;margin-bottom:10px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Ratio':'Ratio')+'</span>'+
+      '<select id="rodent-bulk-ratio" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+        '<option value="1:1">1:1</option><option value="2:1" selected>2:1</option><option value="3:1">3:1</option><option value="4:1">4:1</option>'+
+      '</select></label>'+
+    (existingLineages.length ? '<p style="font-size:10.5px;color:var(--ink-dim);margin:12px 0 6px;">'+(isEn?'Where do the females come from? (applies to all selected bins — leave blank for fresh/origin lineages)':'D\'où viennent les femelles? (s\'applique à tous les bacs sélectionnés — laisse vide pour des lignées d\'origine)')+'</p>'+femaleOriginsHtml : '')+
+    '<label style="display:block;margin-bottom:6px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Male — where does he come from?':'Mâle — d\'où vient-il?')+'</span>'+
+      '<select id="rodent-bulk-male-origin" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+        '<option value="">'+(isEn?'External (no known link)':'Externe (aucun lien connu)')+'</option>'+maleOriginOptionsHtml+
+      '</select></label>'+
+    '<p style="font-size:10px;color:var(--ink-dim);margin:0 0 10px;">'+(isEn?'Note: each bin gets its own lineage number automatically — no shared note field here since it would apply to all of them at once.':'Note : chaque bac reçoit son propre numéro de lignée automatiquement — pas de champ note ici puisqu\'il s\'appliquerait à tous en même temps.')+'</p>'+
+    '<button class="save-btn" style="width:100%;" onclick="confirmRodentBulkAssign()">➕ '+(isEn?'Create '+rodentMultiSelectedSlots.size+' lineages':'Créer '+rodentMultiSelectedSlots.size+' lignées')+'</button>';
+  showQuickModal('🧬 '+(isEn?'Configure selected bins':'Configurer les bacs sélectionnés'), body);
+}
+function confirmRodentBulkAssign(){
+  const isEn = currentLang==='en';
+  const species = document.getElementById('rodent-bulk-species').value;
+  const ratio = document.getElementById('rodent-bulk-ratio').value;
+  const maleOriginRaw = document.getElementById('rodent-bulk-male-origin').value;
+  const maleOrigin = maleOriginRaw ? parseInt(maleOriginRaw,10) : null;
+  const femaleOriginNumbers = Array.from(document.querySelectorAll('.rodent-bulk-female-origin:checked')).map(cb=>parseInt(cb.value,10));
+  const slots = [...rodentMultiSelectedSlots].map(key=>{
+    const [rackId, row, col] = key.split('|');
+    return { rackId, row:parseInt(row,10), col:parseInt(col,10) };
+  });
+  let created = 0, blocked = 0, conflictWarned = false;
+  for(const slot of slots){
+    const bin = buildRodentLineageBin({ species, ratio, rackId:slot.rackId, row:slot.row, col:slot.col, femaleOriginNumbers, maleOrigin, note:null });
+    if(!bin){ blocked++; break; } // plafond de 100 lignées atteint en cours de route
+    const checkFootprint = [{number:bin.lineageNumber, generation:1}, ...bin.cumulativeFootprint];
+    if(rodentFootprintConflict(checkFootprint, maleOrigin)) conflictWarned = true;
+    rodentBins.push(bin);
+    created++;
+  }
+  saveElevage();
+  closeQuickModal();
+  rodentMultiSelectedSlots.clear();
+  rodentMultiSelectMode = false;
+  renderRodentRackGrid();
+  renderRodentBins();
+  renderRodentMultiSelectUi();
+  if(blocked) showToast(isEn?'Stopped at 100 lineages — email support@locusscales.com for more.':'Arrêté à 100 lignées — écris à support@locusscales.com pour plus.', 'error');
+  showToast('🧬 '+(isEn?created+' lineage(s) created.':created+' lignée(s) créée(s).')+(conflictWarned?(isEn?' ⚠️ Some share a lineage with the chosen male — check the cards.':' ⚠️ Certaines partagent une lignée avec le mâle choisi — vérifie les cartes.'):''), created?'success':'error');
 }
 function confirmAssignExistingRodentBin(rackId, row, col){
   const isEn = currentLang==='en';
@@ -11426,15 +11931,16 @@ function drawFromRodentSupply(species, size, qty){
   const stageKey = preySizeToStageKey(size);
   const binId = rodentPriorityBins ? rodentPriorityBins[species] : null;
   const bin = binId ? rodentBins.find(b=>b.id===binId && b.binType==='stock') : null;
-  if(bin && stageKey && bin.stageCounts && bin.stageCounts[stageKey]>0){
-    const taken = Math.min(qty, bin.stageCounts[stageKey]);
-    bin.stageCounts[stageKey] -= taken;
-    const remaining = qty - taken;
-    if(remaining>0){
-      const key = feederStockKey(species, size);
-      if(feederStock[key]!=null) feederStock[key] = Math.max(0, feederStock[key]-remaining);
+  if(bin && stageKey){
+    const taken = decrementRodentStockStage(bin, stageKey, qty);
+    if(taken>0){
+      const remaining = qty - taken;
+      if(remaining>0){
+        const key = feederStockKey(species, size);
+        if(feederStock[key]!=null) feederStock[key] = Math.max(0, feederStock[key]-remaining);
+      }
+      return { fromBin:bin, takenFromBin:taken };
     }
-    return { fromBin:bin, takenFromBin:taken };
   }
   const key = feederStockKey(species, size);
   if(feederStock[key]!=null) feederStock[key] = Math.max(0, feederStock[key]-qty);
@@ -11532,9 +12038,10 @@ function openRodentStockLinkModal(binId, litterId){
   const litter = bin && (bin.litters||[]).find(l=>l.id===litterId);
   if(!bin || !litter) return;
   const sizes = (PREY_TYPES[bin.species] && PREY_TYPES[bin.species].sizes) || ['Pinky'];
-  // Destination du transfert (9 sept) — congélo direct (comportement d'origine, Phase 5) OU un bac
-  // Stock/Croissance de la même espèce, à un stade choisi (Weanling par défaut — c'est justement le
-  // moment où les bébés sont typiquement libérés du bac reproducteur vers un bac de croissance).
+  // Destination du transfert (9 sept, simplifié le 10 sept) — congélo direct (Phase 5) OU un bac
+  // Stock/Croissance de la même espèce. Plus besoin de choisir un stade d'entrée : la portée a déjà
+  // une vraie date de naissance, le lot créé dans le bac Stock l'utilise directement — le stade se
+  // calcule tout seul depuis cette date, comme pour n'importe quel autre lot.
   const targetBins = rodentBins.filter(b=>b.binType==='stock' && b.species===bin.species);
   const binOptionsHtml = targetBins.length
     ? targetBins.map(b=>'<option value="'+b.id+'">'+escapeHtml(b.label)+'</option>').join('')
@@ -11557,10 +12064,7 @@ function openRodentStockLinkModal(binId, litterId){
     '<div id="rodent-stock-dest-bin" style="display:none;">'+
       '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Target bin':'Bac cible')+'</span>'+
         '<select id="rodent-stock-target-bin" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+binOptionsHtml+'</select></label>'+
-      '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Enters at stage':'Entre au stade')+'</span>'+
-        '<select id="rodent-stock-target-stage" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
-          RODENT_STAGE_CHART_DEFAULT.map(r=>'<option value="'+r.key+'"'+(r.key==='weanling'?' selected':'')+'>'+r.stage+'</option>').join('')+
-        '</select></label>'+
+      '<p style="font-size:10px;color:var(--ink-dim);margin:0 0 10px;">'+(isEn?'Enters with the litter\'s real birth date ('+litter.date+') — stage will be calculated automatically from there.':'Entre avec la vraie date de naissance de la portée ('+litter.date+') — le stade se calcule automatiquement à partir de là.')+'</p>'+
     '</div>'+
     '<button class="save-btn" style="width:100%;" onclick="confirmRodentStockLink(\''+binId+'\',\''+litterId+'\')">📦 '+(isEn?'Confirm':'Confirmer')+'</button>';
   showQuickModal('📦 '+(isEn?'Transfer destination':'Destination du transfert'), body);
@@ -11573,11 +12077,10 @@ function confirmRodentStockLink(binId, litterId){
   const dest = document.getElementById('rodent-stock-dest').value;
   if(dest==='bin'){
     const targetId = document.getElementById('rodent-stock-target-bin').value;
-    const stage = document.getElementById('rodent-stock-target-stage').value;
     const targetBin = rodentBins.find(b=>b.id===targetId && b.binType==='stock');
     if(!targetBin){ showToast(isEn?'Pick a valid target bin.':'Choisis un bac cible valide.', 'error'); return; }
-    if(!targetBin.stageCounts) targetBin.stageCounts = emptyRodentStageCounts();
-    targetBin.stageCounts[stage] = (targetBin.stageCounts[stage]||0) + litter.transferred;
+    if(!targetBin.stockBatches) targetBin.stockBatches = [];
+    targetBin.stockBatches.push({ id:'batch_'+Date.now(), quantity:litter.transferred, referenceDate: litter.date, note: (isEn?'From litter ':'De la portée ')+bin.label });
     litter.stockAdded = true;
     saveElevage();
     closeQuickModal();
@@ -11609,8 +12112,8 @@ function renderRodentFreezeModalBody(species, keepBinId){
   const binOptionsHtml = bins.length
     ? bins.map(b=>'<option value="'+b.id+'"'+(b.id===selectedBinId?' selected':'')+'>'+escapeHtml(b.label)+(b.id===priorityId?' ⭐':'')+'</option>').join('')
     : '<option value="">'+(isEn?'No stock bin for this species':'Aucun bac Stock pour cette espèce')+'</option>';
-  const stageOptionsHtml = RODENT_STAGE_CHART_DEFAULT.map(r=>{
-    const count = (selectedBin && selectedBin.stageCounts) ? (selectedBin.stageCounts[r.key]||0) : 0;
+  const stageOptionsHtml = rodentStageChart.map(r=>{
+    const count = selectedBin ? (selectedBin.stockBatches||[]).filter(b=>rodentBatchStageKey(b)===r.key).reduce((s,b)=>s+b.quantity,0) : 0;
     return '<option value="'+r.key+'"'+(count>0?'':' disabled')+'>'+r.stage+' — '+count+'</option>';
   }).join('');
   const sizes = (PREY_TYPES[species] && PREY_TYPES[species].sizes) || ['Pinky'];
@@ -11646,11 +12149,8 @@ function confirmRodentFreeze(species){
   const qtyInput = document.getElementById('rf-qty');
   const qty = Math.max(1, parseInt(qtyInput.value,10)||1);
   if(!bin){ showToast(isEn?'Pick a valid bin.':'Choisis un bac valide.', 'error'); return; }
-  if(!bin.stageCounts) bin.stageCounts = emptyRodentStageCounts();
-  const available = bin.stageCounts[stage]||0;
-  if(available<=0){ showToast(isEn?'Nothing at that stage in this bin.':'Rien à ce stade dans ce bac.', 'error'); return; }
-  const taken = Math.min(qty, available);
-  bin.stageCounts[stage] -= taken;
+  const taken = decrementRodentStockStage(bin, stage, qty);
+  if(taken<=0){ showToast(isEn?'Nothing at that stage in this bin.':'Rien à ce stade dans ce bac.', 'error'); return; }
   const key = feederStockKey(species, size);
   feederStock[key] = (feederStock[key]||0) + taken;
   saveElevage();
