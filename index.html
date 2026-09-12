@@ -2068,7 +2068,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.67';
+const APP_VERSION = '2026.09.02.2.69';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2828,6 +2828,39 @@ const GENES = [
   {id:'puzzle', name:'Puzzle', type:'recessive', locus:'puzzle', cat:'Récessif'},
   {id:'sentinel', name:'Sentinel', type:'recessive', locus:'sentinel', cat:'Récessif'},
   {id:'paint', name:'Paint', type:'recessive', locus:'paint', cat:'Récessif'},
+  // Ajoutés le 10 sept — trouvés manquants en comparant les 78 gènes existants à Morphpedia
+  // (tranche F à N vérifiée d'abord). Fader (polygénique) volontairement exclu, même logique que
+  // les autres traits polygéniques déjà écartés du calculateur.
+  {id:'frost', name:'Frost', type:'dominant', locus:'frost', cat:'Dominant'},
+  {id:'nova', name:'Nova', type:'dominant', locus:'nova', cat:'Dominant'},
+  {id:'furrow', name:'Furrow', type:'incdom', locus:'furrow', cat:'Codominant / Incomplet dominant'},
+  {id:'fusion', name:'Fusion', type:'incdom', locus:'fusion', cat:'Codominant / Incomplet dominant'},
+  {id:'motley', name:'Motley', type:'incdom', locus:'motley', cat:'Codominant / Incomplet dominant'},
+  {id:'nanny', name:'Nanny', type:'incdom', locus:'nanny', cat:'Codominant / Incomplet dominant'},
+  {id:'nico', name:'Nico', type:'incdom', locus:'nico', cat:'Codominant / Incomplet dominant'},
+  {id:'nrmandarin', name:'NR Mandarin', type:'incdom', locus:'nrmandarin', cat:'Codominant / Incomplet dominant'},
+  // Ajoutés le 10 sept — 2e vague, tranche A à G de Morphpedia vérifiée.
+  {id:'hypo210', name:'210 Hypo', type:'recessive', locus:'hypo210', cat:'Récessif'},
+  {id:'adder', name:'Adder', type:'dominant', locus:'adder', cat:'Dominant'},
+  {id:'ahi', name:'AHI', type:'dominant', locus:'ahi', cat:'Dominant'},
+  {id:'ajax', name:'Ajax', type:'incdom', locus:'ajax', cat:'Codominant / Incomplet dominant'},
+  {id:'alloy', name:'Alloy', type:'incdom', locus:'alloy', cat:'Codominant / Incomplet dominant'},
+  {id:'atomic', name:'Atomic', type:'recessive', locus:'atomic', cat:'Récessif'},
+  {id:'axanthicgcr', name:'Axanthic (GCR)', type:'recessive', locus:'axanthicgcr', cat:'Récessif'},
+  {id:'bald', name:'Bald', type:'incdom', locus:'bald', cat:'Codominant / Incomplet dominant'},
+  {id:'bambino', name:'Bambino', type:'incdom', locus:'bambino', cat:'Codominant / Incomplet dominant'},
+  {id:'bang', name:'Bang', type:'incdom', locus:'bang', cat:'Codominant / Incomplet dominant'},
+  {id:'bengal', name:'Bengal', type:'recessive', locus:'bengal', cat:'Récessif'},
+  {id:'blackaxanthic', name:'Black Axanthic', type:'recessive', locus:'blackaxanthic', cat:'Récessif'},
+  {id:'blackbelly', name:'Black Belly', type:'dominant', locus:'blackbelly', cat:'Dominant'},
+  {id:'blacklace', name:'Black Lace', type:'recessive', locus:'blacklace', cat:'Récessif'},
+  {id:'blade', name:'Blade', type:'incdom', locus:'blade', cat:'Codominant / Incomplet dominant'},
+  {id:'cafe', name:'Cafe', type:'incdom', locus:'cafe', cat:'Codominant / Incomplet dominant'},
+  {id:'dot', name:'Dot', type:'incdom', locus:'dot', cat:'Codominant / Incomplet dominant'},
+  {id:'emg', name:'EMG', type:'incdom', locus:'emg', cat:'Codominant / Incomplet dominant'},
+  {id:'enhancer', name:'Enhancer', type:'recessive', locus:'enhancer', cat:'Récessif'},
+  {id:'gaia', name:'Gaia', type:'incdom', locus:'gaia', cat:'Codominant / Incomplet dominant'},
+  {id:'gallium', name:'Gallium', type:'incdom', locus:'gallium', cat:'Codominant / Incomplet dominant'},
 ];
 
 const GENES_BY_LOCUS = {};
