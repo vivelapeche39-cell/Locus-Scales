@@ -1105,6 +1105,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 
   <div class="calc-bar">
     <button class="calc-btn" data-i18n="calcBtn" onclick="runCross()">Calculer la portée</button>
+    <button class="calc-btn" style="background:var(--sage);margin-left:8px;" onclick="openDreamSimModal()" data-i18n="dreamSimBtn">🔮 Simulateur de rêverie</button>
   </div>
 
   <div class="results-hdr">
@@ -2068,7 +2069,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.69';
+const APP_VERSION = '2026.09.02.2.70';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3879,6 +3880,7 @@ const I18N = {
     preyChartDisclaimer: '⚠ Charte donnée à titre indicatif seulement — l\'appétit, l\'âge, l\'état de santé et le tempérament de chaque individu varient. Ne remplace pas ton propre jugement d\'éleveur ni l\'avis d\'un vétérinaire reptile en cas de doute.',
     appTag: 'Gestion d\'élevage — Python royal (Ball Python)',
     calcBtn: 'Calculer la portée',
+    dreamSimBtn: '🔮 Simulateur de rêverie',
     menuProfile: 'Mon profil',
     menuHelpSearch: 'Recherche dans l\'aide',
     menuAnnouncements: 'Annonces',
@@ -4428,6 +4430,7 @@ const I18N = {
     preyChartDisclaimer: '⚠ Chart given as a general guide only — appetite, age, health, and temperament vary by individual. This does not replace your own judgment as a breeder or the advice of a reptile vet when in doubt.',
     appTag: 'Ball Python breeding management',
     calcBtn: 'Calculate Clutch',
+    dreamSimBtn: '🔮 Dream Simulator',
     menuProfile: 'My Profile',
     menuHelpSearch: 'Search help',
     menuAnnouncements: 'Announcements',
@@ -7260,6 +7263,126 @@ function pairToGeneStatuses(locus, pair){
   });
   return result;
 }
+// Version pure de runCross (10 sept, pour le simulateur de rêverie) — même logique de croisement
+// locus par locus, mais retourne les résultats au lieu de toucher l'état global du calculateur
+// (state.male/state.female) ou le DOM. Prend directement 2 objets .genes (vrai reptile OU bébé rêve).
+function computeCrossOutcomes(genesA, genesB){
+  const p1 = allelesFromSelections(genesA||{});
+  const p2 = allelesFromSelections(genesB||{});
+  const loci = Array.from(new Set([...Object.keys(p1), ...Object.keys(p2)]));
+  let distributions = [{prob:1, traits:[], genotype:{}}];
+  loci.forEach(locus=>{
+    const a1 = p1[locus] || ['WT','WT'];
+    const a2 = p2[locus] || ['WT','WT'];
+    const locusOutcomes = crossLocus(a1, a2);
+    const next = [];
+    distributions.forEach(d=>{
+      locusOutcomes.forEach(o=>{
+        const pheno = phenotypeForLocusPair(locus, o.pair);
+        const locusGenotype = pairToGeneStatuses(locus, o.pair);
+        next.push({ prob: d.prob*o.prob, traits: pheno ? [...d.traits, pheno] : d.traits, genotype: {...d.genotype, ...locusGenotype} });
+      });
+    });
+    distributions = next;
+  });
+  const agg = {};
+  distributions.forEach(d=>{
+    const visuals = d.traits.filter(tr=>tr.visual).map(tr=>tr.label).sort();
+    const hets = d.traits.filter(tr=>!tr.visual).map(tr=>tr.label).sort();
+    const key = JSON.stringify(d.genotype);
+    if(!agg[key]) agg[key] = {visuals, hets, prob:0, genotype:d.genotype};
+    agg[key].prob += d.prob;
+  });
+  return Object.values(agg).sort((a,b)=>b.prob-a.prob);
+}
+// ==================== Simulateur de rêverie (10 sept) ====================
+function dreamSimParentOptionsHtml(){
+  const realOptions = savedSnakes.map(s=>'<option value="real:'+s.id+'">'+escapeHtml(s.name)+'</option>').join('');
+  const dreamOptions = dreamSnakes.map(s=>'<option value="dream:'+s.id+'">🔮 '+escapeHtml(s.name)+'</option>').join('');
+  return realOptions+dreamOptions;
+}
+function resolveDreamSimParent(value){
+  if(!value) return null;
+  const idx = value.indexOf(':');
+  const kind = value.slice(0,idx), id = value.slice(idx+1);
+  return kind==='dream' ? dreamSnakes.find(s=>s.id===id) : savedSnakes.find(s=>s.id===id);
+}
+function openDreamSimModal(){
+  renderDreamSimModalBody();
+}
+function renderDreamSimModalBody(){
+  const isEn = currentLang==='en';
+  const options = dreamSimParentOptionsHtml();
+  const body =
+    '<p style="font-size:11px;color:var(--ink-dim);margin:0 0 14px;">'+(isEn
+      ? 'Explore hypothetical pairings, real animals or dream babies already saved — never touches your real records.'
+      : 'Explore des accouplements hypothétiques, vrais reptiles ou bébés rêve déjà enregistrés — touche jamais tes vrais dossiers.')+'</p>'+
+    '<label style="display:block;margin-bottom:10px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Parent 1':'Parent 1')+'</span>'+
+      '<select id="dreamsim-p1" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"><option value="">—</option>'+options+'</select></label>'+
+    '<label style="display:block;margin-bottom:10px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Parent 2':'Parent 2')+'</span>'+
+      '<select id="dreamsim-p2" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"><option value="">—</option>'+options+'</select></label>'+
+    '<button class="save-btn" style="width:100%;" onclick="runDreamSimCross()">🔮 '+(isEn?'Calculate':'Calculer')+'</button>'+
+    '<div id="dreamsim-results" style="margin-top:14px;"></div>'+
+    '<div style="margin-top:18px;padding-top:14px;border-top:1px dashed var(--line);">'+
+      '<h3 style="font-size:13px;margin:0 0 8px;color:var(--ink);">'+(isEn?'Dream babies saved so far':'Bébés rêve enregistrés jusqu\'ici')+'</h3>'+
+      '<div id="dreamsim-list">'+dreamSnakesListHtml()+'</div>'+
+    '</div>';
+  showQuickModal('🔮 '+(isEn?'Dream Simulator':'Simulateur de rêverie'), body);
+}
+function runDreamSimCross(){
+  const isEn = currentLang==='en';
+  const p1val = document.getElementById('dreamsim-p1').value;
+  const p2val = document.getElementById('dreamsim-p2').value;
+  const p1 = resolveDreamSimParent(p1val), p2 = resolveDreamSimParent(p2val);
+  if(!p1 || !p2){ showToast(isEn?'Pick 2 parents.':'Choisis 2 parents.', 'error'); return; }
+  const outcomes = computeCrossOutcomes(p1.genes, p2.genes);
+  const F = kinshipCoefficient(p1.id, p2.id, new Map());
+  const Fpct = Math.round(F*10000)/100;
+  window.__dreamSimLastOutcomes = outcomes;
+  window.__dreamSimLastParents = { p1id:p1.id, p2id:p2.id };
+  const tone = F===0?'sage':(F<0.25?'gold':'rust');
+  const inbreedHtml = '<div class="warn" style="border-color:var(--'+tone+');margin-bottom:10px;">'+(F===0?'✅ ':'⚠ ')+'<b>'+(isEn?'Inbreeding coefficient: ':'Coefficient de consanguinité : ')+Fpct+'%</b></div>';
+  const rowsHtml = outcomes.slice(0,40).map((o,i)=>{
+    const name = o.visuals.length ? o.visuals.join(' ') : (isEn?'Normal':'Normal');
+    const pct = Math.round(o.prob*10000)/100;
+    return '<div class="modal-row"><span>'+escapeHtml(name)+(o.hets.length?' <small style="color:var(--ink-dim);">('+(isEn?'het ':'het ')+escapeHtml(o.hets.join(', '))+')</small>':'')+'</span>'+
+      '<span style="display:flex;align-items:center;gap:6px;">'+pct+'% <button class="sc-btn" onclick="saveDreamBaby('+i+')">🔮 '+(isEn?'Keep':'Garder')+'</button></span></div>';
+  }).join('');
+  document.getElementById('dreamsim-results').innerHTML = inbreedHtml+rowsHtml;
+}
+function saveDreamBaby(index){
+  const isEn = currentLang==='en';
+  const outcome = (window.__dreamSimLastOutcomes||[])[index];
+  const parents = window.__dreamSimLastParents;
+  if(!outcome || !parents) return;
+  const name = prompt(isEn?'Name this dream baby:':'Nom de ce bébé rêve :', '');
+  if(name===null) return;
+  dreamSnakes.push({ id:'dream_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), name: name.trim()||(isEn?'Dream baby':'Bébé rêve'), genes: outcome.genotype, sireId: parents.p1id, damId: parents.p2id });
+  saveElevage();
+  renderDreamSimModalBody();
+  showToast('🔮 '+(isEn?'Dream baby saved.':'Bébé rêve enregistré.'), 'success');
+}
+function dreamSnakesListHtml(){
+  const isEn = currentLang==='en';
+  if(!dreamSnakes.length) return '<p style="font-size:11px;color:var(--ink-dim);">'+(isEn?'None yet.':'Aucun pour l\'instant.')+'</p>';
+  return dreamSnakes.map(d=>{
+    const parts = Object.keys(d.genes).map(gid=>{
+      const g = GENES.find(x=>x.id===gid);
+      const label = g ? g.name : gid;
+      return d.genes[gid]==='het' ? label+' ('+(isEn?'het':'het')+')' : label;
+    });
+    const genesStr = parts.length ? parts.join(', ') : (isEn?'Normal':'Normal');
+    return '<div class="modal-row"><span>🔮 <b>'+escapeHtml(d.name)+'</b><br/><small style="color:var(--ink-dim);">'+escapeHtml(genesStr)+'</small></span>'+
+      '<button class="sc-btn danger" onclick="deleteDreamBaby(\''+d.id+'\')">×</button></div>';
+  }).join('');
+}
+function deleteDreamBaby(id){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this dream baby? Any dream baby bred from it loses that pedigree link.':'Supprimer ce bébé rêve? Un bébé rêve issu de lui perdrait ce lien de pedigree.')) return;
+  dreamSnakes = dreamSnakes.filter(d=>d.id!==id);
+  saveElevage();
+  renderDreamSimModalBody();
+}
 
 function parentComboSummary(){
   const isEn = currentLang==='en';
@@ -8883,8 +9006,8 @@ function saveAppStatePushedAt(ts){
 function loadElevage(){
   try{
     const raw = localStorage.getItem(ELEVAGE_KEY);
-    return raw ? JSON.parse(raw) : { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, todos:[], rodentBins:[], rodentExpenses:[], rodentValuePerUnit:null, rodentPriorityBins:{}, rodentRacks:[{id:'rrack_1', name:'Rack 1', rows:[8,8]}], rodentGoal:{unit:'females',target:null,mode:'expansion'} };
-  }catch(e){ console.warn('LOCUS: lecture élevage impossible', e); return { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, todos:[], rodentBins:[], rodentExpenses:[], rodentValuePerUnit:null, rodentPriorityBins:{}, rodentRacks:[{id:'rrack_1', name:'Rack 1', rows:[8,8]}], rodentGoal:{unit:'females',target:null,mode:'expansion'} }; }
+    return raw ? JSON.parse(raw) : { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, todos:[], rodentBins:[], rodentExpenses:[], rodentValuePerUnit:null, rodentPriorityBins:{}, rodentRacks:[{id:'rrack_1', name:'Rack 1', rows:[8,8]}], rodentGoal:{unit:'females',target:null,mode:'expansion'}, dreamSnakes:[] };
+  }catch(e){ console.warn('LOCUS: lecture élevage impossible', e); return { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, todos:[], rodentBins:[], rodentExpenses:[], rodentValuePerUnit:null, rodentPriorityBins:{}, rodentRacks:[{id:'rrack_1', name:'Rack 1', rows:[8,8]}], rodentGoal:{unit:'females',target:null,mode:'expansion'}, dreamSnakes:[] }; }
 }
 function saveElevage(){
   trackLocalChanges('racks', racks);
@@ -8894,7 +9017,7 @@ function saveElevage(){
   trackLocalChanges('expenses', expenses);
   trackLocalChanges('customers', customers);
   try{
-    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, rodentPriorityBins, rodentRacks, rodentGoal }));
+    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, rodentPriorityBins, rodentRacks, rodentGoal, dreamSnakes }));
     storageWriteFailed = false;
   }catch(e){
     console.warn('LOCUS: écriture élevage impossible', e);
@@ -8937,6 +9060,16 @@ var rodentPriorityBins = elevageData.rodentPriorityBins || {};
 // direct à partir des bacs reproducteurs déjà actifs — aucun geste séparé à faire, fonder une
 // nouvelle lignée sur le rack EST le geste qui fait avancer la progression (voir Phase 1).
 var rodentGoal = elevageData.rodentGoal || { unit:'females', target:null, mode:'expansion' };
+// Simulateur de rêverie (10 sept) — bac à sable complètement séparé des vrais reptiles. Un "bébé
+// rêve" a exactement le même format .genes qu'un vrai reptile (donc réutilisable tel quel dans le
+// calculateur existant), plus sireId/damId qui peuvent pointer vers un vrai reptile OU un autre
+// bébé rêve — c'est ça qui permet d'enchaîner les générations hypothétiques.
+var dreamSnakes = elevageData.dreamSnakes || [];
+// Recherche unifiée — vrai reptile OU bébé rêve, pour que l'arbre de pedigree et le calcul de
+// consanguinité fonctionnent identiquement peu importe si un ancêtre est réel ou hypothétique.
+function findSnakeOrDream(id){
+  return savedSnakes.find(s=>s.id===id) || dreamSnakes.find(s=>s.id===id);
+}
 // Racks de bacs reproducteurs (10 sept) — grille visuelle même esprit que racks/terrariums pour les
 // reptiles, mais pour les bacs de rongeurs reproducteurs. Système de lignées génétiques par bac
 // (voir addRodentRackSlot/nextAvailableLineageNumber) construit par-dessus cette grille.
@@ -9174,7 +9307,7 @@ async function pushAllUserData(forceAll){
         await sb.rpc('upsert_customer_encrypted', { p_id: cu.id, p_data: cu });
       }
     }
-    await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock, todos, genetic_ambiguities: geneticAmbiguities, rodent_bins: rodentBins, rodent_expenses: rodentExpenses, rodent_value_per_unit: rodentValuePerUnit, rodent_priority_bins: rodentPriorityBins, rodent_racks: rodentRacks, rodent_goal: rodentGoal });
+    await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock, todos, genetic_ambiguities: geneticAmbiguities, rodent_bins: rodentBins, rodent_expenses: rodentExpenses, rodent_value_per_unit: rodentValuePerUnit, rodent_priority_bins: rodentPriorityBins, rodent_racks: rodentRacks, rodent_goal: rodentGoal, dream_snakes: dreamSnakes });
     saveAppStatePushedAt(Date.now());
     const profile = loadProfile();
     await sb.from('profiles').upsert({ user_id:currentUser.id, breeder_name: profile.breederName||null, email: profile.email||null, phone: profile.phone||null });
@@ -9262,6 +9395,7 @@ async function pullAllUserData(){
     if(stateRes.data && stateRes.data.rodent_priority_bins && remoteAppStateWins) rodentPriorityBins = stateRes.data.rodent_priority_bins;
     if(stateRes.data && stateRes.data.rodent_racks && remoteAppStateWins) rodentRacks = stateRes.data.rodent_racks;
     if(stateRes.data && stateRes.data.rodent_goal && remoteAppStateWins) rodentGoal = stateRes.data.rodent_goal;
+    if(stateRes.data && stateRes.data.dream_snakes && remoteAppStateWins) dreamSnakes = stateRes.data.dream_snakes;
     if(stateRes.data && stateRes.data.feeder_stock && remoteAppStateWins) feederStock = stateRes.data.feeder_stock;
     if(stateRes.data && stateRes.data.dismissed_banners){
       const mergedBanners = [...new Set([...loadDismissedBanners(), ...stateRes.data.dismissed_banners])];
@@ -9307,7 +9441,7 @@ function exportBackup(){
   const payload = {
     app:'LOCUS', version:2, exportedAt:new Date().toISOString(),
     snakes: savedSnakes,
-    elevage: { racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, rodentPriorityBins, rodentRacks, rodentGoal }
+    elevage: { racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, rodentPriorityBins, rodentRacks, rodentGoal, dreamSnakes }
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
@@ -9359,6 +9493,7 @@ document.getElementById('import-file-input').addEventListener('change', (e)=>{
     rodentPriorityBins = el.rodentPriorityBins || {};
     rodentRacks = el.rodentRacks || [];
     rodentGoal = el.rodentGoal || { unit:'females', target:null, mode:'expansion' };
+    dreamSnakes = el.dreamSnakes || [];
     projects = el.projects || [];
     feederStock = el.feederStock || {};
     saveElevage();
@@ -9827,7 +9962,7 @@ function renderTourLayoutPrefs(){
 // Remonte récursivement sire/dam sur maxDepth générations (2 = arrière-grands-parents inclus).
 function buildAncestorTree(snakeId, depth, maxDepth){
   if(!snakeId || depth>maxDepth) return null;
-  const s = savedSnakes.find(x=>x.id===snakeId);
+  const s = findSnakeOrDream(snakeId);
   if(!s) return null;
   return { snake:s, sire:buildAncestorTree(s.sireId, depth+1, maxDepth), dam:buildAncestorTree(s.damId, depth+1, maxDepth) };
 }
@@ -9837,22 +9972,30 @@ function buildAncestorTree(snakeId, depth, maxDepth){
 // profondeur de pedigree enregistrée (pas juste les 3 générations affichées dans l'arbre visuel).
 // Mémoïsé par paire ; base = 0 pour tout individu aux parents inconnus (fondateur supposé non apparenté).
 // Garde-fou de profondeur : protège d'un pedigree mal saisi qui créerait une boucle (A ancêtre de A).
+// Bug corrigé le 10 sept (trouvé en testant le simulateur de rêverie, mais touchait déjà les vrais
+// pedigrees) : l'ancienne version développait TOUJOURS par les parents de B dès que B existait comme
+// fiche, même si B est un fondateur (sireId/damId null) et que c'est plutôt A qui a des parents connus
+// via B — ex. un accouplement parent×enfant où le PARENT est un fondateur enregistré. Ça retournait
+// 0% au lieu du 25% attendu, silencieusement. Corrigé en développant par le côté qui a vraiment des
+// parents à explorer, peu importe si c'est A ou B.
 function kinshipCoefficient(idA, idB, memo, depth){
   depth = depth || 0;
   if(!idA || !idB || depth>40) return 0;
   const key = idA<idB ? idA+'|'+idB : idB+'|'+idA;
   if(memo.has(key)) return memo.get(key);
   memo.set(key, 0); // valeur provisoire anti-boucle pendant le calcul
-  const a = savedSnakes.find(x=>x.id===idA);
-  const b = savedSnakes.find(x=>x.id===idB);
+  const a = findSnakeOrDream(idA);
+  const b = findSnakeOrDream(idB);
   let result;
   if(idA===idB){
     // f(X,X) = 0.5 × (1 + F_X), où F_X = f(père_X, mère_X)
     result = a ? 0.5*(1+kinshipCoefficient(a.sireId, a.damId, memo, depth+1)) : 0;
-  } else if(!b){
-    result = a ? 0.5*(kinshipCoefficient(a.sireId, idB, memo, depth+1) + kinshipCoefficient(a.damId, idB, memo, depth+1)) : 0;
-  } else {
+  } else if(b && (b.sireId || b.damId)){
     result = 0.5*(kinshipCoefficient(idA, b.sireId, memo, depth+1) + kinshipCoefficient(idA, b.damId, memo, depth+1));
+  } else if(a && (a.sireId || a.damId)){
+    result = 0.5*(kinshipCoefficient(a.sireId, idB, memo, depth+1) + kinshipCoefficient(a.damId, idB, memo, depth+1));
+  } else {
+    result = 0; // ni l'un ni l'autre n'a de parent connu — vraiment sans lien
   }
   memo.set(key, result);
   return result;
