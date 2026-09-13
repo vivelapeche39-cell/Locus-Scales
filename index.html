@@ -1106,6 +1106,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   <div class="calc-bar">
     <button class="calc-btn" data-i18n="calcBtn" onclick="runCross()">Calculer la portée</button>
     <button class="calc-btn" style="background:var(--sage);margin-left:8px;" onclick="openDreamSimModal()" data-i18n="dreamSimBtn">🔮 Simulateur de rêverie</button>
+    <button class="calc-btn" style="background:var(--gold);margin-left:8px;" onclick="openGoalPathModal()" data-i18n="goalPathBtn">🎯 Chemin optimal</button>
   </div>
 
   <div class="results-hdr">
@@ -2069,7 +2070,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.70';
+const APP_VERSION = '2026.09.02.2.72';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3881,6 +3882,7 @@ const I18N = {
     appTag: 'Gestion d\'élevage — Python royal (Ball Python)',
     calcBtn: 'Calculer la portée',
     dreamSimBtn: '🔮 Simulateur de rêverie',
+    goalPathBtn: '🎯 Chemin optimal',
     menuProfile: 'Mon profil',
     menuHelpSearch: 'Recherche dans l\'aide',
     menuAnnouncements: 'Annonces',
@@ -4431,6 +4433,7 @@ const I18N = {
     appTag: 'Ball Python breeding management',
     calcBtn: 'Calculate Clutch',
     dreamSimBtn: '🔮 Dream Simulator',
+    goalPathBtn: '🎯 Optimal Path',
     menuProfile: 'My Profile',
     menuHelpSearch: 'Search help',
     menuAnnouncements: 'Announcements',
@@ -7382,6 +7385,163 @@ function deleteDreamBaby(id){
   dreamSnakes = dreamSnakes.filter(d=>d.id!==id);
   saveElevage();
   renderDreamSimModalBody();
+}
+
+// ==================== Chemin optimal vers un objectif génétique (10 sept) ====================
+// Portée volontairement limitée à 2-3 sources différentes (couverte par une vraie analyse), 4+ est
+// signalé honnêtement comme "trop complexe pour un calcul automatique fiable" plutôt que de deviner
+// avec un algorithme de recherche généralisé et risqué. Voir discussion avec Alex avant de coder.
+function combinationsOfSize(arr, size){
+  const results = [];
+  function helper(start, combo){
+    if(combo.length===size){ results.push([...combo]); return; }
+    for(let i=start;i<arr.length;i++){ combo.push(arr[i]); helper(i+1, combo); combo.pop(); }
+  }
+  helper(0, []);
+  return results;
+}
+// Plafond de sécurité (10 sept, ajouté suite à la question d'Alex sur une grosse collection) — la
+// vraie variable de risque, c'est pas le nombre total d'animaux, c'est la TAILLE de l'ensemble
+// minimal nécessaire. Avec un pool de 100 animaux mais un ensemble minimal de 3-4, ça reste rapide
+// (peu de combinaisons à tester à cette taille-là) ; mais si les gènes sont tellement éparpillés
+// qu'il en faudrait 6-7, le nombre de combinaisons explose et pourrait geler le téléphone. On plafonne
+// donc la recherche à une taille de 5 maximum, ET on vérifie le compte de combinaisons AVANT de les
+// générer (pas juste après) pour jamais risquer de construire un tableau énorme en mémoire.
+const GOALPATH_MAX_SET_SIZE = 5;
+const GOALPATH_MAX_COMBOS_PER_SIZE = 200000;
+function nCr(n, r){
+  if(r>n) return 0;
+  let result = 1;
+  for(let i=0;i<r;i++) result = result*(n-i)/(i+1);
+  return result;
+}
+function findMinCoveringSet(targetGeneIds, candidates){
+  const missing = targetGeneIds.filter(gid => !candidates.some(s=>s.genes && s.genes[gid]));
+  if(missing.length) return { ok:false, missing };
+  const n = candidates.length;
+  const maxSize = Math.min(n, GOALPATH_MAX_SET_SIZE);
+  for(let size=1; size<=maxSize; size++){
+    if(nCr(n, size) > GOALPATH_MAX_COMBOS_PER_SIZE) return { ok:false, missing:[], tooComplex:true };
+    const combos = combinationsOfSize(candidates, size);
+    for(const subset of combos){
+      const covered = new Set();
+      subset.forEach(s=>{ targetGeneIds.forEach(gid=>{ if(s.genes && s.genes[gid]) covered.add(gid); }); });
+      if(covered.size === targetGeneIds.length) return { ok:true, set:subset };
+    }
+  }
+  return { ok:false, missing:[], tooComplex:true };
+}
+// Calcule la consanguinité finale pour une des 3 façons possibles de "ponter" 3 sources en 2
+// générations (l'un des 3 animaux sert dans les 2 croisements de la 1ère génération). Utilise des
+// nœuds de pedigree temporaires poussés dans dreamSnakes puis retirés — aucune trace laissée.
+function computeBridgeOptions(coveringSet){
+  const options = [];
+  for(let i=0;i<coveringSet.length;i++){
+    const bridge = coveringSet[i];
+    const others = coveringSet.filter((_,idx)=>idx!==i);
+    const tmpA = { id:'_tmpA_'+i, sireId: bridge.id, damId: others[0].id };
+    const tmpB = { id:'_tmpB_'+i, sireId: bridge.id, damId: others[1].id };
+    dreamSnakes.push(tmpA, tmpB);
+    const F = kinshipCoefficient(tmpA.id, tmpB.id, new Map());
+    dreamSnakes.splice(dreamSnakes.length-2, 2);
+    options.push({ bridge, others, finalInbreedingPct: Math.round(F*10000)/100 });
+  }
+  return options;
+}
+function goalPathGeneOptionsHtml(){
+  return [...GENES].sort((a,b)=>a.name.localeCompare(b.name)).map(g=>
+    '<label style="display:flex;align-items:center;gap:4px;font-size:11px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:14px;padding:4px 10px;margin:2px;"><input type="checkbox" class="goalpath-gene" value="'+g.id+'" style="margin:0;"/> '+escapeHtml(g.name)+'</label>'
+  ).join('');
+}
+function goalPathSnakeOptionsHtml(){
+  return savedSnakes.map(s=>
+    '<label style="display:flex;align-items:center;gap:4px;font-size:11px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:14px;padding:4px 10px;margin:2px;"><input type="checkbox" class="goalpath-snake" value="'+s.id+'" checked style="margin:0;"/> '+escapeHtml(s.name)+'</label>'
+  ).join('');
+}
+function openGoalPathModal(){
+  const isEn = currentLang==='en';
+  const body =
+    '<p style="font-size:11px;color:var(--ink-dim);margin:0 0 14px;">'+(isEn
+      ? 'Pick your target genes and which animals you\'re working with — this checks who already carries what, and suggests the shortest path.'
+      : 'Choisis tes gènes cibles et avec quels animaux tu travailles — ça vérifie qui porte déjà quoi, et suggère le chemin le plus court.')+'</p>'+
+    '<p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 4px;">'+(isEn?'Target genes':'Gènes cibles')+'</p>'+
+    '<div style="display:flex;flex-wrap:wrap;max-height:140px;overflow-y:auto;margin-bottom:12px;">'+goalPathGeneOptionsHtml()+'</div>'+
+    '<p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 4px;">'+(isEn?'Animals to consider':'Animaux à considérer')+'</p>'+
+    '<div style="display:flex;flex-wrap:wrap;max-height:120px;overflow-y:auto;margin-bottom:12px;">'+goalPathSnakeOptionsHtml()+'</div>'+
+    '<button class="save-btn" style="width:100%;" onclick="analyzeGoalPath()">🎯 '+(isEn?'Analyze':'Analyser')+'</button>'+
+    '<div id="goalpath-results" style="margin-top:14px;"></div>';
+  showQuickModal('🎯 '+(isEn?'Optimal Path':'Chemin optimal'), body);
+}
+function analyzeGoalPath(){
+  const isEn = currentLang==='en';
+  const targetGeneIds = Array.from(document.querySelectorAll('.goalpath-gene:checked')).map(cb=>cb.value);
+  const candidateIds = Array.from(document.querySelectorAll('.goalpath-snake:checked')).map(cb=>cb.value);
+  const el = document.getElementById('goalpath-results');
+  if(!targetGeneIds.length || !candidateIds.length){
+    el.innerHTML = '<div class="empty">'+(isEn?'Pick at least one gene and one animal.':'Choisis au moins un gène et un animal.')+'</div>';
+    return;
+  }
+  const candidates = candidateIds.map(id=>savedSnakes.find(s=>s.id===id)).filter(Boolean);
+  const geneNames = targetGeneIds.map(gid=>{ const g=GENES.find(x=>x.id===gid); return g?g.name:gid; });
+
+  // Étape 1 — couverture : qui porte quoi
+  const coverageHtml = targetGeneIds.map(gid=>{
+    const gname = GENES.find(g=>g.id===gid)?.name || gid;
+    const carriers = candidates.filter(s=>s.genes && s.genes[gid]);
+    return '<div class="modal-row"><span>'+escapeHtml(gname)+'</span><span>'+(carriers.length
+      ? carriers.map(s=>escapeHtml(s.name)).join(', ')
+      : '<span style="color:var(--rust);">'+(isEn?'nobody':'personne')+'</span>')+'</span></div>';
+  }).join('');
+
+  const covering = findMinCoveringSet(targetGeneIds, candidates);
+  if(!covering.ok){
+    let warnMsg;
+    if(covering.tooComplex){
+      warnMsg = isEn
+        ? 'These genes are spread across too many different animals to safely auto-analyze (5+ sources needed, or too many combinations to check). Let\'s narrow down the candidate animals, or work through this manually with the Dream Simulator.'
+        : 'Ces gènes sont éparpillés sur trop d\'animaux différents pour analyser ça de façon sécuritaire (5 sources ou plus nécessaires, ou trop de combinaisons à vérifier). Réduisons les animaux candidats, ou travaillons ça manuellement avec le Simulateur de rêverie.';
+    } else {
+      const missingNames = covering.missing.map(gid=>GENES.find(g=>g.id===gid)?.name||gid);
+      warnMsg = isEn
+        ? 'Not achievable with these animals — nobody carries: '+missingNames.join(', ')
+        : 'Pas atteignable avec ces animaux — personne ne porte : '+missingNames.join(', ');
+    }
+    el.innerHTML = '<h3 style="font-size:13px;">'+(isEn?'Coverage':'Couverture')+'</h3>'+coverageHtml+
+      '<div class="warn" style="border-color:var(--rust);margin-top:10px;">⚠ '+warnMsg+'</div>';
+    return;
+  }
+
+  const set = covering.set;
+  let pathHtml = '';
+  if(set.length===1){
+    pathHtml = '<div class="warn" style="border-color:var(--sage);">✅ '+(isEn
+      ? escapeHtml(set[0].name)+' already carries everything on its own — no crossing needed for coverage (may still need a mate to reach Super/homozygous forms).'
+      : escapeHtml(set[0].name)+' porte déjà tout à lui seul — aucun croisement requis pour la couverture (peut quand même avoir besoin d\'un partenaire pour atteindre une forme Super/homozygote).')+'</div>';
+  } else if(set.length===2){
+    const F = kinshipCoefficient(set[0].id, set[1].id, new Map());
+    const Fpct = Math.round(F*10000)/100;
+    pathHtml = '<div class="warn" style="border-color:var(--sage);">✅ '+(isEn?'1 generation needed:':'1 génération nécessaire :')+' <b>'+escapeHtml(set[0].name)+' × '+escapeHtml(set[1].name)+'</b><br/>'+
+      (isEn?'Inbreeding coefficient: ':'Coefficient de consanguinité : ')+'<b>'+Fpct+'%</b></div>'+
+      '<button class="sc-btn accent" style="margin-top:8px;" onclick="closeQuickModal(); openDreamSimModal();">🔮 '+(isEn?'Try it in the Dream Simulator':'Essayer dans le Simulateur de rêverie')+'</button>';
+  } else if(set.length===3){
+    const opts = computeBridgeOptions(set);
+    const best = [...opts].sort((a,b)=>a.finalInbreedingPct-b.finalInbreedingPct)[0];
+    pathHtml = '<div class="warn" style="border-color:var(--gold);">⚠ '+(isEn?'2 generations needed — 3 sources to merge:':'2 générations nécessaires — 3 sources à réunir :')+'</div>'+
+      opts.map(o=>{
+        const isBest = o===best;
+        return '<div class="modal-row"'+(isBest?' style="background:rgba(124,131,99,.12);"':'')+'><span>'+(isBest?'⭐ ':'')+
+          (isEn?'Reuse ':'Réutiliser ')+'<b>'+escapeHtml(o.bridge.name)+'</b>'+(isEn?' in both gen-1 crosses (with ':' dans les 2 croisements gen-1 (avec ')+escapeHtml(o.others[0].name)+' '+(isEn?'and':'et')+' '+escapeHtml(o.others[1].name)+')</span>'+
+          '<span><b>'+o.finalInbreedingPct+'%</b></span></div>';
+      }).join('')+
+      '<button class="sc-btn accent" style="margin-top:8px;" onclick="closeQuickModal(); openDreamSimModal();">🔮 '+(isEn?'Build it in the Dream Simulator':'Construire ça dans le Simulateur de rêverie')+'</button>';
+  } else {
+    pathHtml = '<div class="warn" style="border-color:var(--rust);">⚠ '+(isEn
+      ? set.length+' different sources needed — that\'s more than I can reliably auto-suggest right now. Let\'s work through this one together manually using the Dream Simulator, one generation at a time.'
+      : set.length+' sources différentes nécessaires — c\'est plus que ce que je peux suggérer automatiquement de façon fiable pour l\'instant. Travaillons ça ensemble manuellement avec le Simulateur de rêverie, une génération à la fois.')+'</div>';
+  }
+
+  el.innerHTML = '<h3 style="font-size:13px;">'+(isEn?'Coverage':'Couverture')+'</h3>'+coverageHtml+
+    '<h3 style="font-size:13px;margin-top:14px;">'+(isEn?'Suggested path':'Chemin suggéré')+'</h3>'+pathHtml;
 }
 
 function parentComboSummary(){
