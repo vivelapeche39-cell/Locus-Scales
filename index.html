@@ -2070,7 +2070,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.72';
+const APP_VERSION = '2026.09.02.2.73';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2219,6 +2219,13 @@ const ILLIMITE_ONLY_FEATURES = [
   'fertility', 'multiGenProjects', 'seasonComparison', 'outcomesView', 'icsExport', 'fiscalSummary',
   'rodentManagement'
 ];
+// Palier "reproduction" (10 sept) — Première Ponte OU Illimité, mais pas Gratuit ni Passionné (qui
+// exclut déjà explicitement la reproduction). Distinct de ILLIMITE_ONLY_FEATURES qui restreint à
+// un seul palier précis — ici on veut 2 paliers différents, d'où une 2e liste plutôt que de forcer
+// ILLIMITE_ONLY_FEATURES à gérer 2 cas différents.
+const BREEDING_TIER_FEATURES = [
+  'dreamSimulator'
+];
 function currentUserTier(){
   if(typeof isAdminUser!=='undefined' && isAdminUser) return 'illimite'; // admin = accès complet peu importe le champ tier
   return (typeof userTier!=='undefined' && userTier) || 'gratuit';
@@ -2228,8 +2235,9 @@ function currentUserTier(){
 // retourne toujours true : aucun effet réel avant l'activation volontaire de l'interrupteur.
 function hasAccess(featureKey){
   if(!TIERS_ENABLED) return true;
-  if(!ILLIMITE_ONLY_FEATURES.includes(featureKey)) return true; // pas dans la liste = accessible à tous les paliers payants+
-  return currentUserTier()==='illimite';
+  if(ILLIMITE_ONLY_FEATURES.includes(featureKey)) return currentUserTier()==='illimite';
+  if(BREEDING_TIER_FEATURES.includes(featureKey)) return ['premiere_ponte','illimite'].includes(currentUserTier());
+  return true; // pas dans une liste restrictive = accessible à tous les paliers payants+
 }
 const TIER_LIMITS = { gratuit: 3, passionne: 20, premiere_ponte: 10, illimite: null };
 function canAddAnotherSnake(){
@@ -7311,6 +7319,7 @@ function resolveDreamSimParent(value){
   return kind==='dream' ? dreamSnakes.find(s=>s.id===id) : savedSnakes.find(s=>s.id===id);
 }
 function openDreamSimModal(){
+  if(!hasAccess('dreamSimulator')){ showQuickModal('🔮', lockedFeatureHtml()); return; }
   renderDreamSimModalBody();
 }
 function renderDreamSimModalBody(){
@@ -7459,6 +7468,7 @@ function goalPathSnakeOptionsHtml(){
   ).join('');
 }
 function openGoalPathModal(){
+  if(!hasAccess('dreamSimulator')){ showQuickModal('🎯', lockedFeatureHtml()); return; }
   const isEn = currentLang==='en';
   const body =
     '<p style="font-size:11px;color:var(--ink-dim);margin:0 0 14px;">'+(isEn
