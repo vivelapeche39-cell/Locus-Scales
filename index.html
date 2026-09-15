@@ -2070,7 +2070,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.73';
+const APP_VERSION = '2026.09.02.2.74';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2871,6 +2871,69 @@ const GENES = [
   {id:'enhancer', name:'Enhancer', type:'recessive', locus:'enhancer', cat:'Récessif'},
   {id:'gaia', name:'Gaia', type:'incdom', locus:'gaia', cat:'Codominant / Incomplet dominant'},
   {id:'gallium', name:'Gallium', type:'incdom', locus:'gallium', cat:'Codominant / Incomplet dominant'},
+  // Ajoutés le 15 sept — audit complet A-Z de Morphpedia (le trou H-Z du 10 sept est maintenant comblé).
+  // Batch 1/6 — quelques cas douteux (Caramel Albino vs Caramel existant, Het Daddy vs Daddy Gene,
+  // FNR Vanilla, Ghost/Vesper, Carbon, Dinker) volontairement exclus faute de confirmation claire.
+  {id:'ambush', name:'Ambush', type:'incdom', locus:'ambush', cat:'Codominant / Incomplet dominant'},
+  {id:'arcane', name:'Arcane', type:'incdom', locus:'arcane', cat:'Codominant / Incomplet dominant'},
+  {id:'arid', name:'Arid', type:'incdom', locus:'arid', cat:'Codominant / Incomplet dominant'},
+  {id:'arroyo', name:'Arroyo', type:'incdom', locus:'arroyo', cat:'Codominant / Incomplet dominant'},
+  {id:'ashen', name:'Ashen', type:'dominant', locus:'ashen', cat:'Dominant'},
+  {id:'astro', name:'Astro', type:'incdom', locus:'astro', cat:'Codominant / Incomplet dominant'},
+  {id:'darkangel', name:'Dark Angel', type:'incdom', locus:'darkangel', cat:'Codominant / Incomplet dominant'},
+  {id:'darkviking', name:'Dark Viking', type:'incdom', locus:'darkviking', cat:'Codominant / Incomplet dominant'},
+  {id:'desert', name:'Desert', type:'dominant', locus:'desert', cat:'Dominant'},
+  {id:'diesel', name:'Diesel', type:'incdom', locus:'diesel', cat:'Codominant / Incomplet dominant'},
+  // Batch 2/6
+  {id:'epic', name:'Epic', type:'incdom', locus:'epic', cat:'Codominant / Incomplet dominant'},
+  {id:'exolbb', name:'Exo-lbb', type:'incdom', locus:'exolbb', cat:'Codominant / Incomplet dominant'},
+  {id:'genex', name:'GeneX', type:'incdom', locus:'genex', cat:'Codominant / Incomplet dominant'},
+  {id:'glossy', name:'Glossy', type:'incdom', locus:'glossy', cat:'Codominant / Incomplet dominant'},
+  {id:'gobi', name:'Gobi', type:'incdom', locus:'gobi', cat:'Codominant / Incomplet dominant'},
+  {id:'goldblush', name:'Gold Blush', type:'dominant', locus:'goldblush', cat:'Dominant'},
+  {id:'grim', name:'Grim', type:'incdom', locus:'grim', cat:'Codominant / Incomplet dominant'},
+  {id:'harlequin', name:'Harlequin', type:'dominant', locus:'harlequin', cat:'Dominant'},
+  {id:'hieroglyphic', name:'Hieroglyphic', type:'incdom', locus:'hieroglyphic', cat:'Codominant / Incomplet dominant'},
+  {id:'highintensityod', name:'High Intensity OD', type:'incdom', locus:'highintensityod', cat:'Codominant / Incomplet dominant'},
+  // Batch 3/6 — Honey confirmé membre du complexe Blue-Eyed Leucistic (même locus que Mystic/Mojave/Lesser).
+  {id:'highorangegene', name:'High Orange Gene', type:'incdom', locus:'highorangegene', cat:'Codominant / Incomplet dominant'},
+  {id:'honey', name:'Honey', type:'incdom', locus:'lesserComplex', cat:'Codominant / Incomplet dominant'},
+  {id:'hydra', name:'Hydra', type:'incdom', locus:'hydra', cat:'Codominant / Incomplet dominant'},
+  {id:'jaguar', name:'Jaguar', type:'incdom', locus:'jaguar', cat:'Codominant / Incomplet dominant'},
+  {id:'java', name:'Java', type:'incdom', locus:'java', cat:'Codominant / Incomplet dominant'},
+  {id:'jedi', name:'Jedi', type:'incdom', locus:'jedi', cat:'Codominant / Incomplet dominant'},
+  {id:'krg', name:'KRG', type:'incdom', locus:'krg', cat:'Codominant / Incomplet dominant'},
+  {id:'lace', name:'Lace', type:'incdom', locus:'lace', cat:'Codominant / Incomplet dominant'},
+  {id:'lcblackmagic', name:'LC Black Magic', type:'incdom', locus:'lcblackmagic', cat:'Codominant / Incomplet dominant'},
+  {id:'maple', name:'Maple', type:'recessive', locus:'maple', cat:'Récessif'},
+  // Batch 4/6
+  {id:'mario', name:'Mario', type:'incdom', locus:'mario', cat:'Codominant / Incomplet dominant'},
+  {id:'marvel', name:'Marvel', type:'incdom', locus:'marvel', cat:'Codominant / Incomplet dominant'},
+  {id:'mckenzie', name:'Mckenzie', type:'incdom', locus:'mckenzie', cat:'Codominant / Incomplet dominant'},
+  {id:'melt', name:'Melt', type:'incdom', locus:'melt', cat:'Codominant / Incomplet dominant'},
+  {id:'metalflake', name:'Metal Flake', type:'recessive', locus:'metalflake', cat:'Récessif'},
+  {id:'microscale', name:'Microscale', type:'incdom', locus:'microscale', cat:'Codominant / Incomplet dominant'},
+  {id:'migraine', name:'Migraine', type:'recessive', locus:'migraine', cat:'Récessif'},
+  {id:'nyala', name:'Nyala', type:'incdom', locus:'nyala', cat:'Codominant / Incomplet dominant'},
+  {id:'odium', name:'Odium', type:'incdom', locus:'odium', cat:'Codominant / Incomplet dominant'},
+  {id:'ofy', name:'OFY', type:'incdom', locus:'ofy', cat:'Codominant / Incomplet dominant'},
+  // Batch 5/6 — Scaleless Head = gène de base ; « Scaleless » (sans écailles complet) est son
+  // homozygote, même pattern que Yellowbelly/Ivory (superLabel), confirmé sur Morphpedia.
+  {id:'orangecrush', name:'Orange Crush', type:'recessive', locus:'orangecrush', cat:'Récessif'},
+  {id:'orangeghost', name:'Orange Ghost', type:'recessive', locus:'orangeghost', cat:'Récessif'},
+  {id:'orbit', name:'Orbit', type:'incdom', locus:'orbit', cat:'Codominant / Incomplet dominant'},
+  {id:'oriole', name:'Oriole', type:'dominant', locus:'oriole', cat:'Dominant'},
+  {id:'panther', name:'Panther', type:'incdom', locus:'panther', cat:'Codominant / Incomplet dominant'},
+  {id:'phenomenon', name:'Phenomenon', type:'incdom', locus:'phenomenon', cat:'Codominant / Incomplet dominant'},
+  {id:'pixel', name:'Pixel', type:'incdom', locus:'pixel', cat:'Codominant / Incomplet dominant'},
+  {id:'scalelesshead', name:'Scaleless Head', type:'incdom', locus:'scalelesshead', cat:'Codominant / Incomplet dominant', superLabel:'Scaleless (homozygote Scaleless Head — sans écailles complet)'},
+  {id:'surge', name:'Surge', type:'incdom', locus:'surge', cat:'Codominant / Incomplet dominant'},
+  {id:'taronja', name:'Taronja', type:'incdom', locus:'taronja', cat:'Codominant / Incomplet dominant'},
+  // Batch 6/6 — dernier de la vague. Total : 107 → 161 gènes (54 ajoutés le 15 sept).
+  {id:'thedarkling', name:'The Darkling', type:'incdom', locus:'thedarkling', cat:'Codominant / Incomplet dominant'},
+  {id:'tornado', name:'Tornado', type:'recessive', locus:'tornado', cat:'Récessif'},
+  {id:'trick', name:'Trick', type:'incdom', locus:'trick', cat:'Codominant / Incomplet dominant'},
+  {id:'trident', name:'Trident', type:'incdom', locus:'trident', cat:'Codominant / Incomplet dominant'},
 ];
 
 const GENES_BY_LOCUS = {};
