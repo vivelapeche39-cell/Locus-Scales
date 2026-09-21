@@ -1381,10 +1381,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 12px;" data-i18n="feederStockHint">Décompte automatiquement quand tu loggues un repas pour un reptile dont l'espèce/taille de proie est renseignée. Global au congélateur, pas par animal.</p>
       <div id="feeder-stock-list"></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
-        <select id="feeder-stock-species" onchange="renderFeederStockSizeOptions()" style="background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:'Courier New',monospace;font-size:11.5px;padding:8px;">
-          <option value="mouse">🐁 Mouse</option>
-          <option value="rat">🐀 Rat</option>
-        </select>
+        <select id="feeder-stock-species" onchange="renderFeederStockSizeOptions()" style="background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:'Courier New',monospace;font-size:11.5px;padding:8px;"></select>
         <select id="feeder-stock-size" style="background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:'Courier New',monospace;font-size:11.5px;padding:8px;"></select>
         <input type="number" id="feeder-stock-qty" min="0" placeholder="0" class="price-input" style="width:70px;"/>
         <button class="sc-btn accent" onclick="setFeederStock()" data-i18n="feederStockSetBtn">Régler le stock</button>
@@ -2070,7 +2067,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.74';
+const APP_VERSION = '2026.09.02.2.75';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -10593,8 +10590,7 @@ function feedingLabels(){ return currentLang==='en' ? FEEDING_LABELS_EN : FEEDIN
 // Nomenclature standard du milieu (anglais) — reste simple pour l'instant, une charte complète
 // (poids/grammes cibles par taille) pourra être ajoutée dans une future mise à jour.
 // Liste de proie adaptative (2 septembre) — première brique concrète de la vision "app hybride"
-// qui s'ajuste selon l'espèce plutôt qu'un seul système pensé python royal partout. PREY_SIZES
-// reste un alias de compatibilité (mouse/rat identiques, rien de cassé pour les fiches existantes).
+// qui s'ajuste selon l'espèce plutôt qu'un seul système pensé python royal partout.
 const PREY_TYPES = {
   mouse: { icon:'🐁', labelFr:'Souris', labelEn:'Mouse', sizes:['Pinky','Fuzzy','Hopper','Weanling','Adult'] },
   rat: { icon:'🐀', labelFr:'Rat', labelEn:'Rat', sizes:['Pinky','Fuzzy','Weanling','Small','Medium','Large','X-Large','Jumbo'] },
@@ -10616,7 +10612,6 @@ const PREY_TYPES = {
   legume: { icon:'🫘', labelFr:'Légumineuse / graine', labelEn:'Legume / seed', sizes:['Petite portion','Portion normale','Grosse portion'] },
   fruit: { icon:'🍓', labelFr:'Fruit', labelEn:'Fruit', sizes:['Petite portion','Portion normale','Grosse portion'] },
 };
-const PREY_SIZES = { mouse: PREY_TYPES.mouse.sizes, rat: PREY_TYPES.rat.sizes };
 // Quelles proies proposer selon l'espèce du reptile — un petit nombre de groupes plutôt qu'une
 // règle par espèce individuelle, pour rester gérable. "Autre"/inconnu retombe sur rongeurs (le cas
 // le plus courant historiquement dans LOCUS) plutôt que de rien proposer du tout.
@@ -10662,8 +10657,6 @@ function setFeedCost(id, value){
 }
 
 // Formulaire d'ajout/édition — reconstruit les options de taille selon l'espèce de proie choisie.
-// PREY_SIZES est déclaré plus loin dans le fichier ; safe ici car appelée seulement via onchange,
-// donc toujours après que le script complet ait fini de s'exécuter une première fois (pas de TDZ).
 // Peuple le menu "Espèce de proie" du formulaire d'ajout selon l'espèce de reptile choisie —
 // appelée à chaque changement du menu d'espèce (draft-species-select), pas juste au chargement.
 function updateDraftPreySpeciesOptions(){
@@ -10850,6 +10843,7 @@ function renderFoodView(){
       )).join('');
 
   renderFeederStockList();
+  renderFeederStockSpeciesOptions();
   renderFeederStockSizeOptions();
 }
 
@@ -10858,13 +10852,31 @@ function renderFoodView(){
    volontairement simple plutôt que configurable pour l'instant. */
 const FEEDER_LOW_STOCK_THRESHOLD = 5;
 function feederStockKey(species, size){ return species+'|'+size; }
+// Toutes les proies possibles (PREY_TYPES au complet), filtrées par les espèces réellement présentes
+// dans la collection — pas figé sur rongeurs comme avant. Collection vide : tout montrer (rien à
+// filtrer). Ordre gardé identique à PREY_TYPES pour rester prévisible d'une session à l'autre.
+function preyTypesInCollection(){
+  if(!savedSnakes.length) return Object.keys(PREY_TYPES);
+  const set = new Set();
+  savedSnakes.forEach(s=>preyTypesForSpecies(s.species).forEach(k=>set.add(k)));
+  return Object.keys(PREY_TYPES).filter(k=>set.has(k));
+}
+function renderFeederStockSpeciesOptions(){
+  const isEn = currentLang==='en';
+  const speciesSel = document.getElementById('feeder-stock-species');
+  if(!speciesSel) return;
+  const current = speciesSel.value;
+  const keys = preyTypesInCollection();
+  speciesSel.innerHTML = keys.map(k=>'<option value="'+k+'">'+PREY_TYPES[k].icon+' '+(isEn?PREY_TYPES[k].labelEn:PREY_TYPES[k].labelFr)+'</option>').join('');
+  if(keys.includes(current)) speciesSel.value = current; // garde le choix s'il reste valide
+}
 function renderFeederStockSizeOptions(){
   const speciesSel = document.getElementById('feeder-stock-species');
   const sizeSel = document.getElementById('feeder-stock-size');
   if(!speciesSel || !sizeSel) return;
   const species = speciesSel.value;
-  if(!PREY_SIZES[species]){ sizeSel.innerHTML = ''; return; }
-  sizeSel.innerHTML = PREY_SIZES[species].map(sz=>'<option value="'+sz+'">'+sz+'</option>').join('');
+  if(!PREY_TYPES[species]){ sizeSel.innerHTML = ''; return; }
+  sizeSel.innerHTML = PREY_TYPES[species].sizes.map(sz=>'<option value="'+sz+'">'+sz+'</option>').join('');
 }
 function setFeederStock(){
   const isEn = currentLang==='en';
