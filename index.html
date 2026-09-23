@@ -2069,7 +2069,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.77';
+const APP_VERSION = '2026.09.02.2.79';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5901,6 +5901,30 @@ const SPECIES_REFERENCE = [
       {q:'Can I keep two together?', a:'A fairly solitary species in the wild. Never two males together — they fight, sometimes seriously. Two females can sometimes cohabit, but it\'s not guaranteed: competition over food/hides, possible chronic stress even without visible fighting. For a first gecko, the simplest and safest option remains solo housing — it doesn\'t need company for its wellbeing.'},
       {q:'Can I pick it up by the tail?', a:'Never. Like several geckos, it can drop its tail (autotomy) if it feels threatened — a normal defense mechanism, not an emergency in itself, but one to avoid. Unlike the crested gecko where it\'s permanent, a leopard gecko\'s tail regrows — but never identical: shorter, often more bulbous, less colorful than the original. Always support the whole body when picking it up, never just the tail or just a leg.'},
     ]},
+  { id:'fat_tail_gecko', category:'lezard', nameFr:'Gecko à queue grasse africain', nameEn:'African fat-tailed gecko', tempWarm:32, tempCool:24, humidity:60,
+    nameLatin:'Hemitheconyx caudicinctus', originFr:'Afrique de l\'Ouest (Sénégal jusqu\'au Cameroun)', originEn:'West Africa (Senegal to Cameroon)', lifespanFr:'15-20 ans, parfois plus', lifespanEn:'15-20 years, sometimes more',
+    habitatTypeFr:'🌍 Terrestre (pas de coussinets adhésifs, ne grimpe pas — même famille que le gecko léopard)', habitatTypeEn:'🌍 Terrestrial (no adhesive toe pads, doesn\'t climb — same family as the leopard gecko)',
+    dietFr:'Insectivore strict — grillons, dubias, vers de farine, saupoudrés de calcium. Jamais de fruits/légumes (système digestif pas adapté).', dietEn:'Strict insectivore — crickets, dubia roaches, mealworms, dusted with calcium. Never fruits/vegetables (digestive system not built for it).',
+    feedFreqFr:'Bébé : chaque jour. Juvénile : 1 jour sur 2. Adulte : 2-3 fois/semaine.', feedFreqEn:'Baby: daily. Juvenile: every other day. Adult: 2-3 times/week.',
+    substrateFr:'Tapis reptile ou papier essuie-tout jusqu\'à l\'âge adulte — risque d\'impaction avec du substrat en vrac chez un jeune. Un adulte bien établi peut passer à un mélange terreau/sable qui retient plus l\'humidité que pour le gecko léopard, vu les besoins plus élevés de cette espèce. Jamais de sable de calcium ni de sable pur en vrac.', substrateEn:'Reptile carpet or paper towel until adulthood — impaction risk with loose substrate in a young gecko. A well-established adult can move to a soil/sand mix that retains more moisture than for the leopard gecko, given this species\' higher humidity needs. Never calcium sand or plain loose sand.',
+    uvbFr:'Pas nécessaire (espèce strictement nocturne), mais comme pour le gecko léopard, un UVB faible est de plus en plus jugé bénéfique par les sources récentes.', uvbEn:'Not necessary (strictly nocturnal species), but as with the leopard gecko, low UVB is increasingly considered beneficial by recent sources.',
+    incubationFr:'~40-70 jours selon la température. Détermination du sexe par la température (TSD) confirmée : plus frais = plus de femelles, plus chaud = plus de mâles, mélange des deux autour de 29-30°C.', incubationEn:'~40-70 days depending on temperature. Temperature-dependent sex determination (TSD) confirmed: cooler = more females, warmer = more males, a mix of both around 29-30°C (84-86°F).',
+    clutchesPerMatingFr:'Comme le gecko léopard, rétention de sperme possible — plusieurs pontes (2-7 rapportées) issues d\'un seul accouplement sur la saison, aux 15-30 jours.', clutchesPerMatingEn:'Like the leopard gecko, sperm retention is possible — several clutches (2-7 reported) from a single mating across the season, every 15-30 days.',
+    avgEggCountFr:'Généralement 1-2 œufs par ponte (parfois 1 seul, rarement 3).', avgEggCountEn:'Generally 1-2 eggs per clutch (sometimes just 1, rarely 3).',
+    noteFr:'Souvent comparé au gecko léopard (même famille Eublepharidae, paupières mobiles, pas de coussinets adhésifs) mais originaire d\'un climat plus humide — besoins d\'humidité nettement plus élevés que le gecko léopard, avec une cachette humide non négociable. Comme son nom l\'indique, stocke des réserves de graisse dans la queue; une queue qui s\'amincit ou s\'aplatit est un signe fiable de sous-alimentation ou de maladie à surveiller.', noteEn:'Often compared to the leopard gecko (same family Eublepharidae, movable eyelids, no adhesive toe pads) but native to a more humid climate — clearly higher humidity needs than the leopard gecko, with a non-negotiable humid hide. As the name suggests, it stores fat reserves in its tail; a tail that thins out or flattens is a reliable sign of underfeeding or illness worth watching for.',
+    enclosureAdult:'90×45×45cm minimum (36×18×18po) par individu', enclosureAdultEn:'36×18×18in minimum per individual',
+    faqFr:[
+      {q:'Quelle est la vraie différence avec le gecko léopard ?', a:'Même famille (Eublepharidae), husbandry très similaire côté diète et comportement (insectivore strict, terrestre, paupières mobiles). La différence principale : ce gecko vient d\'un climat plus humide et a besoin d\'une humidité nettement plus élevée, avec une cachette humide non négociable — sans ça, risque réel de mue incomplète.'},
+      {q:'Pourquoi surveiller la taille de la queue ?', a:'La queue sert de réserve de graisse, comme son nom l\'indique. Une queue qui reste mince, s\'aplatit ou rapetisse est un signe fiable de sous-alimentation ou de maladie — à vérifier avant que d\'autres symptômes apparaissent.'},
+      {q:'Est-ce que je peux le garder avec un autre gecko à queue grasse ?', a:'Jamais deux mâles ensemble — combats sérieux garantis. Des femelles peuvent parfois cohabiter, mais pas garanti. Logement individuel reste le plus sûr pour un premier animal.'},
+      {q:'Est-ce que la queue repousse s\'il la perd ?', a:'Oui, comme le gecko léopard — mais jamais identique : plus courte, souvent plus bulbeuse, avec moins de réserve de graisse qu\'avant. Toujours soutenir le corps au complet en le manipulant, jamais juste la queue.'},
+    ],
+    faqEn:[
+      {q:'What\'s the real difference with the leopard gecko?', a:'Same family (Eublepharidae), very similar husbandry for diet and behavior (strict insectivore, terrestrial, movable eyelids). The main difference: this gecko comes from a more humid climate and needs clearly higher humidity, with a non-negotiable humid hide — without it, real risk of incomplete shedding.'},
+      {q:'Why watch the size of the tail?', a:'The tail serves as a fat reserve, as the name suggests. A tail that stays thin, flattens, or shrinks is a reliable sign of underfeeding or illness — worth checking before other symptoms appear.'},
+      {q:'Can I keep it with another fat-tailed gecko?', a:'Never two males together — serious fights guaranteed. Females can sometimes cohabit, but it\'s not guaranteed. Solo housing remains the safest choice for a first animal.'},
+      {q:'Does its tail grow back if it loses it?', a:'Yes, like the leopard gecko — but never identical: shorter, often more bulbous, with less fat reserve than before. Always support the whole body when handling it, never just the tail.'},
+    ]},
   { id:'crested_gecko', category:'lezard', nameFr:'Gecko à crête', nameEn:'Crested gecko', tempWarm:28, tempCool:22, humidity:65,
     nameLatin:'Correlophus ciliatus', originFr:'Nouvelle-Calédonie', originEn:'New Caledonia', lifespanFr:'15-20 ans', lifespanEn:'15-20 years',
     habitatTypeFr:'🌳 Arboricole', habitatTypeEn:'🌳 Arboreal',
@@ -5930,6 +5954,32 @@ const SPECIES_REFERENCE = [
       {q:'What actually needs to go inside the enclosure, beyond just the right size?', a:'Arboreal species — height and content matter more than floor space. Provide several branches/vines at different heights to climb, foliage (real or artificial) to hide and feel secure, and ideally live plants which also help with humidity. An enclosure with just an empty floor, even the right size, leaves the animal stressed and without bearings.'},
       {q:'UVB — necessary or not?', a:'Historically considered unnecessary (nocturnal species), but like several other species on this list, current research shows a real benefit to low-intensity UVB (Ferguson zone 1-2, low-output tube or a heavily shaded setup). Not strictly required if dietary D3 is adequate, but increasingly recommended as best practice.'},
       {q:'Why isn\'t my gecko sticking to the glass like it used to?', a:'Worth watching closely — it\'s one of the very first signs of illness or a health issue in this species. Its feet work like real suction cups (adhesive lamellae) thanks to millions of microscopic hairs; when a healthy gecko loses that grip, it often points to dehydration, a deficiency, or a broader issue affecting the whole animal before other symptoms even become visible. If this happens, it\'s worth checking hydration and overall condition rather than waiting.'},
+    ]},
+  { id:'gargoyle_gecko', category:'lezard', nameFr:'Gecko gargouille', nameEn:'Gargoyle gecko', tempWarm:28, tempCool:23, humidity:65,
+    nameLatin:'Rhacodactylus auriculatus', originFr:'Nouvelle-Calédonie (même île que le gecko à crête)', originEn:'New Caledonia (same island as the crested gecko)', lifespanFr:'15-20 ans, parfois plus', lifespanEn:'15-20 years, sometimes more',
+    habitatTypeFr:'🌳 Semi-arboricole — passe du temps au sol, sur les branches basses et dans le feuillage', habitatTypeEn:'🌳 Semi-arboreal — spends time on the ground, low branches, and foliage',
+    dietFr:'Omnivore — base d\'une poudre commerciale complète (Repashy, Pangea) mélangée à l\'eau, insectes (grillons, dubias) en supplément.', dietEn:'Omnivore — base of a complete commercial powder (Repashy, Pangea) mixed with water, insects (crickets, dubia) as a supplement.',
+    feedFreqFr:'Juvénile : poudre 1 jour sur 2 à chaque jour + insectes 1-2x/semaine. Adulte : poudre 3-4x/semaine + insectes 0-1x/semaine.', feedFreqEn:'Juvenile: powder every day to every other day + insects 1-2x/week. Adult: powder 3-4x/week + insects 0-1x/week.',
+    substrateFr:'Fibre de coco ou mélange terreau/mousse qui retient bien l\'humidité. Jamais de sable ni de copeaux de bois.', substrateEn:'Coconut fiber or a soil/moss mix that holds humidity well. Never sand or wood chips.',
+    uvbFr:'Pas strictement obligatoire (espèce nocturne/crépusculaire), mais un UVB faible (zone 1 Ferguson, 2-6%) de plus en plus recommandé par les sources récentes comme bénéfique.', uvbEn:'Not strictly required (nocturnal/crepuscular species), but low UVB (Ferguson zone 1, 2-6%) is increasingly recommended by recent sources as beneficial.',
+    incubationFr:'60 à 90 jours. 2 œufs par ponte, jusqu\'à 8-9 pontes par année chez une femelle en santé — rythme comparable au gecko à crête.', incubationEn:'60 to 90 days. 2 eggs per clutch, up to 8-9 clutches per year in a healthy female — a pace comparable to the crested gecko.',
+    clutchesPerMatingFr:'Comme le gecko à crête, rétention de sperme possible — plusieurs pontes issues d\'un seul accouplement sur la saison.', clutchesPerMatingEn:'Like the crested gecko, sperm retention is possible — several clutches from a single mating across the season.',
+    avgEggCountFr:'Toujours 2 œufs par ponte.', avgEggCountEn:'Always 2 eggs per clutch.',
+    noteFr:'Souvent confondu avec le gecko à crête (même île, husbandry très similaire) mais génétiquement distinct — pas de crêtes sur la tête, corps plus trapu, tempérament généralement plus calme et meilleure tolérance à la sécheresse ponctuelle que son cousin selon plusieurs sources. Espèce vocale la nuit (aboiements, grincements, couinements) — normal, pas un signe de détresse.', noteEn:'Often confused with the crested gecko (same island, very similar husbandry) but genetically distinct — no head crests, a stockier body, and a generally calmer temperament with better tolerance of occasional dry spells than its cousin according to several sources. A vocal species at night (barks, squeaks) — normal, not a sign of distress.',
+    enclosureBaby:'~20×20×30cm (bébé)', enclosureBabyEn:'~8×8×12in (hatchling)',
+    enclosureSub:'~30×30×45cm (juvénile)', enclosureSubEn:'~12×12×18in (juvenile)',
+    enclosureAdult:'45×45×60cm minimum (18×18×24po)', enclosureAdultEn:'18×18×24in minimum',
+    faqFr:[
+      {q:'C\'est quoi la vraie différence avec le gecko à crête ?', a:'Deux espèces distinctes du même genre (Rhacodactylus), originaires de la même île. Le gecko gargouille n\'a pas de crêtes sur la tête, un corps généralement plus trapu, et une réputation de tempérament plus calme. Husbandry quasi identique (même diète, gamme de température/humidité similaire) — les deux fiches se ressemblent beaucoup, mais ce sont deux espèces séparées, pas des variantes l\'une de l\'autre.'},
+      {q:'Est-ce que je peux le garder avec un autre gecko gargouille ?', a:'Généralement territorial et plutôt solitaire une fois adulte — jamais deux mâles ensemble, et même deux femelles peuvent avoir des frictions. Logement individuel reste le plus sûr, surtout pour un premier animal.'},
+      {q:'Pourquoi il fait des bruits la nuit ?', a:'Normal — l\'espèce est reconnue pour être vocale (aboiements, grincements, couinements), surtout entre eux ou en période de stress léger. Pas un signe d\'urgence en soi, mais vaut la peine de vérifier que rien d\'anormal ne cause le stress si ça devient fréquent.'},
+      {q:'Est-ce que la queue repousse s\'il la perd ?', a:'Non — comme le gecko à crête, la perte de queue est définitive chez cette espèce. Une fois tombée, il ne reste qu\'un moignon, la queue ne repousse pas. Évite de le manipuler par la queue.'},
+    ],
+    faqEn:[
+      {q:'What\'s the real difference with the crested gecko?', a:'Two distinct species from the same genus (Rhacodactylus), native to the same island. The gargoyle gecko has no head crests, a generally stockier body, and a reputation for a calmer temperament. Husbandry is nearly identical (same diet, similar temperature/humidity range) — the two care sheets look a lot alike, but they\'re separate species, not variants of one another.'},
+      {q:'Can I keep it with another gargoyle gecko?', a:'Generally territorial and fairly solitary once adult — never two males together, and even two females can have friction. Solo housing remains the safest choice, especially for a first animal.'},
+      {q:'Why does it make noises at night?', a:'Normal — the species is known to be vocal (barks, squeaks, growls), especially with each other or during mild stress. Not an emergency sign on its own, but worth checking that nothing abnormal is causing the stress if it becomes frequent.'},
+      {q:'Does its tail grow back if it loses it?', a:'No — like the crested gecko, tail loss is permanent in this species. Once it drops, only a stump remains, the tail doesn\'t grow back. Avoid handling it by the tail.'},
     ]},
   { id:'bearded_dragon', category:'lezard', nameFr:'Dragon barbu', nameEn:'Bearded dragon', tempWarm:33, tempCool:26, humidity:35,
     nameLatin:'Pogona vitticeps', originFr:'Zones arides du centre de l\'Australie', originEn:'Arid interior of Australia', lifespanFr:'8-12 ans, parfois jusqu\'à 15', lifespanEn:'8-12 years, sometimes up to 15',
@@ -6062,6 +6112,58 @@ const SPECIES_REFERENCE = [
       {q:'How do I make sure I have a real BCC and not a mislabeled BCI?', a:'Ask the seller for the precise locality (Suriname, Guyana, Peru = BCC; Colombia, Central America = BCI) and be wary of any seller who just says "red-tailed boa" without specifying the species — that\'s often (not always) a sign of a BCI sold under that name at a markup.'},
       {q:'Can I keep it with another snake?', a:'No — a solitary species.'},
       {q:'How long before handling a newborn?', a:'Let it settle for at least a week and confirm at least one successful meal before any handling — BCC babies are more easily stressed than BCI at this stage.'},
+    ]},
+  { id:'rainbow_boa', category:'serpent', nameFr:'Boa arc-en-ciel brésilien', nameEn:'Brazilian rainbow boa', tempWarm:29, tempCool:25, humidity:75,
+    nameLatin:'Epicrates cenchria cenchria', originFr:'Bassin amazonien (Brésil, Pérou, Guyane, Suriname, Venezuela)', originEn:'Amazon Basin (Brazil, Peru, Guyana, Suriname, Venezuela)', lifespanFr:'20-25 ans', lifespanEn:'20-25 years',
+    habitatTypeFr:'🌍🌳 Semi-arboricole, forêt tropicale humide — passe du temps au sol et dans les branches basses', habitatTypeEn:'🌍🌳 Semi-arboreal, humid tropical forest — spends time both on the ground and in low branches',
+    dietFr:'Carnivore — souris ou petits rats selon la taille, congelé-décongelé.', dietEn:'Carnivore — mice or small rats depending on size, frozen-thawed.',
+    feedFreqFr:'Bébé : aux 5-7 jours. Juvénile : aux 7-10 jours. Adulte : aux 10-14 jours.', feedFreqEn:'Baby: every 5-7 days. Juvenile: every 7-10 days. Adult: every 10-14 days.',
+    substrateFr:'Substrat qui retient fortement l\'humidité — sphaigne, tourbe, fibre de coco épaisse. Espèce reconnue exigeante côté humidité, plus que la majorité des serpents de cette liste.', substrateEn:'A strongly humidity-retentive substrate — sphagnum, peat, thick coconut fiber. Known as a demanding species for humidity, more so than most snakes on this list.',
+    uvbFr:'Pas documenté comme essentiel, mais un UVB faible (zone 1 Ferguson, 2-6%) de plus en plus recommandé par les sources récentes.', uvbEn:'Not documented as essential, but low UVB (Ferguson zone 1, 2-6%) is increasingly recommended by recent sources.',
+    incubationFr:'Espèce ovovivipare (mise bas, pas de ponte) — gestation ~5-8 mois selon les sources (plus longue que les boas du genre Boa). Portées ~10-25 nouveau-nés.', incubationEn:'Ovoviviparous species (live birth, no egg-laying) — gestation ~5-8 months depending on source (longer than genus-Boa boas). Litters ~10-25 newborns.',
+    clutchesPerMatingFr:'Généralement 1 mise bas par accouplement réussi.', clutchesPerMatingEn:'Generally 1 birth per successful mating.',
+    avgEggCountFr:'10-25 nouveau-nés.', avgEggCountEn:'10-25 newborns.',
+    noteFr:'Ne pas confondre avec BCI/BCC (genre Boa) — le boa arc-en-ciel appartient au genre Epicrates, une lignée distincte. Reconnu pour son iridescence spectaculaire (reflets arc-en-ciel sur les écailles sous la lumière, dus à des microstries de surface qui agissent comme un prisme — pas une pigmentation) et pour être plus exigeant que les boas du genre Boa : humidité stricte, plage de température plus étroite (dépasser ~29-30°C peut être dangereux), tempérament parfois plus nerveux/mordeur chez les jeunes. Pas recommandé comme premier boa à un débutant complet.', noteEn:'Not to be confused with BCI/BCC (genus Boa) — the rainbow boa belongs to genus Epicrates, a distinct lineage. Known for spectacular iridescence (a rainbow sheen on the scales under light, caused by microscopic surface ridges acting like a prism — not pigmentation) and for being pickier than genus-Boa boas: strict humidity, a narrower temperature range (exceeding ~29-30°C/85°F can be dangerous), sometimes a more nervous/bitey temperament as juveniles. Not recommended as a complete beginner\'s first boa.',
+    enclosureBaby:'60×45×45cm (24×18×18po)', enclosureBabyEn:'24×18×18in',
+    enclosureSub:'90×45×45cm (36×18×18po)', enclosureSubEn:'36×18×18in',
+    enclosureAdult:'180×90×60cm minimum (72×36×24po)', enclosureAdultEn:'72×36×24in minimum',
+    faqFr:[
+      {q:'Pourquoi il est réputé plus difficile que les autres boas ?', a:'Humidité stricte à maintenir (65-80%, plus pour les nouveau-nés) et une plage de température plus étroite que BCI/BCC — dépasser ~29-30°C peut être dangereux pour l\'espèce. Le tempérament est aussi souvent plus nerveux chez les jeunes, avec plus de morsures défensives qu\'un BCI typique.'},
+      {q:'Est-ce que je peux le garder avec un autre serpent ?', a:'Non — espèce solitaire comme la vaste majorité des serpents. Cohabiter augmente le stress chronique et le risque de transmission de maladie.'},
+      {q:'D\'où vient l\'effet arc-en-ciel sur les écailles ?', a:'Les écailles ont des microstries de surface qui agissent comme un prisme et réfractent la lumière — ce n\'est pas une pigmentation, c\'est un effet purement optique/structurel, encore plus visible juste après une mue.'},
+      {q:'Peut-il tolérer des écarts de température comme le Boa argentin ?', a:'Non, au contraire — c\'est une des espèces les moins tolérantes aux écarts de cette liste. Reste dans le gradient recommandé (24-29°C) sans descendre ni monter trop, contrairement à des espèces plus robustes côté thermique.'},
+    ],
+    faqEn:[
+      {q:'Why is it considered harder than other boas?', a:'Strict humidity to maintain (65-80%, higher for newborns) and a narrower temperature range than BCI/BCC — exceeding ~29-30°C/85°F can be dangerous for the species. Temperament is also often more nervous as juveniles, with more defensive bites than a typical BCI.'},
+      {q:'Can I keep it with another snake?', a:'No — a solitary species like the vast majority of snakes. Cohabiting increases chronic stress and disease-transmission risk.'},
+      {q:'Where does the rainbow effect on the scales come from?', a:'The scales have microscopic surface ridges that act like a prism and refract light — it\'s not pigmentation, it\'s a purely optical/structural effect, even more visible right after a shed.'},
+      {q:'Can it tolerate temperature swings like the Argentine boa?', a:'No, quite the opposite — it\'s one of the least temperature-tolerant species on this list. Stay within the recommended gradient (24-29°C/75-85°F) without dropping or spiking too much, unlike some thermally hardier species.'},
+    ]},
+  { id:'boa_argentin', category:'serpent', nameFr:'Boa argentin (Boa constrictor occidentalis)', nameEn:'Argentine boa (Boa constrictor occidentalis)', tempWarm:29, tempCool:26, humidity:60,
+    nameLatin:'Boa constrictor occidentalis', originFr:'Argentine, sud du Paraguay — zones semi-arides (Chaco, Monte)', originEn:'Argentina, southern Paraguay — semi-arid regions (Chaco, Monte)', lifespanFr:'20-30 ans', lifespanEn:'20-30 years',
+    habitatTypeFr:'🌍 Terrestre — plus actif et terrestre que les autres sous-espèces de Boa constrictor, habitat semi-aride plutôt que forêt tropicale', habitatTypeEn:'🌍 Terrestrial — more active and ground-dwelling than other Boa constrictor subspecies, semi-arid habitat rather than rainforest',
+    dietFr:'Carnivore — rats de taille appropriée, congelé-décongelé. Les gros adultes peuvent prendre des proies de la taille d\'un cochon d\'Inde.', dietEn:'Carnivore — appropriately sized rats, frozen-thawed. Large adults can take guinea-pig-sized prey.',
+    feedFreqFr:'Bébé : aux 5-7 jours. Juvénile : aux 7-10 jours. Adulte : aux 14-21 jours.', feedFreqEn:'Baby: every 5-7 days. Juvenile: every 7-10 days. Adult: every 14-21 days.',
+    substrateFr:'Moins exigeant en humidité que BCI/BCC vu son origine semi-aride — substrat naturaliste standard, sans excès d\'humidité constante. Bassine d\'eau + brumisation ponctuelle (surtout pendant la mue) suffisent.', substrateEn:'Less humidity-demanding than BCI/BCC given its semi-arid origin — a standard naturalistic substrate, without constant heavy moisture. A water bowl plus occasional misting (especially during shed) is enough.',
+    uvbFr:'Pas strictement documenté comme essentiel, mais un UVB faible à modéré de plus en plus recommandé — l\'espèce est reconnue pour s\'exposer activement en milieu naturel plus que d\'autres boas.', uvbEn:'Not strictly documented as essential, but low-to-moderate UVB is increasingly recommended — the species is known to actively bask in the wild more than some other boas.',
+    incubationFr:'Espèce ovovivipare (mise bas, pas de ponte) — gestation ~100-120 jours. Portées variables, moyenne ~20-35 nouveau-nés (parfois plus grosses que BCI/BCC vu la taille adulte imposante).', incubationEn:'Ovoviviparous species (live birth, no egg-laying) — gestation ~100-120 days. Litters vary, average ~20-35 newborns (sometimes larger than BCI/BCC litters given the imposing adult size).',
+    clutchesPerMatingFr:'Généralement 1 mise bas par accouplement réussi.', clutchesPerMatingEn:'Generally 1 birth per successful mating.',
+    avgEggCountFr:'15-60 nouveau-nés (moyenne ~20-35).', avgEggCountEn:'15-60 newborns (average ~20-35).',
+    noteFr:'⚠️ Statut légal particulier : contrairement à BCI/BCC, le Boa argentin est inscrit à l\'Annexe I de CITES — le niveau de protection internationale le plus strict, juste en dessous d\'une interdiction totale de commerce. Toute vente ou tout transport international, même pour un animal né en captivité sur plusieurs générations, demande une documentation CITES spécifique — vérifie les exigences avant toute transaction (voir l\'onglet Permis de LOCUS et les sources gouvernementales officielles). Aussi plus tolérant au froid que les autres boas (peut encaisser des chutes jusqu\'à 18-21°C sans problème), plus actif/terrestre, et considéré menacé dans son habitat naturel.', noteEn:'⚠️ Special legal status: unlike BCI/BCC, the Argentine boa is listed under CITES Appendix I — the strictest level of international protection, just short of an outright trade ban. Any sale or international transport, even for a multi-generation captive-bred animal, requires specific CITES documentation — check requirements before any transaction (see LOCUS\'s Permits tab and official government sources). Also more cold-tolerant than other boas (can handle drops to 18-21°C/65-70°F without issue), more active/terrestrial, and considered threatened in its natural habitat.',
+    enclosureBaby:'90×45×45cm (36×18×18po)', enclosureBabyEn:'36×18×18in',
+    enclosureSub:'150×60×60cm (60×24×24po)', enclosureSubEn:'60×24×24in',
+    enclosureAdult:'240×90×90cm minimum (96×36×36po)', enclosureAdultEn:'96×36×36in minimum',
+    faqFr:[
+      {q:'C\'est vraiment légal d\'en posséder ou d\'en vendre un ?', a:'Le posséder comme animal de compagnie est généralement permis, mais le statut CITES Annexe I encadre beaucoup plus étroitement toute vente ou tout transport international qu\'un BCI/BCC ordinaire — une documentation spécifique est exigée même pour un animal né en captivité. Vérifie toujours les exigences précises avant une transaction (onglet Permis de LOCUS).'},
+      {q:'Pourquoi il tolère le froid mieux que les autres boas ?', a:'Son habitat naturel (Chaco, Monte argentin) connaît de vraies variations saisonnières, contrairement à la forêt tropicale humide de BCI/BCC — l\'espèce s\'est adaptée à des chutes de température que les autres sous-espèces de Boa constrictor ne tolèrent pas aussi bien.'},
+      {q:'Est-ce que je peux le garder avec un autre serpent ?', a:'Non — espèce solitaire.'},
+      {q:'Comment le différencier d\'un BCI ou BCC à l\'œil ?', a:'Demande toujours la localité précise au vendeur plutôt que de te fier à l\'apparence seule — coloration très variable (du noir à fort contraste blanc jusqu\'à l\'orange-brûlé), mais l\'origine géographique déclarée reste le critère le plus fiable.'},
+    ],
+    faqEn:[
+      {q:'Is it actually legal to own or sell one?', a:'Owning one as a pet is generally allowed, but the CITES Appendix I status makes any sale or international transport far more regulated than an ordinary BCI/BCC — specific documentation is required even for a captive-born animal. Always check exact requirements before a transaction (LOCUS\'s Permits tab).'},
+      {q:'Why does it tolerate cold better than other boas?', a:'Its natural habitat (the Argentine Chaco and Monte) experiences real seasonal swings, unlike the humid rainforest of BCI/BCC — the species has adapted to temperature drops other Boa constrictor subspecies don\'t tolerate as well.'},
+      {q:'Can I keep it with another snake?', a:'No — a solitary species.'},
+      {q:'How do I tell it apart from a BCI or BCC by eye?', a:'Always ask the seller for the precise locality rather than relying on looks alone — coloration is highly variable (from black with high-contrast white to burnt-orange), but the declared geographic origin remains the most reliable criterion.'},
     ]},
   { id:'blue_tongue_skink', category:'lezard', nameFr:'Skink à langue bleue', nameEn:'Blue-tongue skink', tempWarm:38, tempCool:24, humidity:50,
     nameLatin:'Tiliqua scincoides', originFr:'Australie (variétés du Nord les plus communes en captivité)', originEn:'Australia (Northern varieties most common in captivity)', lifespanFr:'15-20 ans (parfois 30)', lifespanEn:'15-20 years (sometimes 30)',
@@ -10623,9 +10725,9 @@ function preyTypesForSpecies(speciesId){
   // Les boas adultes (surtout la BCC, plus grosse) peuvent prendre des proies bien plus grosses
   // qu'un python royal ou un corn snake à l'âge adulte — d'où l'ajout lapin/cochon d'Inde ici
   // seulement, pas pour le reste des mangeurs de rongeurs de cette liste.
-  if(speciesId==='boa_bci' || speciesId==='boa_bcc') return ['mouse','rat','asf','guineapig','rabbit'];
-  if(speciesId==='crested_gecko') return ['mrp','cricket','dubia'];
-  if(speciesId==='leopard_gecko') return ['cricket','dubia','mealworm','superworm','phoenixworm'];
+  if(speciesId==='boa_bci' || speciesId==='boa_bcc' || speciesId==='boa_argentin') return ['mouse','rat','asf','guineapig','rabbit'];
+  if(speciesId==='crested_gecko' || speciesId==='gargoyle_gecko') return ['mrp','cricket','dubia'];
+  if(speciesId==='leopard_gecko' || speciesId==='fat_tail_gecko') return ['cricket','dubia','mealworm','superworm','phoenixworm'];
   if(speciesId==='bearded_dragon') return ['cricket','dubia','mealworm','superworm','phoenixworm','leafy','legume','fruit'];
   if(speciesId==='croc_skink_red' || speciesId==='croc_skink_white') return ['cricket','dubia','mealworm','snail','earthworm'];
   if(speciesId==='blue_tongue_skink') return ['cricket','dubia','mealworm','snail','earthworm','leafy','legume','fruit'];
@@ -15200,12 +15302,16 @@ const REPRODUCTION_INFO_BY_SPECIES = {
   king_mexican: { mode:'ovipare', def:65, min:50, max:80 },
   hognose: { mode:'ovipare', def:60, min:50, max:70 },
   leopard_gecko: { mode:'ovipare', def:50, min:35, max:90 },
+  fat_tail_gecko: { mode:'ovipare', def:55, min:40, max:70 },
   crested_gecko: { mode:'ovipare', def:90, min:55, max:140 },
+  gargoyle_gecko: { mode:'ovipare', def:75, min:60, max:90 },
   bearded_dragon: { mode:'ovipare', def:65, min:45, max:85 },
   croc_skink_red: { mode:'ovipare', def:70, min:55, max:90 },
   croc_skink_white: { mode:'ovipare', def:70, min:55, max:90 },
   boa_bci: { mode:'ovovivipare', def:110, min:100, max:120 },
   boa_bcc: { mode:'ovovivipare', def:110, min:100, max:120 },
+  rainbow_boa: { mode:'ovovivipare', def:180, min:150, max:240 },
+  boa_argentin: { mode:'ovovivipare', def:110, min:100, max:120 },
   blue_tongue_skink: { mode:'ovovivipare', def:105, min:90, max:120 },
   uro_nigriventris: { mode:'ovipare', def:70, min:58, max:92 },
   uro_maliensis: { mode:'ovipare', def:70, min:58, max:92 },
