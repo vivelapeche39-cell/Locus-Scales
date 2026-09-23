@@ -2069,7 +2069,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.81';
+const APP_VERSION = '2026.09.02.2.83';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -6616,6 +6616,81 @@ const SPECIES_REFERENCE = [
       {q:'Why do so many end up in rescues?', a:'Widespread, massive underestimation of adult size and required space — a cute few-centimeter hatchling becomes a several-meter-long predator within a few years, and many keepers realize too late they don\'t have the space needed.'},
       {q:'Can I keep it with fish or other animals in its pool?', a:'No — it\'s an opportunistic predator that eats pretty much anything it can catch, fish included. The pool is for it alone.'},
     ]},
+  { id:'reeves_turtle', category:'tortue', nameFr:'Tortue de Reeve', nameEn:'Reeve\'s turtle', tempWarm:33, tempCool:22, humidity:70,
+    nameLatin:'Mauremys reevesii', originFr:'Chine, Corée, Taïwan, Japon', originEn:'China, Korea, Taiwan, Japan', lifespanFr:'15-25 ans', lifespanEn:'15-25 years',
+    habitatTypeFr:'💧 Semi-aquatique — eau douce calme (étangs, rivières lentes), sort régulièrement s\'exposer', habitatTypeEn:'💧 Semi-aquatic — calm freshwater (ponds, slow rivers), regularly leaves water to bask',
+    dietFr:'Omnivore — le ratio s\'inverse avec l\'âge, comme le dragon barbu. Jeune : surtout protéine (granulés, insectes, petit poisson). Adulte : mélange plus équilibré incluant des végétaux aquatiques.', dietEn:'Omnivore — the ratio flips with age, like the bearded dragon. Young: mostly protein (pellets, insects, small fish). Adult: a more balanced mix including aquatic plants.',
+    feedFreqFr:'Jeune : chaque jour. Adulte : aux 2-3 jours.', feedFreqEn:'Young: daily. Adult: every 2-3 days.',
+    substrateFr:'Filtration de l\'eau comme pour un aquarium (ammoniaque/nitrite à 0) + plateforme d\'exposition sèche. Espèce tempérée qui tolère (et bénéficie d\') une eau plus fraîche que la tortue à oreilles rouges — surchauffer chroniquement est une vraie cause d\'échec rapportée pour cette espèce précisément.', substrateEn:'Water filtration like a fish aquarium (ammonia/nitrite at 0) + a dry basking platform. A temperate species that tolerates (and benefits from) cooler water than the red-eared slider — chronic overheating is a real reported cause of captive failure specifically for this species.',
+    uvbFr:'Essentiel — UVB au-dessus de la zone d\'exposition.', uvbEn:'Essential — UVB above the basking area.',
+    incubationFr:'Estimation approximative ~60-90 jours par analogie avec des tortues aquatiques tempérées/subtropicales proches (Geoemydidae) — pas de donnée précise par jour publiée trouvée spécifiquement pour cette espèce.', incubationEn:'Rough estimate ~60-90 days by analogy with related temperate/subtropical aquatic turtles (Geoemydidae) — no precise published day-count found specifically for this species.',
+    clutchesPerMatingFr:'Ponte naturelle si mâle et femelle cohabitent en bonne condition — pas d\'action nécessaire pour déclencher la reproduction.', clutchesPerMatingEn:'Natural clutch-laying if male and female cohabit in good condition — no action needed to trigger breeding.',
+    avgEggCountFr:'Pas de donnée fiable trouvée sur le nombre d\'œufs typique.', avgEggCountEn:'No reliable data found on typical egg count.',
+    noteFr:'Souvent recommandée comme une des meilleures tortues aquatiques pour débuter, devant même la tortue à oreilles rouges — taille généralement modeste (10-15cm, mais certaines lignées atteignent 30cm+, vérifier la taille des parents avant achat), tempérament calme, robuste. Espèce tempérée avec une vraie période de brumation hivernale naturelle, contrairement à la tortue à oreilles rouges d\'origine plus chaude — ne pas maintenir une température estivale à l\'année sans raison. Protégée dans son aire de répartition native — privilégier un spécimen né en captivité.', noteEn:'Often recommended as one of the best beginner aquatic turtles, ahead of even the red-eared slider — generally modest size (4-6in, but some bloodlines reach 12in+, check parent size before buying), calm temperament, hardy. A temperate species with a genuine natural winter brumation period, unlike the warmer-origin red-eared slider — don\'t hold a summer temperature year-round without reason. Protected in its native range — favor a captive-born specimen.',
+    enclosureBaby:'Aquarium 75L (20 gal) minimum', enclosureBabyEn:'20-gallon aquarium minimum',
+    enclosureAdult:'Aquarium 220L (60 gal) minimum, plus selon la lignée', enclosureAdultEn:'60-gallon aquarium minimum, more depending on bloodline',
+    faqFr:[
+      {q:'Pourquoi elle est recommandée pour débuter en tortue aquatique ?', a:'Taille généralement modeste, tempérament calme, et une vraie robustesse comparée à d\'autres espèces — souvent citée comme meilleur premier choix devant même la tortue à oreilles rouges.'},
+      {q:'Elle a vraiment besoin d\'hiverner ?', a:'Espèce tempérée avec un vrai cycle saisonnier naturel — une période fraîche hivernale (brumation) n\'est pas obligatoire en captivité mais reflète mieux son cycle naturel qu\'une température estivale maintenue à l\'année.'},
+      {q:'Pourquoi vérifier la taille des parents avant d\'acheter ?', a:'La taille adulte varie énormément selon la lignée d\'origine — la plupart restent petites (10-15cm) mais certaines lignées atteignent 30cm+. Un bébé ne permet pas de prédire laquelle tu auras sans connaître ses parents.'},
+      {q:'Je peux la garder avec une tortue à oreilles rouges ?', a:'Déconseillé — transmission de pathogènes entre espèces même sans symptômes visibles, principe qui s\'applique à toutes les tortues de cette liste entre elles.'},
+    ],
+    faqEn:[
+      {q:'Why is it recommended for beginners in aquatic turtles?', a:'Generally modest size, calm temperament, and real hardiness compared to other species — often cited as a better first choice than even the red-eared slider.'},
+      {q:'Does it really need to hibernate?', a:'A temperate species with a genuine natural seasonal cycle — a cool winter period (brumation) isn\'t mandatory in captivity but better reflects its natural cycle than a year-round summer temperature.'},
+      {q:'Why check the parents\' size before buying?', a:'Adult size varies enormously by bloodline — most stay small (4-6in) but some lines reach 12in+. A hatchling doesn\'t tell you which you\'ll get without knowing its parents.'},
+      {q:'Can I keep it with a red-eared slider?', a:'Not recommended — cross-species pathogen transmission even without visible symptoms, a principle that applies between every turtle on this list.'},
+    ]},
+  { id:'diamondback_terrapin', category:'tortue', nameFr:'Tortue diamant', nameEn:'Diamondback terrapin', tempWarm:35, tempCool:23, humidity:70,
+    nameLatin:'Malaclemys terrapin', originFr:'Côtes est et golfe du Mexique des États-Unis — marais salants, estuaires', originEn:'US Atlantic and Gulf coasts — salt marshes, estuaries', lifespanFr:'25-40 ans', lifespanEn:'25-40 years',
+    habitatTypeFr:'💧🧂 Aquatique en eau saumâtre — seule tortue de cette liste adaptée à un mélange eau douce/eau de mer', habitatTypeEn:'💧🧂 Aquatic in brackish water — the only turtle on this list adapted to a freshwater/saltwater mix',
+    dietFr:'Carnivore — mollusques (escargots, moules, palourdes), crabes, poisson, crevettes. Spécialiste des proies à coquille dure, comme le varan de savane mais en version aquatique.', dietEn:'Carnivore — mollusks (snails, mussels, clams), crabs, fish, shrimp. A hard-shelled prey specialist, like the savannah monitor but in aquatic form.',
+    feedFreqFr:'Jeune : chaque jour. Adulte : aux 2-3 jours.', feedFreqEn:'Young: daily. Adult: every 2-3 days.',
+    substrateFr:'Eau saumâtre (salinité ~10-15‰, entre l\'eau douce et l\'eau de mer) — le vrai défi de husbandry de cette espèce. Certains éleveurs élèvent les nouveau-nés en eau douce puis introduisent le sel graduellement. Filtration robuste requise — le sel accélère la corrosion du matériel standard.', substrateEn:'Brackish water (salinity ~10-15‰, between fresh and full seawater) — the real husbandry challenge of this species. Some breeders raise hatchlings in freshwater then introduce salt gradually. Robust filtration required — salt accelerates corrosion of standard equipment.',
+    uvbFr:'Essentiel — UVB au-dessus de la zone d\'exposition.', uvbEn:'Essential — UVB above the basking area.',
+    incubationFr:'Estimation approximative ~60-90 jours par analogie avec des tortues aquatiques nord-américaines apparentées (Emydidae) — pas de donnée précise par jour publiée trouvée spécifiquement pour cette espèce.', incubationEn:'Rough estimate ~60-90 days by analogy with related North American aquatic turtles (Emydidae) — no precise published day-count found specifically for this species.',
+    clutchesPerMatingFr:'Pas de donnée fiable trouvée sur le nombre de pontes typique par saison.', clutchesPerMatingEn:'No reliable data found on typical clutches per season.',
+    avgEggCountFr:'Pas de donnée fiable trouvée sur le nombre d\'œufs typique.', avgEggCountEn:'No reliable data found on typical egg count.',
+    noteFr:'⚠️ Statut légal à vérifier : espèce protégée dans plusieurs États américains, prélèvement sauvage souvent interdit ou fortement encadré — privilégier un spécimen né en captivité et vérifier la réglementation locale avant tout achat/vente (onglet Permis de LOCUS). Seule tortue de cette liste vivant naturellement en eau saumâtre — un vrai défi de husbandry distinct de toutes les autres espèces aquatiques déjà présentes. Espèce sociale, contrairement à la majorité des tortues — se garde bien en petit groupe.', noteEn:'⚠️ Legal status to check: protected in several US states, wild collection often banned or heavily regulated — favor a captive-born specimen and check local regulations before any purchase/sale (LOCUS\'s Permits tab). The only turtle on this list naturally living in brackish water — a genuine husbandry challenge distinct from every other aquatic species already in the app. A social species, unlike most turtles — does well in a small group.',
+    enclosureBaby:'Aquarium 150L (40 gal) minimum', enclosureBabyEn:'40-gallon aquarium minimum',
+    enclosureAdult:'Aquarium 280L (75 gal) minimum', enclosureAdultEn:'75-gallon aquarium minimum',
+    faqFr:[
+      {q:'Pourquoi elle a besoin d\'eau salée ?', a:'C\'est la seule tortue nord-américaine adaptée à vivre en eau saumâtre (mélange eau douce/eau de mer) — elle a même des glandes spéciales pour évacuer l\'excès de sel, comme les tortues marines. De l\'eau douce pure ne reproduit pas son environnement naturel.'},
+      {q:'Est-ce que je peux la garder en eau douce complètement ?', a:'Certains éleveurs élèvent les nouveau-nés en eau douce avec succès, mais ce n\'est pas son environnement naturel — la vraie référence reste l\'eau saumâtre, et plusieurs gardiens expérimentés la considèrent essentielle à long terme.'},
+      {q:'Le sel n\'endommage pas l\'équipement ?', a:'Oui, c\'est un vrai défi — le sel accélère la corrosion du matériel standard (filtres, chauffe-eau). Prévoir de l\'équipement adapté à l\'eau saumâtre/salée, comme pour un aquarium marin.'},
+      {q:'Est-ce que je peux en garder plusieurs ensemble ?', a:'Oui — contrairement à la majorité des tortues de cette liste, c\'est une espèce sociale qui cohabite généralement bien en petit groupe.'},
+    ],
+    faqEn:[
+      {q:'Why does it need salt water?', a:'It\'s the only North American turtle adapted to live in brackish water (freshwater/saltwater mix) — it even has special glands to excrete excess salt, like sea turtles. Pure freshwater doesn\'t replicate its natural environment.'},
+      {q:'Can I keep it in fully fresh water?', a:'Some breeders successfully raise hatchlings in freshwater, but it\'s not its natural environment — the real reference remains brackish water, and several experienced keepers consider it essential long-term.'},
+      {q:'Doesn\'t salt damage the equipment?', a:'Yes, it\'s a real challenge — salt accelerates corrosion of standard gear (filters, water heaters). Plan for brackish/saltwater-rated equipment, like a marine aquarium.'},
+      {q:'Can I keep several together?', a:'Yes — unlike most turtles on this list, it\'s a social species that generally cohabits well in a small group.'},
+    ]},
+  { id:'mata_mata', category:'tortue', nameFr:'Tortue mata mata', nameEn:'Mata mata turtle', tempWarm:27, tempCool:24, humidity:80,
+    nameLatin:'Chelus fimbriatus', originFr:'Bassins de l\'Amazone et de l\'Orénoque, Amérique du Sud', originEn:'Amazon and Orinoco basins, South America', lifespanFr:'15 ans et plus en captivité (peu documenté avec précision)', lifespanEn:'15+ years in captivity (not precisely documented)',
+    habitatTypeFr:'💧 Aquatique — reste presque immobile au fond, ne bascule presque jamais, respire via son museau en tuba à la surface', habitatTypeEn:'💧 Aquatic — stays almost motionless on the bottom, almost never basks, breathes via its snorkel-like nose at the surface',
+    dietFr:'Carnivore strict, prédateur à l\'affût — capture ses proies par succion ultra-rapide plutôt qu\'en mordant. Presque exclusivement du poisson vivant; refuse souvent la nourriture congelée-décongelée, un vrai défi d\'alimentation documenté chez cette espèce.', dietEn:'Strict carnivore, ambush predator — captures prey by ultra-fast suction rather than biting. Almost exclusively live fish; often refuses frozen-thawed food, a real documented feeding challenge for this species.',
+    feedFreqFr:'Aux 2-3 jours pour un adulte, poisson vivant de taille appropriée.', feedFreqEn:'Every 2-3 days for an adult, appropriately sized live fish.',
+    substrateFr:'Eau douce acide et teintée (pH 5-6,5) qui imite l\'eau noire amazonienne — tourbe, feuilles mortes, mousse de sphaigne dans le filtre pour obtenir cette teinte. Contrairement à la majorité des tortues aquatiques, aucune plateforme d\'exposition chauffée n\'est vraiment nécessaire — c\'est la température de l\'eau qui compte, pas un point chaud.', substrateEn:'Acidic, tannin-stained freshwater (pH 5-6.5) mimicking Amazonian blackwater — peat, leaf litter, sphagnum moss in the filter to achieve this tint. Unlike most aquatic turtles, no heated basking platform is really necessary — water temperature is what matters, not a hot spot.',
+    uvbFr:'Pas strictement nécessaire vu qu\'elle ne bascule presque jamais, mais un éclairage ambiant 10-12h/jour reste bénéfique.', uvbEn:'Not strictly necessary given it almost never basks, but ambient lighting 10-12h/day remains beneficial.',
+    incubationFr:'~200 jours à 28-29°C. 12-28 œufs par ponte, 1 seule ponte par année (octobre-décembre en nature) — contrairement à plusieurs autres tortues de cette liste qui pondent plusieurs fois par saison.', incubationEn:'~200 days at 28-29°C. 12-28 eggs per clutch, just 1 clutch per year (October-December in the wild) — unlike several other turtles on this list that lay multiple times per season.',
+    clutchesPerMatingFr:'1 ponte par année chez cette espèce.', clutchesPerMatingEn:'1 clutch per year for this species.',
+    avgEggCountFr:'12-28 œufs par ponte.', avgEggCountEn:'12-28 eggs per clutch.',
+    noteFr:'Une des tortues les plus reconnaissables au monde — camouflage extrême (ressemble à un tas de débris/feuilles au fond de l\'eau), technique de chasse par succion ultra-rapide plutôt que par morsure. Grossit bien plus que sa popularité « curiosité d\'exposition » ne le laisse croire (45cm+, parfois 17kg) — pas un poisson d\'aquarium malgré son mode de vie presque exclusivement aquatique. Le vrai piège documenté : plusieurs individus refusent obstinément la nourriture congelée-décongelée en captivité, obligeant à maintenir un vrai approvisionnement en poisson vivant, pas juste un supplément occasionnel.', noteEn:'One of the most recognizable turtles in the world — extreme camouflage (looks like a pile of debris/leaves on the bottom), an ultra-fast suction hunting technique rather than biting. Grows far larger than its "novelty species" popularity suggests (18in+, sometimes 38lbs) — not a fish-tank curiosity despite its nearly fully aquatic lifestyle. The real documented pitfall: many individuals stubbornly refuse frozen-thawed food in captivity, forcing keepers to maintain a genuine live fish supply, not just an occasional supplement.',
+    enclosureBaby:'Aquarium 150-220L (40-60 gal)', enclosureBabyEn:'40-60 gallon aquarium',
+    enclosureAdult:'Aquarium 300L+ (80 gal+) minimum', enclosureAdultEn:'80+ gallon aquarium minimum',
+    faqFr:[
+      {q:'Pourquoi elle refuse la nourriture congelée ?', a:'Comportement documenté et frustrant chez cette espèce — beaucoup de mata mata n\'acceptent que du poisson vivant même après des semaines de jeûne. Prévoir un vrai approvisionnement en poisson vivant avant d\'en acquérir une, pas juste un supplément occasionnel.'},
+      {q:'Pourquoi pas besoin de point chaud comme les autres tortues ?', a:'Elle ne bascule presque jamais — contrairement à la majorité des tortues aquatiques qui alternent nage et exposition au soleil, la mata mata reste immobile au fond la quasi-totalité du temps. C\'est la température de l\'eau elle-même qui doit être dans la bonne plage, pas un point chaud séparé.'},
+      {q:'Pourquoi l\'eau doit être teintée/acide ?', a:'Ça imite l\'eau noire de son habitat amazonien naturel (tanins des feuilles en décomposition) — un vrai facteur de bien-être documenté, pas juste esthétique. Un pH trop élevé (au-dessus de ~6,5) est associé à des problèmes de peau chez certains individus.'},
+      {q:'Elle grossit vraiment autant qu\'on le dit ?', a:'Oui — 45cm et plus, parfois jusqu\'à 17kg. Sa popularité comme « curiosité » fait souvent sous-estimer sa vraie taille adulte et l\'espace nécessaire à terme.'},
+    ],
+    faqEn:[
+      {q:'Why does it refuse frozen food?', a:'A documented, frustrating behavior in this species — many mata matas only accept live fish even after weeks of fasting. Plan for a genuine live fish supply before getting one, not just an occasional supplement.'},
+      {q:'Why doesn\'t it need a hot spot like other turtles?', a:'It almost never basks — unlike most aquatic turtles that alternate swimming and sunbathing, the mata mata stays motionless on the bottom nearly all the time. It\'s the water temperature itself that needs to be in the right range, not a separate hot spot.'},
+      {q:'Why does the water need to be tinted/acidic?', a:'It mimics the blackwater of its natural Amazonian habitat (tannins from decomposing leaves) — a real documented wellbeing factor, not just aesthetics. Too high a pH (above ~6.5) is linked to skin issues in some individuals.'},
+      {q:'Does it really grow that big?', a:'Yes — 18in and up, sometimes up to 38lbs. Its popularity as a "curiosity" often leads people to underestimate its real adult size and the space eventually needed.'},
+    ]},
 ];
 // Retourne un bloc HTML taille de terrarium si au moins une donnée sourcée existe pour l'espèce,
 // sinon chaîne vide (jamais de texte inventé placeholder).
@@ -11005,6 +11080,7 @@ const PREY_TYPES = {
   phoenixworm: { icon:'🐛', labelFr:'Phoenix worm (BSFL)', labelEn:'Phoenix worm (BSFL)', sizes:['Small','Medium','Large'] },
   snail: { icon:'🐌', labelFr:'Escargot', labelEn:'Snail', sizes:['Petit','Moyen','Gros'] },
   earthworm: { icon:'🪱', labelFr:'Ver de terre', labelEn:'Earthworm', sizes:['Petit','Moyen','Gros'] },
+  fish: { icon:'🐟', labelFr:'Poisson (vivant/entier)', labelEn:'Fish (live/whole)', sizes:['Petit','Moyen','Gros'] },
   mrp: { icon:'🥣', labelFr:'Poudre commerciale (MRP)', labelEn:'Commercial powder (MRP)', sizes:['Portion normale','Grosse portion'] },
   // Végétaux (4 sept) — par CATÉGORIE plutôt que par aliment précis (salade, carotte, etc.) : ce qui
   // compte pour la santé, c'est le ratio verdure/légumineuse/fruit respecté, pas l'ingrédient exact
@@ -11034,7 +11110,13 @@ function preyTypesForSpecies(speciesId){
   if(speciesId==='tree_monitor_green' || speciesId==='tree_monitor_blue' || speciesId==='tree_monitor_yellow' || speciesId==='tree_monitor_black') return ['cricket','dubia','mealworm','superworm','mouse'];
   if(speciesId==='ackie_monitor') return ['cricket','dubia','mealworm','superworm','mouse'];
   if(speciesId==='savannah_monitor') return ['cricket','dubia','snail','mealworm','superworm','mouse'];
-  if(speciesId==='black_throated_monitor' || speciesId==='water_monitor') return ['mouse','rat','cricket','dubia','snail'];
+  if(speciesId==='black_throated_monitor' || speciesId==='water_monitor') return ['mouse','rat','cricket','dubia','snail','fish'];
+  // Reeve — jeune surtout poisson/protéine, ratio qui s'inverse vers plus végétal à l'âge adulte
+  // (déjà noté dans sa fiche), donc fish gardé disponible même si pas dominant chez l'adulte.
+  if(speciesId==='reeves_turtle') return ['cricket','dubia','mealworm','snail','earthworm','fish','leafy','legume','fruit'];
+  // Diamant (crabes/mollusques/poisson) et mata mata (quasi exclusivement poisson vivant, voir sa
+  // fiche) — fish maintenant disponible, corrige le vrai trou signalé avant l'ajout de ce type.
+  if(speciesId==='diamondback_terrapin' || speciesId==='mata_mata') return ['fish','snail','earthworm'];
   // Orvet (10 sept) — diète spécialisée limaces/vers de terre, très différente du reste de la liste ;
   // grillon/dubia gardés en soutien pour les rares individus qui les acceptent, jamais en base.
   if(speciesId==='orvet') return ['snail','earthworm','cricket','dubia'];
@@ -15628,6 +15710,9 @@ const REPRODUCTION_INFO_BY_SPECIES = {
   savannah_monitor: { mode:'ovipare', def:175, min:150, max:200 },
   black_throated_monitor: { mode:'ovipare', def:175, min:150, max:200 },
   water_monitor: { mode:'ovipare', def:175, min:150, max:200 },
+  reeves_turtle: { mode:'ovipare', def:75, min:60, max:90 },
+  diamondback_terrapin: { mode:'ovipare', def:75, min:60, max:90 },
+  mata_mata: { mode:'ovipare', def:200, min:190, max:210 },
   uro_nigriventris: { mode:'ovipare', def:70, min:58, max:92 },
   uro_maliensis: { mode:'ovipare', def:70, min:58, max:92 },
   uro_ornata: { mode:'ovipare', def:70, min:58, max:92 },
