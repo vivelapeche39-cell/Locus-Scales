@@ -2079,7 +2079,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.85';
+const APP_VERSION = '2026.09.02.2.87';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3546,7 +3546,7 @@ function saveProfileData(){
     phone: document.getElementById('profile-phone-input').value.trim(),
   };
   try{ localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); }catch(e){}
-  if(sb && currentUser) pushAllUserData(); // pousse le profil au cloud sans attendre la prochaine sauvegarde d'un reptile
+  mirrorSnakesRemote(); // pousse le profil au cloud (anti-rebond + résistant aux collisions, voir plus bas)
   closeQuickModal();
   showToast('Profil enregistré.', 'success');
 }
@@ -10154,7 +10154,26 @@ async function pullAllUserData(){
 
 // Mirroring en arrière-plan : après chaque sauvegarde locale, pousse aussi vers le serveur
 // si un utilisateur est connecté. Fire-and-forget (ne bloque jamais l'UI locale).
-function mirrorSnakesRemote(){ if(sb && currentUser && !estOccupe) pushAllUserData(); }
+// Miroir cloud après toute sauvegarde locale (15 sept, élargi à toute l'app suite à un vrai trou
+// trouvé) — avant, appelait pushAllUserData() immédiatement et sans anti-rebond à CHAQUE sauvegarde
+// locale (reptile, rack, stock, rongeur, etc.), ET abandonnait EN SILENCE sans jamais réessayer si
+// une synchro était déjà en cours (estOccupe) au même moment — c'est ce qui pouvait donner
+// l'impression qu'un changement fait sur un appareil "disparaissait" en checkant un autre appareil
+// trop vite après. Maintenant : anti-rebond de 1,2s (plusieurs sauvegardes rapprochées ne
+// déclenchent qu'un seul envoi), et si occupé au moment prévu, re-planifie automatiquement dans 2s
+// au lieu d'abandonner. Couvre TOUT ce qui appelle déjà cette fonction — reptiles (save() dans le
+// stockage), et saveElevage() (racks, terrariums, pairings, clutches, expenses, customers, stock
+// congelé/vivant, todos, bacs/racks/objectif rongeurs, simulateur de rêverie, layout) — sans avoir
+// à toucher chaque fonction d'édition individuellement.
+var _cloudSyncTimer = null;
+function mirrorSnakesRemote(){
+  if(!sb || !currentUser) return;
+  clearTimeout(_cloudSyncTimer);
+  _cloudSyncTimer = setTimeout(function attemptSync(){
+    if(estOccupe){ _cloudSyncTimer = setTimeout(attemptSync, 2000); return; }
+    try{ pushAllUserData(); }catch(e){}
+  }, 1200);
+}
 
 
 /* ==================== Sauvegarde : export / import JSON complet ==================== */
@@ -17429,7 +17448,7 @@ function isBannerDismissed(name){ return loadDismissedBanners().includes(name); 
 function dismissBanner(name){
   const list = loadDismissedBanners();
   if(!list.includes(name)){ list.push(name); saveDismissedBanners(list); }
-  if(sb && currentUser) pushAllUserData(); // pousse la fermeture au cloud sans attendre la prochaine sauvegarde d'un reptile
+  mirrorSnakesRemote(); // pousse la fermeture au cloud (anti-rebond + résistant aux collisions)
 }
 function isWelcomeDismissed(){ return isBannerDismissed('welcome'); }
 function dismissWelcome(){
