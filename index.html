@@ -1380,13 +1380,23 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" data-i18n="preyMissingTitle">⚠ Proie non renseignée</h2></div>
       <div id="prey-missing-list" class="sale-list"></div>
       <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" data-i18n="feederStockTitle">🧊 Stock de proies</h2></div>
-      <p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 12px;" data-i18n="feederStockHint">Décompte automatiquement quand tu loggues un repas pour un reptile dont l'espèce/taille de proie est renseignée. Global au congélateur, pas par animal.</p>
+      <p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 4px;" data-i18n="feederStockHintFrozen">🧊 Congelé — décompte automatiquement quand tu loggues un repas pour un reptile dont l'espèce/taille de proie est renseignée. Global au congélateur, pas par animal.</p>
       <div id="feeder-stock-list"></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
         <select id="feeder-stock-species" onchange="renderFeederStockSizeOptions()" style="background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:'Courier New',monospace;font-size:11.5px;padding:8px;"></select>
         <select id="feeder-stock-size" style="background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:'Courier New',monospace;font-size:11.5px;padding:8px;"></select>
         <input type="number" id="feeder-stock-qty" min="0" placeholder="0" class="price-input" style="width:70px;"/>
         <button class="sc-btn accent" onclick="setFeederStock()" data-i18n="feederStockSetBtn">Régler le stock</button>
+      </div>
+      <div class="results-hdr" style="margin-top:22px;"><h2 style="font-size:14.5px;" data-i18n="feederStockLiveTitle">🐾 Vivant</h2></div>
+      <p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 8px;" data-i18n="feederStockLiveHint">Stock vivant à part de tes bacs de rongeurs — utile pour un surplus reçu d'ailleurs (ex. gerbilles écartées d'un autre élevage) ou toute proie vivante que tu suis manuellement.</p>
+      <div id="feeder-stock-live-auto"></div>
+      <div id="feeder-stock-live-list"></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
+        <select id="feeder-stock-live-species" onchange="renderFeederStockLiveSizeOptions()" style="background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:'Courier New',monospace;font-size:11.5px;padding:8px;"></select>
+        <select id="feeder-stock-live-size" style="background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:'Courier New',monospace;font-size:11.5px;padding:8px;"></select>
+        <input type="number" id="feeder-stock-live-qty" min="0" placeholder="0" class="price-input" style="width:70px;"/>
+        <button class="sc-btn accent" onclick="setFeederStockLive()" data-i18n="feederStockLiveSetBtn">Régler le stock vivant</button>
       </div>
     </div>
 
@@ -2069,7 +2079,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.84';
+const APP_VERSION = '2026.09.02.2.85';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4415,8 +4425,11 @@ const I18N = {
     defrostListTitle: '📋 Liste de décongélation',
     preyMissingTitle: '⚠ Proie non renseignée',
     feederStockTitle: '🧊 Stock de proies',
-    feederStockHint: 'Décompte automatiquement quand tu loggues un repas pour un reptile dont l\'espèce/taille de proie est renseignée. Global au congélateur, pas par animal.',
+    feederStockHintFrozen: '🧊 Congelé — décompte automatiquement quand tu loggues un repas pour un reptile dont l\'espèce/taille de proie est renseignée. Global au congélateur, pas par animal.',
     feederStockSetBtn: 'Régler le stock',
+    feederStockLiveTitle: '🐾 Vivant',
+    feederStockLiveHint: 'Stock vivant à part de tes bacs de rongeurs — utile pour un surplus reçu d\'ailleurs (ex. gerbilles écartées d\'un autre élevage) ou toute proie vivante que tu suis manuellement.',
+    feederStockLiveSetBtn: 'Régler le stock vivant',
     fillPreyBtn: '📋 Renseigner la proie',
     // Phase 3 — Ventes : Annonces
     subListings: '📢 Annonces',
@@ -4966,7 +4979,10 @@ const I18N = {
     defrostListTitle: '📋 Defrost List',
     preyMissingTitle: '⚠ Prey Not Set',
     feederStockTitle: '🧊 Feeder Stock',
-    feederStockHint: 'Decreases automatically when you log a meal for a reptile with its prey species/size set. Shared across your whole collection, not per animal.',
+    feederStockHintFrozen: '🧊 Frozen — decreases automatically when you log a meal for a reptile with its prey species/size set. Shared across your whole collection, not per animal.',
+    feederStockLiveTitle: '🐾 Live',
+    feederStockLiveHint: 'Live stock kept separate from your rodent bins — handy for surplus received elsewhere (e.g. gerbils culled from another breeder\'s genetics) or any live prey you track manually.',
+    feederStockLiveSetBtn: 'Set live stock',
     feederStockSetBtn: 'Set stock',
     fillPreyBtn: '📋 Set Prey',
     // Phase 3 — Sales: Listings
@@ -9712,8 +9728,8 @@ function saveAppStatePushedAt(ts){
 function loadElevage(){
   try{
     const raw = localStorage.getItem(ELEVAGE_KEY);
-    return raw ? JSON.parse(raw) : { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, todos:[], rodentBins:[], rodentExpenses:[], rodentValuePerUnit:null, rodentPriorityBins:{}, rodentRacks:[{id:'rrack_1', name:'Rack 1', rows:[8,8]}], rodentGoal:{unit:'females',target:null,mode:'expansion'}, dreamSnakes:[] };
-  }catch(e){ console.warn('LOCUS: lecture élevage impossible', e); return { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, todos:[], rodentBins:[], rodentExpenses:[], rodentValuePerUnit:null, rodentPriorityBins:{}, rodentRacks:[{id:'rrack_1', name:'Rack 1', rows:[8,8]}], rodentGoal:{unit:'females',target:null,mode:'expansion'}, dreamSnakes:[] }; }
+    return raw ? JSON.parse(raw) : { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, feederStockLive:{}, todos:[], rodentBins:[], rodentExpenses:[], rodentValuePerUnit:null, rodentPriorityBins:{}, rodentRacks:[{id:'rrack_1', name:'Rack 1', rows:[8,8]}], rodentGoal:{unit:'females',target:null,mode:'expansion'}, dreamSnakes:[] };
+  }catch(e){ console.warn('LOCUS: lecture élevage impossible', e); return { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, feederStockLive:{}, todos:[], rodentBins:[], rodentExpenses:[], rodentValuePerUnit:null, rodentPriorityBins:{}, rodentRacks:[{id:'rrack_1', name:'Rack 1', rows:[8,8]}], rodentGoal:{unit:'females',target:null,mode:'expansion'}, dreamSnakes:[] }; }
 }
 function saveElevage(){
   trackLocalChanges('racks', racks);
@@ -9723,7 +9739,7 @@ function saveElevage(){
   trackLocalChanges('expenses', expenses);
   trackLocalChanges('customers', customers);
   try{
-    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, rodentPriorityBins, rodentRacks, rodentGoal, dreamSnakes }));
+    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, feederStockLive, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, rodentPriorityBins, rodentRacks, rodentGoal, dreamSnakes }));
     storageWriteFailed = false;
   }catch(e){
     console.warn('LOCUS: écriture élevage impossible', e);
@@ -9748,6 +9764,7 @@ var projects = elevageData.projects || [];
 // décompté automatiquement à chaque repas loggé si l'animal a un preySpecies/preySize renseigné.
 // Global à la collection (pas par animal) : un seul congélateur, peu importe combien de bouches à nourrir.
 var feederStock = elevageData.feederStock || {};
+var feederStockLive = elevageData.feederStockLive || {};
 // Gestion de rongeurs nourriciers (4 sept, Phase 1) — bacs/couples reproducteurs, séparé du suivi
 // des reptiles. Chaque bac : {id, label, species(mouse/rat/asf), ratio, room, litters:[{id,date,count,note}]}.
 // Angle "rentabilité par reproducteur" plutôt que "stade de croissance" — vrai feedback obtenu d'un
@@ -10013,7 +10030,7 @@ async function pushAllUserData(forceAll){
         await sb.rpc('upsert_customer_encrypted', { p_id: cu.id, p_data: cu });
       }
     }
-    await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock, todos, genetic_ambiguities: geneticAmbiguities, rodent_bins: rodentBins, rodent_expenses: rodentExpenses, rodent_value_per_unit: rodentValuePerUnit, rodent_priority_bins: rodentPriorityBins, rodent_racks: rodentRacks, rodent_goal: rodentGoal, dream_snakes: dreamSnakes });
+    await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock, feeder_stock_live: feederStockLive, todos, genetic_ambiguities: geneticAmbiguities, rodent_bins: rodentBins, rodent_expenses: rodentExpenses, rodent_value_per_unit: rodentValuePerUnit, rodent_priority_bins: rodentPriorityBins, rodent_racks: rodentRacks, rodent_goal: rodentGoal, dream_snakes: dreamSnakes });
     saveAppStatePushedAt(Date.now());
     const profile = loadProfile();
     await sb.from('profiles').upsert({ user_id:currentUser.id, breeder_name: profile.breederName||null, email: profile.email||null, phone: profile.phone||null });
@@ -10103,6 +10120,7 @@ async function pullAllUserData(){
     if(stateRes.data && stateRes.data.rodent_goal && remoteAppStateWins) rodentGoal = stateRes.data.rodent_goal;
     if(stateRes.data && stateRes.data.dream_snakes && remoteAppStateWins) dreamSnakes = stateRes.data.dream_snakes;
     if(stateRes.data && stateRes.data.feeder_stock && remoteAppStateWins) feederStock = stateRes.data.feeder_stock;
+    if(stateRes.data && stateRes.data.feeder_stock_live && remoteAppStateWins) feederStockLive = stateRes.data.feeder_stock_live;
     if(stateRes.data && stateRes.data.dismissed_banners){
       const mergedBanners = [...new Set([...loadDismissedBanners(), ...stateRes.data.dismissed_banners])];
       saveDismissedBanners(mergedBanners);
@@ -10147,7 +10165,7 @@ function exportBackup(){
   const payload = {
     app:'LOCUS', version:2, exportedAt:new Date().toISOString(),
     snakes: savedSnakes,
-    elevage: { racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, rodentPriorityBins, rodentRacks, rodentGoal, dreamSnakes }
+    elevage: { racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, feederStockLive, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, rodentPriorityBins, rodentRacks, rodentGoal, dreamSnakes }
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
@@ -10202,6 +10220,7 @@ document.getElementById('import-file-input').addEventListener('change', (e)=>{
     dreamSnakes = el.dreamSnakes || [];
     projects = el.projects || [];
     feederStock = el.feederStock || {};
+    feederStockLive = el.feederStockLive || {};
     saveElevage();
 
     // Rafraîchit tout ce qui pourrait être visible
@@ -10214,6 +10233,7 @@ document.getElementById('import-file-input').addEventListener('change', (e)=>{
     if(document.getElementById('block-tour-racks')) renderTourLayoutPrefs();
     if(document.getElementById('clutch-list')){ renderClutchForm(); renderClutches(); }
     if(document.getElementById('feeder-stock-list')) renderFeederStockList();
+    if(document.getElementById('feeder-stock-live-list')) renderFeederStockLiveList();
 
     e.target.value = '';
     alert(isEn?('Backup imported: '+savedSnakes.length+' reptile(s), '+pairings.length+' pairing(s).'):('Sauvegarde importée : '+savedSnakes.length+' reptile(s), '+pairings.length+' accouplement(s).'));
@@ -11071,6 +11091,7 @@ const PREY_TYPES = {
   mouse: { icon:'🐁', labelFr:'Souris', labelEn:'Mouse', sizes:['Pinky','Fuzzy','Hopper','Weanling','Adult'] },
   rat: { icon:'🐀', labelFr:'Rat', labelEn:'Rat', sizes:['Pinky','Fuzzy','Weanling','Small','Medium','Large','X-Large','Jumbo'] },
   asf: { icon:'🐭', labelFr:'ASF (African Soft Fur)', labelEn:'ASF (African Soft Fur)', sizes:['Pinky','Fuzzy','Weanling','Adult'] },
+  gerbil: { icon:'🐾', labelFr:'Gerbille', labelEn:'Gerbil', sizes:['Pinky','Fuzzy','Weanling','Adult'] },
   rabbit: { icon:'🐇', labelFr:'Lapin', labelEn:'Rabbit', sizes:['Petit','Moyen','Gros'] },
   guineapig: { icon:'🐹', labelFr:'Cochon d\'Inde', labelEn:'Guinea pig', sizes:['Petit','Moyen','Gros'] },
   cricket: { icon:'🦗', labelFr:'Grillon', labelEn:'Cricket', sizes:['Small','Medium','Large','Adult'] },
@@ -11334,6 +11355,10 @@ function renderFoodView(){
   renderFeederStockList();
   renderFeederStockSpeciesOptions();
   renderFeederStockSizeOptions();
+  renderRodentLiveStockAuto();
+  renderFeederStockLiveList();
+  renderFeederStockLiveSpeciesOptions();
+  renderFeederStockLiveSizeOptions();
 }
 
 /* Inventaire de proies (25 août) — stock global par catégorie "espèce|taille", décompté
@@ -11385,28 +11410,108 @@ function adjustFeederStock(key, delta){
   saveElevage();
   renderFeederStockList();
 }
-function renderFeederStockList(){
-  const wrap = document.getElementById('feeder-stock-list');
+// Rendu générique réutilisé par le stock congelé ET le stock vivant manuel (15 sept) — corrige au
+// passage un vrai bug : l'icône/le nom d'espèce étaient codés en dur mouse/rat seulement, donc
+// faux pour toute autre proie (asf, gerbille, escargot...) depuis que le sélecteur est devenu
+// dynamique. PREY_TYPES est maintenant la seule source pour l'icône/le nom, plus de cas spécial.
+function renderFeederStockListGeneric(stockObj, wrapId, adjustFnName){
+  const wrap = document.getElementById(wrapId);
   if(!wrap) return;
   const isEn = currentLang==='en';
-  const entries = Object.entries(feederStock).filter(([k,v])=>v>0 || v===0);
+  const entries = Object.entries(stockObj).filter(([k,v])=>v>0 || v===0);
   if(!entries.length){
     wrap.innerHTML = '<div class="empty">'+(isEn?'No stock entered yet.':'Aucun stock entré pour l\'instant.')+'</div>';
     return;
   }
   wrap.innerHTML = entries.sort((a,b)=>a[0].localeCompare(b[0])).map(([key,qty])=>{
     const [species,size] = key.split('|');
-    const speciesLabel = species==='mouse' ? 'Mouse' : 'Rat';
+    const pt = PREY_TYPES[species];
+    const icon = pt ? pt.icon : '❓';
+    const speciesLabel = pt ? (isEn?pt.labelEn:pt.labelFr) : species;
     const low = qty <= FEEDER_LOW_STOCK_THRESHOLD;
     return '<div class="expense-cat-row"'+(low?' style="border:1px solid var(--rust);border-radius:8px;padding:6px 8px;"':'')+'>'+
-      '<div class="expense-cat-label">'+(species==='mouse'?'🐁':'🐀')+' '+size+' '+speciesLabel+(low?' ⚠':'')+'</div>'+
+      '<div class="expense-cat-label">'+icon+' '+size+' '+speciesLabel+(low?' ⚠':'')+'</div>'+
       '<div style="display:flex;align-items:center;gap:8px;">'+
-        '<button class="sc-btn" style="padding:2px 10px;" onclick="adjustFeederStock(\''+key+'\', -1)">−</button>'+
+        '<button class="sc-btn" style="padding:2px 10px;" onclick="'+adjustFnName+'(\''+key+'\', -1)">−</button>'+
         '<span style="font-family:\'Courier New\',monospace;min-width:24px;text-align:center;'+(low?'color:var(--rust);font-weight:700;':'')+'">'+qty+'</span>'+
-        '<button class="sc-btn" style="padding:2px 10px;" onclick="adjustFeederStock(\''+key+'\', 1)">+</button>'+
+        '<button class="sc-btn" style="padding:2px 10px;" onclick="'+adjustFnName+'(\''+key+'\', 1)">+</button>'+
       '</div>'+
     '</div>';
   }).join('');
+}
+function renderFeederStockList(){ renderFeederStockListGeneric(feederStock, 'feeder-stock-list', 'adjustFeederStock'); }
+// Stock vivant manuel (15 sept) — pour un stock vivant "à part" hors du système de bacs (ex. surplus
+// reçu d'un autre éleveur, comme des gerbilles écartées de la génétique d'un élevage de compagnie).
+// Structure identique à feederStock (species|size -> qty), objet séparé pour ne jamais mélanger les
+// deux compteurs (congelé vs vivant = deux réalités différentes à ne pas confondre dans les totaux).
+function setFeederStockLive(){
+  const isEn = currentLang==='en';
+  const species = document.getElementById('feeder-stock-live-species').value;
+  const size = document.getElementById('feeder-stock-live-size').value;
+  const qtyInput = document.getElementById('feeder-stock-live-qty');
+  const qty = parseInt(qtyInput.value, 10);
+  if(!size || isNaN(qty) || qty<0){ showToast(isEn?'Enter a valid quantity.':'Entre une quantité valide.', 'error'); return; }
+  feederStockLive[feederStockKey(species,size)] = qty;
+  qtyInput.value = '';
+  saveElevage();
+  renderFeederStockLiveList();
+  showToast('🐾 '+(isEn?'Live stock updated.':'Stock vivant mis à jour.'), 'success');
+}
+function adjustFeederStockLive(key, delta){
+  feederStockLive[key] = Math.max(0, (feederStockLive[key]||0) + delta);
+  saveElevage();
+  renderFeederStockLiveList();
+}
+function renderFeederStockLiveList(){ renderFeederStockListGeneric(feederStockLive, 'feeder-stock-live-list', 'adjustFeederStockLive'); }
+function renderFeederStockSpeciesOptionsGeneric(selectId){
+  const isEn = currentLang==='en';
+  const speciesSel = document.getElementById(selectId);
+  if(!speciesSel) return;
+  const current = speciesSel.value;
+  const keys = preyTypesInCollection();
+  speciesSel.innerHTML = keys.map(k=>'<option value="'+k+'">'+PREY_TYPES[k].icon+' '+(isEn?PREY_TYPES[k].labelEn:PREY_TYPES[k].labelFr)+'</option>').join('');
+  if(keys.includes(current)) speciesSel.value = current; // garde le choix s'il reste valide
+}
+function renderFeederStockLiveSpeciesOptions(){ renderFeederStockSpeciesOptionsGeneric('feeder-stock-live-species'); }
+function renderFeederStockSizeOptionsGeneric(speciesId, sizeId){
+  const speciesSel = document.getElementById(speciesId);
+  const sizeSel = document.getElementById(sizeId);
+  if(!speciesSel || !sizeSel) return;
+  const species = speciesSel.value;
+  if(!PREY_TYPES[species]){ sizeSel.innerHTML = ''; return; }
+  sizeSel.innerHTML = PREY_TYPES[species].sizes.map(sz=>'<option value="'+sz+'">'+sz+'</option>').join('');
+}
+function renderFeederStockLiveSizeOptions(){ renderFeederStockSizeOptionsGeneric('feeder-stock-live-species','feeder-stock-live-size'); }
+// Rollup automatique du vivant depuis les bacs Stock/Croissance du système de rongeurs (15 sept) —
+// mouse/rat seulement, les 2 seules espèces que la colonie supporte actuellement. Calculé en direct
+// depuis stockBatches + le stade recalculé par âge (même logique que la carte de bac) — source de
+// vérité unique, jamais de ressaisie manuelle en double avec le système de rongeurs.
+function computeRodentLiveStockAuto(){
+  const totals = {};
+  (rodentBins||[]).filter(b=>b.binType==='stock' && (b.species==='mouse'||b.species==='rat')).forEach(bin=>{
+    (bin.stockBatches||[]).forEach(batch=>{
+      const days = daysSinceDate(batch.referenceDate);
+      const stage = computeRodentStageFromAge(days);
+      const key = bin.species+'|'+stage;
+      totals[key] = (totals[key]||0) + (batch.quantity||0);
+    });
+  });
+  return totals;
+}
+function renderRodentLiveStockAuto(){
+  const wrap = document.getElementById('feeder-stock-live-auto');
+  if(!wrap) return;
+  const isEn = currentLang==='en';
+  const totals = computeRodentLiveStockAuto();
+  const entries = Object.entries(totals).filter(([k,v])=>v>0);
+  if(!entries.length){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = '<p style="font-size:10.5px;color:var(--gold);margin:0 0 8px;">🔗 '+(isEn?'Synced live from your rodent bins (Stock/Growth) — read-only, managed from the Rodents tab.':'Synchronisé en direct depuis tes bacs Stock/Croissance — lecture seule, géré depuis l\'onglet Rongeurs.')+'</p>'+
+    entries.sort((a,b)=>a[0].localeCompare(b[0])).map(([key,qty])=>{
+      const [species,stage] = key.split('|');
+      const icon = species==='mouse'?'🐁':'🐀';
+      const label = species==='mouse'?(isEn?'Mouse':'Souris'):(isEn?'Rat':'Rat');
+      return '<div class="expense-cat-row"><div class="expense-cat-label">'+icon+' '+stage+' '+label+'</div><div style="font-family:\'Courier New\',monospace;">'+qty+'</div></div>';
+    }).join('');
 }
 const foodHorizonSelectEl = document.getElementById('food-horizon-select');
 if(foodHorizonSelectEl){
