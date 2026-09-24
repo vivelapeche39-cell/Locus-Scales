@@ -33,11 +33,11 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<title>LOCUS Scales</title>
+<title>LOCUS Scales — Gestion d'élevage de reptiles (python royal)</title>
 <meta charset="utf-8"/>
 <meta name="google-site-verification" content="JvUPiLwoAimf2vx9x4kqqqydcunxFbFnx1G2QHtY4-o" />
 <meta name="msvalidate.01" content="F9680D5238A61FFBF76C0E2CD15117E2" />
-<meta name="description" content="LOCUS Scales — gestion d'élevage complète pour le python royal (Ball Python) : calculateur génétique, suivi de racks, ventes, incubation et administration, tout au même endroit."/>
+<meta name="description" content="LOCUS Scales — gestion d'élevage de reptiles : calculateur génétique python royal, suivi de racks, ventes, incubation et administration."/>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>"/>
 <!-- Fondation PWA (10 sept) — additif seulement, ne change rien au fonctionnement actuel pour
      personne. Prépare le terrain pour un emballage natif (Capacitor) éventuel, interrupteur
@@ -985,7 +985,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <button class="lang-pill" id="lang-pill-en" onclick="setLangTop('en')">EN</button>
     </div>
     <div>
-      <div class="wordmark">LOCUS<span class="dot">.</span><span class="wordmark-scales">Scales</span></div>
+      <h1 class="wordmark" style="margin:0;">LOCUS<span class="dot">.</span><span class="wordmark-scales">Scales</span></h1>
       <div class="tag" data-i18n="appTag">Gestion d'élevage — Python royal (Ball Python)</div>
     </div>
     <input type="file" id="import-file-input" accept="application/json" style="display:none;"/>
@@ -2069,7 +2069,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.83';
+const APP_VERSION = '2026.09.02.2.84';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
