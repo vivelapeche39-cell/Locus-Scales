@@ -778,10 +778,12 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 .tub.feed-yellow{border-left:4px solid #d8bb46;}
 .tub.feed-orange{border-left:4px solid #d38a45;}
 .tub.feed-red{border-left:4px solid #c1503a;background:rgba(193,80,58,.12);}
+.tub.feed-brumation{border-left:4px solid #6fa8c9;}
 .terrarium-chip.feed-green{border-color:#6fae5b;}
 .terrarium-chip.feed-yellow{border-color:#d8bb46;}
 .terrarium-chip.feed-orange{border-color:#d38a45;}
 .terrarium-chip.feed-red{border-color:#c1503a;background:rgba(193,80,58,.14);}
+.terrarium-chip.feed-brumation{border-color:#6fa8c9;}
 
 /* ==================== OPTIMISATION MOBILE ====================
    Aucune couleur touchée — uniquement tailles, espacements, disposition,
@@ -1530,9 +1532,10 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
     <div id="sub-repro-calendar" style="display:none;">
       <div id="onboarding-banner-calendar" class="onboarding-banner" style="display:none;"></div>
       <div class="pairing-form">
-        <select id="pairing-male"></select>
+        <select id="pairing-male" onchange="updatePairingReproductionInfo()"></select>
         <span style="color:var(--ink-dim);font-family:'Courier New',monospace;font-size:11px;">×</span>
-        <select id="pairing-female"></select>
+        <select id="pairing-female" onchange="updatePairingReproductionInfo()"></select>
+        <div id="pairing-reproduction-info" style="font-family:'Courier New',monospace;font-size:10.5px;color:var(--gold);"></div>
         <label style="display:flex;flex-direction:column;gap:3px;">
           <span style="font-family:'Courier New',monospace;font-size:9.5px;color:var(--ink-dim);" data-i18n="pairingDateLabel">Date d'accouplement</span>
           <input type="date" id="pairing-date"/>
@@ -2079,7 +2082,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.87';
+const APP_VERSION = '2026.09.02.2.89';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4255,6 +4258,9 @@ const I18N = {
     noLengthRecorded: 'Aucune mesure enregistrée',
     eventLength: 'Mesure',
     eventWater: 'Changement d\'eau',
+    eventWaterQuality: 'Qualité de l\'eau',
+    waterQualityHistoryTitle: 'Historique qualité de l\'eau',
+    noWaterQualityRecorded: 'Aucune mesure de qualité d\'eau enregistrée.',
     vetJournalTitle: 'Journal vétérinaire',
     vetReasonPlaceholder: 'Motif de la visite (ex. examen annuel)…',
     vetFindingsPlaceholder: 'Observations, diagnostic, traitement…',
@@ -4809,6 +4815,9 @@ const I18N = {
     noLengthRecorded: 'No measurement recorded',
     eventLength: 'Measurement',
     eventWater: 'Water change',
+    eventWaterQuality: 'Water quality',
+    waterQualityHistoryTitle: 'Water quality history',
+    noWaterQualityRecorded: 'No water quality measurement recorded.',
     vetJournalTitle: 'Vet journal',
     vetReasonPlaceholder: 'Visit reason (e.g. annual checkup)…',
     vetFindingsPlaceholder: 'Findings, diagnosis, treatment…',
@@ -8566,6 +8575,22 @@ function openLogbook(id){
         return mrow(l.date, l.value+'cm'+delta);
       }).join('')
     : '<div class="modal-row"><span>'+t('noLengthRecorded')+'</span></div>';
+  // Qualité de l'eau (15 sept) — espèces aquatiques seulement. Chaque paramètre est optionnel à la
+  // saisie (rien n'oblige à avoir un testeur de pH ET d'ammoniaque ET de nitrite le même jour), donc
+  // l'affichage ne montre que les valeurs réellement entrées pour cette mesure, pas des champs vides.
+  const AQUATIC_SPECIES_IDS = ['red_eared_slider','diamondback_terrapin','mata_mata','water_monitor'];
+  const isAquaticSpecies = AQUATIC_SPECIES_IDS.includes(s.species);
+  const waterQualityHtml = (s.health.waterQuality||[]).length
+    ? [...s.health.waterQuality].reverse().map(w=>{
+        const parts = [];
+        if(w.ph!=null) parts.push('pH '+w.ph);
+        if(w.temp!=null) parts.push(w.temp+'°C');
+        if(w.ammonia!=null) parts.push('NH3 '+w.ammonia+'ppm');
+        if(w.nitrite!=null) parts.push('NO2 '+w.nitrite+'ppm');
+        if(w.nitrate!=null) parts.push('NO3 '+w.nitrate+'ppm');
+        return mrow(w.date, parts.join(' · '));
+      }).join('')
+    : '<div class="modal-row"><span>'+t('noWaterQualityRecorded')+'</span></div>';
 
   const eventsSorted = [...s.health.events].sort((a,b)=>b.date.localeCompare(a.date));
   // Bouton de suppression par ligne (2 septembre) — pour retirer un doublon accidentel directement
@@ -8650,6 +8675,42 @@ function openLogbook(id){
         '</p>';
     }
   }
+  // Repère de croissance universel (15 sept) — pour toute espèce SANS courbe sourcée (donc tout sauf
+  // python royal pour l'instant). Compare chaque animal à SON PROPRE historique plutôt qu'à une
+  // courbe externe qui n'existe pas encore — pas "est-ce normal pour l'âge", mais "est-ce que ça
+  // décline par rapport à son propre passé". Un vrai signal universel, sans données sourcées par
+  // espèce à trouver. weightDropping() existait déjà comme icône ⚠ sur la grille de rack, mais rien
+  // d'aussi détaillé n'apparaissait sur la fiche elle-même pour ces espèces.
+  let growthTrendHtml = '';
+  if((s.species||'ball_python')!=='ball_python' && s.health.weights.length>=2){
+    const sorted = [...s.health.weights].sort((a,b)=>a.date.localeCompare(b.date));
+    const latest = sorted[sorted.length-1].value;
+    const prev = sorted[sorted.length-2].value;
+    const first = sorted[0].value;
+    const pctVsPrev = Math.round(((latest-prev)/prev)*1000)/10;
+    const pctVsFirst = Math.round(((latest-first)/first)*1000)/10;
+    const last3 = sorted.slice(-3);
+    const sustainedDecline = last3.length===3 && last3[1].value<last3[0].value && last3[2].value<last3[1].value;
+    let trendColor, trendText;
+    if(sustainedDecline || pctVsPrev<=-10){
+      trendColor='var(--rust)';
+      trendText = currentLang==='en' ? '🚨 Notable/sustained decline vs its own history' : '🚨 Déclin notable/soutenu par rapport à son propre historique';
+    } else if(pctVsPrev<0){
+      trendColor='var(--gold)';
+      trendText = currentLang==='en' ? '⬇ Down since last weigh-in' : '⬇ En baisse depuis la dernière pesée';
+    } else {
+      trendColor='var(--sage)';
+      trendText = currentLang==='en' ? '✅ Stable or increasing vs its own history' : '✅ Stable ou en hausse par rapport à son propre historique';
+    }
+    growthTrendHtml = '<div class="modal-row"><span style="color:'+trendColor+';">'+trendText+'</span><span>'+(pctVsPrev>=0?'+':'')+pctVsPrev+'% '+(currentLang==='en'?'vs last':'vs dernière')+'</span></div>'+
+      '<div class="modal-row"><span>'+(currentLang==='en'?'Since first weigh-in':'Depuis la première pesée')+'</span><span>'+(pctVsFirst>=0?'+':'')+pctVsFirst+'%</span></div>'+
+      ((sustainedDecline || pctVsPrev<=-10) ? '<p class="husbandry-health-note" style="margin-top:6px;color:var(--rust);">'+(currentLang==='en'
+        ? '🚨 A significant, sustained deviation is worth discussing with a reptile vet — this reference alone can\'t diagnose anything, but it\'s a signal worth not ignoring.'
+        : '🚨 Un écart significatif et soutenu vaut la peine d\'en parler à un vétérinaire reptile — ce repère seul peut rien diagnostiquer, mais c\'est un signal à pas ignorer.')+'</p>' : '')+
+      '<p class="husbandry-health-note" style="margin-top:6px;">'+(currentLang==='en'
+        ? '⚠ No sourced age/weight curve exists yet for this species — this compares the animal only to its own past readings, not to a species standard.'
+        : '⚠ Aucune courbe âge/poids sourcée n\'existe encore pour cette espèce — ceci compare l\'animal seulement à ses propres pesées passées, pas à un standard d\'espèce.')+'</p>';
+  }
 
   // Suggestion de proie automatique — liée au dernier poids enregistré, plus besoin de retaper
   // le poids dans un outil séparé. Python royal seulement (échelle basée sur cette espèce).
@@ -8678,9 +8739,15 @@ function openLogbook(id){
       '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'weigh\')">'+t('eventWeigh')+'</button>'+
       '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'length\')">'+t('eventLength')+'</button>'+
       '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'water\')">💧 '+t('eventWater')+'</button>'+
+      (isAquaticSpecies ? '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'waterquality\')">🧪 '+t('eventWaterQuality')+'</button>' : '')+
     '</div>'+
     '<div class="modal-row" style="margin-top:10px;"><span>'+t('nextMealLabel')+'</span><span>'+nextFeedingDate(s)+'</span></div>'+
     '<div class="modal-row"><span>'+t('feedingIntervalLabel')+'</span><span><input type="number" class="price-input" style="width:60px;" min="1" value="'+(s.feedingIntervalDays||'')+'" placeholder="'+DEFAULT_FEEDING_INTERVAL+'" onchange="setFeedingInterval(\''+id+'\', this.value)"/> '+t('daysWord')+'</span></div>'+
+    '<div class="modal-row"><span>❄️ '+(isEn?'Brumation/wintering':'Hivernage/brumation')+'</span><span>'+
+      (s.brumation && s.brumation.active
+        ? '<span style="color:#6fa8c9;">'+(isEn?'Active since ':'Actif depuis ')+s.brumation.startDate+'</span> <button class="sc-btn" style="padding:2px 10px;margin-left:6px;" onclick="toggleBrumation(\''+id+'\')">'+(isEn?'End':'Terminer')+'</button>'
+        : '<button class="sc-btn" style="padding:2px 10px;" onclick="toggleBrumation(\''+id+'\')">'+(isEn?'Start':'Débuter')+'</button>')+
+    '</span></div>'+
     '<div class="modal-section" style="background:rgba(201,151,62,.08);border:1px solid var(--gold);border-radius:10px;padding:12px;margin-top:14px;'+((!s.preySpecies||!s.preySize)?'box-shadow:0 0 0 1px rgba(201,151,62,.35);':'')+'">'+
       '<h3 style="margin-top:0;">🍽 '+t('preyLabel')+(!s.preySpecies||!s.preySize ? ' <span style="color:var(--gold);font-size:11px;">⚠ '+(isEn?'not set':'non renseignée')+'</span>' : '')+'</h3>'+
       '<p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 10px;">'+(isEn?'Species and size drive the Thaw List and Feeder Stock decrement.':'Espèce et taille alimentent la Liste de décongélation et le décompte du Stock de proies.')+'</p>'+
@@ -8792,8 +8859,9 @@ function openLogbook(id){
     (s.geneticNotes && s.geneticNotes.length ? '<div class="modal-section" style="border-color:var(--gold);background:rgba(201,151,62,.06);"><h3>🔍 '+FEATURE_NAME+'</h3>'+
       [...s.geneticNotes].sort((a,b)=>b.date.localeCompare(a.date)).map(n=>'<div class="modal-row" style="align-items:flex-start;"><span style="font-size:11.5px;line-height:1.5;">'+escapeHtml(n.text)+'<br/><small style="color:var(--ink-dim);">'+n.date+'</small></span></div>').join('')+
     '</div>' : '')+
-    '<div class="modal-section"><h3>'+t('weightHistoryTitle')+'</h3>'+weightSparklineSvg(s.health.weights)+weightsHtml+growthCompareHtml+'</div>'+
+    '<div class="modal-section"><h3>'+t('weightHistoryTitle')+'</h3>'+weightSparklineSvg(s.health.weights)+weightsHtml+growthCompareHtml+growthTrendHtml+'</div>'+
     '<div class="modal-section"><h3>'+t('lengthHistoryTitle')+'</h3>'+lengthsHtml+'</div>'+
+    (isAquaticSpecies ? '<div class="modal-section"><h3>🧪 '+t('waterQualityHistoryTitle')+'</h3>'+waterQualityHtml+'</div>' : '')+
     '<div class="modal-section"><h3>'+t('vetJournalTitle')+'</h3>'+
       '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">'+
         '<input type="date" id="vet-date-'+id+'" style="font-size:16px;padding:8px 10px;"/>'+
@@ -9215,6 +9283,27 @@ function deleteHealthEvent(snakeId, idx){
   openLogbook(snakeId);
   renderRackGrid(); renderTerrariumList(); renderTourGrid();
 }
+// Hivernage/brumation (15 sept) — pause volontaire des alertes de repas en retard pendant une
+// période de repos hivernal, sans avoir à désactiver le suivi au complet. Certaines espèces
+// (orvet, tortue de Reeve, et plusieurs colubridés en conditionnement de reproduction) ont un vrai
+// cycle naturel de repos où l'absence de repas est normale, pas un signe de problème — sans ce
+// statut, ces animaux se seraient fait signaler à tort comme "en retard" tout l'hiver.
+function toggleBrumation(id){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  if(s.brumation.active){
+    s.brumation = { active:false, startDate:null };
+    showToast('☀️ '+(isEn?'Brumation ended for ':'Hivernage terminé pour ')+s.name+'.', 'success');
+  } else {
+    s.brumation = { active:true, startDate:new Date().toISOString().slice(0,10) };
+    showToast('❄️ '+(isEn?'Brumation started for ':'Hivernage débuté pour ')+s.name+'.', 'success');
+  }
+  storage.save(savedSnakes);
+  if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
+  renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderDashboard();
+}
 function logAction(id, type){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
@@ -9226,6 +9315,7 @@ function logAction(id, type){
   else if(type==='shed'){ openShedModal(id); return; }
   else if(type==='weigh'){ openWeighModal(id); return; }
   else if(type==='length'){ openLengthModal(id); return; }
+  else if(type==='waterquality'){ openWaterQualityModal(id); return; }
   else if(type==='water'){
     const event = {date:today, type:'water'};
     s.health.events.push(event);
@@ -9355,6 +9445,54 @@ function confirmLength(id){
   storage.save(savedSnakes);
   closeQuickModal();
   showToast('📏 '+s.name+(isEn?' measured: ':' mesuré : ')+val+'cm', 'success');
+  if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
+}
+// Qualité de l'eau (15 sept) — espèces aquatiques seulement (tortue à oreilles rouges, tortue
+// diamant, mata mata, varan d'eau). Tous les champs sont optionnels sauf la date — un éleveur peut
+// juste noter le pH un jour, ou les 3 paramètres d'azote un autre, sans devoir tout remplir à chaque
+// fois. Au moins un champ rempli est exigé pour éviter une entrée complètement vide dans l'historique.
+function openWaterQualityModal(id){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const wq = s.health.waterQuality;
+  const last = wq.length ? wq[wq.length-1] : null;
+  const lastParts = [];
+  if(last){
+    if(last.ph!=null) lastParts.push('pH '+last.ph);
+    if(last.temp!=null) lastParts.push(last.temp+'°C');
+    if(last.ammonia!=null) lastParts.push('NH3 '+last.ammonia+'ppm');
+    if(last.nitrite!=null) lastParts.push('NO2 '+last.nitrite+'ppm');
+    if(last.nitrate!=null) lastParts.push('NO3 '+last.nitrate+'ppm');
+  }
+  const lastLine = last ? '<div style="font-size:11.5px;color:var(--ink-dim);margin-bottom:10px;">'+(isEn?'Last reading: ':'Dernière mesure : ')+lastParts.join(' · ')+(isEn?' on ':' le ')+last.date+'</div>' : '';
+  showQuickModal((isEn?'Water quality — ':'Qualité de l\'eau — ')+s.name,
+    lastLine+
+    '<div style="display:flex;flex-direction:column;gap:8px;">'+
+      '<label style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--ink-dim);">pH</span><input type="number" id="quick-wq-ph" class="price-input" style="width:90px;" min="0" max="14" step="0.1" placeholder="7.0"/></label>'+
+      '<label style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--ink-dim);">'+(isEn?'Water temp (°C)':'Temp. eau (°C)')+'</span><input type="number" id="quick-wq-temp" class="price-input" style="width:90px;" step="0.5"/></label>'+
+      '<label style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--ink-dim);">'+(isEn?'Ammonia (ppm)':'Ammoniaque (ppm)')+'</span><input type="number" id="quick-wq-ammonia" class="price-input" style="width:90px;" min="0" step="0.1"/></label>'+
+      '<label style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--ink-dim);">'+(isEn?'Nitrite (ppm)':'Nitrite (ppm)')+'</span><input type="number" id="quick-wq-nitrite" class="price-input" style="width:90px;" min="0" step="0.1"/></label>'+
+      '<label style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--ink-dim);">'+(isEn?'Nitrate (ppm)':'Nitrate (ppm)')+'</span><input type="number" id="quick-wq-nitrate" class="price-input" style="width:90px;" min="0" step="0.5"/></label>'+
+    '</div>'+
+    '<button class="save-btn" style="margin-top:16px;width:100%;" onclick="confirmWaterQuality(\''+id+'\')">'+(isEn?'Save reading':'Enregistrer la mesure')+'</button>'
+  );
+}
+function confirmWaterQuality(id){
+  const isEn = currentLang==='en';
+  const getVal = fieldId=>{ const el = document.getElementById(fieldId); const v = el ? parseFloat(el.value) : NaN; return isNaN(v) ? null : v; };
+  const entry = { date:new Date().toISOString().slice(0,10), ph:getVal('quick-wq-ph'), temp:getVal('quick-wq-temp'), ammonia:getVal('quick-wq-ammonia'), nitrite:getVal('quick-wq-nitrite'), nitrate:getVal('quick-wq-nitrate') };
+  if(entry.ph==null && entry.temp==null && entry.ammonia==null && entry.nitrite==null && entry.nitrate==null){
+    showToast(isEn?'Enter at least one value.':'Entre au moins une valeur.', 'error'); return;
+  }
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  s.health.waterQuality.push(entry);
+  storage.save(savedSnakes);
+  closeQuickModal();
+  showToast('🧪 '+(isEn?'Water quality logged for ':'Qualité de l\'eau notée pour ')+s.name+'.', 'success');
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
 }
 
@@ -10837,11 +10975,13 @@ function ensureSnakeMeta(s){
   if(!s.health.lengths) s.health.lengths = []; // suivi de longueur — même pattern que weights, valeurs en cm
   if(!s.health.cleanings) s.health.cleanings = []; // journal de nettoyage/entretien du terrarium — {id, date, note}
   if(!s.health.defecations) s.health.defecations = []; // journal de défécation — {id, date, note} — suivi parasites/digestion
+  if(!s.health.waterQuality) s.health.waterQuality = []; // qualité de l'eau (15 sept) — espèces aquatiques seulement — {date, ph, temp, ammonia, nitrite, nitrate}, tous les champs optionnels sauf date
   if(!s.photos) s.photos = []; // photos ajoutées manuellement par l'éleveur — LOCUS n'en génère aucune
   if(!s.geneticNotes) s.geneticNotes = []; // [FEATURE_NAME] — notes de divergence génétique datées, distinctes du journal de santé
   if(!s.geneticsHistory) s.geneticsHistory = []; // Carnet de bord — historique des corrections de génétique déclarée, jamais effacé
   if(s.status===undefined) s.status = 'kept'; // 'kept' | 'forsale' | 'reserved' | 'sold'
   if(s.askingPrice===undefined) s.askingPrice = null;
+  if(s.brumation===undefined) s.brumation = { active:false, startDate:null }; // hivernage/brumation (15 sept) — suspend les alertes de repas en retard pendant une période de repos hivernal volontaire
   if(s.buyer===undefined) s.buyer = null;
   if(s.soldDate===undefined) s.soldDate = null;
   if(s.soldPrice===undefined) s.soldPrice = null;
@@ -10987,6 +11127,7 @@ function lastFedInfo(s){
 }
 const HEALTH_FLAG_DAYS_SINCE_FED = 21; // jours sans repas réussi avant de signaler "à surveiller" — ajustable ici seulement
 function isFeedingFlagged(s){
+  if(s.brumation && s.brumation.active) return false; // hivernage volontaire — pas une vraie alerte
   const d = daysSinceLastFed(s);
   return d!==null && d>=HEALTH_FLAG_DAYS_SINCE_FED;
 }
@@ -11065,6 +11206,8 @@ function feedingStatusExplanation(s){
 function feedingStatus(s){
   let etape = 'debut';
   try{
+    etape = 'brumation';
+    if(s.brumation && s.brumation.active) return 'brumation'; // hivernage volontaire — pas un vrai retard, aucune alerte tant que c'est actif
     etape = 'filter/sort';
     const relevant = s.health.events.filter(e=>e.type==='fed'||e.type==='refused').sort((a,b)=>a.date.localeCompare(b.date));
     if(relevant.length===0) return 'red'; // jamais nourri depuis l'enregistrement = à surveiller
@@ -11098,8 +11241,8 @@ function feedingStatus(s){
     throw new Error('[étape:'+etape+'] '+e.message);
   }
 }
-const FEEDING_LABELS_FR = { green:'🟩 A mangé récemment', yellow:'🟨 Repas bientôt dû', orange:'🟧 Repas dû', red:'🟥 En retard / refus' };
-const FEEDING_LABELS_EN = { green:'🟩 Fed recently', yellow:'🟨 Meal due soon', orange:'🟧 Meal due', red:'🟥 Overdue / refused' };
+const FEEDING_LABELS_FR = { green:'🟩 A mangé récemment', yellow:'🟨 Repas bientôt dû', orange:'🟧 Repas dû', red:'🟥 En retard / refus', brumation:'❄️ Hivernage (en pause)' };
+const FEEDING_LABELS_EN = { green:'🟩 Fed recently', yellow:'🟨 Meal due soon', orange:'🟧 Meal due', red:'🟥 Overdue / refused', brumation:'❄️ Brumating (paused)' };
 function feedingLabels(){ return currentLang==='en' ? FEEDING_LABELS_EN : FEEDING_LABELS_FR; }
 
 // Nomenclature standard du milieu (anglais) — reste simple pour l'instant, une charte complète
@@ -14658,6 +14801,23 @@ function renderPairingForm(){
   if(!document.getElementById('pairing-date').value) document.getElementById('pairing-date').valueAsDate = new Date();
   const projectSel = document.getElementById('pairing-project');
   if(projectSel) projectSel.innerHTML = '<option value="">'+(isEn?'No project':'Aucun projet')+'</option>'+projects.map(p=>'<option value="'+p.id+'">'+escapeHtml(p.name)+'</option>').join('');
+  updatePairingReproductionInfo();
+}
+// Affiche le mode/durée de reproduction adapté à l'espèce dès le choix du couple (15 sept) — avant,
+// cette info n'apparaissait qu'au moment de la ponte (updateClutchReproductionFields), donc invisible
+// tant qu'on n'avait pas dépassé l'étape accouplement. Réutilise reproductionModeForSnakes(), la
+// même source que le formulaire de ponte — une seule vérité, pas de logique dupliquée.
+function updatePairingReproductionInfo(){
+  const isEn = currentLang==='en';
+  const wrap = document.getElementById('pairing-reproduction-info');
+  if(!wrap) return;
+  const maleId = document.getElementById('pairing-male').value;
+  const femaleId = document.getElementById('pairing-female').value;
+  if(!maleId || !femaleId){ wrap.textContent = ''; return; }
+  const conf = reproductionModeForSnakes(maleId, femaleId);
+  const isOvo = conf.mode==='ovovivipare';
+  const label = isOvo ? (isEn?'Gestation':'Gestation') : (isEn?'Incubation':'Incubation');
+  wrap.textContent = '🥚 '+label+' '+(isEn?'reference for this species: ':'de référence pour cette espèce : ')+conf.min+'–'+conf.max+' '+(isEn?'days (~':'jours (~')+conf.def+(isEn?' typical). Real countdown starts at the actual clutch/birth, not at pairing.':' typique). Le vrai compte à rebours commence à la vraie ponte/mise bas, pas à l\'accouplement.');
 }
 
 const MIN_BREEDING_WEIGHT = { male:500, female:1300 }; // grammes — seuils standards, à ajuster ici si besoin
