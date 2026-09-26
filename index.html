@@ -2082,7 +2082,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.89';
+const APP_VERSION = '2026.09.02.2.90';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -8740,6 +8740,8 @@ function openLogbook(id){
       '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'length\')">'+t('eventLength')+'</button>'+
       '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'water\')">💧 '+t('eventWater')+'</button>'+
       (isAquaticSpecies ? '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'waterquality\')">🧪 '+t('eventWaterQuality')+'</button>' : '')+
+      (s.placement.mode==='terrarium' && s.placement.terrariumId ? '<button class="tour-action-btn" onclick="openTerrariumCleaningModal(\''+s.placement.terrariumId+'\')">🧹 '+t('cleaningJournalTitle')+'</button>' : '')+
+      (s.placement.mode==='rack' && s.placement.rackId ? '<button class="tour-action-btn" onclick="openSingleTubCleaningModal(\''+s.placement.rackId+'\', '+s.placement.row+', '+s.placement.tub+')">🧹 '+t('cleaningJournalTitle')+'</button>' : '')+
     '</div>'+
     '<div class="modal-row" style="margin-top:10px;"><span>'+t('nextMealLabel')+'</span><span>'+nextFeedingDate(s)+'</span></div>'+
     '<div class="modal-row"><span>'+t('feedingIntervalLabel')+'</span><span><input type="number" class="price-input" style="width:60px;" min="1" value="'+(s.feedingIntervalDays||'')+'" placeholder="'+DEFAULT_FEEDING_INTERVAL+'" onchange="setFeedingInterval(\''+id+'\', this.value)"/> '+t('daysWord')+'</span></div>'+
@@ -13863,6 +13865,66 @@ function deleteTerrariumCleaning(terrariumId, cleaningId){
   saveElevage();
   renderTerrariumCleaningModalBody(terrariumId);
   renderTerrariumList();
+}
+// Nettoyage d'un seul bac de rack, accessible directement depuis Mode Tournée (15 sept) — avant,
+// le partiel/complet existait déjà pour les racks (logRackCleaning) et les terrariums, mais
+// seulement depuis les écrans de gestion Racks/Terrariums séparés, jamais depuis Mode Tournée en
+// tournant animal par animal. logRackCleaning reste pour le nettoyage en lot (plusieurs bacs d'un
+// coup, cases à cocher) — celle-ci vise un seul bac précis, réutilise le même rack.tubCleanings.
+function openSingleTubCleaningModal(rackId, row, tub){
+  const isEn = currentLang==='en';
+  const rack = getRack(rackId);
+  if(!rack) return;
+  if(!rack.tubCleanings) rack.tubCleanings = {};
+  renderSingleTubCleaningModalBody(rackId, row, tub);
+}
+function renderSingleTubCleaningModalBody(rackId, row, tub){
+  const isEn = currentLang==='en';
+  const rack = getRack(rackId);
+  if(!rack) return;
+  const key = row+'|'+tub;
+  const sorted = [...(rack.tubCleanings[key]||[])].sort((a,b)=>b.date.localeCompare(a.date));
+  const historyHtml = sorted.length ? sorted.map(c=>
+    '<div class="modal-row"><span>'+c.date+' — '+(c.type==='complete'?(isEn?'Complete':'Complet'):(isEn?'Partial':'Partiel'))+'</span>'+
+    '<button class="sc-btn danger" onclick="deleteSingleTubCleaning(\''+rackId+'\',\''+key+'\',\''+c.id+'\')">×</button></div>'+
+    (c.note?'<div style="font-size:11px;color:var(--ink-dim);margin-top:4px;">'+escapeHtml(c.note)+'</div>':'')
+  ).join('') : '<p style="font-size:11px;color:var(--ink-dim);">'+(isEn?'No cleaning logged yet.':'Aucun nettoyage enregistré pour l\'instant.')+'</p>';
+  const body = historyHtml +
+    '<div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);">'+
+      '<select id="stc-type" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+        '<option value="partial">'+(isEn?'Partial':'Partiel')+'</option>'+
+        '<option value="complete">'+(isEn?'Complete':'Complet')+'</option>'+
+      '</select>'+
+      '<input type="text" id="stc-note" placeholder="'+(isEn?'Note (optional)':'Note (optionnel)')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
+      '<button class="sc-btn accent" style="width:100%;" onclick="confirmSingleTubCleaning(\''+rackId+'\', '+row+', '+tub+')">🧹 '+(isEn?'Log cleaning':'Enregistrer le nettoyage')+'</button>'+
+    '</div>';
+  showQuickModal((isEn?'Cleaning — Row ':'Nettoyage — Rangée ')+row+(isEn?' / Tub ':' / Bac ')+tub, body);
+}
+function confirmSingleTubCleaning(rackId, row, tub){
+  const isEn = currentLang==='en';
+  const rack = getRack(rackId);
+  if(!rack) return;
+  if(!rack.tubCleanings) rack.tubCleanings = {};
+  const key = row+'|'+tub;
+  const type = document.getElementById('stc-type').value;
+  const note = document.getElementById('stc-note').value.trim();
+  if(!rack.tubCleanings[key]) rack.tubCleanings[key] = [];
+  rack.tubCleanings[key].push({ id:'clean_'+Date.now()+'_'+key, date:new Date().toISOString().slice(0,10), type, note });
+  saveElevage();
+  showToast('🧹 '+(isEn?'Cleaning logged.':'Nettoyage enregistré.'), 'success');
+  closeQuickModal();
+  renderRackGrid();
+}
+function deleteSingleTubCleaning(rackId, key, cleaningId){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this cleaning entry?':'Supprimer ce nettoyage ?')) return;
+  const rack = getRack(rackId);
+  if(!rack || !rack.tubCleanings || !rack.tubCleanings[key]) return;
+  rack.tubCleanings[key] = rack.tubCleanings[key].filter(c=>c.id!==cleaningId);
+  saveElevage();
+  const [row,tub] = key.split('|');
+  renderSingleTubCleaningModalBody(rackId, row, tub);
+  renderRackGrid();
 }
 
 function addRack(){
