@@ -2082,7 +2082,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.91';
+const APP_VERSION = '2026.09.02.2.92';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -7339,7 +7339,7 @@ function batchMarkFed(){
     s.health.events.push({date:today, type:'fed', preyType: s.preyType||'frozen'});
     count++;
     if(s.preySpecies && s.preySize){
-      drawFromRodentSupply(s.preySpecies, s.preySize, 1);
+      drawFromRodentSupply(s.preySpecies, s.preySize, 1, s.preyType||'frozen');
       stockTouched = true;
     }
   });
@@ -9363,12 +9363,13 @@ function confirmFed(id, quantity){
   registerEventUndo([{snakeId:id, event}]);
   let stockMsg = '';
   if(s.preySpecies && s.preySize){
-    const draw = drawFromRodentSupply(s.preySpecies, s.preySize, preyCount);
+    const draw = drawFromRodentSupply(s.preySpecies, s.preySize, preyCount, s.preyType||'frozen');
     saveElevage();
     if(!draw.fromBin || draw.takenFromBin < preyCount){
       const key = feederStockKey(s.preySpecies, s.preySize);
-      if(feederStock[key]!=null && feederStock[key] <= FEEDER_LOW_STOCK_THRESHOLD){
-        stockMsg = isEn ? ' ⚠ Low stock: '+feederStock[key]+' left.' : ' ⚠ Stock bas : '+feederStock[key]+' restant(s).';
+      const stockRef = draw.live ? feederStockLive : feederStock;
+      if(stockRef[key]!=null && stockRef[key] <= FEEDER_LOW_STOCK_THRESHOLD){
+        stockMsg = isEn ? ' ⚠ Low stock: '+stockRef[key]+' left.' : ' ⚠ Stock bas : '+stockRef[key]+' restant(s).';
       }
     }
   }
@@ -9604,12 +9605,13 @@ function confirmRefused(id){
   // serpent (surtout congelé-décongelé). Décomptée seulement si "Proie perdue" est cochée.
   let stockMsg = '';
   if(lostPrey && s.preySpecies && s.preySize){
-    const draw = drawFromRodentSupply(s.preySpecies, s.preySize, 1);
+    const draw = drawFromRodentSupply(s.preySpecies, s.preySize, 1, s.preyType||'frozen');
     saveElevage();
     if(!draw.fromBin){
       const key = feederStockKey(s.preySpecies, s.preySize);
-      if(feederStock[key]!=null && feederStock[key] <= FEEDER_LOW_STOCK_THRESHOLD){
-        stockMsg = isEn ? ' ⚠ Low stock: '+feederStock[key]+' left.' : ' ⚠ Stock bas : '+feederStock[key]+' restant(s).';
+      const stockRef = draw.live ? feederStockLive : feederStock;
+      if(stockRef[key]!=null && stockRef[key] <= FEEDER_LOW_STOCK_THRESHOLD){
+        stockMsg = isEn ? ' ⚠ Low stock: '+stockRef[key]+' left.' : ' ⚠ Stock bas : '+stockRef[key]+' restant(s).';
       }
     }
   }
@@ -13106,7 +13108,18 @@ function setRodentPriorityBin(species, binId){
 // où le rongeur finit par être mangé une fois congelé, puisqu'à ce stade il est déjà anonymisé dans
 // feederStock. Le bac prioritaire de l'espèce décompte en silence ; si rien de dispo au bon stade
 // (ou pas de bac prioritaire), on retombe sur feederStock comme avant — comportement inchangé.
-function drawFromRodentSupply(species, size, qty){
+// Décompte le stock au bon endroit selon le type de proie de l'animal (15 sept, branché sur le
+// toggle 🐭/❄️ déjà existant par animal, jamais connecté au stock avant). 'frozen' (défaut) : essaie
+// d'abord un bac de colonie rongeur prioritaire (culled/congelé via "Ajouter au stock"), sinon le
+// stock congelé manuel. 'live' : décompte directement le stock vivant manuel (feederStockLive) —
+// pas de lien avec les bacs de colonie ici, qui restent en lecture seule (rollup), pas décomptables
+// directement puisqu'ils s'étalent sur plusieurs stades/bacs à la fois.
+function drawFromRodentSupply(species, size, qty, preyType){
+  const key = feederStockKey(species, size);
+  if(preyType==='live'){
+    if(feederStockLive[key]!=null) feederStockLive[key] = Math.max(0, feederStockLive[key]-qty);
+    return { fromBin:null, takenFromBin:0, live:true };
+  }
   const stageKey = preySizeToStageKey(size);
   const binId = rodentPriorityBins ? rodentPriorityBins[species] : null;
   const bin = binId ? rodentBins.find(b=>b.id===binId && b.binType==='stock') : null;
@@ -13115,13 +13128,11 @@ function drawFromRodentSupply(species, size, qty){
     if(taken>0){
       const remaining = qty - taken;
       if(remaining>0){
-        const key = feederStockKey(species, size);
         if(feederStock[key]!=null) feederStock[key] = Math.max(0, feederStock[key]-remaining);
       }
       return { fromBin:bin, takenFromBin:taken };
     }
   }
-  const key = feederStockKey(species, size);
   if(feederStock[key]!=null) feederStock[key] = Math.max(0, feederStock[key]-qty);
   return { fromBin:null, takenFromBin:0 };
 }
@@ -14764,10 +14775,11 @@ function applyTourAction(action){
       fedCount++;
       if(snake.preySpecies && snake.preySize){
         const key2 = feederStockKey(snake.preySpecies, snake.preySize);
-        if(feederStock[key2]!=null){
-          feederStock[key2] = Math.max(0, feederStock[key2]-1);
+        const stockRef2 = preyType==='live' ? feederStockLive : feederStock;
+        if(stockRef2[key2]!=null){
+          stockRef2[key2] = Math.max(0, stockRef2[key2]-1);
           stockTouched = true;
-          if(feederStock[key2] <= FEEDER_LOW_STOCK_THRESHOLD) lowStockMsgs.push(snake.preySpecies+' '+snake.preySize+' ('+feederStock[key2]+')');
+          if(stockRef2[key2] <= FEEDER_LOW_STOCK_THRESHOLD) lowStockMsgs.push(snake.preySpecies+' '+snake.preySize+' ('+stockRef2[key2]+')');
         }
       }
     }
