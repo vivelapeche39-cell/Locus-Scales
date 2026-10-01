@@ -1506,6 +1506,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <button class="subtab-btn active" data-rsub="pontes" data-i18n="subReproPontes" onclick="showReproSubtab('pontes')">🐣 Portées</button>
       <button class="subtab-btn" data-rsub="calendar" data-i18n="subCalendar" onclick="showReproSubtab('calendar')">📅 Calendrier</button>
       <button class="subtab-btn" data-rsub="objectif" data-i18n="subObjectif" onclick="showReproSubtab('objectif')">🎯 Objectif</button>
+      <button class="subtab-btn" data-rsub="lockmode" data-i18n="subLockMode" onclick="showReproSubtab('lockmode')">🔒 Mode Verrou</button>
     </div>
 
     <div id="sub-repro-pontes">
@@ -1604,6 +1605,16 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <button class="save-btn" style="margin-top:14px;" onclick="renderPairingPlanner()" data-i18n="objectifFindBtn">🎯 Trouver les meilleures paires</button>
       <div class="results-hdr" style="margin-top:22px;"><h2 style="font-size:16px;" data-i18n="objectifResultsTitle">Meilleures paires dans ta collection</h2></div>
       <div id="pairing-planner-results"></div>
+    </div>
+
+    <div id="sub-repro-lockmode" style="display:none;">
+      <p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 12px;" data-i18n="lockModeHint">Tape un accouplement actif pour noter un lock observé aujourd'hui — même principe que Mode Tournée, mais pour la vérification des locks plutôt que les repas.</p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:14px;border-bottom:1px dashed var(--line);">
+        <select id="lockmode-pairing-male" style="background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:'Courier New',monospace;font-size:13px;padding:8px;"></select>
+        <select id="lockmode-pairing-female" style="background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:'Courier New',monospace;font-size:13px;padding:8px;"></select>
+        <button class="sc-btn accent" onclick="quickAddPairingFromLockMode()" data-i18n="lockModeAddPairingBtn">+ Nouvel accouplement</button>
+      </div>
+      <div id="lockmode-grid"></div>
     </div>
   </div>
 
@@ -2082,7 +2093,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.92';
+const APP_VERSION = '2026.09.02.2.101';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4371,6 +4382,9 @@ const I18N = {
     rodentSelectAllBtn: '☑️ Tout sélectionner',
     rodentLineageDirectoryBtn: '📋 Toutes les lignées',
     subObjectif: '🎯 Objectif',
+    subLockMode: '🔒 Mode Verrou',
+    lockModeHint: 'Tape un accouplement actif pour noter un lock observé aujourd\'hui — même principe que Mode Tournée, mais pour la vérification des locks plutôt que les repas.',
+    lockModeAddPairingBtn: '+ Nouvel accouplement',
     objectifHint: 'Choisis le(s) gène(s) visé(s), et l\'app scanne ta collection pour proposer les meilleurs accouplements possibles — classés par probabilité réelle, pas juste par intuition.',
     objectifFindBtn: '🎯 Trouver les meilleures paires',
     objectifResultsTitle: 'Meilleures paires dans ta collection',
@@ -4928,6 +4942,9 @@ const I18N = {
     rodentSelectAllBtn: '☑️ Select all',
     rodentLineageDirectoryBtn: '📋 All lineages',
     subObjectif: '🎯 Goal',
+    subLockMode: '🔒 Lock Mode',
+    lockModeHint: 'Tap an active pairing to log a lock observed today — same principle as Tour Mode, but for checking locks rather than meals.',
+    lockModeAddPairingBtn: '+ New pairing',
     objectifHint: 'Pick your target gene(s), and the app scans your collection to suggest the best possible pairings — ranked by real probability, not just a hunch.',
     objectifFindBtn: '🎯 Find the best pairs',
     objectifResultsTitle: 'Best pairs in your collection',
@@ -8575,22 +8592,6 @@ function openLogbook(id){
         return mrow(l.date, l.value+'cm'+delta);
       }).join('')
     : '<div class="modal-row"><span>'+t('noLengthRecorded')+'</span></div>';
-  // Qualité de l'eau (15 sept) — espèces aquatiques seulement. Chaque paramètre est optionnel à la
-  // saisie (rien n'oblige à avoir un testeur de pH ET d'ammoniaque ET de nitrite le même jour), donc
-  // l'affichage ne montre que les valeurs réellement entrées pour cette mesure, pas des champs vides.
-  const AQUATIC_SPECIES_IDS = ['red_eared_slider','diamondback_terrapin','mata_mata','water_monitor'];
-  const isAquaticSpecies = AQUATIC_SPECIES_IDS.includes(s.species);
-  const waterQualityHtml = (s.health.waterQuality||[]).length
-    ? [...s.health.waterQuality].reverse().map(w=>{
-        const parts = [];
-        if(w.ph!=null) parts.push('pH '+w.ph);
-        if(w.temp!=null) parts.push(w.temp+'°C');
-        if(w.ammonia!=null) parts.push('NH3 '+w.ammonia+'ppm');
-        if(w.nitrite!=null) parts.push('NO2 '+w.nitrite+'ppm');
-        if(w.nitrate!=null) parts.push('NO3 '+w.nitrate+'ppm');
-        return mrow(w.date, parts.join(' · '));
-      }).join('')
-    : '<div class="modal-row"><span>'+t('noWaterQualityRecorded')+'</span></div>';
 
   const eventsSorted = [...s.health.events].sort((a,b)=>b.date.localeCompare(a.date));
   // Bouton de suppression par ligne (2 septembre) — pour retirer un doublon accidentel directement
@@ -8608,8 +8609,12 @@ function openLogbook(id){
   const sire = s.sireId ? savedSnakes.find(x=>x.id===s.sireId) : null;
   const dam = s.damId ? savedSnakes.find(x=>x.id===s.damId) : null;
   const children = savedSnakes.filter(x=>x.sireId===id || x.damId===id);
+  const paternityUndeterminedHtml = (s.candidateSireIds && s.candidateSireIds.length>1)
+    ? '<div class="modal-row" style="border:1px solid var(--gold);border-radius:8px;padding:8px;margin-bottom:6px;"><span>🧬 '+(currentLang==='en'?'Paternity undetermined ('+s.candidateSireIds.length+' candidates)':'Paternité indéterminée ('+s.candidateSireIds.length+' candidats)')+'</span><button class="sc-btn accent" onclick="deduceSireForBaby(\''+id+'\')">🔍 '+(currentLang==='en'?'Deduce':'Déduire')+'</button></div>'
+    : '';
   const pedigreeHtml =
-    mrow(t('fatherLabel'), sire?escapeHtml(sire.name):t('unknownFather')) +
+    paternityUndeterminedHtml +
+    mrow(t('fatherLabel'), (sire?escapeHtml(sire.name):t('unknownFather'))+(s.paternityInferredFromLitter?' <i style="color:var(--ink-dim);font-size:10px;">('+(currentLang==='en'?'inferred from litter, not 100% certain for this baby alone':'déduit par la portée, pas 100% certain pour ce bébé seul')+')</i>':'')) +
     mrow(t('motherLabel'), dam?escapeHtml(dam.name):t('unknownMother')) +
     mrow(t('registeredOffspring'), children.length?children.map(c=>escapeHtml(c.name)).join(', '):t('noneWord'));
   const pedigreeTreeHtml = renderPedigreeTree(id);
@@ -8738,10 +8743,6 @@ function openLogbook(id){
       '<button class="tour-action-btn refused" onclick="logAction(\''+id+'\',\'refused\')">'+t('eventRefused')+'</button>'+
       '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'weigh\')">'+t('eventWeigh')+'</button>'+
       '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'length\')">'+t('eventLength')+'</button>'+
-      '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'water\')">💧 '+t('eventWater')+'</button>'+
-      (isAquaticSpecies ? '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'waterquality\')">🧪 '+t('eventWaterQuality')+'</button>' : '')+
-      (s.placement.mode==='terrarium' && s.placement.terrariumId ? '<button class="tour-action-btn" onclick="openTerrariumCleaningModal(\''+s.placement.terrariumId+'\')">🧹 '+t('cleaningJournalTitle')+'</button>' : '')+
-      (s.placement.mode==='rack' && s.placement.rackId ? '<button class="tour-action-btn" onclick="openSingleTubCleaningModal(\''+s.placement.rackId+'\', '+s.placement.row+', '+s.placement.tub+')">🧹 '+t('cleaningJournalTitle')+'</button>' : '')+
     '</div>'+
     '<div class="modal-row" style="margin-top:10px;"><span>'+t('nextMealLabel')+'</span><span>'+nextFeedingDate(s)+'</span></div>'+
     '<div class="modal-row"><span>'+t('feedingIntervalLabel')+'</span><span><input type="number" class="price-input" style="width:60px;" min="1" value="'+(s.feedingIntervalDays||'')+'" placeholder="'+DEFAULT_FEEDING_INTERVAL+'" onchange="setFeedingInterval(\''+id+'\', this.value)"/> '+t('daysWord')+'</span></div>'+
@@ -8861,9 +8862,9 @@ function openLogbook(id){
     (s.geneticNotes && s.geneticNotes.length ? '<div class="modal-section" style="border-color:var(--gold);background:rgba(201,151,62,.06);"><h3>🔍 '+FEATURE_NAME+'</h3>'+
       [...s.geneticNotes].sort((a,b)=>b.date.localeCompare(a.date)).map(n=>'<div class="modal-row" style="align-items:flex-start;"><span style="font-size:11.5px;line-height:1.5;">'+escapeHtml(n.text)+'<br/><small style="color:var(--ink-dim);">'+n.date+'</small></span></div>').join('')+
     '</div>' : '')+
+    breedingPerformanceHtml(s)+
     '<div class="modal-section"><h3>'+t('weightHistoryTitle')+'</h3>'+weightSparklineSvg(s.health.weights)+weightsHtml+growthCompareHtml+growthTrendHtml+'</div>'+
     '<div class="modal-section"><h3>'+t('lengthHistoryTitle')+'</h3>'+lengthsHtml+'</div>'+
-    (isAquaticSpecies ? '<div class="modal-section"><h3>🧪 '+t('waterQualityHistoryTitle')+'</h3>'+waterQualityHtml+'</div>' : '')+
     '<div class="modal-section"><h3>'+t('vetJournalTitle')+'</h3>'+
       '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">'+
         '<input type="date" id="vet-date-'+id+'" style="font-size:16px;padding:8px 10px;"/>'+
@@ -8872,14 +8873,6 @@ function openLogbook(id){
         '<button class="save-btn" onclick="addVetVisit(\''+id+'\')">'+t('addVetVisitBtn')+'</button>'+
       '</div>'+
       '<div id="vet-visits-list-'+id+'">'+renderVetVisitsHtml(s)+'</div>'+
-    '</div>'+
-    '<div class="modal-section"><h3>'+t('cleaningJournalTitle')+'</h3>'+
-      '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">'+
-        '<input type="date" id="cleaning-date-'+id+'" style="font-size:16px;padding:8px 10px;"/>'+
-        '<input type="text" id="cleaning-note-'+id+'" data-i18n-placeholder="cleaningNotePlaceholder" placeholder="'+t('cleaningNotePlaceholder')+'" style="font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:\'Courier New\',monospace;"/>'+
-        '<button class="save-btn" onclick="addCleaning(\''+id+'\')">'+t('addCleaningBtn')+'</button>'+
-      '</div>'+
-      '<div id="cleanings-list-'+id+'">'+renderCleaningsHtml(s)+'</div>'+
     '</div>'+
     '<div class="modal-section"><h3>'+t('defecationJournalTitle')+'</h3>'+
       '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">'+
@@ -9317,16 +9310,6 @@ function logAction(id, type){
   else if(type==='shed'){ openShedModal(id); return; }
   else if(type==='weigh'){ openWeighModal(id); return; }
   else if(type==='length'){ openLengthModal(id); return; }
-  else if(type==='waterquality'){ openWaterQualityModal(id); return; }
-  else if(type==='water'){
-    const event = {date:today, type:'water'};
-    s.health.events.push(event);
-    storage.save(savedSnakes);
-    registerEventUndo([{snakeId:id, event}]);
-    showToast('💧 '+(isEn?'Water change logged for ':'Changement d\'eau noté pour ')+s.name+'.', 'success', 'undoLastLoggedEvent()');
-    if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
-    return;
-  }
   openLogbook(id);       // rafraîchit la modale ouverte
   renderRackGrid(); renderTerrariumList(); renderTourGrid();  // rafraîchit les vues sous-jacentes
 }
@@ -9450,16 +9433,27 @@ function confirmLength(id){
   showToast('📏 '+s.name+(isEn?' measured: ':' mesuré : ')+val+'cm', 'success');
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
 }
-// Qualité de l'eau (15 sept) — espèces aquatiques seulement (tortue à oreilles rouges, tortue
-// diamant, mata mata, varan d'eau). Tous les champs sont optionnels sauf la date — un éleveur peut
-// juste noter le pH un jour, ou les 3 paramètres d'azote un autre, sans devoir tout remplir à chaque
-// fois. Au moins un champ rempli est exigé pour éviter une entrée complètement vide dans l'historique.
-function openWaterQualityModal(id){
+// Qualité de l'eau (15 sept, déplacé au niveau terrarium le même jour) — espèces aquatiques
+// seulement. Vit sur le terrarium, pas l'animal : c'est une propriété du bac/bassin, pas de
+// l'individu — cohérent avec le nettoyage qui vit déjà là. Tous les champs optionnels sauf la date.
+// Changement d'eau — terrarium (15 sept, déplacé depuis la fiche individuelle). Juste une date,
+// pas de modale : un geste rapide comme c'était avant, mais rattaché au bac plutôt qu'à l'animal.
+function logTerrariumWaterChange(terrariumId){
   const isEn = currentLang==='en';
-  const s = savedSnakes.find(x=>x.id===id);
-  if(!s) return;
-  ensureSnakeMeta(s);
-  const wq = s.health.waterQuality;
+  const te = getTerrarium(terrariumId);
+  if(!te) return;
+  if(!te.waterChanges) te.waterChanges = [];
+  te.waterChanges.push({ date:new Date().toISOString().slice(0,10) });
+  saveElevage();
+  showToast('💧 '+(isEn?'Water change logged.':'Changement d\'eau noté.'), 'success');
+  renderTerrariumList();
+}
+function openTerrariumWaterQualityModal(terrariumId){
+  const isEn = currentLang==='en';
+  const te = getTerrarium(terrariumId);
+  if(!te) return;
+  if(!te.waterQuality) te.waterQuality = [];
+  const wq = te.waterQuality;
   const last = wq.length ? wq[wq.length-1] : null;
   const lastParts = [];
   if(last){
@@ -9470,7 +9464,7 @@ function openWaterQualityModal(id){
     if(last.nitrate!=null) lastParts.push('NO3 '+last.nitrate+'ppm');
   }
   const lastLine = last ? '<div style="font-size:11.5px;color:var(--ink-dim);margin-bottom:10px;">'+(isEn?'Last reading: ':'Dernière mesure : ')+lastParts.join(' · ')+(isEn?' on ':' le ')+last.date+'</div>' : '';
-  showQuickModal((isEn?'Water quality — ':'Qualité de l\'eau — ')+s.name,
+  showQuickModal((isEn?'Water quality — ':'Qualité de l\'eau — ')+escapeHtml(te.name),
     lastLine+
     '<div style="display:flex;flex-direction:column;gap:8px;">'+
       '<label style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--ink-dim);">pH</span><input type="number" id="quick-wq-ph" class="price-input" style="width:90px;" min="0" max="14" step="0.1" placeholder="7.0"/></label>'+
@@ -9479,24 +9473,24 @@ function openWaterQualityModal(id){
       '<label style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--ink-dim);">'+(isEn?'Nitrite (ppm)':'Nitrite (ppm)')+'</span><input type="number" id="quick-wq-nitrite" class="price-input" style="width:90px;" min="0" step="0.1"/></label>'+
       '<label style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--ink-dim);">'+(isEn?'Nitrate (ppm)':'Nitrate (ppm)')+'</span><input type="number" id="quick-wq-nitrate" class="price-input" style="width:90px;" min="0" step="0.5"/></label>'+
     '</div>'+
-    '<button class="save-btn" style="margin-top:16px;width:100%;" onclick="confirmWaterQuality(\''+id+'\')">'+(isEn?'Save reading':'Enregistrer la mesure')+'</button>'
+    '<button class="save-btn" style="margin-top:16px;width:100%;" onclick="confirmTerrariumWaterQuality(\''+terrariumId+'\')">'+(isEn?'Save reading':'Enregistrer la mesure')+'</button>'
   );
 }
-function confirmWaterQuality(id){
+function confirmTerrariumWaterQuality(terrariumId){
   const isEn = currentLang==='en';
   const getVal = fieldId=>{ const el = document.getElementById(fieldId); const v = el ? parseFloat(el.value) : NaN; return isNaN(v) ? null : v; };
   const entry = { date:new Date().toISOString().slice(0,10), ph:getVal('quick-wq-ph'), temp:getVal('quick-wq-temp'), ammonia:getVal('quick-wq-ammonia'), nitrite:getVal('quick-wq-nitrite'), nitrate:getVal('quick-wq-nitrate') };
   if(entry.ph==null && entry.temp==null && entry.ammonia==null && entry.nitrite==null && entry.nitrate==null){
     showToast(isEn?'Enter at least one value.':'Entre au moins une valeur.', 'error'); return;
   }
-  const s = savedSnakes.find(x=>x.id===id);
-  if(!s) return;
-  ensureSnakeMeta(s);
-  s.health.waterQuality.push(entry);
-  storage.save(savedSnakes);
+  const te = getTerrarium(terrariumId);
+  if(!te) return;
+  if(!te.waterQuality) te.waterQuality = [];
+  te.waterQuality.push(entry);
+  saveElevage();
   closeQuickModal();
-  showToast('🧪 '+(isEn?'Water quality logged for ':'Qualité de l\'eau notée pour ')+s.name+'.', 'success');
-  if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
+  showToast('🧪 '+(isEn?'Water quality logged.':'Qualité de l\'eau notée.'), 'success');
+  renderTerrariumList();
 }
 
 // Journal de mue enrichi — capture la qualité (complète/incomplète/en morceaux) et une note
@@ -9623,48 +9617,6 @@ function confirmRefused(id){
 
 // Journal de nettoyage/entretien du terrarium — par reptile, même pattern que le journal
 // vétérinaire (health.cleanings, aucune migration Supabase requise, champ health déjà synchronisé).
-function renderCleaningsHtml(s){
-  const isEn = currentLang==='en';
-  const cleanings = (s.health && s.health.cleanings) || [];
-  if(cleanings.length===0) return '<p style="font-size:11px;color:var(--ink-dim);">'+(isEn?'No cleaning logged yet.':'Aucun nettoyage enregistré pour l\'instant.')+'</p>';
-  const sorted = [...cleanings].sort((a,b)=>b.date.localeCompare(a.date));
-  return sorted.map(c=>
-    '<div class="husbandry-qa" style="border-bottom:1px dashed var(--line);padding-bottom:8px;margin-bottom:8px;">'+
-      '<div style="display:flex;justify-content:space-between;align-items:baseline;">'+
-        '<span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--gold);">🧽 '+c.date+'</span>'+
-        '<button class="sc-btn danger" onclick="deleteCleaning(\''+s.id+'\', \''+c.id+'\')">×</button>'+
-      '</div>'+
-      (c.note ? '<div style="font-size:11px;color:var(--ink-dim);margin-top:4px;">'+escapeHtml(c.note)+'</div>' : '')+
-    '</div>'
-  ).join('');
-}
-function addCleaning(id){
-  const isEn = currentLang==='en';
-  const s = savedSnakes.find(x=>x.id===id);
-  if(!s) return;
-  ensureSnakeMeta(s);
-  const dateEl = document.getElementById('cleaning-date-'+id);
-  const noteEl = document.getElementById('cleaning-note-'+id);
-  const date = dateEl.value;
-  if(!date){ alert(isEn?'Pick a cleaning date.':'Choisis une date de nettoyage.'); return; }
-  s.health.cleanings.push({ id:'clean_'+Date.now(), date, note: noteEl.value.trim() });
-  storage.save(savedSnakes);
-  dateEl.value = ''; noteEl.value = '';
-  const listEl = document.getElementById('cleanings-list-'+id);
-  if(listEl) listEl.innerHTML = renderCleaningsHtml(s);
-}
-function deleteCleaning(id, cleaningId){
-  const isEn = currentLang==='en';
-  if(!confirm(isEn?'Delete this cleaning entry?':'Supprimer ce nettoyage ?')) return;
-  const s = savedSnakes.find(x=>x.id===id);
-  if(!s) return;
-  ensureSnakeMeta(s);
-  s.health.cleanings = s.health.cleanings.filter(c=>c.id!==cleaningId);
-  storage.save(savedSnakes);
-  const listEl = document.getElementById('cleanings-list-'+id);
-  if(listEl) listEl.innerHTML = renderCleaningsHtml(s);
-}
-
 // Journal de défécation — par reptile, suivi santé (fréquence/aspect anormal peut signaler
 // parasites ou problème digestif). Même pattern que le journal de nettoyage.
 // Suivi de prêt d'animal — "Breeder Loan System" (4 sept), trouvé chez Husbandry Pro et pas encore
@@ -10979,7 +10931,6 @@ function ensureSnakeMeta(s){
   if(!s.health.lengths) s.health.lengths = []; // suivi de longueur — même pattern que weights, valeurs en cm
   if(!s.health.cleanings) s.health.cleanings = []; // journal de nettoyage/entretien du terrarium — {id, date, note}
   if(!s.health.defecations) s.health.defecations = []; // journal de défécation — {id, date, note} — suivi parasites/digestion
-  if(!s.health.waterQuality) s.health.waterQuality = []; // qualité de l'eau (15 sept) — espèces aquatiques seulement — {date, ph, temp, ammonia, nitrite, nitrate}, tous les champs optionnels sauf date
   if(!s.photos) s.photos = []; // photos ajoutées manuellement par l'éleveur — LOCUS n'en génère aucune
   if(!s.geneticNotes) s.geneticNotes = []; // [FEATURE_NAME] — notes de divergence génétique datées, distinctes du journal de santé
   if(!s.geneticsHistory) s.geneticsHistory = []; // Carnet de bord — historique des corrections de génétique déclarée, jamais effacé
@@ -11253,6 +11204,9 @@ function feedingLabels(){ return currentLang==='en' ? FEEDING_LABELS_EN : FEEDIN
 // (poids/grammes cibles par taille) pourra être ajoutée dans une future mise à jour.
 // Liste de proie adaptative (2 septembre) — première brique concrète de la vision "app hybride"
 // qui s'ajuste selon l'espèce plutôt qu'un seul système pensé python royal partout.
+// Espèces aquatiques — partagée entre le Stock de proies (eau comme info contextuelle) et le
+// bouton Qualité de l'eau sur les terrariums (15 sept, déplacé depuis la fiche individuelle).
+const AQUATIC_SPECIES_IDS = ['red_eared_slider','diamondback_terrapin','mata_mata','water_monitor'];
 const PREY_TYPES = {
   mouse: { icon:'🐁', labelFr:'Souris', labelEn:'Mouse', sizes:['Pinky','Fuzzy','Hopper','Weanling','Adult'] },
   rat: { icon:'🐀', labelFr:'Rat', labelEn:'Rat', sizes:['Pinky','Fuzzy','Weanling','Small','Medium','Large','X-Large','Jumbo'] },
@@ -13534,9 +13488,11 @@ function showReproSubtab(sub){
   document.getElementById('sub-repro-pontes').style.display = sub==='pontes' ? '' : 'none';
   document.getElementById('sub-repro-calendar').style.display = sub==='calendar' ? '' : 'none';
   document.getElementById('sub-repro-objectif').style.display = sub==='objectif' ? '' : 'none';
+  document.getElementById('sub-repro-lockmode').style.display = sub==='lockmode' ? '' : 'none';
   document.querySelectorAll('#view-incubation .subtab-btn').forEach(b=>b.classList.toggle('active', b.dataset.rsub===sub));
   if(sub==='calendar'){ renderPairingForm(); renderTimeline(); renderHealthLog(); renderProjects(); }
   if(sub==='objectif'){ renderTags('objectif'); }
+  if(sub==='lockmode'){ renderLockModePairingSelects(); renderLockModeGrid(); }
 }
 
 /* ---- Racks & Terrariums ---- */
@@ -13598,9 +13554,14 @@ function renderRackGrid(){
         cell.className = 'tub' + (snake?'':' empty') + feedCls + searchCls;
         if(snake){
           cell.setAttribute('data-tooltip', snakeTooltip(snake));
-          cell.innerHTML = '<button class="tub-remove" title="'+t('removeFromTubTitle')+'" aria-label="'+t('removeFromTubAria')+escapeHtml(snake.name)+t('fromTubSuffix')+'">✕</button><div class="tub-name">'+escapeHtml(snake.name)+'</div><div class="tub-tag">'+(snake.sex==='male'?'♂':'♀')+'</div>';
+          cell.innerHTML = '<button class="tub-remove" title="'+t('removeFromTubTitle')+'" aria-label="'+t('removeFromTubAria')+escapeHtml(snake.name)+t('fromTubSuffix')+'">✕</button>'+
+            '<button class="tub-remove" style="right:22px;" title="'+(isEn?'Cleaning':'Nettoyage')+'">🧹</button>'+
+            '<button class="tub-remove" style="right:44px;" title="'+(isEn?'Water change':'Changement d\'eau')+'">💧</button>'+
+            '<div class="tub-name">'+escapeHtml(snake.name)+'</div><div class="tub-tag">'+(snake.sex==='male'?'♂':'♀')+'</div>';
           cell.addEventListener('click', ()=>openLogbook(snake.id));
           cell.querySelector('.tub-remove').addEventListener('click', (e)=>{ e.stopPropagation(); unassignTub(rack.id,row,t2); });
+          cell.querySelectorAll('.tub-remove')[1].addEventListener('click', (e)=>{ e.stopPropagation(); openSingleTubCleaningModal(rack.id, row, t2); });
+          cell.querySelectorAll('.tub-remove')[2].addEventListener('click', (e)=>{ e.stopPropagation(); logRackTubWaterChange(rack.id, row, t2); });
           makeKeyboardClickable(cell, t('openSheetOf')+snake.name);
         } else {
           cell.textContent = t('tubEmptyLabel')+' '+t2+' '+t('emptySuffix');
@@ -13882,6 +13843,20 @@ function deleteTerrariumCleaning(terrariumId, cleaningId){
 // seulement depuis les écrans de gestion Racks/Terrariums séparés, jamais depuis Mode Tournée en
 // tournant animal par animal. logRackCleaning reste pour le nettoyage en lot (plusieurs bacs d'un
 // coup, cases à cocher) — celle-ci vise un seul bac précis, réutilise le même rack.tubCleanings.
+// Changement d'eau — bac de rack (15 sept, déplacé depuis la fiche individuelle). Même principe
+// que le nettoyage par bac : rattaché au bac, pas à l'animal.
+function logRackTubWaterChange(rackId, row, tub){
+  const isEn = currentLang==='en';
+  const rack = getRack(rackId);
+  if(!rack) return;
+  if(!rack.tubWaterChanges) rack.tubWaterChanges = {};
+  const key = row+'|'+tub;
+  if(!rack.tubWaterChanges[key]) rack.tubWaterChanges[key] = [];
+  rack.tubWaterChanges[key].push({ date:new Date().toISOString().slice(0,10) });
+  saveElevage();
+  showToast('💧 '+(isEn?'Water change logged.':'Changement d\'eau noté.'), 'success');
+  renderRackGrid();
+}
 function openSingleTubCleaningModal(rackId, row, tub){
   const isEn = currentLang==='en';
   const rack = getRack(rackId);
@@ -14392,6 +14367,23 @@ function renderTerrariumList(){
       cleanBtn.textContent = '🧹 '+(isEn?'Cleaning':'Nettoyage');
       cleanBtn.addEventListener('click', ()=>openTerrariumCleaningModal(te.id));
       card.appendChild(cleanBtn);
+
+      // Changement d'eau + Qualité de l'eau (15 sept, déplacés depuis la fiche individuelle —
+      // propriété du bac, pas de l'animal). Qualité de l'eau seulement si un occupant est une
+      // espèce aquatique, sinon ça n'a juste aucun sens d'afficher pH/ammoniaque pour un terrarium sec.
+      const isAquaticTerrarium = occupants.some(s=>AQUATIC_SPECIES_IDS.includes(s.species));
+      const waterBtn = document.createElement('button');
+      waterBtn.className = 'sc-btn';
+      waterBtn.textContent = '💧 '+(isEn?'Water change':'Changement d\'eau');
+      waterBtn.addEventListener('click', ()=>logTerrariumWaterChange(te.id));
+      card.appendChild(waterBtn);
+      if(isAquaticTerrarium){
+        const wqBtn = document.createElement('button');
+        wqBtn.className = 'sc-btn';
+        wqBtn.textContent = '🧪 '+(isEn?'Water quality':'Qualité de l\'eau');
+        wqBtn.addEventListener('click', ()=>openTerrariumWaterQualityModal(te.id));
+        card.appendChild(wqBtn);
+      }
 
       // Suivi de cohabitation — jours ensemble depuis l'arrivée du 2e animal, alerte visuelle
       // passé 5 jours (seuil demandé par Alex — pas un standard vétérinaire, juste un rappel).
@@ -16085,6 +16077,57 @@ function reproductionModeForSnakes(sireId, damId){
   const speciesId = (dam && dam.species) || (sire && sire.species) || 'ball_python';
   return REPRODUCTION_INFO_BY_SPECIES[speciesId] || REPRODUCTION_INFO_BY_SPECIES.ball_python;
 }
+// Performance de reproduction par animal (15 sept) — KPI calculé en direct depuis les accouplements
+// et pontes/portées déjà enregistrées, groupé par année (celle de l'accouplement pour le compte de
+// tentatives, celle de la ponte/mise bas pour les résultats — les deux peuvent différer si ça
+// chevauche le nouvel an). Rien de nouveau à saisir, juste une lecture agrégée de ce qui existe déjà.
+function breedingPerformanceStats(snakeId){
+  const byYear = {};
+  const ensureYear = y=>{ if(!byYear[y]) byYear[y] = { pairings:0, clutches:0, eggs:0, live:0, stillborn:0, slugs:0, notSelected:0, mixed:0 }; return byYear[y]; };
+  pairings.filter(p=>p.maleId===snakeId || p.femaleId===snakeId).forEach(p=>{
+    const year = (p.pairedDate||'').slice(0,4);
+    if(!year) return;
+    const d = ensureYear(year);
+    // "Non retenu" (15 sept) — un 2e mâle utilisé sur la même femelle sans être le géniteur retenu
+    // n'est PAS un échec d'accouplement, juste un mâle non sélectionné pour cette portée-là. Exclu
+    // du dénominateur plutôt que de fausser le taux de réussite comme un vrai échec.
+    if(p.outcome==='notSelected'){ d.notSelected++; return; }
+    d.pairings++;
+    if(p.outcome==='possibleMixedPaternity') d.mixed++;
+  });
+  clutches.filter(c=>c.sireId===snakeId || c.damId===snakeId).forEach(c=>{
+    const year = (c.layDate||'').slice(0,4);
+    if(!year) return;
+    const d = ensureYear(year);
+    d.clutches++;
+    if(c.eggCount!=null) d.eggs += c.eggCount;
+    if(c.liveCount!=null) d.live += c.liveCount;
+    if(c.stillbornCount!=null) d.stillborn += c.stillbornCount;
+    if(c.slugCount!=null) d.slugs += c.slugCount;
+  });
+  return byYear;
+}
+function breedingPerformanceHtml(s){
+  const isEn = currentLang==='en';
+  if(s.sex!=='male' && s.sex!=='female') return '';
+  const stats = breedingPerformanceStats(s.id);
+  const years = Object.keys(stats).sort().reverse();
+  if(!years.length) return '';
+  const rows = years.map(y=>{
+    const d = stats[y];
+    const parts = [];
+    if(d.eggs) parts.push(d.eggs+(isEn?' egg(s)':' œuf(s)'));
+    if(d.live) parts.push(d.live+(isEn?' live':' né(s) vivant(s)'));
+    if(d.stillborn) parts.push(d.stillborn+(isEn?' stillborn':' mort-né(s)'));
+    if(d.slugs) parts.push(d.slugs+' slug(s)');
+    const extra = [];
+    if(d.notSelected) extra.push(d.notSelected+' '+(isEn?'not selected (2nd male, excluded from rate)':'non retenu(s) (2e mâle, exclu du taux)'));
+    if(d.mixed) extra.push('🧬 '+d.mixed+' '+(isEn?'possible shared paternity (sperm storage, 2 males)':'paternité possiblement partagée (rétention de sperme, 2 mâles)'));
+    return '<div class="modal-row"><span>'+y+'</span><span>'+d.clutches+'/'+d.pairings+' '+(isEn?'clutch(es)':'ponte(s)/portée(s)')+(parts.length?' — '+parts.join(', '):'')+'</span></div>'+
+      (extra.length?'<div style="font-size:9.5px;color:var(--ink-dim);margin:-2px 0 6px;">'+extra.join(' · ')+'</div>':'');
+  }).join('');
+  return '<div class="modal-section"><h3>📊 '+(isEn?'Breeding performance':'Performance de reproduction')+'</h3>'+rows+'</div>';
+}
 // Ajuste les champs du formulaire de ponte selon le mode de reproduction détecté depuis les
 // parents choisis — durée/libellés/visibilité, pas juste la valeur par défaut comme avant
 // (updateClutchIncubationDefault, renommée, gardait le même nom pour compat mais fait plus large).
@@ -16274,12 +16317,23 @@ function addClutch(){
   }
   const ref = generateClutchRef(layDate);
   const hatchDate = addDays(layDate, incubationDays);
+  // Paternité partagée (15 sept) — si l'accouplement lié est marqué "possibleMixedPaternity", on
+  // cherche les autres accouplements de la même femelle portant la même marque pour constituer la
+  // liste de mâles candidats. candidateSireIds voyage avec chaque bébé créé (voir plus bas) pour que
+  // la déduction génétique sache qui comparer une fois les vrais gènes du bébé confirmés.
+  let candidateSireIds = null;
+  const linkedPairing = pendingPairingIdForClutch ? pairings.find(p=>p.id===pendingPairingIdForClutch) : null;
+  if(linkedPairing && linkedPairing.outcome==='possibleMixedPaternity'){
+    const siblingMaleIds = pairings.filter(p=>p.femaleId===linkedPairing.femaleId && p.outcome==='possibleMixedPaternity').map(p=>p.maleId);
+    candidateSireIds = [...new Set([linkedPairing.maleId, ...siblingMaleIds])];
+    if(candidateSireIds.length<2) candidateSireIds = null; // un seul candidat trouvé au final — rien de spécial à faire
+  }
   clutches.push({
     id:'cl_'+Date.now(), ref, sireId, damId, mode:conf.mode,
     eggCount: isOvo ? null : eggCount, layDate, incubationDays,
     hatchDate, hatched:false, hatchedAt:null,
     liveCount:null, stillbornCount:null, slugCount:null,
-    pairingId:pendingPairingIdForClutch
+    pairingId:pendingPairingIdForClutch, candidateSireIds
   });
   pendingPairingIdForClutch = null; // consommé — repasse en création "libre" par défaut
   saveElevage();
@@ -16506,6 +16560,7 @@ function proceedWithClutchBirth(id){
       genes: genesDict,
       sireId: c.sireId,
       damId: c.damId,
+      candidateSireIds: c.candidateSireIds || null,
       birthDate: today,
       clutchRef: c.ref,
       genesVerified: false, // auto-créé : génétique statistiquement exacte selon le tirage, mais jamais confirmée visuellement
@@ -16655,6 +16710,61 @@ function lociSlotsTaken(snake, locus){
 // par les parents enregistrés. Limite v1 assumée : ne traite que les cas à une seule copie surprise
 // par locus (le cas très large majoritaire) — un cas plus complexe (ex. forme homozygote surprise)
 // n'ouvre pas la modale, laissé au signalement passif existant (checkBabyGeneticsConsistency).
+// Déduction du père en cas de paternité partagée (15 sept) — réutilise exactement la même primitive
+// de croisement (crossLocus) que le Détective Génétique ci-dessous, mais appliquée dans l'autre
+// sens : au lieu de vérifier bébé×parents-connus, on vérifie bébé×(chaque père candidat)×mère
+// connue, locus par locus. Si un seul candidat produit un résultat génétiquement possible pour TOUS
+// les loci du bébé, c'est déductible avec certitude — sinon ça reste indéterminé, honnêtement.
+function isGenotypeConsistentWithParents(babyGenes, sireCandidate, dam){
+  const babyAlleles = allelesFromSelections(babyGenes||{});
+  const sireAlleles = allelesFromSelections(sireCandidate.genes||{});
+  const damAlleles = allelesFromSelections(dam.genes||{});
+  return Object.keys(babyAlleles).every(locus=>{
+    const p1 = sireAlleles[locus] || ['WT','WT'];
+    const p2 = damAlleles[locus] || ['WT','WT'];
+    const possiblePairs = crossLocus(p1, p2).map(o=>o.pair.slice().sort().join('+'));
+    const babyPair = babyAlleles[locus].slice().sort().join('+');
+    return possiblePairs.includes(babyPair);
+  });
+}
+function deduceSireForBaby(babyId){
+  const isEn = currentLang==='en';
+  const baby = savedSnakes.find(s=>s.id===babyId);
+  if(!baby || !baby.candidateSireIds || baby.candidateSireIds.length<2) return;
+  const dam = savedSnakes.find(s=>s.id===baby.damId);
+  if(!dam){ showToast(isEn?'Dam not found.':'Mère introuvable.', 'error'); return; }
+  const candidates = baby.candidateSireIds.map(id=>savedSnakes.find(s=>s.id===id)).filter(Boolean);
+  const consistent = candidates.filter(c=>isGenotypeConsistentWithParents(baby.genes, c, dam));
+  if(consistent.length===1){
+    baby.sireId = consistent[0].id;
+    baby.candidateSireIds = null; // résolu — l'arbre généalogique et les stats lisent sireId directement, rien d'autre à ajuster
+    storage.save(savedSnakes);
+    showToast('🔍 '+(isEn?'Sire deduced: ':'Père déduit : ')+consistent[0].name+'.', 'success');
+    if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(babyId);
+  } else if(consistent.length===0){
+    showToast(isEn?'Neither candidate is genetically consistent — double-check the recorded genes (baby, sires, dam).':'Aucun des deux candidats n\'est génétiquement cohérent — revérifie les gènes enregistrés (bébé, pères, mère).', 'error');
+  } else {
+    // Exception demandée par Alex (15 sept) : un bébé seul ambigu (ex. Pastel porté par les 2 mâles)
+    // ne doit pas rester "indéterminé" si TOUTE la fratrie déjà résolue pointe sur le même mâle sans
+    // exception — ce serait réduire la précision de l'arbre pour un cas rare (rétention de sperme)
+    // alors que le reste de la portée donne déjà une vraie réponse. Marqué différemment (par portée,
+    // pas par génétique directe) pour rester honnête sur le niveau de certitude si jamais revérifié.
+    const siblings = savedSnakes.filter(x=>x.id!==baby.id && x.clutchRef===baby.clutchRef && x.damId===baby.damId && x.sireId && !x.candidateSireIds);
+    const resolvedSireIds = new Set(siblings.map(x=>x.sireId));
+    const onlySireId = resolvedSireIds.size===1 ? [...resolvedSireIds][0] : null;
+    if(onlySireId && candidates.some(c=>c.id===onlySireId)){
+      const sireName = savedSnakes.find(x=>x.id===onlySireId).name;
+      baby.sireId = onlySireId;
+      baby.candidateSireIds = null;
+      baby.paternityInferredFromLitter = true; // traçable — déduction par portée, pas une certitude génétique directe pour CE bébé précis
+      storage.save(savedSnakes);
+      showToast('🔍 '+(isEn?'Sire inferred from the rest of the litter: '+sireName+' (this baby alone stayed genetically ambiguous).':'Père déduit du reste de la portée : '+sireName+' (ce bébé seul restait génétiquement ambigu).'), 'success');
+      if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(babyId);
+    } else {
+      showToast(isEn?'Both candidates remain genetically possible — can\'t determine yet from genes alone.':'Les deux candidats restent génétiquement possibles — impossible de trancher avec les gènes seuls pour l\'instant.');
+    }
+  }
+}
 function detectGeneticSurprises(babySnake){
   if(!babySnake.sireId || !babySnake.damId) return [];
   const sire = savedSnakes.find(s=>s.id===babySnake.sireId);
@@ -19023,6 +19133,31 @@ function toggleOvulation(pairingId){
   saveElevage();
   renderTimeline();
 }
+// Recalibrage de la date d'ovulation (15 sept) — avant, la seule façon de corriger la date une fois
+// confirmée était de désactiver puis réactiver la confirmation (perdait l'état, rouvrait un prompt()
+// maladroit). Maintenant : modifiable directement, et comme mue pré-ponte/ponte/éclosion sont déjà
+// calculées EN DIRECT depuis ovulationDate (addDays(...)) dans renderTimeline, tout le reste de la
+// chaîne se recalcule automatiquement dès qu'on corrige cette seule date.
+function recalibrateOvulationDate(pairingId, newDate){
+  if(!newDate) return;
+  const p = pairings.find(x=>x.id===pairingId);
+  if(!p || !p.ovulationConfirmed) return;
+  p.ovulationDate = newDate;
+  saveElevage();
+  showToast('📅 '+(currentLang==='en'?'Timeline recalibrated.':'Ligne du temps recalibrée.'), 'success');
+  renderTimeline();
+}
+// Résultat de paternité (15 sept) — pour le cas 2 mâles sur 1 femelle : le mâle non retenu ne doit
+// pas compter comme un accouplement raté dans ses propres statistiques (breedingPerformanceStats
+// l'exclut du dénominateur), et "paternité partagée possible" documente honnêtement une vraie
+// incertitude (rétention de sperme) plutôt que de deviner un seul géniteur sans certitude.
+function setPairingOutcome(pairingId, value){
+  const p = pairings.find(x=>x.id===pairingId);
+  if(!p) return;
+  p.outcome = value || null;
+  saveElevage();
+  renderTimeline();
+}
 
 // Suivi de la taille des follicules — précurseur à l'ovulation, plus précis que le binaire
 // confirmé oui/non. Une lecture par date, en millimètres, sur chaque accouplement.
@@ -19064,6 +19199,117 @@ function addLockDate(pairingId){
   p.lockDates.sort((a,b)=>a.date.localeCompare(b.date));
   saveElevage();
   renderTimeline();
+}
+// Mode Verrou (15 sept) — même principe que Mode Tournée (grille, un tap pour logger), mais pour
+// vérifier les locks plutôt que les repas. Montre tous les accouplements encore actifs (ovulation
+// pas encore confirmée — une fois confirmée, la femelle est passée aux stades suivants, le
+// verrouillage n'est plus ce qu'on surveille). Un tap ajoute directement un lock à la date du jour,
+// sans sélecteur de date — le geste rapide typique d'une tournée, pas une saisie détaillée.
+function quickAddLockToday(pairingId){
+  const isEn = currentLang==='en';
+  const p = pairings.find(x=>x.id===pairingId);
+  if(!p) return;
+  if(!p.lockDates) p.lockDates = [];
+  const today = new Date().toISOString().slice(0,10);
+  if(p.lockDates.some(l=>l.date===today)){
+    showToast(isEn?'Already logged today.':'Déjà noté aujourd\'hui.');
+    return;
+  }
+  p.lockDates.push({ id:'lock_'+Date.now(), date:today });
+  p.lockDates.sort((a,b)=>a.date.localeCompare(b.date));
+  saveElevage();
+  showToast('🔒 '+(isEn?'Lock logged for today.':'Lock noté pour aujourd\'hui.'), 'success');
+  renderLockModeGrid();
+}
+// Dot de couleur réutilisant le code couleur d'alimentation déjà établi (vert/jaune/orange/rouge/
+// hivernage) — pour voir d'un coup d'œil si le mâle/la femelle a mangé, sans ouvrir sa fiche.
+function feedingDot(s){
+  if(!s) return '';
+  const dots = { green:'🟩', yellow:'🟨', orange:'🟧', red:'🟥', brumation:'❄️' };
+  return dots[feedingStatus(s)] || '';
+}
+// Mis ensemble / retiré (15 sept) — trace du rythme actif/repos (ex. 4 jours actif/1 semaine off)
+// déjà pratiqué par Alex mais jamais enregistré nulle part avant. Un tap alterne entre les deux
+// états et empile l'historique, comme le lock.
+function togglePairSession(pairingId){
+  const isEn = currentLang==='en';
+  const p = pairings.find(x=>x.id===pairingId);
+  if(!p) return;
+  if(!p.pairSessions) p.pairSessions = [];
+  const last = p.pairSessions.length ? p.pairSessions[p.pairSessions.length-1] : null;
+  const nextState = (!last || last.state==='out') ? 'in' : 'out';
+  p.pairSessions.push({ id:'sess_'+Date.now(), date:new Date().toISOString().slice(0,10), state:nextState });
+  saveElevage();
+  showToast(nextState==='in' ? '🤝 '+(isEn?'Marked as together.':'Noté comme ensemble.') : '⏸ '+(isEn?'Marked as removed (rest/feeding).':'Noté comme retiré (repos/nourriture).'), 'success');
+  renderLockModeGrid();
+}
+// Ajout rapide d'accouplement directement depuis Mode Verrou (15 sept) — avant, fallait aller dans
+// l'onglet Calendrier pour créer un accouplement puis revenir ici pour le voir. Réutilise les mêmes
+// vérifications que le formulaire complet (poids, consanguinité) — juste la date simplifiée à
+// aujourd'hui par défaut, pas de cooling date/projet ici (trop pour un ajout rapide).
+function renderLockModePairingSelects(){
+  const isEn = currentLang==='en';
+  const maleSel = document.getElementById('lockmode-pairing-male');
+  const femaleSel = document.getElementById('lockmode-pairing-female');
+  if(!maleSel || !femaleSel) return;
+  const males = savedSnakes.filter(s=>s.sex==='male');
+  const females = savedSnakes.filter(s=>s.sex==='female');
+  maleSel.innerHTML = males.length ? males.map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+'</option>').join('') : '<option value="">'+(isEn?'No male registered':'Aucun mâle enregistré')+'</option>';
+  femaleSel.innerHTML = females.length ? females.map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+'</option>').join('') : '<option value="">'+(isEn?'No female registered':'Aucune femelle enregistrée')+'</option>';
+}
+function quickAddPairingFromLockMode(){
+  const isEn = currentLang==='en';
+  const maleId = document.getElementById('lockmode-pairing-male').value;
+  const femaleId = document.getElementById('lockmode-pairing-female').value;
+  if(!maleId || !femaleId){ showToast(isEn?'Select a male and a female.':'Sélectionne un mâle et une femelle.', 'error'); return; }
+  const male = savedSnakes.find(s=>s.id===maleId), female = savedSnakes.find(s=>s.id===femaleId);
+  ensureSnakeMeta(male); ensureSnakeMeta(female);
+  const warnings = [];
+  const mw = lastWeight(male), fw = lastWeight(female);
+  if(mw===null || mw<MIN_BREEDING_WEIGHT.male) warnings.push((isEn?'Male ':'Mâle ')+male.name+(isEn?': weight ':' : poids ')+(mw===null?(isEn?'not recorded':'non enregistré'):mw+'g')+(isEn?' — recommended threshold ≥ ':' — seuil recommandé ≥ ')+MIN_BREEDING_WEIGHT.male+'g.');
+  if(fw===null || fw<MIN_BREEDING_WEIGHT.female) warnings.push((isEn?'Female ':'Femelle ')+female.name+(isEn?': weight ':' : poids ')+(fw===null?(isEn?'not recorded':'non enregistré'):fw+'g')+(isEn?' — recommended threshold ≥ ':' — seuil recommandé ≥ ')+MIN_BREEDING_WEIGHT.female+'g.');
+  const pairF = inbreedingCoefficient(maleId, femaleId);
+  if(pairF>0){
+    const pairFpct = Math.round(pairF*10000)/100;
+    warnings.push((isEn?'Inbreeding coefficient for this pairing: ':'Coefficient de consanguinité pour cet accouplement : ')+pairFpct+'%'+(isEn?' (based on recorded pedigree).':' (basé sur le pedigree enregistré).'));
+  }
+  if(warnings.length && !confirm((isEn?'⚠ Points to check before this pairing:\n\n':'⚠ Points à vérifier avant cet accouplement :\n\n')+warnings.join('\n')+(isEn?'\n\nPair anyway?':'\n\nAccoupler quand même ?'))) return;
+  const date = new Date().toISOString().slice(0,10);
+  pairings.push({ id:'pr_'+Date.now(), maleId, femaleId, pairedDate:date, coolingDate:null, ovulationConfirmed:false, ovulationDate:null, follicleSizes:[], lockDates:[], preLayShedDate:null, projectId:null });
+  saveElevage();
+  showToast('🤝 '+(isEn?'Pairing created: ':'Accouplement créé : ')+male.name+' × '+female.name+'.', 'success');
+  renderLockModeGrid();
+}
+function renderLockModeGrid(){
+  const isEn = currentLang==='en';
+  const wrap = document.getElementById('lockmode-grid');
+  if(!wrap) return;
+  const active = pairings.filter(p=>!p.ovulationConfirmed);
+  if(!active.length){
+    wrap.innerHTML = '<div class="empty">'+(isEn?'No active pairing right now — add one in the Calendar tab.':'Aucun accouplement actif pour l\'instant — ajoutes-en un dans l\'onglet Calendrier.')+'</div>';
+    return;
+  }
+  const today = new Date().toISOString().slice(0,10);
+  wrap.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;">'+
+    active.map(p=>{
+      const male = savedSnakes.find(s=>s.id===p.maleId);
+      const female = savedSnakes.find(s=>s.id===p.femaleId);
+      const lockDates = p.lockDates || [];
+      const lockedToday = lockDates.some(l=>l.date===today);
+      const lastLock = lockDates.length ? lockDates[lockDates.length-1].date : null;
+      const sessions = p.pairSessions || [];
+      const lastSession = sessions.length ? sessions[sessions.length-1] : null;
+      const together = lastSession && lastSession.state==='in';
+      const sessionLabel = together ? (isEn?'🤝 Together since '+lastSession.date:'🤝 Ensemble depuis '+lastSession.date) : lastSession ? (isEn?'⏸ Removed since '+lastSession.date:'⏸ Retiré depuis '+lastSession.date) : (isEn?'No session logged yet':'Aucune session notée');
+      return '<div class="tub">'+
+        '<div class="tub-name">♂ '+(male?escapeHtml(male.name):'?')+' '+feedingDot(male)+'  ♀ '+(female?escapeHtml(female.name):'?')+' '+feedingDot(female)+'</div>'+
+        '<div class="tub-tag" style="margin-bottom:6px;">'+sessionLabel+'</div>'+
+        '<button class="sc-btn" style="width:100%;margin-bottom:4px;" onclick="togglePairSession(\''+p.id+'\')">'+(together?(isEn?'⏸ Remove (rest/feeding)':'⏸ Retirer (repos/nourriture)'):(isEn?'🤝 Put together':'🤝 Mettre ensemble'))+'</button>'+
+        '<button class="sc-btn'+(lockedToday?' accent':'')+'" style="width:100%;" onclick="quickAddLockToday(\''+p.id+'\')">🔒 '+lockDates.length+(lastLock?' — '+lastLock:'')+(lockedToday?' ✓':'')+'</button>'+
+        (lastLock ? '<div style="font-size:9.5px;color:var(--ink-dim);margin-top:6px;line-height:1.4;">👀 '+(isEn?'Watch for ovulation roughly ':'À surveiller pour une ovulation environ ')+addDays(lastLock,20)+' → '+addDays(lastLock,35)+' <i>('+(isEn?'very subjective, not a real prediction — only ovulation itself gives a reliable countdown':'très subjectif, pas une vraie prédiction — seule l\'ovulation elle-même donne un compte à rebours fiable')+')</i></div>' : '')+
+      '</div>';
+    }).join('')+
+  '</div>';
 }
 function deleteLockDate(pairingId, lockId){
   const isEn = currentLang==='en';
@@ -19276,7 +19522,11 @@ function renderTimeline(){
         [t('stepEstimatedHatch'), addDays(p.ovulationDate,95), addDays(p.ovulationDate,95)+' – '+addDays(p.ovulationDate,110)]
       ];
       const nextDate = stepsData.map(s=>s[1]).filter(d=>d>=today).sort()[0];
-      steps = stepsData.map(([label,sortDate,displayDate])=>'<div class="tstep'+(sortDate===nextDate?' next':'')+'"><b>'+label+'</b>'+displayDate+'</div>').join('');
+      steps = stepsData.map(([label,sortDate,displayDate])=>'<div class="tstep'+(sortDate===nextDate?' next':'')+'"><b>'+label+'</b>'+displayDate+'</div>').join('')+
+        '<div style="margin-top:8px;display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--ink-dim);">'+
+          (currentLang==='en'?'Recalibrate ovulation date:':'Recalibrer la date d\'ovulation :')+
+          ' <input type="date" value="'+p.ovulationDate+'" onchange="recalibrateOvulationDate(\''+p.id+'\', this.value)" style="font-size:13px;padding:4px 6px;"/>'+
+        '</div>';
     } else {
       steps = '<div class="tstep"><b>'+t('stepPairing')+'</b>'+p.pairedDate+'</div><div class="tstep">'+t('ovulationUnconfirmedNote')+'</div>';
     }
@@ -19344,6 +19594,12 @@ function renderTimeline(){
       '<span><button class="ovul-toggle'+(p.ovulationConfirmed?' active':'')+'" data-act="ovul" data-id="'+p.id+'">'+(p.ovulationConfirmed?t('ovulationConfirmedBtn'):t('confirmOvulationBtn'))+'</button> '+
       '<button class="sc-btn danger" data-act="del" data-id="'+p.id+'">'+t('deleteBtn')+'</button></span></div>'+
       (p.coolingDate ? '<div style="font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:6px;">❄️ '+t('coolingDateLabel')+' '+p.coolingDate+'</div>' : '')+
+      '<div style="margin-bottom:8px;"><select onchange="setPairingOutcome(\''+p.id+'\', this.value)" style="font-size:12px;padding:4px 6px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:6px;color:var(--ink);">'+
+        '<option value="" '+(!p.outcome?'selected':'')+'>'+(currentLang==='en'?'Paternity outcome: —':'Résultat de paternité : —')+'</option>'+
+        '<option value="sired" '+(p.outcome==='sired'?'selected':'')+'>✅ '+(currentLang==='en'?'Confirmed sire':'Confirmé géniteur')+'</option>'+
+        '<option value="notSelected" '+(p.outcome==='notSelected'?'selected':'')+'>❌ '+(currentLang==='en'?'Not selected (2nd male on same female)':'Non retenu (2e mâle sur même femelle)')+'</option>'+
+        '<option value="possibleMixedPaternity" '+(p.outcome==='possibleMixedPaternity'?'selected':'')+'>🧬 '+(currentLang==='en'?'Possible shared paternity (2 males)':'Paternité possiblement partagée (2 mâles)')+'</option>'+
+      '</select></div>'+
       seasonStepperHtml(p)+
       '<div class="timeline-steps">'+steps+'</div>'+
       lockHtml+
