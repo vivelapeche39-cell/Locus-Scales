@@ -1503,13 +1503,13 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 
   <div id="view-incubation" style="display:none;">
     <div class="subtabs">
-      <button class="subtab-btn active" data-rsub="pontes" data-i18n="subReproPontes" onclick="showReproSubtab('pontes')">🐣 Portées</button>
+      <button class="subtab-btn active" data-rsub="lockmode" data-i18n="subLockMode" onclick="showReproSubtab('lockmode')">🔒 Mode Verrou</button>
+      <button class="subtab-btn" data-rsub="pontes" data-i18n="subReproPontes" onclick="showReproSubtab('pontes')">🐣 Portées</button>
       <button class="subtab-btn" data-rsub="calendar" data-i18n="subCalendar" onclick="showReproSubtab('calendar')">📅 Calendrier</button>
       <button class="subtab-btn" data-rsub="objectif" data-i18n="subObjectif" onclick="showReproSubtab('objectif')">🎯 Objectif</button>
-      <button class="subtab-btn" data-rsub="lockmode" data-i18n="subLockMode" onclick="showReproSubtab('lockmode')">🔒 Mode Verrou</button>
     </div>
 
-    <div id="sub-repro-pontes">
+    <div id="sub-repro-pontes" style="display:none;">
     <div class="pairing-form">
       <select id="clutch-sire" onchange="updateClutchReproductionFields()"></select>
       <span style="color:var(--ink-dim);font-family:'Courier New',monospace;font-size:11px;">×</span>
@@ -1607,7 +1607,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <div id="pairing-planner-results"></div>
     </div>
 
-    <div id="sub-repro-lockmode" style="display:none;">
+    <div id="sub-repro-lockmode">
       <p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 12px;" data-i18n="lockModeHint">Tape un accouplement actif pour noter un lock observé aujourd'hui — même principe que Mode Tournée, mais pour la vérification des locks plutôt que les repas.</p>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:14px;border-bottom:1px dashed var(--line);">
         <select id="lockmode-pairing-male" style="background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:'Courier New',monospace;font-size:13px;padding:8px;"></select>
@@ -2093,7 +2093,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.02.2.101';
+const APP_VERSION = '2026.09.01.3.02';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
