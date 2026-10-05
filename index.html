@@ -2093,7 +2093,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.02';
+const APP_VERSION = '2026.09.01.3.03';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -9320,7 +9320,13 @@ function openFedModal(id){
   const isEn = currentLang==='en';
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
+  const today = new Date().toISOString().slice(0,10);
+  const oneYearAgo = addDays(today, -365);
   showQuickModal((isEn?'Feeding — ':'Repas — ')+s.name,
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'+
+      '<span style="font-size:12px;color:var(--ink-dim);">'+(isEn?'Date:':'Date :')+'</span>'+
+      '<input type="date" id="fed-date-input" value="'+today+'" min="'+oneYearAgo+'" max="'+today+'" style="font-size:14px;padding:6px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
+    '</div>'+
     '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">'+
       '<span style="font-size:12px;color:var(--ink-dim);">'+(isEn?'Number of prey items:':'Nombre de proies :')+'</span>'+
       '<input type="number" id="fed-prey-count" min="1" value="1" style="width:64px;font-size:16px;padding:6px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);text-align:center;"/>'+
@@ -9336,7 +9342,8 @@ function confirmFed(id, quantity){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
   ensureSnakeMeta(s);
-  const today = new Date().toISOString().slice(0,10);
+  const dateInput = document.getElementById('fed-date-input');
+  const today = (dateInput && dateInput.value) ? dateInput.value : new Date().toISOString().slice(0,10);
   const countInput = document.getElementById('fed-prey-count');
   const preyCount = countInput ? Math.max(1, parseInt(countInput.value)||1) : 1;
   s.health.consecutiveRefusals = 0;
@@ -9562,7 +9569,11 @@ function openRefusedModal(id){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
   ensureSnakeMeta(s);
+  const today = new Date().toISOString().slice(0,10);
+  const oneYearAgo = addDays(today, -365);
   showQuickModal((isEn?'Refusal — ':'Refus — ')+s.name,
+    '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:6px;">'+(isEn?'Date':'Date')+'</label>'+
+    '<input type="date" id="refused-date-input" value="'+today+'" min="'+oneYearAgo+'" max="'+today+'" style="font-size:14px;padding:6px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);margin-bottom:12px;"/>'+
     '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:6px;">'+(isEn?'Likely reason':'Raison probable')+'</label>'+
     '<select id="refused-reason-input" style="width:100%;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:\'Courier New\',monospace;font-size:14px;padding:9px 10px;margin-bottom:12px;">'+
       REFUSAL_REASONS.map(r=>'<option value="'+r+'">'+refusalReasonLabel(r)+'</option>').join('')+
@@ -9589,7 +9600,8 @@ function confirmRefused(id){
   const reason = reasonEl ? reasonEl.value : 'unknown';
   const note = noteEl ? noteEl.value.trim() : '';
   const lostPrey = lostEl ? lostEl.checked : false;
-  const today = new Date().toISOString().slice(0,10);
+  const dateEl = document.getElementById('refused-date-input');
+  const today = (dateEl && dateEl.value) ? dateEl.value : new Date().toISOString().slice(0,10);
   s.health.consecutiveRefusals = (s.health.consecutiveRefusals||0)+1;
   const event = {date:today, type:'refused', reason, note, lostPrey};
   s.health.events.push(event);
