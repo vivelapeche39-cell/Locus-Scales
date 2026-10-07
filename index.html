@@ -45,7 +45,8 @@
 <link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48.png"/>
 <!-- Fondation PWA (10 sept) — additif seulement, ne change rien au fonctionnement actuel pour
      personne. Prépare le terrain pour un emballage natif (Capacitor) éventuel, interrupteur
-     laissé à off : aucun service worker enregistré, voir service-worker.js à la racine. -->
+     laissé à off. MAJ 7 oct (palier 2) : le service worker est maintenant enregistré, voir
+     service-worker.js à la racine et le bloc SERVICE WORKER dans le script principal. -->
 <link rel="manifest" href="manifest.json"/>
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png"/>
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png"/>
@@ -2097,7 +2098,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.05';
+const APP_VERSION = '2026.09.01.3.06';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2221,6 +2222,56 @@ window.addEventListener('load', function(){
     if(isIosDevice() || isAndroidDevice()) showInstallBanner(false);
   }, 7000);
 });
+
+/* ---------------- SERVICE WORKER — palier 2 (7 oct 2026) ----------------
+   Permet à l'app de démarrer sans réseau (voir service-worker.js pour les règles de sécurité :
+   index.html toujours redemandé au réseau d'abord, version.txt et Supabase jamais interceptés).
+   Gratuit pour tout le monde. Échappatoire si jamais un cache posait problème :
+   ouvrir l'app avec ?nosw=1 → désactive le service worker et vide ses caches (mémorisé) ;
+   ?nosw=0 → le réactive. */
+var SW_DISABLE_KEY = 'locus_nosw';
+(function registerLocusServiceWorker(){
+  try{
+    if(!('serviceWorker' in navigator)) return;
+    var secure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    if(!secure) return;
+    if(/[?&]nosw=0(&|$)/.test(location.search)){
+      try{ localStorage.removeItem(SW_DISABLE_KEY); }catch(e){}
+    }
+    var disabled = false;
+    if(/[?&]nosw=1(&|$)/.test(location.search)){
+      try{ localStorage.setItem(SW_DISABLE_KEY, '1'); }catch(e){}
+      disabled = true;
+    } else {
+      try{ disabled = localStorage.getItem(SW_DISABLE_KEY) === '1'; }catch(e){}
+    }
+    if(disabled){
+      navigator.serviceWorker.getRegistrations()
+        .then(function(regs){ return Promise.all(regs.map(function(r){ return r.unregister(); })); })
+        .then(function(){
+          if(!(window.caches && caches.keys)) return null;
+          return caches.keys().then(function(keys){
+            return Promise.all(keys.filter(function(k){ return k.indexOf('locus-') === 0; })
+                                   .map(function(k){ return caches.delete(k); }));
+          });
+        })
+        .then(function(){
+          if(/[?&]nosw=/.test(location.search)) location.replace(location.pathname);
+        })
+        .catch(function(){});
+      return;
+    }
+    if(/[?&]nosw=0(&|$)/.test(location.search)){
+      // on nettoie l'adresse pour ne pas garder le paramètre
+      try{ history.replaceState(null, '', location.pathname); }catch(e){}
+    }
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' }).catch(function(e){
+        if(typeof diagPush === 'function') diagPush('SW', 'enregistrement échoué : ' + (e && e.message ? e.message : e));
+      });
+    });
+  }catch(e){}
+})();
 
 /* ==================== JOURNAL DE DIAGNOSTIC GLOBAL (30 août 2026) ====================
    Outil permanent, discret, remplace le besoin de captures d'écran répétées lors d'un bug.
