@@ -2093,7 +2093,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.03';
+const APP_VERSION = '2026.09.01.3.04';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2116,6 +2116,107 @@ const APP_VERSION = '2026.09.01.3.03';
       .catch(()=>{});
   }catch(e){}
 })();
+
+/* ---------------- INSTALLATION DE L'APP (PWA) — palier 1 (6 oct 2026) ----------------
+   Gratuit pour tout le monde. Aucun service worker ici (palier 2, plus tard) : ce bloc ne fait
+   qu'aider la personne à installer LOCUS sur son écran d'accueil.
+   - Android/Chrome : on garde l'événement beforeinstallprompt et on affiche un vrai bouton
+     « Installer ». Si l'événement ne vient pas (Chrome peut l'exiger ou non selon la version), un
+     message générique explique le menu ⋮ → Installer l'application.
+   - iPhone/iPad : Apple n'offre AUCUN bouton automatique, donc on explique Partager → Sur l'écran
+     d'accueil. Dans un navigateur intégré (Facebook, Reddit, Instagram…), l'agent n'a pas
+     « Safari » : on demande d'abord d'ouvrir la page dans Safari.
+   - Refus mémorisé 30 jours ; affiché une seule fois par session ; jamais si déjà installé. */
+var deferredInstallPrompt = null;
+var INSTALL_DISMISS_KEY = 'locus_install_dismissed_at';
+var INSTALL_SESSION_KEY = 'locus_install_shown';
+function isStandaloneMode(){
+  try{
+    return (window.navigator.standalone === true) ||
+           (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  }catch(e){ return false; }
+}
+function isIosDevice(){
+  var ua = navigator.userAgent || '';
+  return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+function isIosWebview(){
+  var ua = navigator.userAgent || '';
+  return isIosDevice() && !/Safari\//.test(ua);
+}
+function isAndroidDevice(){
+  return /Android/.test(navigator.userAgent || '');
+}
+function installDismissedRecently(){
+  try{
+    var ts = parseInt(localStorage.getItem(INSTALL_DISMISS_KEY) || '0', 10);
+    return !!ts && (Date.now() - ts) < 30*24*3600*1000;
+  }catch(e){ return false; }
+}
+function dismissInstallBanner(remember){
+  var el = document.getElementById('install-banner');
+  if(el) el.remove();
+  if(remember){
+    try{ localStorage.setItem(INSTALL_DISMISS_KEY, String(Date.now())); }catch(e){}
+  }
+}
+function showInstallBanner(force){
+  if(isStandaloneMode()) return;
+  if(!force){
+    if(installDismissedRecently()) return;
+    try{ if(sessionStorage.getItem(INSTALL_SESSION_KEY)) return; }catch(e){}
+  }
+  if(document.getElementById('install-banner')) return;
+  var isEn = (typeof currentLang !== 'undefined' && currentLang === 'en');
+  var msg = '', btn = '';
+  if(deferredInstallPrompt){
+    msg = isEn ? '📲 Install LOCUS on your home screen — it opens full screen, like an app.'
+               : '📲 Installe LOCUS sur ton écran d\'accueil — il s\'ouvre en plein écran, comme une app.';
+    btn = '<button onclick="triggerInstallPrompt()" style="background:var(--gold);color:#161210;border:0;border-radius:8px;padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer;">'+(isEn?'Install':'Installer')+'</button>';
+  } else if(isIosWebview()){
+    msg = isEn ? '📲 To install LOCUS, open this page in Safari first (menu ⋯ → "Open in browser"), then tap Share ⬆︎ → "Add to Home Screen".'
+               : '📲 Pour installer LOCUS, ouvre d\'abord cette page dans Safari (menu ⋯ → « Ouvrir dans le navigateur »), puis touche Partager ⬆︎ → « Sur l\'écran d\'accueil ».';
+  } else if(isIosDevice()){
+    msg = isEn ? '📲 Install LOCUS: tap the Share button ⬆︎ (square with an arrow), then "Add to Home Screen".'
+               : '📲 Installe LOCUS : touche le bouton Partager ⬆︎ (le carré avec une flèche), puis « Sur l\'écran d\'accueil ».';
+  } else if(isAndroidDevice()){
+    msg = isEn ? '📲 Install LOCUS: open your browser menu (⋮) and choose "Install app" or "Add to Home screen".'
+               : '📲 Installe LOCUS : ouvre le menu de ton navigateur (⋮) et choisis « Installer l\'application » ou « Ajouter à l\'écran d\'accueil ».';
+  } else {
+    return; // ordinateur sans invite d'installation : rien à proposer
+  }
+  var bar = document.createElement('div');
+  bar.id = 'install-banner';
+  bar.setAttribute('role', 'dialog');
+  bar.style.cssText = 'position:fixed;left:10px;right:64px;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);z-index:9990;background:#1c1612;border:1px solid var(--gold);border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.4;color:var(--ink);box-shadow:0 6px 24px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:8px;';
+  bar.innerHTML = '<div>'+msg+'</div>'+
+    '<div style="display:flex;gap:8px;align-items:center;justify-content:flex-end;">'+btn+
+    '<button onclick="dismissInstallBanner(true)" style="background:transparent;color:var(--ink-dim);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:12.5px;cursor:pointer;">'+(isEn?'Not now':'Plus tard')+'</button></div>';
+  document.body.appendChild(bar);
+  try{ sessionStorage.setItem(INSTALL_SESSION_KEY, '1'); }catch(e){}
+}
+async function triggerInstallPrompt(){
+  if(!deferredInstallPrompt) return;
+  var promptEvent = deferredInstallPrompt;
+  deferredInstallPrompt = null;
+  try{ promptEvent.prompt(); await promptEvent.userChoice; }catch(e){}
+  dismissInstallBanner(false);
+}
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  setTimeout(function(){ showInstallBanner(false); }, 4000);
+});
+window.addEventListener('appinstalled', function(){
+  deferredInstallPrompt = null;
+  dismissInstallBanner(true);
+});
+window.addEventListener('load', function(){
+  setTimeout(function(){
+    if(deferredInstallPrompt || isStandaloneMode()) return;
+    if(isIosDevice() || isAndroidDevice()) showInstallBanner(false);
+  }, 7000);
+});
 
 /* ==================== JOURNAL DE DIAGNOSTIC GLOBAL (30 août 2026) ====================
    Outil permanent, discret, remplace le besoin de captures d'écran répétées lors d'un bug.
@@ -5291,6 +5392,7 @@ function openConfigModal(){
     '<div style="border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:8px;">'+
       '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); openNotifSettings();">🔔 '+(isEn?'Notifications':'Notifications')+'</button>'+
       '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); openStorageDetails();">💾 '+(isEn?'Storage space':'Espace de stockage')+'</button>'+
+      (isStandaloneMode() ? '' : '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); showInstallBanner(true);">📲 '+(isEn?'Install the app':'Installer l\'app')+'</button>')+
       '<button class="sc-btn" style="width:100%;" onclick="exportBackup();">📤 '+(isEn?'Export my backup':'Exporter ma sauvegarde')+'</button>'+
       '<button class="sc-btn" style="width:100%;color:var(--rust);border-color:var(--rust);" onclick="reinitialiserDonneesLocales();">🔄 '+(isEn?'Reset local data (re-download from server)':'Réinitialiser les données locales (retélécharger du serveur)')+'</button>'+
       (isAdminUser ? '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); diagToggle();">🐛 '+(isEn?'Diagnostic log (admin)':'Journal de diagnostic (admin)')+(diagErrorCount>0?' — '+diagErrorCount:'')+'</button>' : '')+
