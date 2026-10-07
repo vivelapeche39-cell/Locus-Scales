@@ -2098,7 +2098,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.08';
+const APP_VERSION = '2026.09.01.3.11';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2743,6 +2743,87 @@ function setPageMeta(title, description, noindex){
 
 var currentUser = null; // rempli par onAuthStateChange ; null = déconnecté (mode local uniquement)
 
+// ===== Identité mémorisée (7 oct, v3.10 — palier 3c) =====
+// Problème : le jeton d'accès Supabase dure ~1 h. Rouvrir l'app HORS LIGNE après ce délai fait échouer le
+// renouvellement, la librairie répond « aucune session », et l'app se croyait déconnectée (donc
+// enregistrement bloqué + fenêtre de connexion impossible sans réseau). Maintenant : on mémorise
+// l'identité (id + courriel) à chaque connexion. Si la session est introuvable ALORS QUE la librairie
+// conserve toujours son jeton de renouvellement dans le stockage (= simple échec réseau, pas un rejet du
+// serveur), on garde l'utilisateur « connecté hors ligne » : tout marche en local, la synchro est en
+// pause, et elle repart toute seule dès que le jeton est renouvelé. Une déconnexion volontaire ou un
+// rejet réel du serveur efface cette mémoire. Aucun accès serveur n'est donné : sans jeton valide,
+// toutes les requêtes cloud échouent comme avant.
+var LOCUS_IDENTITY_KEY = 'locus_identity_v1';
+var offlineIdentity = false;
+function rememberIdentity(user){
+  try{ if(user && user.id) localStorage.setItem(LOCUS_IDENTITY_KEY, JSON.stringify({ id:user.id, email:user.email||'' })); }catch(e){}
+}
+function forgetIdentity(){
+  try{ localStorage.removeItem(LOCUS_IDENTITY_KEY); }catch(e){}
+  offlineIdentity = false;
+}
+function hasStoredAuthSession(){
+  try{
+    for(var i=0;i<localStorage.length;i++){
+      var k = localStorage.key(i);
+      if(k && /^sb-.+-auth-token$/.test(k)){
+        var v = JSON.parse(localStorage.getItem(k) || 'null');
+        if(v && v.refresh_token) return true;
+      }
+    }
+  }catch(e){}
+  return false;
+}
+// Appelé quand la librairie ne renvoie AUCUNE session : retourne l'utilisateur à utiliser (réel ou mémorisé).
+function resolveUserFromSession(session, event){
+  if(session && session.user){
+    offlineIdentity = false;
+    rememberIdentity(session.user);
+    return session.user;
+  }
+  if(event !== 'SIGNED_OUT'){
+    try{
+      var raw = localStorage.getItem(LOCUS_IDENTITY_KEY);
+      if(raw && hasStoredAuthSession()){
+        var id = JSON.parse(raw);
+        if(id && id.id){ offlineIdentity = true; return { id:id.id, email:id.email||'', _offline:true }; }
+      }
+    }catch(e){}
+  }
+  forgetIdentity();
+  return null;
+}
+// Tente de renouveler la session (réseau revenu). Trois issues : renouvelée (la synchro repart),
+// toujours impossible faute de réseau (on reste en mode hors ligne), ou rejetée pour de vrai (on demande de se reconnecter).
+var _recovering = false;
+async function tryRecoverSession(){
+  if(!sb || !offlineIdentity || _recovering) return;
+  _recovering = true;
+  try{
+    var r = await sb.auth.getSession();
+    var session = r && r.data && r.data.session;
+    if(session && session.user){
+      currentUser = session.user;
+      offlineIdentity = false;
+      rememberIdentity(session.user);
+      updateAuthUI();
+      updateSyncPill();
+      synchroniserAvecServeur();
+    } else if(!hasStoredAuthSession()){
+      // La librairie a abandonné son jeton : le serveur a vraiment rejeté la session.
+      forgetIdentity();
+      currentUser = null;
+      updateAuthUI();
+      updateSyncPill();
+      var isEn = currentLang==='en';
+      showToast('🔐 '+(isEn?'Your session expired — sign in again. Your local data is kept.':'Ta session a expiré — reconnecte-toi. Tes données locales sont gardées.'), 'error');
+    } else {
+      updateSyncPill();
+    }
+  }catch(e){ console.warn('LOCUS: renouvellement de session impossible pour l\'instant', e); }
+  finally{ _recovering = false; }
+}
+
 async function sbSignUp(email, password){
   if(!sb) return { ok:false, error: sbInitError || 'Connexion au service indisponible.' };
   const { data, error } = await sb.auth.signUp({ email, password });
@@ -2757,12 +2838,23 @@ async function sbSignIn(email, password){
 }
 async function sbSignOut(){
   if(!sb) return;
-  await sb.auth.signOut();
+  forgetIdentity();
+  try{ await sb.auth.signOut(); }catch(e){}
+  // Hors ligne, signOut() peut échouer sans effacer la session locale : on la retire nous-mêmes.
+  if(hasStoredAuthSession()){
+    try{
+      Object.keys(localStorage).filter(function(k){ return /^sb-.+-auth-token$/.test(k); }).forEach(function(k){ localStorage.removeItem(k); });
+    }catch(e){}
+    currentUser = null;
+    updateAuthUI();
+  }
 }
 if(sb){
   sb.auth.onAuthStateChange((event, session) => {
-    currentUser = session ? session.user : null;
+    var wasOfflineIdentity = offlineIdentity;
+    currentUser = resolveUserFromSession(session, event);
     updateAuthUI();
+    if(wasOfflineIdentity && !offlineIdentity && currentUser){ synchroniserAvecServeur(); } // session renouvelée après un passage hors ligne
     // Couvre les deux cas : une vraie connexion manuelle (SIGNED_IN) ET la restauration d'une
     // session déjà active au chargement de la page (INITIAL_SESSION, ex. après avoir fermé et
     // rouvert le navigateur) — les deux doivent déclencher une synchronisation.
@@ -2775,7 +2867,7 @@ if(sb){
 // depuis un vieux backup JSON en base64) obtient une vraie URL publique tôt ou tard, sans action
 // de l'éleveur. Traite un animal à la fois pour ne pas surcharger Storage d'un coup au login.
 async function backfillMissingPhotoUrls(){
-  if(!currentUser || !sb) return;
+  if(!currentUser || !sb || offlineIdentity) return;
   for(const s of savedSnakes){
     if(!s.photos || !s.photos.length) continue;
     for(const p of s.photos){
@@ -2810,7 +2902,7 @@ function updateAuthUI(){
     return;
   }
   if(currentUser){
-    statusEl.textContent = (isEn?'Signed in: ':'Connecté : ')+currentUser.email;
+    statusEl.textContent = (isEn?'Signed in: ':'Connecté : ')+currentUser.email + (offlineIdentity ? (isEn?' — offline, session to renew':' — hors ligne, session à renouveler') : '');
     if(formEl) formEl.style.display = 'none';
     if(signoutBtn) signoutBtn.style.display = 'block';
   } else {
@@ -2920,9 +3012,9 @@ async function handleAuthSignOut(){
 // Restaure la session existante au chargement (si l'utilisateur était déjà connecté)
 if(sb){
   sb.auth.getSession().then(({ data:{ session } }) => {
-    currentUser = session ? session.user : null;
+    currentUser = resolveUserFromSession(session, 'INITIAL_SESSION');
     updateAuthUI();
-    if(currentUser) synchroniserAvecServeur();
+    if(currentUser && !offlineIdentity) synchroniserAvecServeur();
   });
 }
 
@@ -3247,6 +3339,11 @@ function saveDirtySyncState(){
     const out = {};
     Object.keys(dirtySyncIds).forEach(k=>{ out[k] = [...dirtySyncIds[k]]; });
     localStorage.setItem(DIRTY_SYNC_STORAGE_KEY, JSON.stringify(out));
+    // Suppressions en attente (7 oct, v3.09) — avant, dirtyDeletedIds n'était PAS persisté : supprimer
+    // un élément hors ligne puis fermer l'app faisait revenir l'élément au prochain tirage cloud.
+    const del = {};
+    Object.keys(dirtyDeletedIds).forEach(k=>{ del[k] = [...dirtyDeletedIds[k]]; });
+    localStorage.setItem(DIRTY_DELETED_STORAGE_KEY, JSON.stringify(del));
   }catch(e){ /* mode privé / quota — tant pis, pas pire qu'avant ce correctif */ }
 }
 function loadDirtySyncState(){
@@ -3267,6 +3364,19 @@ loadDirtySyncState();
 // l'item revenait systématiquement au pull suivant (mergeById n'a aucune façon de représenter "ceci a
 // été supprimé", seulement de comparer deux copies existantes par horodatage).
 var dirtyDeletedIds = { snakes:new Set(), racks:new Set(), terrariums:new Set(), pairings:new Set(), clutches:new Set(), expenses:new Set(), customers:new Set() };
+// Restauration des suppressions en attente (7 oct, v3.09). DOIT venir APRÈS la déclaration ci-dessus
+// (un `var` réaffecté plus bas écraserait ce qui aurait été chargé plus haut).
+var DIRTY_DELETED_STORAGE_KEY = 'locus_dirty_deleted_v1';
+(function loadDirtyDeletedState(){
+  try{
+    var raw = localStorage.getItem(DIRTY_DELETED_STORAGE_KEY);
+    if(!raw) return;
+    var saved = JSON.parse(raw);
+    Object.keys(dirtyDeletedIds).forEach(function(k){
+      if(saved && saved[k]) saved[k].forEach(function(id){ dirtyDeletedIds[k].add(id); });
+    });
+  }catch(e){ /* rien à restaurer */ }
+})();
 // contentSignature() servait un simple JSON.stringify avant (9 sept) — mais Postgres/JSONB ne
 // garantit PAS de préserver l'ordre des clés d'un objet entre l'écriture et la relecture. Un aller-
 // retour par le serveur pouvait donc changer l'ORDRE des clés sans changer une seule vraie valeur,
@@ -5460,6 +5570,7 @@ function openConfigModal(){
       '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); openStorageDetails();">💾 '+(isEn?'Storage space':'Espace de stockage')+'</button>'+
       (isStandaloneMode() ? '' : '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); showInstallBanner(true);">📲 '+(isEn?'Install the app':'Installer l\'app')+'</button>')+
       '<button class="sc-btn" style="width:100%;" onclick="exportBackup();">📤 '+(isEn?'Export my backup':'Exporter ma sauvegarde')+'</button>'+
+      '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); openAutoBackups();">🛟 '+(isEn?'Automatic copies (last 5)':'Copies automatiques (5 dernières)')+'</button>'+
       '<button class="sc-btn" style="width:100%;color:var(--rust);border-color:var(--rust);" onclick="reinitialiserDonneesLocales();">🔄 '+(isEn?'Reset local data (re-download from server)':'Réinitialiser les données locales (retélécharger du serveur)')+'</button>'+
       (isAdminUser ? '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); diagToggle();">🐛 '+(isEn?'Diagnostic log (admin)':'Journal de diagnostic (admin)')+(diagErrorCount>0?' — '+diagErrorCount:'')+'</button>' : '')+
       (currentUser ? '<button class="sc-btn danger" style="width:100%;" onclick="closeQuickModal(); openDeleteAccountModal();">🗑️ '+(isEn?'Delete my account':'Supprimer mon compte')+'</button>' : '')+
@@ -10169,6 +10280,8 @@ function reinitialiserDonneesLocales(){
 }
 async function synchroniserAvecServeur(){
   if(!sb || !currentUser) return;
+  if(offlineIdentity){ updateSyncPill(); if(!isDeviceOffline()) tryRecoverSession(); return; }
+  if(isDeviceOffline()){ syncPushFailed = true; updateSyncPill(); return; } // hors ligne : on garde le local, l'événement « online » relancera
   if(estOccupe){
     const stuckSince = Date.now() - (debutOccupation||0);
     if(stuckSince < 15000) return;
@@ -10194,7 +10307,11 @@ async function synchroniserAvecServeur(){
     }
     if(error){
       console.warn('LOCUS: échec de récupération des données', error);
-      showToast('⚠️ '+(currentLang==='en'?'Data refresh failed — try signing out and back in.':'Récupération des données échouée — essaie de te déconnecter puis reconnecter.'), 'error');
+      syncPushFailed = true;
+      clearTimeout(_pullRetryTimer);
+      _pullRetryTimer = setTimeout(function(){ try{ retrySyncNow(); }catch(e){} }, 30000);
+      updateSyncPill();
+      showToast('⚠️ '+(currentLang==='en'?'Data refresh failed — your local data is kept, retrying automatically. If it persists, sign out and back in.':'Récupération des données échouée — tes données locales sont gardées, nouvel essai automatique. Si ça persiste, déconnecte-toi puis reconnecte-toi.'), 'error');
       return;
     }
     const remoteHasData = remoteSnakes && remoteSnakes.length > 0;
@@ -10268,62 +10385,182 @@ function itemsToPush(kind, arr, forceAll){
   const ids = dirtySyncIds[kind];
   return (arr||[]).filter(item=>item && item.id!=null && ids.has(item.id));
 }
-async function pushAllUserData(forceAll){
-  if(!sb || !currentUser) return;
+// ===== État de synchronisation (7 oct, v3.09 — palier 3a/3b) =====
+// Avant ce correctif, pushAllUserData() ne vérifiait jamais si un envoi avait réussi : supabase-js ne
+// lance PAS d'exception quand le réseau est coupé, il renvoie un objet { error }. Le code l'ignorait
+// puis vidait la liste des modifications en attente — une modification faite hors ligne n'était donc
+// jamais renvoyée au cloud. Maintenant : chaque fiche n'est retirée de la file QUE si son envoi a réussi.
+var syncPushFailed = false;
+var _pushRetryTimer = null;
+var _pullRetryTimer = null;
+var _lastPushToastAt = 0;
+var LAST_SYNC_OK_KEY = 'locus_last_sync_ok_v1';
+function getLastSyncOkAt(){
+  try{ return parseInt(localStorage.getItem(LAST_SYNC_OK_KEY) || '0', 10) || 0; }catch(e){ return 0; }
+}
+function markSyncOk(){
+  try{ localStorage.setItem(LAST_SYNC_OK_KEY, String(Date.now())); }catch(e){}
+}
+function countPendingSync(){
+  var n = 0;
+  Object.keys(dirtySyncIds).forEach(function(k){ n += dirtySyncIds[k].size; });
+  Object.keys(dirtyDeletedIds).forEach(function(k){ n += dirtyDeletedIds[k].size; });
+  return n;
+}
+function isDeviceOffline(){
+  return (typeof navigator !== 'undefined') && navigator.onLine === false;
+}
+function formatSyncTime(ts){
+  if(!ts) return '';
+  var isEn = (typeof currentLang !== 'undefined' && currentLang === 'en');
+  var d = new Date(ts), now = new Date();
+  var loc = isEn ? 'en-CA' : 'fr-CA';
+  var hm = d.toLocaleTimeString(loc, { hour:'2-digit', minute:'2-digit' });
+  if(d.toDateString() === now.toDateString()) return hm;
+  return d.toLocaleDateString(loc, { day:'numeric', month:'short' }) + ' ' + hm;
+}
+// Pastille « sync en pause » : visible seulement si connecté ET (hors ligne OU dernier envoi échoué).
+// Discrète s'il n'y a rien en attente ; plus visible (bordure or + compteur) s'il y a des changements en attente.
+function updateSyncPill(){
   try{
-    if(savedSnakes.length){
-      const dirty = itemsToPush('snakes', savedSnakes, forceAll);
-      if(dirty.length) await sb.from('snakes').upsert(dirty.map(snakeToRow));
+    var el = document.getElementById('sync-pill');
+    var show = !!currentUser && (isDeviceOffline() || syncPushFailed || offlineIdentity);
+    if(!show){ if(el) el.remove(); return; }
+    var isEn = (typeof currentLang !== 'undefined' && currentLang === 'en');
+    var n = countPendingSync();
+    var offline = isDeviceOffline();
+    var last = getLastSyncOkAt();
+    var txt = offline ? (isEn ? '📴 Offline — sync paused' : '📴 Hors ligne — sync en pause')
+            : offlineIdentity ? (isEn ? '🔐 Session to renew — sync paused' : '🔐 Session à renouveler — sync en pause')
+                      : (isEn ? '⚠️ Sync paused — retrying' : '⚠️ Sync en pause — nouvel essai auto');
+    if(n > 0) txt += ' · ' + n + ' ' + (isEn ? (n > 1 ? 'changes waiting' : 'change waiting') : (n > 1 ? 'changements en attente' : 'changement en attente'));
+    if(last) txt += ' · ' + (isEn ? 'last sync ' : 'dernière synchro ') + formatSyncTime(last);
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'sync-pill';
+      el.setAttribute('role', 'status');
+      el.onclick = function(){ try{ retrySyncNow(); }catch(e){} };
+      document.body.appendChild(el);
     }
-    if(racks.length){
-      const dirty = itemsToPush('racks', racks, forceAll);
-      if(dirty.length) await sb.from('racks').upsert(dirty.map(r=>({ id:r.id, user_id:currentUser.id, name:r.name, rows:r.rows, heating:r.heating||null, tub_cleanings:r.tubCleanings||{}, room:r.room||null })));
-    }
-    if(terrariums.length){
-      const dirty = itemsToPush('terrariums', terrariums, forceAll);
-      if(dirty.length) await sb.from('terrariums').upsert(dirty.map(te=>({ id:te.id, user_id:currentUser.id, name:te.name, size:te.size||null, status:te.status||'libre', bioactive: !!te.bioactive, lighting:te.lighting||null, heating:te.heating||null, substrate:te.substrate||null, pairing_start_date:te.pairingStartDate||null, uvb_replace_date:te.uvbReplaceDate||null, cleanings:te.cleanings||[], room:te.room||null })));
-    }
-    if(pairings.length){
-      const dirty = itemsToPush('pairings', pairings, forceAll);
-      if(dirty.length) await sb.from('pairings').upsert(dirty.map(p=>({ id:p.id, user_id:currentUser.id, sire_id:p.maleId||null, dam_id:p.femaleId||null, data:p })));
-    }
-    if(clutches.length){
-      const dirty = itemsToPush('clutches', clutches, forceAll);
-      if(dirty.length) await sb.from('clutches').upsert(dirty.map(c=>({ id:c.id, user_id:currentUser.id, pairing_id:c.pairingId||null, public_token:c.publicToken||null, data:c })));
-    }
-    if(expenses.length){
-      const dirty = itemsToPush('expenses', expenses, forceAll);
-      if(dirty.length) await sb.from('expenses').upsert(dirty.map(ex=>({ id:ex.id, user_id:currentUser.id, date:ex.date||null, category:ex.category||null, amount:ex.amount||0, note:ex.note||null })));
-    }
+    var bannerUp = !!document.getElementById('install-banner');
+    el.style.cssText = 'position:fixed;left:10px;max-width:calc(100vw - 74px);bottom:calc(env(safe-area-inset-bottom,0px) + ' + (bannerUp ? '120px' : '10px') + ');z-index:9980;' +
+      'background:#1c1612;color:var(--ink);border-radius:999px;padding:6px 12px;font-size:12px;line-height:1.35;box-shadow:0 4px 16px rgba(0,0,0,.5);cursor:pointer;' +
+      'border:1px solid ' + (n > 0 ? 'var(--gold)' : 'var(--line)') + ';';
+    el.textContent = txt;
+    el.title = isEn ? 'Tap to retry now' : 'Touche pour réessayer maintenant';
+  }catch(e){ /* l'affichage ne doit jamais casser la synchro */ }
+}
+function retrySyncNow(){
+  if(!sb || !currentUser || isDeviceOffline()) { updateSyncPill(); return; }
+  if(offlineIdentity){ tryRecoverSession(); return; }
+  if(typeof estOccupe !== 'undefined' && estOccupe) return;
+  synchroniserAvecServeur();
+}
+function schedulePushRetry(){
+  clearTimeout(_pushRetryTimer);
+  _pushRetryTimer = setTimeout(function(){
+    if(!sb || !currentUser) return;
+    if(isDeviceOffline()) return; // l'événement « online » prendra le relais
+    if(typeof estOccupe !== 'undefined' && estOccupe){ schedulePushRetry(); return; }
+    pushAllUserData();
+  }, 30000);
+}
+function markPushed(kind, sent){
+  // sent = [[id, signature au moment de l'envoi], ...] — on ne retire de la file que si la fiche n'a
+  // pas encore été modifiée de nouveau pendant l'envoi.
+  sent.forEach(function(pair){
+    if(lastSyncSnapshot[kind][pair[0]] === pair[1]) dirtySyncIds[kind].delete(pair[0]);
+  });
+}
+async function pushKindRows(kind, arr, forceAll, toRow){
+  if(!arr || !arr.length) return true;
+  var dirty = itemsToPush(kind, arr, forceAll);
+  if(!dirty.length) return true;
+  var sent = dirty.map(function(it){ return [it.id, lastSyncSnapshot[kind][it.id]]; });
+  var res = await sb.from(kind).upsert(dirty.map(toRow));
+  if(res && res.error){ console.warn('LOCUS: envoi échoué (' + kind + ')', res.error); return false; }
+  markPushed(kind, sent);
+  return true;
+}
+async function pushAllUserData(forceAll){
+  if(!sb || !currentUser) return false;
+  if(offlineIdentity){ syncPushFailed = true; updateSyncPill(); if(!isDeviceOffline()) tryRecoverSession(); return false; }
+  if(isDeviceOffline()){ syncPushFailed = true; updateSyncPill(); return false; }
+  var allOk = true;
+  try{
+    if(!(await pushKindRows('snakes', savedSnakes, forceAll, snakeToRow))) allOk = false;
+    if(!(await pushKindRows('racks', racks, forceAll, function(r){ return { id:r.id, user_id:currentUser.id, name:r.name, rows:r.rows, heating:r.heating||null, tub_cleanings:r.tubCleanings||{}, room:r.room||null }; }))) allOk = false;
+    if(!(await pushKindRows('terrariums', terrariums, forceAll, function(te){ return { id:te.id, user_id:currentUser.id, name:te.name, size:te.size||null, status:te.status||'libre', bioactive: !!te.bioactive, lighting:te.lighting||null, heating:te.heating||null, substrate:te.substrate||null, pairing_start_date:te.pairingStartDate||null, uvb_replace_date:te.uvbReplaceDate||null, cleanings:te.cleanings||[], room:te.room||null }; }))) allOk = false;
+    if(!(await pushKindRows('pairings', pairings, forceAll, function(p){ return { id:p.id, user_id:currentUser.id, sire_id:p.maleId||null, dam_id:p.femaleId||null, data:p }; }))) allOk = false;
+    if(!(await pushKindRows('clutches', clutches, forceAll, function(c){ return { id:c.id, user_id:currentUser.id, pairing_id:c.pairingId||null, public_token:c.publicToken||null, data:c }; }))) allOk = false;
+    if(!(await pushKindRows('expenses', expenses, forceAll, function(ex){ return { id:ex.id, user_id:currentUser.id, date:ex.date||null, category:ex.category||null, amount:ex.amount||0, note:ex.note||null }; }))) allOk = false;
     if(customers.length){
-      const dirty = itemsToPush('customers', customers, forceAll);
+      var dirtyCust = itemsToPush('customers', customers, forceAll);
       // Chiffrement niveau colonne (2 septembre) — passe par la fonction RPC upsert_customer_encrypted
       // plutôt qu'un upsert direct, pour que la colonne `data` reste chiffrée à la source. Un appel
       // par client (la fonction RPC ne prend qu'un enregistrement à la fois, contrairement à .upsert()).
-      for(const cu of dirty){
-        await sb.rpc('upsert_customer_encrypted', { p_id: cu.id, p_data: cu });
+      for(const cu of dirtyCust){
+        var custSig = lastSyncSnapshot.customers[cu.id];
+        var custRes = await sb.rpc('upsert_customer_encrypted', { p_id: cu.id, p_data: cu });
+        if(custRes && custRes.error){ allOk = false; console.warn('LOCUS: envoi échoué (customers)', custRes.error); }
+        else markPushed('customers', [[cu.id, custSig]]);
       }
     }
-    await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock, feeder_stock_live: feederStockLive, todos, genetic_ambiguities: geneticAmbiguities, rodent_bins: rodentBins, rodent_expenses: rodentExpenses, rodent_value_per_unit: rodentValuePerUnit, rodent_priority_bins: rodentPriorityBins, rodent_racks: rodentRacks, rodent_goal: rodentGoal, dream_snakes: dreamSnakes });
-    saveAppStatePushedAt(Date.now());
-    const profile = loadProfile();
-    await sb.from('profiles').upsert({ user_id:currentUser.id, breeder_name: profile.breederName||null, email: profile.email||null, phone: profile.phone||null });
+    var stRes = await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock, feeder_stock_live: feederStockLive, todos, genetic_ambiguities: geneticAmbiguities, rodent_bins: rodentBins, rodent_expenses: rodentExpenses, rodent_value_per_unit: rodentValuePerUnit, rodent_priority_bins: rodentPriorityBins, rodent_racks: rodentRacks, rodent_goal: rodentGoal, dream_snakes: dreamSnakes });
+    if(stRes && stRes.error){ allOk = false; console.warn('LOCUS: envoi échoué (app_state)', stRes.error); }
+    else saveAppStatePushedAt(Date.now());
+    var profile = loadProfile();
+    var prRes = await sb.from('profiles').upsert({ user_id:currentUser.id, breeder_name: profile.breederName||null, email: profile.email||null, phone: profile.phone||null });
+    if(prRes && prRes.error){ allOk = false; console.warn('LOCUS: envoi échoué (profiles)', prRes.error); }
     // Envoie les suppressions locales en attente (2 sept) — le nom de `kind` correspond exactement
-    // au nom de la table Supabase dans les 7 cas, donc une seule boucle suffit. Sans ça, un item
-    // supprimé localement n'était jamais retiré du cloud et revenait au prochain tirage.
+    // au nom de la table Supabase dans les 7 cas, donc une seule boucle suffit. On ne retire de la
+    // file que les ids réellement supprimés côté serveur (et pas ceux ajoutés pendant l'envoi).
     for(const kind of ['snakes','racks','terrariums','pairings','clutches','expenses','customers']){
       if(dirtyDeletedIds[kind].size){
-        const { error } = await sb.from(kind).delete().in('id', [...dirtyDeletedIds[kind]]);
-        if(!error) dirtyDeletedIds[kind].clear();
+        var delIds = [...dirtyDeletedIds[kind]];
+        var delRes = await sb.from(kind).delete().in('id', delIds);
+        if(delRes && delRes.error){ allOk = false; console.warn('LOCUS: suppression échouée (' + kind + ')', delRes.error); }
+        else delIds.forEach(function(id){ dirtyDeletedIds[kind].delete(id); });
       }
     }
-    ['snakes','racks','terrariums','pairings','clutches','expenses','customers'].forEach(kind=> dirtySyncIds[kind].clear());
+    // Ménage : un id « à envoyer » qui ne correspond plus à aucune fiche locale n'a plus rien à envoyer.
+    var liveArrays = { snakes:savedSnakes, racks:racks, terrariums:terrariums, pairings:pairings, clutches:clutches, expenses:expenses, customers:customers };
+    Object.keys(liveArrays).forEach(function(kind){
+      var present = new Set((liveArrays[kind]||[]).map(function(it){ return it && it.id; }));
+      [...dirtySyncIds[kind]].forEach(function(id){ if(!present.has(id)) dirtySyncIds[kind].delete(id); });
+    });
     saveDirtySyncState();
   }catch(e){
+    allOk = false;
     console.warn('LOCUS: échec envoi des données', e);
-    showToast('⚠️ '+(currentLang==='en'?'Data upload failed — try signing out and back in.':'Envoi des données échoué — essaie de te déconnecter puis reconnecter.'), 'error');
+    try{ saveDirtySyncState(); }catch(e2){}
   }
+  if(allOk){
+    syncPushFailed = false;
+    clearTimeout(_pushRetryTimer);
+    markSyncOk();
+  } else {
+    syncPushFailed = true;
+    schedulePushRetry();
+    var nowTs = Date.now();
+    if(!isDeviceOffline() && nowTs - _lastPushToastAt > 300000){
+      _lastPushToastAt = nowTs;
+      showToast('⚠️ '+(currentLang==='en'?'Upload not completed — your data is kept on this device and will be sent automatically.':'Envoi non terminé — tes données sont gardées sur cet appareil et partiront automatiquement.'), 'error');
+    }
+  }
+  updateSyncPill();
+  return allOk;
 }
+window.addEventListener('offline', function(){ updateSyncPill(); });
+window.addEventListener('online', function(){
+  updateSyncPill();
+  setTimeout(function(){ try{ retrySyncNow(); }catch(e){} }, 1500);
+});
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState === 'visible' && currentUser && !isDeviceOffline() && (syncPushFailed || countPendingSync() > 0)){
+    setTimeout(function(){ try{ retrySyncNow(); }catch(e){} }, 800);
+  } else { updateSyncPill(); }
+});
 
 async function pullAllUserData(){
   if(!sb || !currentUser) return;
@@ -10441,6 +10678,7 @@ async function pullAllUserData(){
 // à toucher chaque fonction d'édition individuellement.
 var _cloudSyncTimer = null;
 function mirrorSnakesRemote(){
+  try{ scheduleAutoSnapshot(); }catch(e){} // copie locale automatique (palier 4), indépendante du cloud
   if(!sb || !currentUser) return;
   clearTimeout(_cloudSyncTimer);
   _cloudSyncTimer = setTimeout(function attemptSync(){
@@ -10450,16 +10688,171 @@ function mirrorSnakesRemote(){
 }
 
 
+/* ==================== Copies automatiques locales (7 oct, v3.11 — palier 4) ====================
+   Filet de sécurité INDÉPENDANT de la synchro cloud : l'app garde sur l'appareil (IndexedDB, bien plus
+   spacieux que localStorage) les 5 dernières copies complètes de tes données, au même format que
+   « Exporter ma sauvegarde ». Si une synchro ou une erreur abîme tes données, tu peux revenir en arrière
+   sans avoir rien fait à l'avance. Gratuit pour tout le monde.
+   Règles : une copie au plus toutes les 6 h, seulement si les données ont changé ; jamais de copie
+   d'un état vide ; une copie « suspecte » (plus de la moitié des reptiles disparus d'un coup) n'est pas
+   gardée, pour ne pas écraser de bonnes copies avec un état abîmé. Avant toute restauration ou import,
+   une copie de sécurité de l'état actuel est faite (1 seule, remplacée à chaque fois). */
+var LBK_DB = 'locus_backups_v1', LBK_STORE = 'snapshots', LBK_MAX_AUTO = 5, LBK_MIN_INTERVAL_MS = 6*3600*1000;
+var _lbkTimer = null, _lbkBusy = false;
+function buildBackupPayload(){
+  return {
+    app:'LOCUS', version:2, exportedAt:new Date().toISOString(),
+    snakes: savedSnakes,
+    elevage: { racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, feederStockLive, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, rodentPriorityBins, rodentRacks, rodentGoal, dreamSnakes }
+  };
+}
+function lbkOpen(){
+  return new Promise(function(resolve, reject){
+    try{
+      if(!window.indexedDB){ reject(new Error('no-idb')); return; }
+      var rq = indexedDB.open(LBK_DB, 1);
+      rq.onupgradeneeded = function(){ var db = rq.result; if(!db.objectStoreNames.contains(LBK_STORE)) db.createObjectStore(LBK_STORE, { keyPath:'ts' }); };
+      rq.onsuccess = function(){ resolve(rq.result); };
+      rq.onerror = function(){ reject(rq.error || new Error('idb-open')); };
+    }catch(e){ reject(e); }
+  });
+}
+function lbkTx(mode, fn){
+  return lbkOpen().then(function(db){
+    return new Promise(function(resolve, reject){
+      var tx = db.transaction(LBK_STORE, mode), st = tx.objectStore(LBK_STORE), out;
+      try{ out = fn(st); }catch(e){ reject(e); return; }
+      tx.oncomplete = function(){ db.close(); resolve(out && out.result !== undefined ? out.result : out); };
+      tx.onerror = tx.onabort = function(){ db.close(); reject(tx.error || new Error('idb-tx')); };
+    });
+  });
+}
+function lbkList(){ // plus récentes d'abord, sans le contenu lourd
+  return lbkTx('readonly', function(st){ return st.getAll(); }).then(function(rows){
+    return (rows || []).map(function(r){ return { ts:r.ts, kind:r.kind, count:r.count, size:r.size, hash:r.hash }; }).sort(function(a,b){ return b.ts - a.ts; });
+  });
+}
+function lbkGet(ts){ return lbkTx('readonly', function(st){ return st.get(ts); }); }
+function lbkHash(str){ var h = 5381; for(var i=0;i<str.length;i++){ h = ((h<<5) + h + str.charCodeAt(i)) | 0; } return String(h) + ':' + str.length; }
+// Prend une copie. kind = 'auto' (rotation de 5) ou 'safety' (1 seule, avant restauration/import).
+async function lbkTake(kind, force){
+  if(_lbkBusy && !force) return false;
+  _lbkBusy = true;
+  try{
+    if(!savedSnakes || !savedSnakes.length) return false; // jamais de copie d'un état vide
+    var p = buildBackupPayload(); p.exportedAt = ''; // exclu du hash
+    var body = JSON.stringify(p);
+    var hash = lbkHash(body);
+    var snakesCount = savedSnakes.length;
+    p.exportedAt = new Date().toISOString();
+    var full = JSON.stringify(p);
+    var list = await lbkList();
+    var autos = list.filter(function(r){ return r.kind === 'auto'; });
+    if(kind === 'auto' && !force){
+      if(autos.length){
+        if(Date.now() - autos[0].ts < LBK_MIN_INTERVAL_MS) return false;
+        if(autos[0].hash === hash) return false;
+        if(autos[0].count >= 4 && snakesCount < autos[0].count / 2) return false; // état suspect
+      }
+    }
+    var rec = { ts: Date.now(), kind: kind, count: snakesCount, size: full.length, hash: hash, payload: full };
+    await lbkTx('readwrite', function(st){
+      st.put(rec);
+      if(kind === 'safety'){
+        list.filter(function(r){ return r.kind === 'safety'; }).forEach(function(r){ st.delete(r.ts); });
+      } else {
+        autos.slice(LBK_MAX_AUTO - 1).forEach(function(r){ st.delete(r.ts); });
+      }
+    });
+    try{ localStorage.setItem('locus_last_auto_backup', String(rec.ts)); }catch(e){}
+    return true;
+  }catch(e){
+    console.warn('LOCUS: copie automatique impossible', e);
+    return false;
+  }finally{ _lbkBusy = false; }
+}
+function scheduleAutoSnapshot(delayMs){
+  clearTimeout(_lbkTimer);
+  _lbkTimer = setTimeout(function(){ lbkTake('auto', false); }, delayMs == null ? 60000 : delayMs);
+}
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState === 'hidden') lbkTake('auto', false);
+});
+setTimeout(function(){
+  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){} // demande au navigateur de ne pas vider ces copies
+  lbkTake('auto', false);
+}, 8000);
+function lbkFmtDate(ts){
+  var isEn = currentLang === 'en';
+  return new Date(ts).toLocaleString(isEn ? 'en-CA' : 'fr-CA', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+function lbkDownload(ts){
+  lbkGet(ts).then(function(rec){
+    if(!rec) return;
+    var blob = new Blob([rec.payload], { type:'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'locus-copie-auto-' + new Date(rec.ts).toISOString().slice(0,16).replace(/[:T]/g,'-') + '.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }).catch(function(){});
+}
+async function lbkRestore(ts){
+  var isEn = currentLang === 'en';
+  var rec = await lbkGet(ts);
+  if(!rec){ return; }
+  var data;
+  try{ data = JSON.parse(rec.payload); }catch(e){ alert(isEn?'This copy is unreadable.':'Cette copie est illisible.'); return; }
+  if(!Array.isArray(data.snakes)){ alert(isEn?'This copy is unreadable.':'Cette copie est illisible.'); return; }
+  var msg = isEn
+    ? ('Restore the copy from ' + lbkFmtDate(ts) + ' (' + data.snakes.length + ' reptile(s))?\n\nThis REPLACES your current data (' + savedSnakes.length + ' reptile(s)) and, once synced, the cloud copy too. A safety copy of your current state is made first.')
+    : ('Restaurer la copie du ' + lbkFmtDate(ts) + ' (' + data.snakes.length + ' reptile(s)) ?\n\nÇa REMPLACE tes données actuelles (' + savedSnakes.length + ' reptile(s)) et, une fois synchronisé, la copie du cloud aussi. Une copie de sécurité de ton état actuel est faite d\'abord.');
+  if(!confirm(msg)) return;
+  await lbkTake('safety', true);
+  applyBackupData(data);
+  closeQuickModal();
+  alert(isEn ? ('Copy restored: ' + savedSnakes.length + ' reptile(s).') : ('Copie restaurée : ' + savedSnakes.length + ' reptile(s).'));
+}
+async function lbkManualNow(){
+  var isEn = currentLang === 'en';
+  var ok = await lbkTake('auto', true);
+  showToast(ok ? ('🛟 ' + (isEn ? 'Copy saved on this device.' : 'Copie enregistrée sur cet appareil.')) : ('⚠️ ' + (isEn ? 'Could not save a copy (nothing to save, or storage unavailable).' : 'Impossible de faire une copie (rien à sauvegarder, ou stockage indisponible).')), ok ? 'success' : 'error');
+  openAutoBackups();
+}
+async function openAutoBackups(){
+  var isEn = currentLang === 'en';
+  var rows = [], failed = false;
+  try{ rows = await lbkList(); }catch(e){ failed = true; }
+  var body = '<p style="font-size:11.5px;color:var(--ink-dim);line-height:1.6;margin:0 0 12px;">' + (isEn
+    ? 'LOCUS automatically keeps the last 5 full copies of your data on this device (at most one every 6 hours, only when something changed). They don\'t depend on cloud sync. To keep a copy outside this device, download it.'
+    : 'LOCUS garde automatiquement sur cet appareil les 5 dernières copies complètes de tes données (une aux 6 h au plus, seulement si quelque chose a changé). Elles ne dépendent pas de la synchro cloud. Pour garder une copie hors de cet appareil, télécharge-la.') + '</p>';
+  if(failed){
+    body += '<p style="font-size:12px;color:var(--rust);">⚠️ ' + (isEn ? 'Automatic copies are unavailable in this browser (private mode or storage blocked). Use “Export my backup” instead.' : 'Les copies automatiques sont indisponibles dans ce navigateur (mode privé ou stockage bloqué). Utilise plutôt « Exporter ma sauvegarde ».') + '</p>';
+  } else if(!rows.length){
+    body += '<p style="font-size:12px;color:var(--ink-dim);">' + (isEn ? 'No copy yet — the first one is made shortly after you have saved data.' : 'Aucune copie pour l\'instant — la première se fait peu après que tu aies des données enregistrées.') + '</p>';
+  } else {
+    rows.forEach(function(r){
+      var label = r.kind === 'safety' ? (isEn ? '🛡️ Safety copy (before a restore/import)' : '🛡️ Copie de sécurité (avant une restauration/importation)') : '🛟 ' + lbkFmtDate(r.ts);
+      if(r.kind === 'safety') label += ' — ' + lbkFmtDate(r.ts);
+      body += '<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;">' +
+        '<div style="font-size:12.5px;margin-bottom:6px;">' + label + '</div>' +
+        '<div style="font-size:11px;color:var(--ink-dim);margin-bottom:8px;">' + r.count + ' ' + (isEn ? 'reptile(s)' : 'reptile(s)') + ' · ' + Math.max(1, Math.round(r.size/1024)) + (isEn ? ' KB' : ' Ko') + '</div>' +
+        '<div style="display:flex;gap:8px;">' +
+          '<button class="sc-btn" style="flex:1;" onclick="lbkDownload(' + r.ts + ')">⬇️ ' + (isEn ? 'Download' : 'Télécharger') + '</button>' +
+          '<button class="sc-btn" style="flex:1;" onclick="lbkRestore(' + r.ts + ')">↩️ ' + (isEn ? 'Restore' : 'Restaurer') + '</button>' +
+        '</div></div>';
+    });
+  }
+  body += '<button class="sc-btn accent" style="width:100%;margin-top:6px;" onclick="lbkManualNow()">🛟 ' + (isEn ? 'Make a copy now' : 'Faire une copie maintenant') + '</button>';
+  showQuickModal(isEn ? '🛟 Automatic copies' : '🛟 Copies automatiques', body);
+}
+
 /* ==================== Sauvegarde : export / import JSON complet ==================== */
 // Couvre les 2 clés localStorage (snakes + élevage) en un seul fichier téléchargeable.
 // C'est la seule protection contre une perte de données (cache vidé, changement de machine/navigateur).
 function exportBackup(){
   if(!requireAuthOrPrompt()) return;
-  const payload = {
-    app:'LOCUS', version:2, exportedAt:new Date().toISOString(),
-    snakes: savedSnakes,
-    elevage: { racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, feederStockLive, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, rodentPriorityBins, rodentRacks, rodentGoal, dreamSnakes }
-  };
+  const payload = buildBackupPayload();
   const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -10474,18 +10867,8 @@ function exportBackup(){
   updateBackupReminderBanner();
 }
 
-document.getElementById('import-file-input').addEventListener('change', (e)=>{
-  const file = e.target.files[0];
-  if(!file) return;
-  const isEn = currentLang==='en';
-  const reader = new FileReader();
-  reader.onload = ()=>{
-    let data;
-    try{ data = JSON.parse(reader.result); }
-    catch(err){ alert(isEn?'Invalid file: not readable JSON.':'Fichier invalide : ce n\'est pas un JSON lisible.'); e.target.value=''; return; }
-    if(!Array.isArray(data.snakes)){ alert(isEn?'Invalid file: unrecognized LOCUS backup structure.':'Fichier invalide : structure de sauvegarde LOCUS non reconnue.'); e.target.value=''; return; }
-    if(!confirm(isEn?('Importing this backup will REPLACE all current data ('+savedSnakes.length+' reptile(s) currently saved). Continue?'):('Importer cette sauvegarde va REMPLACER toutes les données actuelles ('+savedSnakes.length+' reptile(s) enregistré(s) en ce moment). Continuer ?'))){ e.target.value=''; return; }
-
+// Remplace TOUTES les données locales par celles d'une sauvegarde (utilisé par l'import de fichier ET la restauration d'une copie automatique).
+function applyBackupData(data){
     savedSnakes = data.snakes;
     savedSnakes.forEach(ensureSnakeMeta);
     storage.save(savedSnakes);
@@ -10527,6 +10910,23 @@ document.getElementById('import-file-input').addEventListener('change', (e)=>{
     if(document.getElementById('clutch-list')){ renderClutchForm(); renderClutches(); }
     if(document.getElementById('feeder-stock-list')) renderFeederStockList();
     if(document.getElementById('feeder-stock-live-list')) renderFeederStockLiveList();
+
+}
+
+document.getElementById('import-file-input').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const isEn = currentLang==='en';
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    let data;
+    try{ data = JSON.parse(reader.result); }
+    catch(err){ alert(isEn?'Invalid file: not readable JSON.':'Fichier invalide : ce n\'est pas un JSON lisible.'); e.target.value=''; return; }
+    if(!Array.isArray(data.snakes)){ alert(isEn?'Invalid file: unrecognized LOCUS backup structure.':'Fichier invalide : structure de sauvegarde LOCUS non reconnue.'); e.target.value=''; return; }
+    if(!confirm(isEn?('Importing this backup will REPLACE all current data ('+savedSnakes.length+' reptile(s) currently saved). Continue?'):('Importer cette sauvegarde va REMPLACER toutes les données actuelles ('+savedSnakes.length+' reptile(s) enregistré(s) en ce moment). Continuer ?'))){ e.target.value=''; return; }
+
+    lbkTake('safety', true); // copie de sécurité de l'état actuel (capturée avant le remplacement)
+    applyBackupData(data);
 
     e.target.value = '';
     alert(isEn?('Backup imported: '+savedSnakes.length+' reptile(s), '+pairings.length+' pairing(s).'):('Sauvegarde importée : '+savedSnakes.length+' reptile(s), '+pairings.length+' accouplement(s).'));
