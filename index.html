@@ -38,7 +38,11 @@
 <meta name="google-site-verification" content="JvUPiLwoAimf2vx9x4kqqqydcunxFbFnx1G2QHtY4-o" />
 <meta name="msvalidate.01" content="F9680D5238A61FFBF76C0E2CD15117E2" />
 <meta name="description" content="LOCUS Scales — gestion d'élevage de reptiles : calculateur génétique python royal, suivi de racks, ventes, incubation et administration."/>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>"/>
+<!-- Icône du site (7 oct) — l'ancien emoji serpent en data-URI a été retiré : Google ne peut pas
+     l'utiliser (ce n'est pas un fichier crawlable) et il risquait d'être choisi à la place du vrai
+     logo. Google exige un carré dont le côté est un multiple de 48 px (48, 96, 192…). -->
+<link rel="icon" href="favicon.ico" sizes="48x48"/>
+<link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48.png"/>
 <!-- Fondation PWA (10 sept) — additif seulement, ne change rien au fonctionnement actuel pour
      personne. Prépare le terrain pour un emballage natif (Capacitor) éventuel, interrupteur
      laissé à off : aucun service worker enregistré, voir service-worker.js à la racine. -->
@@ -2093,7 +2097,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.04';
+const APP_VERSION = '2026.09.01.3.05';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
