@@ -52,7 +52,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png"/>
 <meta name="theme-color" content="#161210"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black"/>
 <meta name="apple-mobile-web-app-title" content="LOCUS"/>
 <meta property="og:title" content="LOCUS Scales"/>
 <meta property="og:description" content="Gestion d'élevage complète pour le python royal — génétique, ventes, incubation et administration."/>
@@ -794,7 +794,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    Aucune couleur touchée — uniquement tailles, espacements, disposition,
    cibles tactiles (≥44px) et défilement horizontal pour les grilles/tableaux. */
 @media (max-width: 760px){
-  .wrap{padding:16px 12px calc(40px + env(safe-area-inset-bottom));}
+  .wrap{padding:calc(16px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));}
 
   /* Anti-zoom iOS : tout champ de saisie sous 16px déclenche un zoom automatique
      agaçant au focus sur Safari. On force 16px partout sur mobile sans toucher
@@ -2098,7 +2098,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.06';
+const APP_VERSION = '2026.09.01.3.08';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2152,6 +2152,14 @@ function isIosWebview(){
 function isAndroidDevice(){
   return /Android/.test(navigator.userAgent || '');
 }
+// Navigateurs « intégrés » à une autre app (Google, Facebook, Instagram, Reddit…) : impossible d'y
+// installer l'app. GSA/ = app Google, FBAN/FBAV/FB_IAB = Facebook, Reddit = app Reddit, etc.
+function isInAppBrowser(){
+  var ua = navigator.userAgent || '';
+  if(/GSA\/|FBAN|FBAV|FB_IAB|Instagram|Reddit|Snapchat|LinkedInApp|Line\/|Twitter|MicroMessenger|TikTok|musical_ly/i.test(ua)) return true;
+  if(isAndroidDevice() && /; wv\)/.test(ua)) return true; // WebView Android générique
+  return false;
+}
 function installDismissedRecently(){
   try{
     var ts = parseInt(localStorage.getItem(INSTALL_DISMISS_KEY) || '0', 10);
@@ -2178,7 +2186,10 @@ function showInstallBanner(force){
     msg = isEn ? '📲 Install LOCUS on your home screen — it opens full screen, like an app.'
                : '📲 Installe LOCUS sur ton écran d\'accueil — il s\'ouvre en plein écran, comme une app.';
     btn = '<button onclick="triggerInstallPrompt()" style="background:var(--gold);color:#161210;border:0;border-radius:8px;padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer;">'+(isEn?'Install':'Installer')+'</button>';
-  } else if(isIosWebview()){
+  } else if(isInAppBrowser() && isAndroidDevice()){
+    msg = isEn ? '📲 You are inside another app\'s browser, which can\'t install LOCUS. Open this page in Chrome (menu ⋮ → "Open in Chrome" / "Open in browser"), then install from there.'
+               : '📲 Tu es dans le navigateur intégré d\'une autre app, qui ne peut pas installer LOCUS. Ouvre cette page dans Chrome (menu ⋮ → « Ouvrir dans Chrome » / « Ouvrir dans le navigateur »), puis installe-la de là.';
+  } else if(isInAppBrowser() || isIosWebview()){
     msg = isEn ? '📲 To install LOCUS, open this page in Safari first (menu ⋯ → "Open in browser"), then tap Share ⬆︎ → "Add to Home Screen".'
                : '📲 Pour installer LOCUS, ouvre d\'abord cette page dans Safari (menu ⋯ → « Ouvrir dans le navigateur »), puis touche Partager ⬆︎ → « Sur l\'écran d\'accueil ».';
   } else if(isIosDevice()){
