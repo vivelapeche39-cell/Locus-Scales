@@ -2143,7 +2143,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.20';
+const APP_VERSION = '2026.09.01.3.22';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4194,20 +4194,8 @@ const ANNOUNCEMENTS = [
       en:'The app is currently in beta — free during this period. A paid tier system will roll out later, always announced ahead of the official launch date — no surprises. For the best experience, creating an account is recommended — no future payment obligation attached. Found a bug? You can report it via ☰ → Report a bug — it helps polish the app before the real launch.'
     }
   },
-  { date:'2026-09-08',
-    title:{ fr:'Nouveau : gestion de rongeurs nourriciers', en:'New: feeder rodent management' },
-    body:{
-      fr:'Si tu élèves tes propres souris/rats/ASF, y\'a maintenant une vraie section pour ça — séparée de tes reptiles, dans Élevage → Rongeurs. Suis tes bacs reproducteurs (espèce, ratio, retrait du mâle en cours de gestation), logue tes portées avec le détail complet (nés, manquant/cannibalisme, transférés, euthanasiés), et vois un rapport de rentabilité qui repère les bacs les moins productifs pour toi. Le stade de croissance (pinky, fuzzy, hopper...) se calcule maintenant tout seul selon l\'âge — et les seuils sont ajustables si ta nourriture fait grandir tes petits plus vite ou plus lentement que la moyenne. Un rapport mensuel, un lien direct vers ton inventaire de proies, et un budget dédié avec calcul de ROI complètent le tout. Gros merci aux éleveurs de la communauté qui ont pris le temps de partager leur vrai fonctionnement — ça a vraiment façonné cette fonctionnalité.',
-      en:'If you breed your own mice/rats/ASF, there\'s now a real section for that — separate from your reptiles, under Breeding → Rodents. Track your breeding bins (species, ratio, removing the male mid-gestation), log litters with full detail (born, missing/cannibalism, transferred, euthanized), and see a profitability report that flags your least productive bins for you. Growth stage (pinky, fuzzy, hopper...) now calculates itself based on age — and the thresholds are adjustable if your feed makes your litters grow faster or slower than average. A monthly report, a direct link to your feeder stock, and a dedicated budget with ROI calculation round it all out. Big thanks to the breeders in the community who took the time to share how they really do things — it genuinely shaped this feature.'
-    }
-  },
-  { date:'2026-08-31',
-    title:{ fr:'Racks & Terrariums, en mieux', en:'Racks & Terrariums, improved' },
-    body:{
-      fr:'Gros ménage dans la section Racks & Terrariums ! Chaque terrarium a maintenant sa propre fiche : taille, statut (libre / occupé / en accouplement), éclairage, chauffage, substrat, et une case bioactif. Tu peux déplacer un animal d\'un terrarium à un autre en un tap, suivre la date de remplacement de ton UVB, et logger tes nettoyages (partiel ou complet) — avec un petit rappel si ça fait un moment. Les racks ont aussi un suivi de nettoyage par bac, rapide à cocher en lot (tout un rack ou juste une rangée). Et pour les setups bioactifs : pas d\'alerte de nettoyage inutile, l\'écosystème s\'en occupe.',
-      en:'Big cleanup in the Racks & Terrariums section! Each terrarium now has its own record: size, status (free / occupied / pairing), lighting, heating, substrate, and a bioactive checkbox. You can move an animal from one terrarium to another with a tap, track your UVB replacement date, and log your cleanings (partial or complete) — with a gentle reminder if it\'s been a while. Racks also have per-tub cleaning tracking, quick to check off in bulk (a whole rack or just a row). And for bioactive setups: no unnecessary cleaning alerts, the ecosystem handles it.'
-    }
-  },
+  // v3.22 — les annonces « Rongeurs nourriciers » (8 sept) et « Racks & Terrariums » (31 août)
+  // ont été déplacées dans les Notes de mise à jour (CHANGELOG), où elles ont leur place.
   // Exemple de structure — à remplacer/compléter au fil du temps.
   { date:'2026-08-05',
     title:{ fr:'Bienvenue sur LOCUS Scales', en:'Welcome to LOCUS Scales' },
@@ -4219,6 +4207,129 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'3.22', date:'2026-10-08',
+    title:{ fr:'Nourriture, stock et mise à jour automatique', en:'Feeding, stock and automatic updates' },
+    changes:{
+      fr:[
+        'L\'app se met maintenant à jour toute seule quand tu reviens dedans. Si t\'es en train de remplir quelque chose, une bannière « Mettre à jour » s\'affiche plutôt — rien n\'est jamais perdu.',
+        'Liste de décongélation séparée en deux : « Congelé — à décongeler » et « Vivant — à prévoir », avec ton stock réel à côté de chaque ligne (✓ ou « manque X ») et mise à jour dès que tu changes le stock.',
+        'Proie vivante : si la proie de la fiche n\'a pas de stock vivant mais qu\'une autre proie vivante en a (ex. gerbilles au lieu de rats), c\'est celle-là qui est prise — et le message te le dit.',
+        'Refus d\'une proie congelée : « Proie perdue » est cochée par défaut (un rongeur décongelé ne se recongèle pas). Proie vivante : décochée, elle retourne au bac.',
+        'Annuler ou supprimer un repas ou un refus remet maintenant la proie dans le bon stock.',
+        'Mode Tournée : « Nourri vivant/congelé » ne change plus le type de proie sur la fiche de l\'animal.',
+        'Un terrarium peut maintenant être supprimé même s\'il est occupé — les animaux retournent dans « À classer ». Bouton « Effacer les exemples » ajouté dans Élevage.',
+        'Changements d\'eau et qualité de l\'eau : historique visible, avec Annuler et suppression d\'une entrée.',
+        'Options perso (éclairage, chauffage, substrat) : une option mal tapée peut maintenant être retirée.',
+        'Supprimer une pesée ou une mesure du journal la retire aussi du graphique et des alertes de croissance.',
+        'Clients : bouton pour effacer les coordonnées d\'un client (ici et dans le cloud), l\'historique de ventes reste intact.',
+        'Nouvelle bannière d\'en-tête et nouvelles couleurs du nom.',
+        'Le nombre de gènes affiché en bas de page est maintenant toujours à jour (161 gènes vérifiés aujourd\'hui).',
+        'Correctif de synchronisation : une partie de tes données (tâches, projets, stock de proies, rongeurs, disposition) ne se rendait plus au cloud depuis début septembre. Rien n\'était perdu sur ton appareil, et tout se synchronise de nouveau.'
+      ],
+      en:[
+        'The app now updates itself when you come back to it. If you\'re in the middle of filling something in, an "Update" banner shows instead — nothing is ever lost.',
+        'Thaw list split in two: "Frozen — to thaw" and "Live — to plan", with your actual stock next to each line (✓ or "short X"), updated as soon as you change your stock.',
+        'Live prey: if the prey on the record has no live stock but another live prey does (e.g. gerbils instead of rats), that one is used — and the message tells you so.',
+        'Refused frozen prey: "Prey lost" is checked by default (a thawed rodent can\'t be refrozen). Live prey: unchecked, it goes back to the bin.',
+        'Undoing or deleting a meal or a refusal now puts the prey back in the right stock.',
+        'Tour Mode: "Fed live/frozen" no longer changes the prey type on the animal\'s record.',
+        'A terrarium can now be deleted even when occupied — the animals go back to "To assign". "Clear sample data" button added in Breeding.',
+        'Water changes and water quality: visible history, with Undo and per-entry deletion.',
+        'Custom options (lighting, heating, substrate): a mistyped option can now be removed.',
+        'Deleting a weigh-in or measurement from the log also removes it from the chart and growth alerts.',
+        'Clients: button to erase a client\'s contact info (here and in the cloud); sales history stays intact.',
+        'New header banner and new name colors.',
+        'The gene count shown at the bottom of the page is now always up to date (161 verified genes today).',
+        'Sync fix: part of your data (tasks, projects, feeder stock, rodents, layout) had stopped reaching the cloud since early September. Nothing was lost on your device, and everything syncs again.'
+      ]
+    }
+  },
+  { version:'3.04 → 3.11', date:'2026-10-07',
+    title:{ fr:'LOCUS sur ton écran d\'accueil, et hors ligne', en:'LOCUS on your home screen, and offline' },
+    changes:{
+      fr:[
+        'LOCUS se télécharge maintenant sur l\'écran d\'accueil de ton téléphone, comme une vraie app (plein écran, sa propre icône). iPhone : ouvre la page dans Safari → bouton Partager ⬆︎ → « Sur l\'écran d\'accueil ». Android : menu ⋮ → « Installer l\'application ».',
+        'L\'app démarre même sans réseau, avec la dernière version enregistrée sur ton appareil.',
+        'Affichage corrigé sur iPhone en mode installé (heure, bords et barre du bas).',
+        'Synchronisation plus fiable : une modification faite sans réseau est gardée et renvoyée automatiquement au retour de la connexion. Une pastille t\'indique quand la synchro est en pause.',
+        'Tu restes connecté même hors ligne : plus besoin de réseau pour continuer à enregistrer tes repas et tes pesées.',
+        'Copies automatiques de tes données sur ton appareil (Configuration → 🛟), avec restauration en un geste.'
+      ],
+      en:[
+        'LOCUS can now be added to your phone\'s home screen, like a real app (full screen, its own icon). iPhone: open the page in Safari → Share button ⬆︎ → "Add to Home Screen". Android: menu ⋮ → "Install app".',
+        'The app starts even without a network, using the latest version saved on your device.',
+        'Display fixed on iPhone in installed mode (clock, edges and bottom bar).',
+        'More reliable sync: a change made without a network is kept and sent automatically when the connection comes back. A badge tells you when sync is paused.',
+        'You stay signed in even offline: no network needed to keep logging meals and weigh-ins.',
+        'Automatic backups of your data on your device (Settings → 🛟), with one-tap restore.'
+      ]
+    }
+  },
+  { date:'2026-09-15',
+    title:{ fr:'Lignées rongeurs et rêverie génétique', en:'Rodent lineages and genetic daydreaming' },
+    changes:{
+      fr:[
+        'Racks de bacs reproducteurs pour les rongeurs, avec une lignée numérotée par bac et un historique (mâle remplacé, renouvellement complet).',
+        'Avertissement de consanguinité entre lignées de rongeurs (jamais de blocage), objectif de colonie et modes Expansion/Croisière.',
+        'Stock de rongeurs par lots avec date réelle : le stade (pinky, fuzzy…) se recalcule tout seul.',
+        'Simulateur de rêverie génétique : enchaîne des bébés hypothétiques sur plusieurs générations, sans toucher à tes vrais animaux.',
+        'Chemin optimal : trouve le plus petit groupe d\'animaux pour réunir les gènes visés, avec le % de consanguinité de chaque option.',
+        'Correctif du calcul de consanguinité parent × enfant quand le parent est un fondateur.'
+      ],
+      en:[
+        'Breeding bin racks for rodents, with one numbered lineage per bin and a history (male replaced, full renewal).',
+        'Inbreeding warning between rodent lineages (never a hard block), colony goal and Expansion/Cruise modes.',
+        'Rodent stock in batches with a real date: the stage (pinky, fuzzy…) recalculates itself.',
+        'Genetic daydream simulator: chain hypothetical babies over several generations without touching your real animals.',
+        'Optimal path: finds the smallest group of animals to bring the target genes together, with each option\'s inbreeding %.',
+        'Fixed the parent × offspring inbreeding calculation when the parent is a founder.'
+      ]
+    }
+  },
+  { date:'2026-09-08',
+    title:{ fr:'Nouveau : gestion de rongeurs nourriciers', en:'New: feeder rodent management' },
+    changes:{
+      fr:[
+        'Une vraie section pour élever tes souris/rats/ASF, séparée de tes reptiles : Élevage → Rongeurs.',
+        'Bacs reproducteurs (espèce, ratio, retrait du mâle en gestation) et portées détaillées (nés, manquants/cannibalisme, transférés, euthanasiés).',
+        'Rapport de rentabilité qui repère les bacs les moins productifs, rapport mensuel, budget dédié avec calcul de ROI.',
+        'Stade de croissance calculé selon l\'âge, avec seuils ajustables selon ta nourriture.',
+        'Lien direct vers ton inventaire de proies.',
+        'Nouvelles espèces : boas (BCI, BCC), skink à langue bleue, uromastyx, orvet.',
+        'Ventes : prêt d\'animal (Breeder Loan), réservation avec acompte et reçu.',
+        'Gros merci aux éleveurs de la communauté qui ont partagé leur vrai fonctionnement — ça a vraiment façonné cette section.'
+      ],
+      en:[
+        'A real section for breeding your mice/rats/ASF, separate from your reptiles: Breeding → Rodents.',
+        'Breeding bins (species, ratio, removing the male mid-gestation) and detailed litters (born, missing/cannibalism, transferred, euthanized).',
+        'Profitability report that flags your least productive bins, monthly report, dedicated budget with ROI.',
+        'Growth stage calculated from age, with thresholds adjustable to your feed.',
+        'Direct link to your feeder stock.',
+        'New species: boas (BCI, BCC), blue-tongued skink, uromastyx, slow worm.',
+        'Sales: animal loan (Breeder Loan), reservation with deposit and receipt.',
+        'Big thanks to the breeders in the community who shared how they really do things — it genuinely shaped this section.'
+      ]
+    }
+  },
+  { date:'2026-08-31',
+    title:{ fr:'Racks & Terrariums, en mieux', en:'Racks & Terrariums, improved' },
+    changes:{
+      fr:[
+        'Chaque terrarium a sa propre fiche : taille, statut automatique (libre / occupé / en accouplement), éclairage, chauffage, substrat, bioactif.',
+        'Déplacer un animal d\'un terrarium à un autre en un tap.',
+        'Suivi de la date de remplacement de l\'UVB.',
+        'Nettoyages (partiel ou complet) avec rappel — désactivé pour les setups bioactifs.',
+        'Racks : suivi de nettoyage par bac, à cocher en lot (rack complet ou une rangée).'
+      ],
+      en:[
+        'Each terrarium has its own record: size, automatic status (free / occupied / pairing), lighting, heating, substrate, bioactive.',
+        'Move an animal from one terrarium to another with one tap.',
+        'UVB replacement date tracking.',
+        'Cleanings (partial or complete) with a reminder — turned off for bioactive setups.',
+        'Racks: per-tub cleaning tracking, checked off in bulk (whole rack or one row).'
+      ]
+    }
+  },
   // Exemple de structure — à remplacer/compléter à chaque mise à jour livrée.
   { version:'0.1', date:'2026-08-05',
     title:{ fr:'Premières fondations', en:'First foundations' },
@@ -4281,7 +4392,7 @@ function openChangelogModal(){
     ? '<div class="empty">'+(isEn?'No update notes yet.':'Aucune note de mise à jour pour l\'instant.')+'</div>'
     : '<div style="max-height:60vh;overflow-y:auto;">'+CHANGELOG.map(c=>
         '<div class="changelog-entry">'+
-          '<div class="changelog-head"><span class="changelog-version">v'+c.version+'</span><span class="changelog-date">'+c.date+'</span></div>'+
+          '<div class="changelog-head">'+(c.version?'<span class="changelog-version">v'+c.version+'</span>':'')+'<span class="changelog-date">'+c.date+'</span></div>'+
           '<div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--ink);">'+(isEn?c.title.en:c.title.fr)+'</div>'+
           '<ul class="changelog-list">'+(isEn?c.changes.en:c.changes.fr).map(item=>'<li>'+escapeHtml(item)+'</li>').join('')+'</ul>'+
         '</div>'
@@ -7765,10 +7876,12 @@ function batchMarkFed(){
     if(!s) return;
     ensureSnakeMeta(s);
     s.health.consecutiveRefusals = 0;
-    s.health.events.push({date:today, type:'fed', preyType: s.preyType||'frozen'});
+    const ev = {date:today, type:'fed', preyType: s.preyType||'frozen'};
+    s.health.events.push(ev);
     count++;
     if(s.preySpecies && s.preySize){
-      drawFromRodentSupply(s.preySpecies, s.preySize, 1, s.preyType||'frozen');
+      const rec = consumePreyForEvent(s, s.preyType||'frozen', 1);
+      if(rec) ev.stockDraw = rec;
       stockTouched = true;
     }
   });
@@ -9662,13 +9775,18 @@ function registerEventUndo(pairs){ lastEventUndo = pairs; }
 function undoLastLoggedEvent(){
   if(!lastEventUndo) return;
   const isEn = currentLang==='en';
+  let stockRestored = false;
   lastEventUndo.forEach(({snakeId, event})=>{
     const snake = savedSnakes.find(s=>s.id===snakeId);
     if(!snake || !snake.health || !snake.health.events) return;
     const idx = snake.health.events.indexOf(event);
-    if(idx>-1) snake.health.events.splice(idx,1);
+    if(idx>-1){
+      snake.health.events.splice(idx,1);
+      if(restorePreyFromEvent(event)) stockRestored = true; // v3.21 — la proie retourne en stock
+    }
   });
   storage.save(savedSnakes);
+  if(stockRestored){ saveElevage(); try{ renderDefrostList(); renderFeederStockList(); renderFeederStockLiveList(); }catch(e){} }
   lastEventUndo = null;
   renderRackGrid(); renderTerrariumList(); renderTourGrid();
   if(document.getElementById('view-dash').style.display!=='none') renderDashboard();
@@ -9685,6 +9803,8 @@ function deleteHealthEvent(snakeId, idx){
   if(!s || !s.health || !s.health.events || idx<0 || idx>=s.health.events.length) return;
   if(!confirm(isEn?'Delete this journal entry?':'Supprimer cette entrée du journal ?')) return;
   const removed = s.health.events.splice(idx, 1)[0];
+  // v3.21 — supprimer un repas/refus qui avait retiré une proie la remet en stock.
+  if(restorePreyFromEvent(removed)){ saveElevage(); try{ renderDefrostList(); renderFeederStockList(); renderFeederStockLiveList(); }catch(e){} }
   // v3.12 — une pesée/mesure est écrite à 2 endroits (events + weights/lengths). Avant, supprimer
   // l'entrée du journal laissait la valeur dans weights/lengths : une faute de frappe (3500g au lieu
   // de 350g) faussait pour toujours le graphique, le dernier poids et les alertes de croissance.
@@ -9772,21 +9892,17 @@ function confirmFed(id, quantity){
   const preyCount = countInput ? Math.max(1, parseInt(countInput.value)||1) : 1;
   s.health.consecutiveRefusals = 0;
   const event = {date:today, type:'fed', quantity, preyType: s.preyType||'frozen', preyCount};
+  let stockMsg = '';
+  if(s.preySpecies && s.preySize){
+    const rec = consumePreyForEvent(s, s.preyType||'frozen', preyCount);
+    if(rec) event.stockDraw = rec;
+    saveElevage();
+    stockMsg = stockDrawMessage(rec);
+  }
   s.health.events.push(event);
   storage.save(savedSnakes);
   registerEventUndo([{snakeId:id, event}]);
-  let stockMsg = '';
-  if(s.preySpecies && s.preySize){
-    const draw = drawFromRodentSupply(s.preySpecies, s.preySize, preyCount, s.preyType||'frozen');
-    saveElevage();
-    if(!draw.fromBin || draw.takenFromBin < preyCount){
-      const key = feederStockKey(s.preySpecies, s.preySize);
-      const stockRef = draw.live ? feederStockLive : feederStock;
-      if(stockRef[key]!=null && stockRef[key] <= FEEDER_LOW_STOCK_THRESHOLD){
-        stockMsg = isEn ? ' ⚠ Low stock: '+stockRef[key]+' left.' : ' ⚠ Stock bas : '+stockRef[key]+' restant(s).';
-      }
-    }
-  }
+  try{ renderDefrostList(); }catch(e){}
   closeQuickModal();
   const countTag = preyCount>1 ? (isEn?' ('+preyCount+' prey)':' ('+preyCount+' proies)') : '';
   showToast('🍽 '+s.name+(isEn?' ate':' a mangé')+(quantity==='partial'?(isEn?' (partial).':' (partiellement).'):'.')+countTag+stockMsg, 'success', 'undoLastLoggedEvent()');
@@ -10049,7 +10165,9 @@ function openRefusedModal(id){
     '<input type="text" id="refused-note-input" style="width:100%;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:\'Courier New\',monospace;font-size:14px;padding:9px 10px;"/>'+
     ((s.preySpecies && s.preySize) ?
       '<label style="display:flex;align-items:center;gap:8px;margin-top:14px;">'+
-        '<input type="checkbox" id="refused-lost-prey" style="width:18px;height:18px;"/>'+
+        // v3.21 — cochée par défaut pour une proie congelée (une proie décongelée ne se recongèle pas :
+        // si aucun autre serpent la mange, elle est jetée). Vivante : décochée, elle retourne au bac.
+        '<input type="checkbox" id="refused-lost-prey" style="width:18px;height:18px;"'+((s.preyType||'frozen')==='frozen'?' checked':'')+'/>'+
         '<span style="font-size:12px;">🗑 '+(isEn?'Prey lost (thrown out, not reused for another snake)':'Proie perdue (jetée, pas réutilisée pour un autre serpent)')+'</span>'+
       '</label>'
       : '')+
@@ -10071,23 +10189,18 @@ function confirmRefused(id){
   const today = (dateEl && dateEl.value) ? dateEl.value : new Date().toISOString().slice(0,10);
   s.health.consecutiveRefusals = (s.health.consecutiveRefusals||0)+1;
   const event = {date:today, type:'refused', reason, note, lostPrey};
+  // Proie décomptée seulement si « Proie perdue » est cochée (cochée par défaut si congelée, v3.21).
+  let stockMsg = '';
+  if(lostPrey && s.preySpecies && s.preySize){
+    const rec = consumePreyForEvent(s, s.preyType||'frozen', 1);
+    if(rec) event.stockDraw = rec;
+    saveElevage();
+    stockMsg = stockDrawMessage(rec);
+  }
   s.health.events.push(event);
   storage.save(savedSnakes);
   registerEventUndo([{snakeId:id, event}]);
-  // Une proie refusée n'est PAS déduite du stock par défaut — souvent réutilisable pour un autre
-  // serpent (surtout congelé-décongelé). Décomptée seulement si "Proie perdue" est cochée.
-  let stockMsg = '';
-  if(lostPrey && s.preySpecies && s.preySize){
-    const draw = drawFromRodentSupply(s.preySpecies, s.preySize, 1, s.preyType||'frozen');
-    saveElevage();
-    if(!draw.fromBin){
-      const key = feederStockKey(s.preySpecies, s.preySize);
-      const stockRef = draw.live ? feederStockLive : feederStock;
-      if(stockRef[key]!=null && stockRef[key] <= FEEDER_LOW_STOCK_THRESHOLD){
-        stockMsg = isEn ? ' ⚠ Low stock: '+stockRef[key]+' left.' : ' ⚠ Stock bas : '+stockRef[key]+' restant(s).';
-      }
-    }
-  }
+  try{ renderDefrostList(); }catch(e){}
   closeQuickModal();
   showToast('⚠ '+(isEn?'Refusal noted for ':'Refus noté pour ')+s.name+' — '+refusalReasonLabel(reason)+(lostPrey?(isEn?' (prey lost).':' (proie perdue).'):'.')+stockMsg, undefined, 'undoLastLoggedEvent()');
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
@@ -12212,33 +12325,8 @@ function renderFoodView(){
   const horizon = addDays(todayStr, foodHorizonDays-1);
   const due = savedSnakes.filter(s=> nextFeedingDate(s) <= horizon);
 
-  const withPrey = due.filter(s=>s.preySpecies && s.preySize);
   const withoutPrey = due.filter(s=>!s.preySpecies || !s.preySize);
-
-  const counts = {};
-  withPrey.forEach(s=>{
-    const key = s.preySpecies+'|'+s.preySize+'|'+(s.preyType||'frozen');
-    counts[key] = (counts[key]||0)+1;
-  });
-
-  const defrostWrap = document.getElementById('defrost-list');
-  const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
-  if(entries.length===0){
-    defrostWrap.innerHTML = '<div class="empty">'+(isEn?'No prey to plan for this period (or species/size not filled in on the records).':'Aucune proie à prévoir sur cette période (ou espèce/taille non renseignée sur les fiches).')+'</div>';
-  } else {
-    const grandTotal = entries.reduce((a,[k,c])=>a+c,0);
-    defrostWrap.innerHTML = entries.map(([key,count])=>{
-      const [species,size,type] = key.split('|');
-      const speciesLabel = species==='mouse' ? (isEn?'Mouse':'Souris') : 'Rat';
-      const typeTag = type==='live' ? (isEn?' (live)':' (vivant)') : (isEn?' (frozen)':' (décongelé)');
-      const pct = Math.round((count/grandTotal)*100);
-      return '<div class="expense-cat-row">'+
-        '<div class="expense-cat-label">'+(species==='mouse'?'🐁':'🐀')+' '+size+' '+speciesLabel+typeTag+'</div>'+
-        '<div class="expense-cat-bar-wrap"><div class="expense-cat-bar" style="width:'+pct+'%;"></div></div>'+
-        '<div class="expense-cat-amount">×'+count+'</div>'+
-      '</div>';
-    }).join('');
-  }
+  renderDefrostList();
 
   const missingWrap = document.getElementById('prey-missing-list');
   missingWrap.className = withoutPrey.length ? 'mini-animal-grid' : '';
@@ -12257,6 +12345,94 @@ function renderFoodView(){
   renderFeederStockLiveList();
   renderFeederStockLiveSpeciesOptions();
   renderFeederStockLiveSizeOptions();
+}
+
+/* v3.21 (8 oct) — Liste de décongélation séparée en deux (congelé à sortir / vivant à prévoir),
+   comparée au stock réel et redessinée à chaque changement de stock. Côté vivant, même logique de
+   substitution qu'au moment de nourrir (resolveFeedingPrey) en tenant compte de la demande cumulée :
+   une fois le stock de gerbilles épuisé dans la projection, les suivants retombent sur la fiche. */
+function frozenAvailableFor(species, size){
+  let n = feederStock[feederStockKey(species,size)];
+  const tracked = n!=null;
+  n = n || 0;
+  const stageKey = preySizeToStageKey(size);
+  const binId = rodentPriorityBins ? rodentPriorityBins[species] : null;
+  const bin = binId ? rodentBins.find(b=>b.id===binId && b.binType==='stock') : null;
+  if(bin && stageKey){
+    const inBin = (bin.stockBatches||[]).filter(b=>rodentBatchStageKey(b)===stageKey).reduce((a,b)=>a+(b.quantity||0),0);
+    return { qty:n+inBin, tracked:true };
+  }
+  return { qty:n, tracked };
+}
+function renderDefrostList(){
+  const isEn = currentLang==='en';
+  const wrap = document.getElementById('defrost-list');
+  if(!wrap) return;
+  savedSnakes.forEach(ensureSnakeMeta);
+  const todayStr = new Date().toISOString().slice(0,10);
+  const horizon = addDays(todayStr, foodHorizonDays-1);
+  const due = savedSnakes.filter(s=> nextFeedingDate(s) <= horizon && s.preySpecies && s.preySize);
+  const frozenCounts = {};
+  const liveLines = {}; // clé espèce|taille -> { count, replaces:Set }
+  const liveSim = Object.assign({}, feederStockLive||{});
+  due.forEach(s=>{
+    if((s.preyType||'frozen')==='live'){
+      const defKey = feederStockKey(s.preySpecies, s.preySize);
+      let useKey = defKey;
+      if(!((liveSim[defKey]||0) > 0)){
+        const cands = Object.keys(liveSim).filter(k=>k!==defKey && (liveSim[k]||0) > 0);
+        if(cands.length){
+          cands.sort((a,b)=>{
+            const sa = a.split('|')[0]===s.preySpecies?0:1, sb = b.split('|')[0]===s.preySpecies?0:1;
+            if(sa!==sb) return sa-sb;
+            return (liveSim[b]||0)-(liveSim[a]||0);
+          });
+          useKey = cands[0];
+        }
+      }
+      if((liveSim[useKey]||0) > 0) liveSim[useKey]--;
+      if(!liveLines[useKey]) liveLines[useKey] = { count:0, replaces:new Set() };
+      liveLines[useKey].count++;
+      if(useKey!==defKey) liveLines[useKey].replaces.add(defKey);
+    } else {
+      const k = feederStockKey(s.preySpecies, s.preySize);
+      frozenCounts[k] = (frozenCounts[k]||0)+1;
+    }
+  });
+  const statusHtml = (need, avail, tracked)=>{
+    if(!tracked) return '<span style="color:var(--ink-dim);">'+(isEn?'stock not tracked':'stock non suivi')+'</span>';
+    if(avail>=need) return '<span style="color:#8fae72;">✓ '+(isEn?'stock ':'stock ')+avail+'</span>';
+    return '<span style="color:#e08a63;font-weight:700;">⚠ '+(isEn?'stock ':'stock ')+avail+' — '+(isEn?'short ':'manque ')+(need-avail)+'</span>';
+  };
+  const lineHtml = (key, count, status, note)=>{
+    const parts = key.split('|');
+    return '<div class="expense-cat-row" style="flex-wrap:wrap;">'+
+      '<div class="expense-cat-label">'+escapeHtml(preyLabelShort(parts[0], parts[1]))+(note?'<br/><small style="color:var(--ink-dim);">'+note+'</small>':'')+'</div>'+
+      '<div style="flex:1;min-width:120px;font-size:12px;text-align:right;padding-right:8px;">'+status+'</div>'+
+      '<div class="expense-cat-amount">×'+count+'</div>'+
+    '</div>';
+  };
+  const frozenKeys = Object.keys(frozenCounts).sort((a,b)=>frozenCounts[b]-frozenCounts[a]);
+  const liveKeys = Object.keys(liveLines).sort((a,b)=>liveLines[b].count-liveLines[a].count);
+  if(!frozenKeys.length && !liveKeys.length){
+    wrap.innerHTML = '<div class="empty">'+(isEn?'No prey to plan for this period (or species/size not filled in on the records).':'Aucune proie à prévoir sur cette période (ou espèce/taille non renseignée sur les fiches).')+'</div>';
+    return;
+  }
+  let html = '';
+  html += '<div style="font-size:12px;font-weight:700;margin:4px 0 6px;">❄️ '+(isEn?'Frozen — to thaw':'Congelé — à décongeler')+'</div>';
+  html += frozenKeys.length ? frozenKeys.map(k=>{
+    const parts = k.split('|');
+    const av = frozenAvailableFor(parts[0], parts[1]);
+    return lineHtml(k, frozenCounts[k], statusHtml(frozenCounts[k], av.qty, av.tracked), '');
+  }).join('') : '<div style="font-size:11px;color:var(--ink-dim);margin-bottom:6px;">'+(isEn?'Nothing to thaw.':'Rien à décongeler.')+'</div>';
+  html += '<div style="font-size:12px;font-weight:700;margin:14px 0 6px;">🐭 '+(isEn?'Live — to plan':'Vivant — à prévoir')+'</div>';
+  html += liveKeys.length ? liveKeys.map(k=>{
+    const line = liveLines[k];
+    const stock = (feederStockLive||{})[k];
+    const note = line.replaces.size ? (isEn?'replaces ':'remplace ')+[...line.replaces].map(r=>{ const p=r.split('|'); return escapeHtml(preyLabelShort(p[0],p[1])); }).join(', ')+(isEn?' (none in stock)':' (aucun en stock)') : '';
+    return lineHtml(k, line.count, statusHtml(line.count, stock||0, stock!=null), note);
+  }).join('') : '<div style="font-size:11px;color:var(--ink-dim);">'+(isEn?'No live prey to plan.':'Aucune proie vivante à prévoir.')+'</div>';
+  wrap.innerHTML = html;
 }
 
 /* Inventaire de proies (25 août) — stock global par catégorie "espèce|taille", décompté
@@ -12301,12 +12477,14 @@ function setFeederStock(){
   qtyInput.value = '';
   saveElevage();
   renderFeederStockList();
+  try{ renderDefrostList(); }catch(e){}
   showToast('🧊 '+(isEn?'Stock updated.':'Stock mis à jour.'), 'success');
 }
 function adjustFeederStock(key, delta){
   feederStock[key] = Math.max(0, (feederStock[key]||0) + delta);
   saveElevage();
   renderFeederStockList();
+  try{ renderDefrostList(); }catch(e){}
 }
 // Rendu générique réutilisé par le stock congelé ET le stock vivant manuel (15 sept) — corrige au
 // passage un vrai bug : l'icône/le nom d'espèce étaient codés en dur mouse/rat seulement, donc
@@ -12353,12 +12531,14 @@ function setFeederStockLive(){
   qtyInput.value = '';
   saveElevage();
   renderFeederStockLiveList();
+  try{ renderDefrostList(); }catch(e){}
   showToast('🐾 '+(isEn?'Live stock updated.':'Stock vivant mis à jour.'), 'success');
 }
 function adjustFeederStockLive(key, delta){
   feederStockLive[key] = Math.max(0, (feederStockLive[key]||0) + delta);
   saveElevage();
   renderFeederStockLiveList();
+  try{ renderDefrostList(); }catch(e){}
 }
 function renderFeederStockLiveList(){ renderFeederStockListGeneric(feederStockLive, 'feeder-stock-live-list', 'adjustFeederStockLive'); }
 function renderFeederStockSpeciesOptionsGeneric(selectId){
@@ -13846,6 +14026,115 @@ function setRodentPriorityBin(species, binId){
 // stock congelé manuel. 'live' : décompte directement le stock vivant manuel (feederStockLive) —
 // pas de lien avec les bacs de colonie ici, qui restent en lecture seule (rollup), pas décomptables
 // directement puisqu'ils s'étalent sur plusieurs stades/bacs à la fois.
+/* ---- v3.21 (8 oct) — décompte de stock « traçable » ----
+   Chaque repas/refus qui retire une proie garde sur l'événement (event.stockDraw) ce qui a été pris
+   exactement (quel stock, combien, quels lots de bac). Annuler ou supprimer l'événement remet
+   précisément la proie en stock — avant, Annuler laissait le stock décompté pour toujours.
+   Proie VIVANTE : si la proie de la fiche n'a aucun stock vivant mais qu'une autre proie vivante en a
+   (ex. fiche = rat, stock = gerbilles), on prend celle-là — même espèce d'abord, sinon le plus gros
+   stock. Rien en stock du tout : on garde la proie de la fiche. Jamais de substitution pour le
+   congelé (les tailles ne sont pas interchangeables). */
+function resolveFeedingPrey(s, preyType){
+  const type = preyType==='live' ? 'live' : 'frozen';
+  const res = { species:s.preySpecies, size:s.preySize, type, substituted:false };
+  if(type!=='live' || !s.preySpecies || !s.preySize) return res;
+  const store = feederStockLive || {};
+  const defKey = feederStockKey(s.preySpecies, s.preySize);
+  if((store[defKey]||0) > 0) return res;
+  const cands = Object.keys(store).filter(k=>k!==defKey && (store[k]||0) > 0);
+  if(!cands.length) return res;
+  cands.sort((a,b)=>{
+    const sa = a.split('|')[0]===s.preySpecies ? 0 : 1, sb = b.split('|')[0]===s.preySpecies ? 0 : 1;
+    if(sa!==sb) return sa-sb;
+    return (store[b]||0)-(store[a]||0);
+  });
+  const parts = cands[0].split('|');
+  return { species:parts[0], size:parts[1], type, substituted:true };
+}
+function decrementRodentStockStageDetailed(bin, stageKey, qty){
+  let remaining = qty;
+  const takes = [];
+  const batches = [...(bin.stockBatches||[])].filter(b=>rodentBatchStageKey(b)===stageKey && b.quantity>0)
+    .sort((a,b)=>a.referenceDate.localeCompare(b.referenceDate));
+  batches.forEach(b=>{
+    if(remaining<=0) return;
+    const take = Math.min(remaining, b.quantity);
+    takes.push({ batch: JSON.parse(JSON.stringify(b)), take });
+    b.quantity -= take;
+    remaining -= take;
+  });
+  bin.stockBatches = (bin.stockBatches||[]).filter(b=>b.quantity>0);
+  return takes;
+}
+function consumePreyForEvent(s, preyType, qty){
+  const prey = resolveFeedingPrey(s, preyType);
+  if(!prey.species || !prey.size) return null;
+  const rec = { species:prey.species, size:prey.size, type:prey.type, qty, substituted:prey.substituted, storeQty:0, binId:null, binTakes:[] };
+  const key = feederStockKey(prey.species, prey.size);
+  if(prey.type==='live'){
+    if(feederStockLive[key]!=null){
+      const before = feederStockLive[key];
+      feederStockLive[key] = Math.max(0, before-qty);
+      rec.storeQty = before - feederStockLive[key];
+    }
+    return rec;
+  }
+  let remaining = qty;
+  const stageKey = preySizeToStageKey(prey.size);
+  const binId = rodentPriorityBins ? rodentPriorityBins[prey.species] : null;
+  const bin = binId ? rodentBins.find(b=>b.id===binId && b.binType==='stock') : null;
+  if(bin && stageKey){
+    const takes = decrementRodentStockStageDetailed(bin, stageKey, qty);
+    const taken = takes.reduce((a,t)=>a+t.take, 0);
+    if(taken>0){ rec.binId = bin.id; rec.binTakes = takes; remaining -= taken; }
+  }
+  if(remaining>0 && feederStock[key]!=null){
+    const before = feederStock[key];
+    feederStock[key] = Math.max(0, before-remaining);
+    rec.storeQty = before - feederStock[key];
+  }
+  return rec;
+}
+function restorePreyFromEvent(event){
+  const rec = event && event.stockDraw;
+  if(!rec) return false;
+  const key = feederStockKey(rec.species, rec.size);
+  if(rec.storeQty>0){
+    const store = rec.type==='live' ? feederStockLive : feederStock;
+    store[key] = (store[key]||0) + rec.storeQty;
+  }
+  if(rec.binId && rec.binTakes && rec.binTakes.length){
+    const bin = rodentBins.find(b=>b.id===rec.binId);
+    if(bin){
+      if(!bin.stockBatches) bin.stockBatches = [];
+      rec.binTakes.forEach(t=>{
+        const existing = bin.stockBatches.find(x=>x.id===t.batch.id);
+        if(existing) existing.quantity += t.take;
+        else bin.stockBatches.push(Object.assign({}, t.batch, { quantity:t.take }));
+      });
+    }
+  }
+  delete event.stockDraw;
+  return true;
+}
+function preyLabelShort(species, size){
+  const isEn = currentLang==='en';
+  const pt = PREY_TYPES[species];
+  return (pt ? pt.icon+' '+(isEn?pt.labelEn:pt.labelFr) : species)+' '+size;
+}
+// Message de stock pour les toasts : substitution + stock bas (FR/EN).
+function stockDrawMessage(rec){
+  if(!rec) return '';
+  const isEn = currentLang==='en';
+  let msg = '';
+  if(rec.substituted) msg += ' '+(isEn?'— taken from live stock: ':'— pris dans le stock vivant : ')+preyLabelShort(rec.species, rec.size)+'.';
+  if(!rec.binId || rec.storeQty>0){
+    const store = rec.type==='live' ? feederStockLive : feederStock;
+    const left = store[feederStockKey(rec.species, rec.size)];
+    if(left!=null && left <= FEEDER_LOW_STOCK_THRESHOLD) msg += isEn ? ' ⚠ Low stock: '+left+' left.' : ' ⚠ Stock bas : '+left+' restant(s).';
+  }
+  return msg;
+}
 function drawFromRodentSupply(species, size, qty, preyType){
   const key = feederStockKey(species, size);
   if(preyType==='live'){
@@ -15623,25 +15912,33 @@ function applyTourAction(action){
     ensureSnakeMeta(snake);
     if(action==='fed_frozen' || action==='fed_live'){
       const preyType = action==='fed_live' ? 'live' : 'frozen';
-      snake.preyType = preyType; // le dernier type utilisé devient le nouveau défaut affiché (badge, stock)
+      // v3.21 — ne modifie plus la fiche : avant, « Nourri vivant » passait la fiche en vivant pour de
+      // bon (sans avertir), ce qui faussait ensuite la liste de décongélation.
       snake.health.consecutiveRefusals = 0;
       const event = {date:today, type:'fed', preyType};
+      if(snake.preySpecies && snake.preySize){
+        const rec = consumePreyForEvent(snake, preyType, 1);
+        if(rec){
+          event.stockDraw = rec;
+          stockTouched = true;
+          const store = rec.type==='live' ? feederStockLive : feederStock;
+          const left = store[feederStockKey(rec.species, rec.size)];
+          if(left!=null && left <= FEEDER_LOW_STOCK_THRESHOLD) lowStockMsgs.push(rec.species+' '+rec.size+' ('+left+')');
+        }
+      }
       snake.health.events.push(event);
       undoPairs.push({snakeId:snake.id, event});
       fedCount++;
-      if(snake.preySpecies && snake.preySize){
-        const key2 = feederStockKey(snake.preySpecies, snake.preySize);
-        const stockRef2 = preyType==='live' ? feederStockLive : feederStock;
-        if(stockRef2[key2]!=null){
-          stockRef2[key2] = Math.max(0, stockRef2[key2]-1);
-          stockTouched = true;
-          if(stockRef2[key2] <= FEEDER_LOW_STOCK_THRESHOLD) lowStockMsgs.push(snake.preySpecies+' '+snake.preySize+' ('+stockRef2[key2]+')');
-        }
-      }
     }
     else if(action==='refused'){
       snake.health.consecutiveRefusals = (snake.health.consecutiveRefusals||0)+1;
-      const event = {date:today, type:'refused', reason:'unknown'};
+      // v3.21 — proie congelée refusée = jetée (ne se recongèle pas) → décomptée ; Annuler la remet.
+      const isFrozen = (snake.preyType||'frozen')==='frozen';
+      const event = {date:today, type:'refused', reason:'unknown', lostPrey:isFrozen};
+      if(isFrozen && snake.preySpecies && snake.preySize){
+        const rec = consumePreyForEvent(snake, 'frozen', 1);
+        if(rec){ event.stockDraw = rec; stockTouched = true; }
+      }
       snake.health.events.push(event);
       undoPairs.push({snakeId:snake.id, event});
     }
