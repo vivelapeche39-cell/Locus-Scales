@@ -2148,7 +2148,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.28';
+const APP_VERSION = '2026.09.01.3.29';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3335,7 +3335,9 @@ const GENES = [
   {id:'axanthicjolliff', name:'Axanthic (Jolliff)', type:'recessive', locus:'axanthicjolliff', cat:'Récessif'},
   {id:'axanthicmj', name:'Axanthic (MJ)', type:'recessive', locus:'axanthicmj', cat:'Récessif'},
   {id:'hypo', name:'Hypomélanistique', type:'recessive', locus:'hypo', cat:'Récessif'},
-  {id:'caramel', name:'Caramel', type:'recessive', locus:'caramel', cat:'Récessif'},
+  // v3.29 — renommé « Caramel » → « Caramel Albino » (nom Morphpedia, aussi appelé T+ Albino ; Morphpedia n'a
+  // aucune entrée « Caramel » seule). Même id/locus : aucune fiche existante n'est touchée.
+  {id:'caramel', name:'Caramel Albino', type:'recessive', locus:'caramel', cat:'Récessif'},
   {id:'stripe', name:'Genetic Stripe', type:'recessive', locus:'stripe', cat:'Récessif'},
   {id:'sunset', name:'Sunset', type:'recessive', locus:'sunset', cat:'Récessif'},
   {id:'cryptic', name:'Cryptic', type:'recessive', locus:'cryptic', cat:'Récessif'},
@@ -3448,6 +3450,15 @@ const GENES = [
   {id:'tornado', name:'Tornado', type:'recessive', locus:'tornado', cat:'Récessif'},
   {id:'trick', name:'Trick', type:'incdom', locus:'trick', cat:'Codominant / Incomplet dominant'},
   {id:'trident', name:'Trident', type:'incdom', locus:'trident', cat:'Codominant / Incomplet dominant'},
+  // v3.29 (8 oct) — vérification des cas exclus du 15 sept, sources Morphpedia :
+  // - Carbon : incomplet dominant, mutation indépendante (pas du Nanny), super prouvé = « Covalent ».
+  // - FNR Vanilla : incomplet dominant, prouvé en 2015 HORS du complexe Fire (contrairement au Vanilla
+  //   Gulf Coast déjà présent, id 'vanilla', fireComplex) — donc locus séparé ; supers prouvés en 2014.
+  // - Dinker : PAS un gène (nom donné à un phénotype non prouvé) — exclu définitivement.
+  // - Toujours exclus faute de confirmation : Ghost (Vesper) (allélisme avec Hypo non précisé),
+  //   Swirl (aucune source trouvée, reste 'unknown'), Goblin (pas de page Morphpedia).
+  {id:'carbon', name:'Carbon', type:'incdom', locus:'carbon', cat:'Codominant / Incomplet dominant', superLabel:'Covalent (Super Carbon)'},
+  {id:'fnrvanilla', name:'FNR Vanilla', type:'incdom', locus:'fnrvanilla', cat:'Codominant / Incomplet dominant', superLabel:'Super FNR Vanilla'},
 ];
 
 const GENES_BY_LOCUS = {};
