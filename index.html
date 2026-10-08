@@ -2143,7 +2143,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.18';
+const APP_VERSION = '2026.09.01.3.19';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2166,6 +2166,93 @@ const APP_VERSION = '2026.09.01.3.18';
       .catch(()=>{});
   }catch(e){}
 })();
+
+/* ---------------- MISE À JOUR AUTOMATIQUE EN COURS D'UTILISATION (v3.19, 8 oct) ----------------
+   Problème : sur iPhone, l'app installée sur l'écran d'accueil n'est presque jamais relancée —
+   iOS la ramène telle quelle depuis la mémoire, parfois des jours. checkForNewVersion() ci-dessus
+   ne roule qu'au démarrage complet, donc une nouvelle version n'était jamais détectée.
+   Maintenant on revérifie version.txt : au retour dans l'app, au retour du réseau, et aux 5 min
+   tant qu'elle est ouverte. Si une nouvelle version existe :
+   - rien en cours → rechargement silencieux ;
+   - quelque chose en cours (fenêtre ouverte, saisie, fiche en édition, calcul en cours,
+     modifications pas encore envoyées au cloud) → bannière « Mettre à jour », jamais de perte. */
+var _lastUpdateCheckAt = 0;
+var _updateBannerDismissedFor = null;
+function isSafeToAutoReload(){
+  try{
+    var dialogs = document.querySelectorAll('[role="dialog"]');
+    for(var i=0;i<dialogs.length;i++){
+      var d = dialogs[i];
+      if(d.id === 'install-banner' || d.id === 'update-banner') continue;
+      var cs = getComputedStyle(d);
+      if(cs.display !== 'none' && cs.visibility !== 'hidden') return false;
+    }
+    var pv = document.getElementById('public-view-overlay');
+    if(pv && pv.style.display !== 'none') return false;
+    var ae = document.activeElement;
+    if(ae && (/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) || ae.isContentEditable)) return false;
+    var draft = document.getElementById('panel-draft');
+    if(draft && draft.style.display !== 'none') return false;
+    if(typeof editingId !== 'undefined' && editingId) return false;
+    if(typeof state !== 'undefined' && state && (Object.keys(state.male||{}).length || Object.keys(state.female||{}).length)) return false;
+    if(typeof countPendingSync === 'function' && countPendingSync() > 0) return false;
+    if(typeof syncPushFailed !== 'undefined' && syncPushFailed) return false;
+    return true;
+  }catch(e){ return false; }
+}
+function reloadToNewVersion(rv){
+  try{ sessionStorage.setItem('locus_version_reloaded', rv); }catch(e){}
+  location.href = location.pathname + '?_v=' + Date.now();
+}
+function showUpdateBanner(rv){
+  if(_updateBannerDismissedFor === rv) return;
+  if(document.getElementById('update-banner')) return;
+  var isEn = (typeof currentLang !== 'undefined' && currentLang === 'en');
+  var bar = document.createElement('div');
+  bar.id = 'update-banner';
+  bar.setAttribute('role', 'dialog');
+  bar.style.cssText = 'position:fixed;left:10px;right:10px;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:9995;background:#1c1612;border:2px solid var(--gold);border-radius:12px;padding:12px 14px;font-size:15px;line-height:1.45;color:var(--ink);box-shadow:0 6px 24px rgba(0,0,0,.6);display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;max-width:640px;margin:0 auto;';
+  bar.innerHTML = '<div style="flex:1;min-width:200px;">🔄 <b>'+(isEn?'A new version of LOCUS is available.':'Une nouvelle version de LOCUS est disponible.')+'</b><br><span style="font-size:13px;color:var(--ink-dim);">'+(isEn?'Finish what you\'re doing, then update — nothing will be lost.':'Termine ce que tu fais, puis mets à jour — rien ne sera perdu.')+'</span></div>'+
+    '<div style="display:flex;gap:8px;">'+
+      '<button id="update-banner-go" style="background:var(--gold);color:#161210;border:0;border-radius:8px;padding:10px 16px;font-weight:700;font-size:14px;cursor:pointer;">'+(isEn?'Update':'Mettre à jour')+'</button>'+
+      '<button id="update-banner-later" style="background:transparent;color:var(--ink-dim);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13px;cursor:pointer;">'+(isEn?'Later':'Plus tard')+'</button>'+
+    '</div>';
+  document.body.appendChild(bar);
+  document.getElementById('update-banner-go').addEventListener('click', function(){ reloadToNewVersion(rv); });
+  document.getElementById('update-banner-later').addEventListener('click', function(){
+    _updateBannerDismissedFor = rv;
+    bar.remove();
+  });
+}
+function checkForUpdateWhileRunning(force){
+  try{
+    var now = Date.now();
+    if(!force && now - _lastUpdateCheckAt < 60000) return; // au plus une fois par minute
+    if(typeof navigator !== 'undefined' && navigator.onLine === false) return;
+    _lastUpdateCheckAt = now;
+    fetch('version.txt?_=' + now, { cache: 'no-store' })
+      .then(function(r){ return r.ok ? r.text() : null; })
+      .then(function(remote){
+        var rv = remote && remote.trim();
+        if(!rv || rv === APP_VERSION) return;
+        var lastReloadedTo = null;
+        try{ lastReloadedTo = sessionStorage.getItem('locus_version_reloaded'); }catch(e){}
+        // Déjà rechargé vers cette version sans l'obtenir (cache tenace) : pas de boucle de
+        // rechargements, on laisse la personne décider avec la bannière.
+        if(lastReloadedTo !== rv && isSafeToAutoReload()) reloadToNewVersion(rv);
+        else showUpdateBanner(rv);
+      })
+      .catch(function(){});
+  }catch(e){}
+}
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState === 'visible') checkForUpdateWhileRunning(false);
+});
+window.addEventListener('pageshow', function(e){ if(e && e.persisted) checkForUpdateWhileRunning(true); });
+window.addEventListener('online', function(){ setTimeout(function(){ checkForUpdateWhileRunning(true); }, 2000); });
+setInterval(function(){
+  if(document.visibilityState === 'visible') checkForUpdateWhileRunning(true);
+}, 5*60*1000);
 
 /* ---------------- INSTALLATION DE L'APP (PWA) — palier 1 (6 oct 2026) ----------------
    Gratuit pour tout le monde. Aucun service worker ici (palier 2, plus tard) : ce bloc ne fait
