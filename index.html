@@ -741,6 +741,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 .sc-btn.accent{border-color:var(--gold);color:var(--gold);}
 .sc-btn.accent:hover{background:var(--gold);color:#1a1409;}
 .modal-overlay{position:fixed;inset:0;background:rgba(10,8,6,.75);z-index:100;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;}
+/* v3.35 — la fenêtre rapide s'ouvre souvent PAR-DESSUS une fiche (compatibilité, image à partager) : elle doit passer devant. */
+#quick-modal-overlay{z-index:110;}
 .modal-panel{background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;max-width:640px;width:100%;padding:24px 26px;box-shadow:var(--shadow);}
 @media (min-width:761px){ .auth-modal-panel{max-width:360px;} }
 .modal-head{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:18px;}
@@ -1176,6 +1178,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
     <table class="punnett-table" id="punnett-table"></table>
   </div>
 
+  <div class="clutch-panel" id="chances-panel" style="display:none;"></div>
   <div class="clutch-panel" id="clutch-panel">
     <div class="clutch-hdr">
       <h2 data-i18n="simulateClutchTitle">Simuler une ponte</h2>
@@ -2148,7 +2151,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.34';
+const APP_VERSION = '2026.09.01.3.35';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2555,7 +2558,8 @@ const ILLIMITE_ONLY_FEATURES = [
 // un seul palier précis — ici on veut 2 paliers différents, d'où une 2e liste plutôt que de forcer
 // ILLIMITE_ONLY_FEATURES à gérer 2 cas différents.
 const BREEDING_TIER_FEATURES = [
-  'dreamSimulator'
+  'dreamSimulator',
+  'seasonChances' // v3.35 — « Mes chances cette saison » (choix d'Alex : Première ponte + Illimité)
 ];
 function currentUserTier(){
   if(typeof isAdminUser!=='undefined' && isAdminUser) return 'illimite'; // admin = accès complet peu importe le champ tier
@@ -8845,6 +8849,7 @@ function runCross(){
     document.getElementById('parent-combo').textContent = '';
     document.getElementById('punnett-wrap').style.display = 'none';
     document.getElementById('clutch-panel').style.display = 'none';
+    var chp = document.getElementById('chances-panel'); if(chp) chp.style.display = 'none';
     return;
   }
 
@@ -8948,6 +8953,7 @@ function runCross(){
 
   lastResults = results;
   document.getElementById('clutch-panel').style.display = 'block';
+  renderChancesPanel();
   document.getElementById('clutch-results').innerHTML = '';
   renderActualPanel();
 
@@ -9021,6 +9027,99 @@ function sampleEgg(){
   const warnings = picked.traits.filter(tr=>tr.warning).map(tr=>tr.warning);
   CROSS_WARNINGS.forEach(cw=>{ if(cw.ids.every(id=>visualGeneIds.includes(id))) warnings.push(cw.message); });
   return { name: visuals.length ? visuals.join(' ') : 'Normal', hets, genotype: picked.genotype, warnings: [...new Set(warnings)] };
+}
+
+// ==================== Mes chances cette saison (v3.35) ====================
+// Transforme « 6,25 % » en attente concrète : chance d'obtenir AU MOINS un bébé qui montre tous
+// les traits cochés, sur X pontes de Y œufs. Calcul exact sur lastDistributions (même moteur que le
+// calculateur) : p = somme des probabilités où tous les traits cochés sont visibles ;
+// P(au moins 1) = 1 − (1 − p)^(œufs). Suppose que chaque œuf éclot (honnêtement signalé).
+var chancesTargets = [];
+var chancesClutches = 1;
+var chancesEggs = 6;
+function chancesVisualLabelUniverse(){
+  const supSet = new Set(), restSet = new Set();
+  lastDistributions.forEach(d=>d.traits.forEach(tr=>{ if(tr.visual) (tr.isSuper?supSet:restSet).add(tr.label); }));
+  return [...supSet].sort().concat([...restSet].sort().filter(l=>!supSet.has(l)));
+}
+function chancesTargetProbability(targets){
+  if(!targets.length) return 0;
+  let p = 0;
+  lastDistributions.forEach(d=>{
+    const vis = d.traits.filter(tr=>tr.visual).map(tr=>tr.label);
+    if(targets.every(tg=>vis.includes(tg))) p += d.prob;
+  });
+  return Math.min(1, p);
+}
+function fmtPct(x, precise){
+  const v = x*100;
+  if(v>0 && v<0.1) return '<0,1 %'.replace(',', currentLang==='en'?'.':',');
+  const str = precise ? v.toFixed(2).replace(/\.?0+$/,'') : (v>=10 ? v.toFixed(0) : v.toFixed(1)).replace(/\.0$/,'');
+  return (currentLang==='en' ? str : str.replace('.',','))+' %';
+}
+function renderChancesPanel(){
+  const isEn = currentLang==='en';
+  const panel = document.getElementById('chances-panel');
+  if(!panel) return;
+  if(!lastDistributions.length){ panel.style.display='none'; return; }
+  panel.style.display = 'block';
+  const title = '<div class="clutch-hdr"><h2>🎲 '+(isEn?'My odds this season':'Mes chances cette saison')+'</h2></div>';
+  if(!hasAccess('seasonChances')){ panel.innerHTML = title+lockedFeatureHtml(); return; }
+  const universe = chancesVisualLabelUniverse();
+  chancesTargets = chancesTargets.filter(tg=>universe.includes(tg));
+  const selStyle = 'font-size:16px;padding:6px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);';
+  const clutchOpts = [1,2,3,4,5].map(n=>'<option value="'+n+'"'+(n===chancesClutches?' selected':'')+'>'+n+'</option>').join('');
+  const eggOpts = Array.from({length:12},(_,i)=>i+1).map(n=>'<option value="'+n+'"'+(n===chancesEggs?' selected':'')+'>'+n+'</option>').join('');
+  const chips = universe.map((lab,i)=>{
+    const on = chancesTargets.includes(lab);
+    return '<label style="display:inline-flex;align-items:center;gap:6px;margin:0 8px 8px 0;padding:6px 10px;border:1px solid '+(on?'var(--gold)':'var(--line)')+';border-radius:999px;font-size:13px;cursor:pointer;">'+
+      '<input type="checkbox" data-chance-i="'+i+'"'+(on?' checked':'')+' onchange="toggleChanceTarget('+i+')"/> '+escapeHtml(lab)+'</label>';
+  }).join('');
+  let resultHtml;
+  if(!chancesTargets.length){
+    resultHtml = '<p style="font-size:13px;color:var(--ink-dim);margin:8px 0 0;">'+(isEn?'Check the traits your dream baby must show.':'Coche les traits que ton bébé visé doit montrer.')+'</p>';
+  } else {
+    const p = chancesTargetProbability(chancesTargets);
+    const n = chancesClutches*chancesEggs;
+    const target = escapeHtml(universe.filter(l=>chancesTargets.includes(l)).join(' '));
+    if(p<=0){
+      resultHtml = '<div class="warn" style="margin-top:10px;">'+(isEn?'Impossible with this pairing: no baby can show all of these traits together.':'Impossible avec cet accouplement : aucun bébé ne peut montrer tous ces traits ensemble.')+'</div>';
+    } else {
+      const atLeastOne = 1-Math.pow(1-p, n);
+      const expected = n*p;
+      const expStr = (expected>=10?expected.toFixed(0):expected.toFixed(1)).replace(/\.0$/,'');
+      const expDisp = isEn ? expStr : expStr.replace('.',',');
+      let need90 = '';
+      if(p<1){
+        const k = Math.ceil(Math.log(0.1)/Math.log(1-p));
+        need90 = '<div style="font-size:12px;color:var(--ink-dim);margin-top:6px;">'+(isEn
+          ? 'For a 90 % chance of at least one, you would need about <b>'+k+' eggs</b>.'
+          : 'Pour avoir 90 % de chance d\'en avoir au moins un, il faudrait environ <b>'+k+' œufs</b>.')+'</div>';
+      }
+      resultHtml = '<div style="margin-top:12px;padding:12px;border:1px solid var(--gold);border-radius:12px;">'+
+        '<div style="font-size:13px;color:var(--ink-dim);">'+(isEn?'Per egg: ':'Par œuf : ')+'<b style="color:var(--ink);">'+fmtPct(p,true)+'</b> — '+target+'</div>'+
+        '<div style="font-size:22px;font-weight:700;margin-top:6px;color:var(--gold);">'+fmtPct(atLeastOne)+'</div>'+
+        '<div style="font-size:13px;">'+(isEn
+          ? 'chance of at least one over '+chancesClutches+' clutch'+(chancesClutches>1?'es':'')+' of '+chancesEggs+' eggs ('+n+' eggs) — about '+expDisp+' expected on average.'
+          : 'de chance d\'en avoir au moins un sur '+chancesClutches+' ponte'+(chancesClutches>1?'s':'')+' de '+chancesEggs+' œufs ('+n+' œufs) — environ '+expDisp+' en moyenne.')+'</div>'+
+        need90+'</div>';
+    }
+  }
+  panel.innerHTML = title+
+    '<div class="clutch-caption">'+(isEn
+      ? 'Exact odds from the probabilities above. Assumes every egg hatches — slugs and infertile eggs lower the real odds.'
+      : 'Calcul exact à partir des probabilités ci-dessus. Suppose que chaque œuf éclot — les slugs et œufs infertiles baissent les vraies chances.')+'</div>'+
+    '<div style="margin:10px 0;">'+chips+'</div>'+
+    '<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:13px;">'+
+      '<label>'+(isEn?'Clutches: ':'Pontes : ')+'<select style="'+selStyle+'" onchange="chancesClutches=parseInt(this.value,10)||1;renderChancesPanel();">'+clutchOpts+'</select></label>'+
+      '<label>'+(isEn?'Eggs per clutch: ':'Œufs par ponte : ')+'<select style="'+selStyle+'" onchange="chancesEggs=parseInt(this.value,10)||6;renderChancesPanel();">'+eggOpts+'</select></label>'+
+    '</div>'+resultHtml;
+}
+function toggleChanceTarget(i){
+  const lab = chancesVisualLabelUniverse()[i];
+  if(lab===undefined) return;
+  chancesTargets = chancesTargets.includes(lab) ? chancesTargets.filter(x=>x!==lab) : chancesTargets.concat([lab]);
+  renderChancesPanel();
 }
 
 var lastClutchEggs = []; // dernier tirage affiché — réutilisé par markClutchHatched() pour créer les fiches
@@ -9213,6 +9312,225 @@ function deleteVetVisit(id, visitId){
   storage.save(savedSnakes);
   const listEl = document.getElementById('vet-visits-list-'+id);
   if(listEl) listEl.innerHTML = renderVetVisitsHtml(s);
+}
+
+// ==================== Croissance vs frères et sœurs de ponte (v3.35, gratuit) ====================
+// Un bébé qui décroche de sa portée est un signal précoce. Fratrie = même clutchRef ET même mère
+// (même règle que l'identification des parents). Chaque frère/sœur est ramené à la date de la
+// dernière pesée de l'animal (interpolation linéaire entre 2 pesées, ou pesée la plus proche si
+// elle est à ≤ 21 j) — on compare des poids pris au même âge, jamais un poids de mars à un d'août.
+function siblingsOf(s){
+  if(!s || !s.clutchRef) return [];
+  return savedSnakes.filter(x=>x.id!==s.id && x.clutchRef===s.clutchRef && (!s.damId || x.damId===s.damId));
+}
+function weightAtDate(weights, dateStr){
+  if(!weights || !weights.length) return null;
+  const T = new Date(dateStr+'T00:00:00').getTime();
+  const pts = weights.map(w=>({ t:new Date(w.date+'T00:00:00').getTime(), v:Number(w.value) })).filter(p=>!isNaN(p.t)&&!isNaN(p.v)).sort((a,b)=>a.t-b.t);
+  if(!pts.length) return null;
+  for(let i=1;i<pts.length;i++){
+    if(pts[i-1].t<=T && T<=pts[i].t){
+      const span = pts[i].t-pts[i-1].t;
+      return span ? pts[i-1].v + (pts[i].v-pts[i-1].v)*(T-pts[i-1].t)/span : pts[i].v;
+    }
+  }
+  const nearest = pts.reduce((best,p)=>Math.abs(p.t-T)<Math.abs(best.t-T)?p:best, pts[0]);
+  return Math.abs(nearest.t-T) <= 21*86400000 ? nearest.v : null;
+}
+function siblingGrowthSvg(s, sibs){
+  const series = [s].concat(sibs).map(x=>({ me:x.id===s.id, pts:[...(x.health&&x.health.weights||[])].sort((a,b)=>a.date.localeCompare(b.date)).map(w=>({ t:new Date(w.date+'T00:00:00').getTime(), v:Number(w.value) })).filter(p=>!isNaN(p.t)&&!isNaN(p.v)) })).filter(x=>x.pts.length);
+  const all = series.flatMap(x=>x.pts);
+  if(all.length<2) return '';
+  const w = 280, h = 90, pad = 8;
+  const tMin = Math.min(...all.map(p=>p.t)), tMax = Math.max(...all.map(p=>p.t));
+  const vMin = Math.min(...all.map(p=>p.v)), vMax = Math.max(...all.map(p=>p.v));
+  const X = ms=> pad + ((ms-tMin)/((tMax-tMin)||1))*(w-pad*2);
+  const Y = v=> h-pad - ((v-vMin)/((vMax-vMin)||1))*(h-pad*2);
+  const line = (x)=> x.pts.length===1
+    ? '<circle cx="'+X(x.pts[0].t).toFixed(1)+'" cy="'+Y(x.pts[0].v).toFixed(1)+'" r="'+(x.me?3.5:2)+'" style="fill:'+(x.me?'var(--gold)':'var(--ink-dim)')+';opacity:'+(x.me?1:.55)+';"/>'
+    : '<polyline points="'+x.pts.map(p=>X(p.t).toFixed(1)+','+Y(p.v).toFixed(1)).join(' ')+'" fill="none" vector-effect="non-scaling-stroke" style="stroke:'+(x.me?'var(--gold)':'var(--ink-dim)')+';stroke-width:'+(x.me?2.5:1.2)+';opacity:'+(x.me?1:.55)+';"/>';
+  return '<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;height:90px;margin:6px 0 4px;" preserveAspectRatio="none">'+
+    series.filter(x=>!x.me).map(line).join('')+series.filter(x=>x.me).map(line).join('')+'</svg>';
+}
+function siblingGrowthHtml(s){
+  const isEn = currentLang==='en';
+  const sibs = siblingsOf(s);
+  if(!sibs.length || !s.health || !s.health.weights || !s.health.weights.length) return '';
+  sibs.forEach(ensureSnakeMeta);
+  const latest = [...s.health.weights].sort((a,b)=>b.date.localeCompare(a.date))[0];
+  const myW = Number(latest.value);
+  const sibVals = sibs.map(x=>weightAtDate(x.health.weights, latest.date)).filter(v=>v!=null && v>0);
+  const title = '<h3 style="margin-top:14px;">'+(isEn?'🐣 Growth vs clutchmates':'🐣 Croissance vs frères et sœurs')+'</h3>';
+  if(!sibVals.length){
+    return title+'<p class="husbandry-health-note">'+(isEn
+      ? 'No clutchmate has a weight recorded around '+escapeHtml(latest.date)+' — weigh them around the same time to compare.'
+      : 'Aucun frère ou sœur n\'a de pesée autour du '+escapeHtml(latest.date)+' — pèse-les vers la même date pour comparer.')+'</p>';
+  }
+  const sorted = [...sibVals].sort((a,b)=>a-b);
+  const mid = Math.floor(sorted.length/2);
+  const median = sorted.length%2 ? sorted[mid] : (sorted[mid-1]+sorted[mid])/2;
+  const pct = Math.round(((myW-median)/median)*100);
+  const rank = sibVals.filter(v=>v>myW).length+1;
+  const total = sibVals.length+1;
+  let color, text;
+  if(pct<=-20){ color='var(--rust)'; text = isEn?'🚨 Clearly smaller than its clutch':'🚨 Nettement plus petit que sa portée'; }
+  else if(pct<=-10){ color='var(--gold)'; text = isEn?'⬇ A bit behind its clutch':'⬇ Un peu en retard sur sa portée'; }
+  else { color='var(--sage)'; text = isEn?'✅ In line with its clutch':'✅ Dans le rythme de sa portée'; }
+  return title+siblingGrowthSvg(s, sibs)+
+    '<div class="modal-row"><span style="color:'+color+';">'+text+'</span><span>'+(pct>=0?'+':'')+pct+'% '+(isEn?'vs median':'vs médiane')+'</span></div>'+
+    '<div class="modal-row"><span>'+(isEn?'Rank by weight':'Rang par poids')+'</span><span>'+rank+(isEn?' of ':' sur ')+total+'</span></div>'+
+    '<p class="husbandry-health-note" style="margin-top:6px;">'+(isEn
+      ? 'Gold line = this animal, grey = clutchmates. Compared at the date of its last weigh-in ('+escapeHtml(latest.date)+'), using '+sibVals.length+' clutchmate(s) weighed around then. Sex and appetite vary — a lasting gap is the signal, not one weigh-in.'
+      : 'Ligne dorée = cet animal, gris = frères et sœurs. Comparé à la date de sa dernière pesée ('+escapeHtml(latest.date)+'), avec '+sibVals.length+' frère(s)/sœur(s) pesé(s) vers cette date. Le sexe et l\'appétit varient — c\'est un écart qui dure qui compte, pas une seule pesée.')+'</p>';
+}
+
+// ==================== Image à partager (v3.35) ====================
+// L'éleveur choisit une de ses photos (ou en prend une nouvelle, jamais enregistrée sur la fiche) ;
+// l'app la redonne avec un bandeau nom + gènes (convention du milieu, summarizeGenes) et un petit
+// logo LOCUS discret. Tout se fait dans le navigateur (canvas) — rien n'est envoyé au serveur.
+var shareImg = { snakeId:null, src:null, format:'square', showName:true, showGenes:true };
+var shareLogoImg = null;
+function openShareImageModal(id){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  const isEn = currentLang==='en';
+  shareImg.snakeId = id;
+  shareImg.src = (s.photos && s.photos.length) ? s.photos[s.photos.length-1].dataUrl : null;
+  const thumbs = (s.photos||[]).map((ph,i)=>'<img src="'+escapeHtml(ph.dataUrl)+'" onclick="pickSharePhoto('+i+')" style="width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--line);cursor:pointer;" alt="Photo"/>').join('');
+  const body =
+    '<p style="font-size:12px;color:var(--ink-dim);margin:0 0 10px;">'+(isEn
+      ? 'Pick a photo — LOCUS adds the name, genetics and a small logo. Everything stays on your device.'
+      : 'Choisis une photo — LOCUS ajoute le nom, la génétique et un petit logo. Tout reste sur ton appareil.')+'</p>'+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">'+thumbs+'</div>'+
+    '<input type="file" accept="image/*" id="share-photo-input" style="display:none;" onchange="loadShareFile(this.files[0])"/>'+
+    '<button class="sc-btn" onclick="document.getElementById(\'share-photo-input\').click()">📷 '+(isEn?'Use another photo':'Utiliser une autre photo')+'</button>'+
+    '<div style="display:flex;gap:12px;flex-wrap:wrap;margin:12px 0;font-size:13px;align-items:center;">'+
+      '<label><input type="checkbox" '+(shareImg.showName?'checked':'')+' onchange="shareImg.showName=this.checked;drawShareImage();"/> '+(isEn?'Name':'Nom')+'</label>'+
+      '<label><input type="checkbox" '+(shareImg.showGenes?'checked':'')+' onchange="shareImg.showGenes=this.checked;drawShareImage();"/> '+(isEn?'Genetics':'Génétique')+'</label>'+
+      '<select style="font-size:16px;padding:6px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" onchange="shareImg.format=this.value;drawShareImage();">'+
+        '<option value="square"'+(shareImg.format==='square'?' selected':'')+'>'+(isEn?'Square (1:1)':'Carré (1:1)')+'</option>'+
+        '<option value="portrait"'+(shareImg.format==='portrait'?' selected':'')+'>'+(isEn?'Portrait (4:5)':'Portrait (4:5)')+'</option>'+
+      '</select>'+
+    '</div>'+
+    '<canvas id="share-canvas" style="width:100%;height:auto;border-radius:10px;border:1px solid var(--line);background:#000;"></canvas>'+
+    '<p id="share-empty" style="font-size:12px;color:var(--ink-dim);display:none;">'+(isEn?'Add a photo to start.':'Ajoute une photo pour commencer.')+'</p>'+
+    '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">'+
+      '<button class="save-btn" style="flex:1;" onclick="shareShareImage()">📤 '+(isEn?'Share':'Partager')+'</button>'+
+      '<button class="sc-btn" style="flex:1;" onclick="downloadShareImage()">⬇️ '+(isEn?'Download':'Télécharger')+'</button>'+
+    '</div>';
+  showQuickModal('🖼️ '+(isEn?'Image to share':'Image à partager'), body);
+  if(!shareLogoImg){
+    shareLogoImg = new Image();
+    shareLogoImg.onload = ()=>drawShareImage();
+    shareLogoImg.onerror = ()=>{ shareLogoImg.failed = true; };
+    shareLogoImg.src = 'icons/icon-192.png';
+  }
+  drawShareImage();
+}
+function pickSharePhoto(i){
+  const s = savedSnakes.find(x=>x.id===shareImg.snakeId);
+  if(!s || !s.photos || !s.photos[i]) return;
+  shareImg.src = s.photos[i].dataUrl;
+  drawShareImage();
+}
+function loadShareFile(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{ shareImg.src = e.target.result; drawShareImage(); };
+  reader.readAsDataURL(file);
+}
+function shareWrapLines(ctx, text, maxW){
+  const words = String(text).split(/\s+/).filter(Boolean);
+  const lines = []; let cur = '';
+  words.forEach(wd=>{
+    const test = cur ? cur+' '+wd : wd;
+    if(ctx.measureText(test).width>maxW && cur){ lines.push(cur); cur = wd; } else cur = test;
+  });
+  if(cur) lines.push(cur);
+  return lines;
+}
+function drawShareImage(){
+  const canvas = document.getElementById('share-canvas');
+  const empty = document.getElementById('share-empty');
+  if(!canvas) return;
+  if(!shareImg.src){ canvas.style.display='none'; if(empty) empty.style.display='block'; return; }
+  canvas.style.display='block'; if(empty) empty.style.display='none';
+  const s = savedSnakes.find(x=>x.id===shareImg.snakeId);
+  const img = new Image();
+  if(/^https?:/i.test(shareImg.src)) img.crossOrigin = 'anonymous';
+  img.onload = ()=>{
+    const W = 1080, H = shareImg.format==='portrait' ? 1350 : 1080;
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    // Photo en « cover » (recadrée au centre, jamais déformée)
+    const sc = Math.max(W/img.width, H/img.height);
+    const dw = img.width*sc, dh = img.height*sc;
+    ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
+    ctx.drawImage(img, (W-dw)/2, (H-dh)/2, dw, dh);
+    const font = 'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+    const pad = 56;
+    ctx.font = '600 44px '+font;
+    const geneLines = (shareImg.showGenes && s) ? shareWrapLines(ctx, summarizeGenes(s.genes||{}), W-pad*2).slice(0,3) : [];
+    const nameH = (shareImg.showName && s && s.name) ? 84 : 0;
+    const bandH = (nameH || geneLines.length) ? pad + nameH + geneLines.length*56 + 70 : 0;
+    if(bandH){
+      const grad = ctx.createLinearGradient(0, H-bandH-140, 0, H);
+      grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(.35,'rgba(0,0,0,.72)'); grad.addColorStop(1,'rgba(0,0,0,.9)');
+      ctx.fillStyle = grad; ctx.fillRect(0, H-bandH-140, W, bandH+140);
+      let y = H-bandH+pad;
+      ctx.textBaseline = 'top';
+      if(nameH){
+        ctx.fillStyle = '#ffffff'; ctx.font = '700 70px '+font;
+        ctx.fillText(shareWrapLines(ctx, s.name, W-pad*2)[0]||'', pad, y); y += nameH;
+      }
+      ctx.fillStyle = '#d8b25a'; ctx.font = '600 44px '+font;
+      geneLines.forEach(l=>{ ctx.fillText(l, pad, y); y += 56; });
+    }
+    // Petit logo discret en haut à droite
+    const logoSize = 64, lx = W-pad-logoSize, ly = pad-12;
+    ctx.globalAlpha = .9;
+    if(shareLogoImg && shareLogoImg.complete && shareLogoImg.naturalWidth && !shareLogoImg.failed){
+      ctx.drawImage(shareLogoImg, lx, ly, logoSize, logoSize);
+    }
+    ctx.textBaseline = 'middle'; ctx.textAlign = 'right';
+    ctx.font = '700 30px '+font; ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 8;
+    ctx.fillText('LOCUS Scales', lx-14, ly+logoSize/2);
+    ctx.shadowBlur = 0; ctx.globalAlpha = 1; ctx.textAlign = 'left';
+  };
+  img.onerror = ()=>{ showToast(currentLang==='en'?'Could not load this photo.':'Impossible de charger cette photo.', 'error'); };
+  img.src = shareImg.src;
+}
+function shareImageFileName(){
+  const s = savedSnakes.find(x=>x.id===shareImg.snakeId);
+  const base = (s && s.name ? s.name : 'locus').replace(/[^\w\-]+/g,'_').slice(0,40) || 'locus';
+  return base+'-locus.jpg';
+}
+function shareImageBlob(cb){
+  const canvas = document.getElementById('share-canvas');
+  if(!canvas || !shareImg.src){ showToast(currentLang==='en'?'Add a photo first.':'Ajoute une photo d\'abord.', 'error'); return; }
+  try{ canvas.toBlob(b=>cb(b), 'image/jpeg', 0.9); }
+  catch(e){ showToast(currentLang==='en'?'This photo can\'t be exported (protected source).':'Cette photo ne peut pas être exportée (source protégée).', 'error'); }
+}
+function downloadShareImage(){
+  shareImageBlob(b=>{
+    if(!b) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(b); a.download = shareImageFileName();
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+  });
+}
+function shareShareImage(){
+  shareImageBlob(b=>{
+    if(!b) return;
+    const file = new File([b], shareImageFileName(), { type:'image/jpeg' });
+    if(navigator.canShare && navigator.canShare({ files:[file] })){
+      navigator.share({ files:[file] }).catch(()=>{});
+    } else {
+      downloadShareImage();
+    }
+  });
 }
 
 var currentLogbookId = null; // suit quelle fiche est ouverte, pour pouvoir la régénérer au changement de langue
@@ -9570,6 +9888,7 @@ function openLogbook(id){
       '<input type="file" accept="image/*" id="photo-input-'+id+'" style="display:none;" onchange="addPhotoToSnake(\''+id+'\', this.files[0])"/>'+
       '<button class="sc-btn accent" onclick="document.getElementById(\'photo-input-'+id+'\').click()">'+t('addPhotoBtn')+'</button>'+
       photosHtml+
+      '<button class="sc-btn" style="margin-top:8px;" onclick="openShareImageModal(\''+id+'\')">🖼️ '+(isEn?'Image to share':'Image à partager')+'</button>'+
     '</div>'+
     '<div class="modal-section"><h3>'+t('genealogyTitle')+'</h3>'+pedigreeHtml+pedigreeTreeHtml+
       (s.sex ? '<button class="sc-btn accent" style="width:100%;margin-top:10px;" onclick="openCompatibilityModal(\''+id+'\')">🧬 '+t('viewCompatibilityBtn')+'</button>' : '')+
@@ -9578,7 +9897,7 @@ function openLogbook(id){
       [...s.geneticNotes].sort((a,b)=>b.date.localeCompare(a.date)).map(n=>'<div class="modal-row" style="align-items:flex-start;"><span style="font-size:11.5px;line-height:1.5;">'+escapeHtml(n.text)+'<br/><small style="color:var(--ink-dim);">'+n.date+'</small></span></div>').join('')+
     '</div>' : '')+
     breedingPerformanceHtml(s)+
-    '<div class="modal-section"><h3>'+t('weightHistoryTitle')+'</h3>'+weightSparklineSvg(s.health.weights)+weightsHtml+growthCompareHtml+growthTrendHtml+'</div>'+
+    '<div class="modal-section"><h3>'+t('weightHistoryTitle')+'</h3>'+weightSparklineSvg(s.health.weights)+weightsHtml+growthCompareHtml+growthTrendHtml+siblingGrowthHtml(s)+'</div>'+
     '<div class="modal-section"><h3>'+t('lengthHistoryTitle')+'</h3>'+lengthsHtml+'</div>'+
     '<div class="modal-section"><h3>'+t('vetJournalTitle')+'</h3>'+
       '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">'+
@@ -16406,6 +16725,33 @@ function healthRiskAssessment(s){
   return { level, signals };
 }
 
+// Rappels de pesée discrets (v3.35, gratuit — seuils choisis par Alex) :
+// • bébé (< 12 mois) : 3 refus de suite OU 21 jours sans manger ;
+// • adulte (≥ 12 mois ou âge inconnu) : plus de 3 mois (90 j) sans manger.
+// Disparaît dès qu'une pesée récente existe (bébé : 7 j, adulte : 14 j). Jamais en hivernage,
+// jamais pour un animal vendu. Un rappel de peser, pas une alarme — le jeûne d'un adulte en
+// saison de reproduction est souvent normal.
+function weighReminderReason(s){
+  const isEn = currentLang==='en';
+  if(!s || s.status==='sold' || (s.brumation && s.brumation.active)) return null;
+  ensureSnakeMeta(s);
+  const ageM = ageInMonths(s.birthDate);
+  const isBaby = ageM!=null && ageM<12;
+  const fedDays = daysSinceLastFed(s);
+  const refusals = s.health.consecutiveRefusals||0;
+  const ws = s.health.weights||[];
+  const lastW = ws.length ? [...ws].sort((a,b)=>b.date.localeCompare(a.date))[0] : null;
+  const daysSinceWeigh = lastW ? Math.floor((Date.now()-new Date(lastW.date+'T00:00:00').getTime())/86400000) : null;
+  if(isBaby){
+    if(daysSinceWeigh!=null && daysSinceWeigh<=7) return null;
+    if(refusals>=3) return isEn ? refusals+' refusals in a row' : refusals+' refus de suite';
+    if(fedDays!=null && fedDays>=21) return isEn ? fedDays+'d without a meal' : fedDays+' j sans repas';
+    return null;
+  }
+  if(daysSinceWeigh!=null && daysSinceWeigh<=14) return null;
+  if(fedDays!=null && fedDays>90) return isEn ? Math.floor(fedDays/30)+' months without a meal' : Math.floor(fedDays/30)+' mois sans repas';
+  return null;
+}
 function renderHealthAlerts(){
   const isEn = currentLang==='en';
   savedSnakes.forEach(ensureSnakeMeta);
@@ -16417,11 +16763,16 @@ function renderHealthAlerts(){
   let html = '';
   if(urgent.length){
     html += '<div class="health-alert-bar">🚨 <b>'+urgent.length+(isEn?' reptile(s)</b> need priority attention: ':' reptile(s)</b> à surveiller en priorité : ')+
-      urgent.map(x=> x.s.name+' ('+x.risk.signals.map(sig=>sig.label).join(', ')+')').join(', ')+'</div>';
+      urgent.map(x=> escapeHtml(x.s.name)+' ('+x.risk.signals.map(sig=>sig.label).join(', ')+')').join(', ')+'</div>';
   }
   if(watch.length){
     html += '<div class="health-alert-bar" style="background:rgba(216,187,70,.14);border-color:var(--gold);"><span>⚠ <b style="color:var(--gold);">'+watch.length+(isEn?' reptile(s)</b> to watch: ':' reptile(s)</b> à surveiller : ')+
-      watch.map(x=> x.s.name+' ('+x.risk.signals[0].label+')').join(', ')+'</span></div>';
+      watch.map(x=> escapeHtml(x.s.name)+' ('+x.risk.signals[0].label+')').join(', ')+'</span></div>';
+  }
+  const weighList = savedSnakes.map(s=>({ s, why:weighReminderReason(s) })).filter(x=>x.why);
+  if(weighList.length){
+    html += '<div style="font-size:12px;color:var(--ink-dim);margin:2px 0 10px;padding:6px 10px;border-left:2px solid var(--line);">⚖️ '+
+      (isEn?'Weigh reminder: ':'Rappel de pesée : ')+weighList.map(x=>'<b style="color:var(--ink);">'+escapeHtml(x.s.name)+'</b> ('+x.why+')').join(', ')+'</div>';
   }
   wrap.innerHTML = html;
 }
