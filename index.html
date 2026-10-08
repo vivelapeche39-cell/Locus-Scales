@@ -1355,6 +1355,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <input type="text" id="elevage-search-input" data-i18n-placeholder="elevageSearchPlaceholder" placeholder="🔍 Rechercher un nom ou un gène… (filtre les terrariums, surligne les bacs)" autocomplete="off"/>
       </div>
       <button class="sc-btn" id="racks-show-all-btn" style="margin-bottom:14px;" onclick="showAllRacksTerrariums()">🔄 <span data-i18n="showAllSectionsBtn">Tout réafficher</span></button>
+      <button class="sc-btn accent" style="margin-bottom:14px;" onclick="openMaintenanceJournal('all')">📒 <span data-i18n="maintenanceJournalBtn">Journal d'entretien</span></button>
       <div id="racks-terrariums-wrap">
         <div class="elevage-block" id="block-racks">
           <div class="section-line-head">
@@ -2143,7 +2144,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.22';
+const APP_VERSION = '2026.09.01.3.23';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4914,6 +4915,7 @@ const I18N = {
     actionRefused: 'Refus',
     actionWeigh: 'Peser',
     deselectBtn: 'Désélectionner',
+    maintenanceJournalBtn: "Journal d'entretien",
     showAllSectionsBtn: 'Tout réafficher',
     roomFilterLabel: 'Pièce',
     categoryFilterLabel: 'Type',
@@ -5474,6 +5476,7 @@ const I18N = {
     actionRefused: 'Refused',
     actionWeigh: 'Weigh',
     deselectBtn: 'Deselect',
+    maintenanceJournalBtn: 'Maintenance log',
     showAllSectionsBtn: 'Show everything again',
     roomFilterLabel: 'Room',
     categoryFilterLabel: 'Type',
@@ -10800,8 +10803,8 @@ async function pushAllUserData(forceAll){
   var allOk = true;
   try{
     if(!(await pushKindRows('snakes', savedSnakes, forceAll, snakeToRow))) allOk = false;
-    if(!(await pushKindRows('racks', racks, forceAll, function(r){ return { id:r.id, user_id:currentUser.id, name:r.name, rows:r.rows, heating:r.heating||null, tub_cleanings:r.tubCleanings||{}, room:r.room||null }; }))) allOk = false;
-    if(!(await pushKindRows('terrariums', terrariums, forceAll, function(te){ return { id:te.id, user_id:currentUser.id, name:te.name, size:te.size||null, status:te.status||'libre', bioactive: !!te.bioactive, lighting:te.lighting||null, heating:te.heating||null, substrate:te.substrate||null, pairing_start_date:te.pairingStartDate||null, uvb_replace_date:te.uvbReplaceDate||null, cleanings:te.cleanings||[], room:te.room||null }; }))) allOk = false;
+    if(!(await pushKindRows('racks', racks, forceAll, function(r){ return { id:r.id, user_id:currentUser.id, name:r.name, rows:r.rows, heating:r.heating||null, tub_cleanings:r.tubCleanings||{}, tub_water_changes:r.tubWaterChanges||{}, room:r.room||null }; }))) allOk = false;
+    if(!(await pushKindRows('terrariums', terrariums, forceAll, function(te){ return { id:te.id, user_id:currentUser.id, name:te.name, size:te.size||null, status:te.status||'libre', bioactive: !!te.bioactive, lighting:te.lighting||null, heating:te.heating||null, substrate:te.substrate||null, pairing_start_date:te.pairingStartDate||null, uvb_replace_date:te.uvbReplaceDate||null, cleanings:te.cleanings||[], water_changes:te.waterChanges||[], water_quality:te.waterQuality||[], room:te.room||null }; }))) allOk = false;
     if(!(await pushKindRows('pairings', pairings, forceAll, function(p){ return { id:p.id, user_id:currentUser.id, sire_id:p.maleId||null, dam_id:p.femaleId||null, data:p }; }))) allOk = false;
     if(!(await pushKindRows('clutches', clutches, forceAll, function(c){ return { id:c.id, user_id:currentUser.id, pairing_id:c.pairingId||null, public_token:c.publicToken||null, data:c }; }))) allOk = false;
     if(!(await pushKindRows('expenses', expenses, forceAll, function(ex){ return { id:ex.id, user_id:currentUser.id, date:ex.date||null, category:ex.category||null, amount:ex.amount||0, note:ex.note||null }; }))) allOk = false;
@@ -10897,12 +10900,12 @@ async function pullAllUserData(){
       storage.save(savedSnakes);
     }
     if(racksRes.data && racksRes.data.length){
-      const remoteRacks = racksRes.data.map(r=>({ id:r.id, name:r.name, rows:r.rows, heating:r.heating||null, tubCleanings:r.tub_cleanings||{}, room:r.room||null, updatedAt: r.updated_at?Date.parse(r.updated_at):0 }));
+      const remoteRacks = racksRes.data.map(r=>({ id:r.id, name:r.name, rows:r.rows, heating:r.heating||null, tubCleanings:r.tub_cleanings||{}, tubWaterChanges:r.tub_water_changes||{}, room:r.room||null, updatedAt: r.updated_at?Date.parse(r.updated_at):0 }));
       racks = mergeById(racks, remoteRacks, 'racks');
       markSynced('racks', remoteRacks);
     }
     if(terrariumsRes.data && terrariumsRes.data.length){
-      const remoteTerrariums = terrariumsRes.data.map(te=>({ id:te.id, name:te.name, size:te.size, status:te.status||'libre', bioactive: !!te.bioactive, lighting:te.lighting||null, heating:te.heating||null, substrate:te.substrate||null, pairingStartDate:te.pairing_start_date||null, uvbReplaceDate:te.uvb_replace_date||null, cleanings:te.cleanings||[], room:te.room||null, updatedAt: te.updated_at?Date.parse(te.updated_at):0 }));
+      const remoteTerrariums = terrariumsRes.data.map(te=>({ id:te.id, name:te.name, size:te.size, status:te.status||'libre', bioactive: !!te.bioactive, lighting:te.lighting||null, heating:te.heating||null, substrate:te.substrate||null, pairingStartDate:te.pairing_start_date||null, uvbReplaceDate:te.uvb_replace_date||null, cleanings:te.cleanings||[], waterChanges:te.water_changes||[], waterQuality:te.water_quality||[], room:te.room||null, updatedAt: te.updated_at?Date.parse(te.updated_at):0 }));
       terrariums = mergeById(terrariums, remoteTerrariums, 'terrariums');
       markSynced('terrariums', remoteTerrariums);
     }
@@ -14759,6 +14762,7 @@ function openRackCleaningModal(rackId){
         '<option value="partial">'+(isEn?'Partial':'Partiel')+'</option>'+
         '<option value="complete">'+(isEn?'Complete':'Complet')+'</option>'+
       '</select>'+
+      maintenanceDateInputHtml('rc-date')+
       '<input type="text" id="rc-note" placeholder="'+(isEn?'Note (optional)':'Note (optionnel)')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
       '<button class="sc-btn accent" style="width:100%;" onclick="logRackCleaning(\''+rackId+'\')">🧹 '+(isEn?'Log cleaning for checked tubs':'Enregistrer pour les bacs cochés')+'</button>'+
     '</div>';
@@ -14783,7 +14787,7 @@ function logRackCleaning(rackId){
   if(!checked.length){ alert(isEn?'Check at least one tub.':'Coche au moins un bac.'); return; }
   const type = document.getElementById('rc-type').value;
   const note = document.getElementById('rc-note').value.trim();
-  const date = new Date().toISOString().slice(0,10);
+  const date = readMaintenanceDate('rc-date');
   checked.forEach(key=>{
     if(!rack.tubCleanings[key]) rack.tubCleanings[key] = [];
     rack.tubCleanings[key].push({ id:'clean_'+Date.now()+'_'+key, date, type, note });
@@ -14821,6 +14825,7 @@ function openTubCleaningHistory(rackId, row, tub){
         '<option value="partial">'+(isEn?'Partial':'Partiel')+'</option>'+
         '<option value="complete">'+(isEn?'Complete':'Complet')+'</option>'+
       '</select>'+
+      maintenanceDateInputHtml('rtc-date')+
       '<input type="text" id="rtc-note" placeholder="'+(isEn?'Note (optional)':'Note (optionnel)')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
       '<button class="sc-btn accent" style="width:100%;" onclick="logSingleTubCleaning(\''+rackId+'\','+row+','+tub+')">🧹 '+(isEn?'Log cleaning for this tub':'Enregistrer pour ce bac')+'</button>'+
     '</div>';
@@ -14835,7 +14840,7 @@ function logSingleTubCleaning(rackId, row, tub){
   const type = document.getElementById('rtc-type').value;
   const note = document.getElementById('rtc-note').value.trim();
   if(!rack.tubCleanings[key]) rack.tubCleanings[key] = [];
-  rack.tubCleanings[key].push({ id:'clean_'+Date.now()+'_'+key, date:new Date().toISOString().slice(0,10), type, note });
+  rack.tubCleanings[key].push({ id:'clean_'+Date.now()+'_'+key, date:readMaintenanceDate('rtc-date'), type, note });
   saveElevage();
   showToast('🧹 '+(isEn?'Cleaning logged.':'Nettoyage enregistré.'), 'success');
   openTubCleaningHistory(rackId, row, tub);
@@ -14888,11 +14893,185 @@ function renderTerrariumCleaningModalBody(terrariumId){
         '<option value="partial">'+(isEn?'Partial':'Partiel')+'</option>'+
         '<option value="complete">'+(isEn?'Complete':'Complet')+'</option>'+
       '</select>'+
+      maintenanceDateInputHtml('tc-date')+
       '<input type="text" id="tc-note" placeholder="'+(isEn?'Note (optional)':'Note (optionnel)')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
       '<button class="sc-btn accent" style="width:100%;" onclick="logTerrariumCleaning(\''+terrariumId+'\')">🧹 '+(isEn?'Log cleaning':'Enregistrer le nettoyage')+'</button>'+
     '</div>'+
     waterHistoryHtml;
   showQuickModal((isEn?'Cleaning — ':'Nettoyage — ')+te.name, body);
+}
+// v3.23 — champ de date pour noter un entretien à une date antérieure (aujourd'hui par défaut,
+// jamais dans le futur, jusqu'à 1 an en arrière).
+/* v3.23 — Journal d'entretien Racks & Terrariums : tous les nettoyages et changements d'eau au même
+   endroit, triés du plus récent au plus ancien, filtrables par emplacement, avec ajout à une date
+   antérieure et suppression. Lit/écrit les mêmes listes que les modales existantes (te.cleanings,
+   te.waterChanges, rack.tubCleanings, rack.tubWaterChanges) — aucune donnée en double. */
+var maintenanceJournalFilter = 'all';
+function maintenancePlaces(){
+  const isEn = currentLang==='en';
+  const places = [];
+  terrariums.forEach(te=>places.push({ value:'te:'+te.id, label:'🏠 '+te.name }));
+  racks.forEach(r=>{
+    (r.rows||[]).forEach((tubCount, rowIdx)=>{
+      for(let tub=1; tub<=tubCount; tub++){
+        const sn = snakeAt(r.id, rowIdx+1, tub);
+        places.push({ value:'tub:'+r.id+'|'+(rowIdx+1)+'|'+tub, rackId:r.id,
+          label:'🗄️ '+r.name+' — '+(isEn?'R':'R')+(rowIdx+1)+'/'+(isEn?'T':'B')+tub+(sn?' ('+sn.name+')':'') });
+      }
+    });
+  });
+  return places;
+}
+function maintenanceEntries(){
+  const isEn = currentLang==='en';
+  const out = [];
+  terrariums.forEach(te=>{
+    (te.cleanings||[]).forEach(c=>out.push({ date:c.date, kind:'clean', type:c.type, note:c.note, id:c.id, owner:'te:'+te.id, ownerRack:null, place:'🏠 '+te.name }));
+    (te.waterChanges||[]).forEach(w=>out.push({ date:w.date, kind:'water', id:w.id, owner:'te:'+te.id, ownerRack:null, place:'🏠 '+te.name }));
+  });
+  racks.forEach(r=>{
+    Object.keys(r.tubCleanings||{}).forEach(key=>{
+      const parts = key.split('|');
+      (r.tubCleanings[key]||[]).forEach(c=>out.push({ date:c.date, kind:'clean', type:c.type, note:c.note, id:c.id, owner:'tub:'+r.id+'|'+key, ownerRack:r.id,
+        place:'🗄️ '+r.name+' — R'+parts[0]+'/'+(isEn?'T':'B')+parts[1] }));
+    });
+    Object.keys(r.tubWaterChanges||{}).forEach(key=>{
+      const parts = key.split('|');
+      (r.tubWaterChanges[key]||[]).forEach(w=>out.push({ date:w.date, kind:'water', id:w.id, owner:'tub:'+r.id+'|'+key, ownerRack:r.id,
+        place:'🗄️ '+r.name+' — R'+parts[0]+'/'+(isEn?'T':'B')+parts[1] }));
+    });
+  });
+  return out.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+}
+// Les anciennes entrées d'eau n'avaient pas d'id : on leur en donne un pour pouvoir les supprimer.
+function ensureMaintenanceIds(){
+  let changed = false;
+  terrariums.forEach(te=>{ if(ensureTerrariumWaterLogIds(te)) changed = true; });
+  racks.forEach(r=>{
+    Object.keys(r.tubWaterChanges||{}).forEach(key=>{
+      (r.tubWaterChanges[key]||[]).forEach((w,i)=>{ if(w && !w.id){ w.id = 'twater_'+Date.now()+'_'+i+'_'+key; changed = true; } });
+    });
+    Object.keys(r.tubCleanings||{}).forEach(key=>{
+      (r.tubCleanings[key]||[]).forEach((c,i)=>{ if(c && !c.id){ c.id = 'clean_'+Date.now()+'_'+i+'_'+key; changed = true; } });
+    });
+  });
+  terrariums.forEach(te=>(te.cleanings||[]).forEach((c,i)=>{ if(c && !c.id){ c.id = 'clean_'+Date.now()+'_'+i; changed = true; } }));
+  if(changed) saveElevage();
+}
+function openMaintenanceJournal(filter){
+  const isEn = currentLang==='en';
+  if(filter!==undefined) maintenanceJournalFilter = filter;
+  ensureMaintenanceIds();
+  const places = maintenancePlaces();
+  const rackFilters = racks.map(r=>({ value:'rack:'+r.id, label:'🗄️ '+r.name+' — '+(isEn?'whole rack':'rack complet') }));
+  const filterOpts = [{ value:'all', label: isEn?'All locations':'Tous les emplacements' }]
+    .concat(terrariums.map(te=>({ value:'te:'+te.id, label:'🏠 '+te.name })))
+    .concat(rackFilters);
+  const f = maintenanceJournalFilter;
+  const entries = maintenanceEntries().filter(e=>{
+    if(f==='all') return true;
+    if(f.indexOf('rack:')===0) return e.ownerRack===f.slice(5);
+    return e.owner===f;
+  });
+  const sel = 'width:100%;font-size:16px;padding:8px 10px;margin-bottom:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);';
+  const addForm =
+    '<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:14px;">'+
+      '<div style="font-size:13px;font-weight:700;margin-bottom:8px;">➕ '+(isEn?'Add an entry':'Ajouter une entrée')+'</div>'+
+      (places.length
+        ? '<select id="mj-place" style="'+sel+'">'+places.map(pl=>'<option value="'+escapeHtml(pl.value)+'"'+((f===pl.value)?' selected':'')+'>'+escapeHtml(pl.label)+'</option>').join('')+'</select>'+
+          '<select id="mj-kind" style="'+sel+'">'+
+            '<option value="partial">🧽 '+(isEn?'Partial cleaning':'Nettoyage partiel')+'</option>'+
+            '<option value="complete">🧹 '+(isEn?'Complete cleaning':'Nettoyage complet')+'</option>'+
+            '<option value="water">💧 '+(isEn?'Water change':'Changement d\'eau')+'</option>'+
+          '</select>'+
+          maintenanceDateInputHtml('mj-date')+
+          '<input type="text" id="mj-note" placeholder="'+(isEn?'Note (optional)':'Note (optionnel)')+'" style="'+sel+'"/>'+
+          '<button class="sc-btn accent" style="width:100%;" onclick="addMaintenanceJournalEntry()">'+(isEn?'Save':'Enregistrer')+'</button>'
+        : '<div style="font-size:12px;color:var(--ink-dim);">'+(isEn?'Add a rack or a terrarium first.':'Ajoute d\'abord un rack ou un terrarium.')+'</div>')+
+    '</div>';
+  const filterHtml = '<select id="mj-filter" style="'+sel+'" onchange="openMaintenanceJournal(this.value)">'+
+    filterOpts.map(o=>'<option value="'+escapeHtml(o.value)+'"'+(o.value===f?' selected':'')+'>'+escapeHtml(o.label)+'</option>').join('')+'</select>';
+  const listHtml = entries.length
+    ? entries.map(e=>{
+        const what = e.kind==='water' ? '💧 '+(isEn?'Water change':'Changement d\'eau')
+          : (e.type==='complete' ? '🧹 '+(isEn?'Complete':'Complet') : '🧽 '+(isEn?'Partial':'Partiel'));
+        return '<div style="border-bottom:1px dashed var(--line);padding:8px 0;">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'+
+            '<div style="font-size:13px;"><b>'+escapeHtml(e.date||'')+'</b> — '+what+'<br/><span style="font-size:12px;color:var(--ink-dim);">'+escapeHtml(e.place)+'</span>'+
+              (e.note?'<br/><span style="font-size:12px;color:var(--ink-dim);">'+escapeHtml(e.note)+'</span>':'')+'</div>'+
+            '<button class="sc-btn danger" style="padding:4px 10px;" onclick="deleteMaintenanceJournalEntry(\''+encodeURIComponent(e.owner)+'\',\''+e.kind+'\',\''+e.id+'\')">×</button>'+
+          '</div></div>';
+      }).join('')
+    : '<div style="font-size:12px;color:var(--ink-dim);">'+(isEn?'No entry for this location yet.':'Aucune entrée pour cet emplacement.')+'</div>';
+  showQuickModal(isEn?'📒 Maintenance log':'📒 Journal d\'entretien', addForm+filterHtml+'<div style="max-height:50vh;overflow-y:auto;">'+listHtml+'</div>');
+}
+function addMaintenanceJournalEntry(){
+  const isEn = currentLang==='en';
+  const place = (document.getElementById('mj-place')||{}).value;
+  const kind = (document.getElementById('mj-kind')||{}).value;
+  if(!place || !kind) return;
+  const date = readMaintenanceDate('mj-date');
+  const note = ((document.getElementById('mj-note')||{}).value||'').trim();
+  const stamp = Date.now();
+  if(place.indexOf('te:')===0){
+    const te = getTerrarium(place.slice(3));
+    if(!te) return;
+    if(kind==='water'){ if(!te.waterChanges) te.waterChanges = []; te.waterChanges.push({ id:'twater_'+stamp, date, note }); }
+    else { if(!te.cleanings) te.cleanings = []; te.cleanings.push({ id:'clean_'+stamp, date, type:kind, note }); }
+  } else if(place.indexOf('tub:')===0){
+    const parts = place.slice(4).split('|');
+    const tub = parts.pop(), row = parts.pop(), rackId = parts.join('|');
+    const rack = getRack(rackId);
+    if(!rack) return;
+    const key = row+'|'+tub;
+    if(kind==='water'){
+      if(!rack.tubWaterChanges) rack.tubWaterChanges = {};
+      if(!rack.tubWaterChanges[key]) rack.tubWaterChanges[key] = [];
+      rack.tubWaterChanges[key].push({ id:'twater_'+stamp+'_'+key, date, note });
+    } else {
+      if(!rack.tubCleanings) rack.tubCleanings = {};
+      if(!rack.tubCleanings[key]) rack.tubCleanings[key] = [];
+      rack.tubCleanings[key].push({ id:'clean_'+stamp+'_'+key, date, type:kind, note });
+    }
+  } else return;
+  saveElevage();
+  try{ renderTerrariumList(); renderRackGrid(); }catch(e){}
+  showToast('✓ '+(isEn?'Entry saved.':'Entrée enregistrée.'), 'success');
+  openMaintenanceJournal();
+}
+function deleteMaintenanceJournalEntry(encodedOwner, kind, entryId){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this entry?':'Supprimer cette entrée ?')) return;
+  const owner = decodeURIComponent(encodedOwner);
+  if(owner.indexOf('te:')===0){
+    const te = getTerrarium(owner.slice(3));
+    if(!te) return;
+    if(kind==='water') te.waterChanges = (te.waterChanges||[]).filter(e=>e.id!==entryId);
+    else te.cleanings = (te.cleanings||[]).filter(e=>e.id!==entryId);
+  } else if(owner.indexOf('tub:')===0){
+    const parts = owner.slice(4).split('|');
+    const tub = parts.pop(), row = parts.pop(), rackId = parts.join('|');
+    const rack = getRack(rackId);
+    if(!rack) return;
+    const key = row+'|'+tub;
+    if(kind==='water'){ if(rack.tubWaterChanges && rack.tubWaterChanges[key]) rack.tubWaterChanges[key] = rack.tubWaterChanges[key].filter(e=>e.id!==entryId); }
+    else { if(rack.tubCleanings && rack.tubCleanings[key]) rack.tubCleanings[key] = rack.tubCleanings[key].filter(e=>e.id!==entryId); }
+  }
+  saveElevage();
+  try{ renderTerrariumList(); renderRackGrid(); }catch(e){}
+  openMaintenanceJournal();
+}
+function maintenanceDateInputHtml(id){
+  const isEn = currentLang==='en';
+  const today = new Date().toISOString().slice(0,10);
+  return '<label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:12px;color:var(--ink-dim);">'+(isEn?'Date:':'Date :')+'</span>'+
+    '<input type="date" id="'+id+'" value="'+today+'" min="'+addDays(today,-365)+'" max="'+today+'" style="flex:1;font-size:16px;padding:6px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>';
+}
+function readMaintenanceDate(id){
+  const today = new Date().toISOString().slice(0,10);
+  const el = document.getElementById(id);
+  const v = el && el.value ? el.value : today;
+  return v > today ? today : v;
 }
 function logTerrariumCleaning(terrariumId){
   const te = getTerrarium(terrariumId);
@@ -14900,7 +15079,7 @@ function logTerrariumCleaning(terrariumId){
   if(!te.cleanings) te.cleanings = [];
   const type = document.getElementById('tc-type').value;
   const note = document.getElementById('tc-note').value.trim();
-  te.cleanings.push({ id:'clean_'+Date.now(), date:new Date().toISOString().slice(0,10), type, note });
+  te.cleanings.push({ id:'clean_'+Date.now(), date:readMaintenanceDate('tc-date'), type, note });
   saveElevage();
   renderTerrariumCleaningModalBody(terrariumId);
   renderTerrariumList();
@@ -14986,6 +15165,7 @@ function renderSingleTubCleaningModalBody(rackId, row, tub){
         '<option value="partial">'+(isEn?'Partial':'Partiel')+'</option>'+
         '<option value="complete">'+(isEn?'Complete':'Complet')+'</option>'+
       '</select>'+
+      maintenanceDateInputHtml('stc-date')+
       '<input type="text" id="stc-note" placeholder="'+(isEn?'Note (optional)':'Note (optionnel)')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
       '<button class="sc-btn accent" style="width:100%;" onclick="confirmSingleTubCleaning(\''+rackId+'\', '+row+', '+tub+')">🧹 '+(isEn?'Log cleaning':'Enregistrer le nettoyage')+'</button>'+
     '</div>'+
@@ -15001,7 +15181,7 @@ function confirmSingleTubCleaning(rackId, row, tub){
   const type = document.getElementById('stc-type').value;
   const note = document.getElementById('stc-note').value.trim();
   if(!rack.tubCleanings[key]) rack.tubCleanings[key] = [];
-  rack.tubCleanings[key].push({ id:'clean_'+Date.now()+'_'+key, date:new Date().toISOString().slice(0,10), type, note });
+  rack.tubCleanings[key].push({ id:'clean_'+Date.now()+'_'+key, date:readMaintenanceDate('stc-date'), type, note });
   saveElevage();
   showToast('🧹 '+(isEn?'Cleaning logged.':'Nettoyage enregistré.'), 'success');
   closeQuickModal();
