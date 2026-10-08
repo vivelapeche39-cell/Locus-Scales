@@ -2153,7 +2153,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.40';
+const APP_VERSION = '2026.09.01.3.41';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4335,11 +4335,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.40', date:'2026-10-08',
+  { version:'3.41', date:'2026-10-08',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
-        '🗓️ Plan de saison (Reproduction → Calendrier) : prépare tes pairings d\'avance — mâle, femelles avec leur date de début prévue, poids comparé au minimum, notes, et rotation du mâle calculée selon ton rythme (nuits ensemble / jours de repos). Rappels dans l\'Agenda dès 7 jours avant, la veille et le jour J. « ▶ Démarrer » crée l\'accouplement habituel ; une femelle dont l\'ovulation est confirmée sort de la rotation. Réservé aux paliers Première ponte et Illimité après la bêta.',
+        '🗓️ Plan de saison (Reproduction → Calendrier) : prépare tes pairings d\'avance — mâle, femelles avec leur date de début prévue, poids comparé au minimum, notes, et rotation du mâle calculée selon ton rythme (nuits ensemble / jours de repos). Rappels dans l\'Agenda dès 7 jours avant, la veille et le jour J. « ▶ Démarrer » crée l\'accouplement habituel ; « ⏸ Décaler » repousse l\'horaire en cours de saison (mue, refus…) ; une femelle dont l\'ovulation est confirmée sort de la rotation. Réservé aux paliers Première ponte et Illimité après la bêta.',
         'Noms de morphs écrits comme dans le milieu : « Super Pastel Banana Granite het Clown » au lieu de « Pastel (Super), Banana (Visuel)… ». Les formes super passent en premier partout (fiches, listes, calculateur, ponte simulée).',
         'Simuler une ponte : si le mâle est marqué Male Maker ou Female Maker, chaque œuf affiche son sexe probable (♂/♀), avec une note sur les exceptions possibles.',
         '🎲 Mes chances cette saison (calculateur) : coche les traits de ton bébé visé, choisis le nombre de pontes et d\'œufs, et vois ta chance réelle d\'en avoir au moins un. « Pastel » compte aussi les Super Pastel, et un trait que tous les bébés auront est coché d\'office. Fonctionne aussi pour les récessifs visuels et les combos d\'allèles (BEL, BlkEL, Candino…). Réservé aux paliers Première ponte et Illimité après la bêta.',
@@ -4355,7 +4355,7 @@ const CHANGELOG = [
         'Génétique : le super des gènes du complexe Fire s\'affiche « Black-Eyed Leucistic (BlkEL) » — le sigle BEL désigne le Blue-Eyed Leucistic.'
       ],
       en:[
-        '🗓️ Season plan (Breeding → Calendar): prepare your pairings ahead — male, females with their planned start date, weight vs minimum, notes, and a male rotation built from your rhythm (nights together / rest days). Agenda reminders from 7 days before, the day before and on the day. "▶ Start" creates the usual pairing; a female with confirmed ovulation leaves the rotation. Reserved for the First Clutch and Unlimited tiers after the beta.',
+        '🗓️ Season plan (Breeding → Calendar): prepare your pairings ahead — male, females with their planned start date, weight vs minimum, notes, and a male rotation built from your rhythm (nights together / rest days). Agenda reminders from 7 days before, the day before and on the day. "▶ Start" creates the usual pairing; "⏸ Postpone" pushes the schedule back mid-season (shed, refusal…); a female with confirmed ovulation leaves the rotation. Reserved for the First Clutch and Unlimited tiers after the beta.',
         'Morph names now written the way the hobby does: "Super Pastel Banana Granite het Clown" instead of "Pastel (Super), Banana (Visual)…". Super forms come first everywhere (records, lists, calculator, simulated clutch).',
         'Simulate a clutch: if the sire is marked Male Maker or Female Maker, each egg shows its likely sex (♂/♀), with a note about possible exceptions.',
         '🎲 My odds this season (calculator): check the traits of your target baby, pick the number of clutches and eggs, and see your real chance of getting at least one. "Pastel" also counts Super Pastels, and a trait every baby will have is checked automatically. Also works for visual recessives and allelic combos (BEL, BlkEL, Candino…). Reserved for the First Clutch and Unlimited tiers after the beta.',
@@ -11256,8 +11256,17 @@ function regenerateSeasonSessions(plan){
   const planned = [];
   const endDate = plan.endDate || (cursor ? spAddDays(cursor, 180) : null);
   let guard = 0;
+  const appliedHolds = new Set();
+  // un décalage déjà dépassé par une séance démarrée n'a plus d'effet
+  const lastConsumedStart = consumed.length ? (consumed[consumed.length-1].actualStart||consumed[consumed.length-1].start) : null;
+  if(lastConsumedStart) plan.holds = (plan.holds||[]).filter(h=>h.afterDate>lastConsumedStart);
   while(cursor && order.length && planned.length<16 && guard<200 && (!endDate || cursor<=endDate)){
     guard++;
+    // v3.41 — décalages (mue, refus…) : quand l'horaire atteint la séance décalée, tout repart
+    // de la nouvelle date. Chaque décalage ne s'applique qu'une fois.
+    // Appliqué à la 1re séance qui tombe à partir de sa date → reste valide si le rythme change.
+    const hold = (plan.holds||[]).filter(h=>!appliedHolds.has(h.id) && h.afterDate<=cursor).sort((a,b)=>a.afterDate.localeCompare(b.afterDate))[0];
+    if(hold){ appliedHolds.add(hold.id); cursor = spAddDays(cursor, hold.days||spDaysBetween(hold.afterDate, hold.until)); continue; }
     // Une femelle déjà démarrée n'attend plus sa date prévue (elle a pu commencer plus tôt).
     const started = f=>consumed.some(se=>se.status==='done' && se.femaleId===f);
     const eligible = f=>{ const fe = females.find(x=>x.femaleId===f); return fe && (fe.plannedStart<=cursor || started(f)) && !spFemaleOvulated(plan, f); };
@@ -11353,7 +11362,8 @@ function renderSeasonPlans(){
         const when = d<0 ? (isEn?'late by '+(-d)+'d':'en retard de '+(-d)+' j') : d===0 ? (isEn?'today':'aujourd\'hui') : d===1 ? (isEn?'tomorrow':'demain') : (isEn?'in '+d+'d':'dans '+d+' j');
         right = '<span style="font-size:11px;color:'+(d<=1?'var(--gold)':'var(--ink-dim)')+';margin-right:6px;">'+when+'</span>'+
           (se.id===nextPlannedId ? '<button class="save-btn" style="padding:6px 10px;" onclick="startSeasonSession(\''+plan.id+'\',\''+se.id+'\')">▶ '+(isEn?'Start':'Démarrer')+'</button>' : '')+
-          ' <button class="sc-btn" onclick="skipSeasonSession(\''+plan.id+'\',\''+se.id+'\')">⏭</button>';
+          ' <button class="sc-btn" title="'+(isEn?'Postpone':'Décaler')+'" onclick="openSeasonDelayModal(\''+plan.id+'\',\''+se.id+'\')">⏸</button>'+
+          ' <button class="sc-btn" title="'+(isEn?'Skip':'Sauter')+'" onclick="skipSeasonSession(\''+plan.id+'\',\''+se.id+'\')">⏭</button>';
       }
       return '<div class="modal-row" style="'+(isConflict?'border-left:3px solid var(--rust);padding-left:6px;':'')+'"><span style="font-size:13px;">'+spFmt(se.actualStart||se.start)+' → '+spFmt(se.status==='done'?spAddDays(se.actualStart||se.start, parseInt(plan.nightsTogether,10)||3):se.end)+' · ♀ '+fname+
         (isConflict?' <small style="color:var(--rust);">⚠ '+(isEn?'male already planned elsewhere':'mâle déjà prévu ailleurs')+'</small>':'')+'</span><span>'+right+'</span></div>';
@@ -11369,7 +11379,9 @@ function renderSeasonPlans(){
       (male ? '<div style="font-size:11.5px;margin-top:6px;">'+spPrepChecks(null, plan.maleId).map(c=>'<span style="color:'+(c.ok?'var(--sage)':'var(--gold)')+';">♂ '+c.txt+'</span>').join('')+'</div>' : '')+
       '<h3 style="font-size:12px;margin:12px 0 6px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);">'+(isEn?'Females':'Femelles')+'</h3>'+femalesHtml+
       '<button class="sc-btn accent" style="margin-top:6px;" onclick="openSeasonFemaleModal(\''+plan.id+'\')">+ '+(isEn?'Add a female':'Ajouter une femelle')+'</button>'+
-      '<h3 style="font-size:12px;margin:14px 0 6px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);">'+(isEn?'Male rotation':'Rotation du mâle')+'</h3>'+sessionsHtml+
+      '<h3 style="font-size:12px;margin:14px 0 6px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);">'+(isEn?'Male rotation':'Rotation du mâle')+'</h3>'+
+      ((plan.holds||[]).length ? (plan.holds||[]).map(h=>'<div class="modal-row" style="font-size:12px;"><span>⏸ '+(isEn?'Postponed ':'Décalé ')+'<b>'+(h.days||spDaysBetween(h.afterDate,h.until))+(isEn?' d':' j')+'</b> ('+(isEn?'from ':'à partir du ')+spFmt(h.afterDate)+')'+(h.reason?' — '+escapeHtml(spDelayReasonLabel(h.reason))+(h.femaleId?' '+escapeHtml(spSnakeName(h.femaleId)):''):'')+'</span><button class="sc-btn danger" onclick="removeSeasonHold(\''+plan.id+'\',\''+h.id+'\')">×</button></div>').join('') : '')+
+      sessionsHtml+
       '<p class="husbandry-health-note" style="margin-top:8px;">'+(isEn
         ? '▶ Start = the day you put them together (not a lock). The first one creates the usual pairing card (locks, follicles, ovulation); later ones attach to it. Dates shift automatically if you start earlier or later.'
         : '▶ Démarrer = le jour où tu les mets ensemble (pas un lock). La 1re fois crée la fiche d\'accouplement habituelle (locks, follicules, ovulation) ; les suivantes s\'y rattachent. Les dates suivantes se décalent toutes seules si tu commences plus tôt ou plus tard.')+'</p>'+
@@ -11503,6 +11515,48 @@ function startSeasonSession(planId, sessionId){
   spTouch(plan);
   renderTimeline();
   showToast('▶ '+spSnakeName(se.femaleId)+' × '+spSnakeName(plan.maleId)+(isEn?' — pairing started.':' — accouplement démarré.'), 'success');
+}
+function spDelayReasonLabel(r){
+  const isEn = currentLang==='en';
+  return ({ shed:isEn?'shed of':'mue de', refusal:isEn?'refusal of':'refus de', other:isEn?'other —':'autre —' })[r] || '';
+}
+function openSeasonDelayModal(planId, sessionId){
+  const isEn = currentLang==='en';
+  const plan = seasonPlans.find(p=>p.id===planId);
+  const se = plan && (plan.sessions||[]).find(x=>x.id===sessionId);
+  if(!se) return;
+  const lab = (txt, inner)=>'<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+txt+'</span>'+inner+'</label>';
+  const females = (plan.females||[]).map(fe=>'<option value="'+fe.femaleId+'"'+(fe.femaleId===se.femaleId?' selected':'')+'>'+escapeHtml(spSnakeName(fe.femaleId))+'</option>').join('');
+  const body =
+    '<p style="font-size:12px;color:var(--ink-dim);margin:0 0 10px;">'+(isEn
+      ? 'The session of '+spFmt(se.start)+' and everything after it moves by this many days.'
+      : 'La séance du '+spFmt(se.start)+' et tout ce qui suit sont décalés de ce nombre de jours.')+'</p>'+
+    lab(isEn?'Postpone by (days)':'Décaler de (jours)', '<input type="number" id="spd-days" min="1" max="60" value="7" style="'+spInputStyle+'"/>')+
+    lab(isEn?'Reason':'Raison', '<select id="spd-reason" style="'+spInputStyle+'"><option value="shed">'+(isEn?'Shed':'Mue')+'</option><option value="refusal">'+(isEn?'Refusal / not ready':'Refus / pas prête')+'</option><option value="other">'+(isEn?'Other':'Autre')+'</option></select>')+
+    lab(isEn?'Animal concerned':'Animal concerné', '<select id="spd-female" style="'+spInputStyle+'">'+females+'</select>')+
+    '<button class="save-btn" style="width:100%;" onclick="saveSeasonDelay(\''+planId+'\',\''+sessionId+'\')">⏸ '+(isEn?'Postpone':'Décaler')+'</button>';
+  showQuickModal('⏸ '+(isEn?'Postpone the schedule':'Décaler l\'horaire'), body);
+}
+function saveSeasonDelay(planId, sessionId){
+  const plan = seasonPlans.find(p=>p.id===planId);
+  const se = plan && (plan.sessions||[]).find(x=>x.id===sessionId);
+  if(!se) return;
+  const days = Math.max(1, Math.min(60, parseInt(document.getElementById('spd-days').value,10)||7));
+  plan.holds = plan.holds || [];
+  plan.holds.push({ id:'hold_'+Date.now(), afterDate:se.start, days, until:spAddDays(se.start, days), reason:document.getElementById('spd-reason').value, femaleId:document.getElementById('spd-female').value||null });
+  regenerateSeasonSessions(plan);
+  spTouch(plan);
+  closeQuickModal();
+  renderSeasonPlans();
+  showToast('⏸ '+(currentLang==='en'?'Schedule moved by '+days+' days.':'Horaire décalé de '+days+' jours.'), 'success');
+}
+function removeSeasonHold(planId, holdId){
+  const plan = seasonPlans.find(p=>p.id===planId);
+  if(!plan) return;
+  plan.holds = (plan.holds||[]).filter(h=>h.id!==holdId);
+  regenerateSeasonSessions(plan);
+  spTouch(plan);
+  renderSeasonPlans();
 }
 function skipSeasonSession(planId, sessionId){
   const plan = seasonPlans.find(p=>p.id===planId);
