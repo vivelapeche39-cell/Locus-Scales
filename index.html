@@ -990,7 +990,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
      slogan reposent sur fond uni en dessous, plus lisibles. */
   /* v3.16 — hauteur d'en-tête d'origine ; l'image est décalée pour que la tête du serpent tombe
      juste à droite du bouton ☰ (seul espace libre de la rangée), le corps/ADN part vers la gauche. */
-  .hdr::before{inset:0 0 auto 0;height:165px;background-size:auto 196px;background-position:-213px 31px;}
+  .hdr::before{inset:0 0 auto 0;height:165px;background-size:auto 196px;background-position:-150px 31px;}
   .hdr::after{inset:0 0 auto 0;height:165px;background:linear-gradient(180deg, rgba(11,18,14,.05) 0%, rgba(11,18,14,.25) 60%, #0b120e 100%);}
 }
 </style>
@@ -2143,7 +2143,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.19';
+const APP_VERSION = '2026.09.01.3.20';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
