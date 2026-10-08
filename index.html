@@ -2134,6 +2134,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
           <button class="sc-btn" style="flex:1;" onclick="handleAuthSignIn()" data-i18n="signInBtn">Se connecter</button>
           <button class="sc-btn" style="flex:1;" onclick="handleAuthSignUp()" data-i18n="createAccountBtn">Créer un compte</button>
         </div>
+        <button type="button" onclick="handleForgotPassword()" data-i18n="forgotPasswordLink" style="display:block;margin:12px auto 0;background:none;border:none;color:var(--gold);font-size:13px;text-decoration:underline;cursor:pointer;padding:4px;">Mot de passe oublié?</button>
       </div>
       <button class="sc-btn" id="auth-signout-btn" style="width:100%;margin-top:10px;display:none;" onclick="handleAuthSignOut()" data-i18n="signOutBtn">Se déconnecter</button>
     </div>
@@ -2147,7 +2148,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.26';
+const APP_VERSION = '2026.09.01.3.27';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2162,6 +2163,9 @@ const APP_VERSION = '2026.09.01.3.26';
       .then(r => r.ok ? r.text() : null)
       .then(remoteVersion => {
         const rv = remoteVersion && remoteVersion.trim();
+        // v3.27 — jamais recharger pendant un retour de lien de courriel (#access_token / type=recovery) :
+        // le rechargement effacerait le jeton et casserait la réinitialisation du mot de passe.
+        if(/access_token|type=recovery|error_description/.test(location.hash||'')) return;
         if(rv && rv !== APP_VERSION && rv !== lastReloadedTo){
           sessionStorage.setItem('locus_version_reloaded', rv);
           location.href = location.pathname + '?_v=' + Date.now();
@@ -2205,6 +2209,7 @@ function isSafeToAutoReload(){
   }catch(e){ return false; }
 }
 function reloadToNewVersion(rv){
+  if(/access_token|type=recovery/.test(location.hash||'')) return;
   try{ sessionStorage.setItem('locus_version_reloaded', rv); }catch(e){}
   location.href = location.pathname + '?_v=' + Date.now();
 }
@@ -2990,6 +2995,7 @@ if(sb){
     var wasOfflineIdentity = offlineIdentity;
     currentUser = resolveUserFromSession(session, event);
     updateAuthUI();
+    if(event === 'PASSWORD_RECOVERY'){ setTimeout(function(){ try{ openNewPasswordModal(); }catch(e){} }, 300); } // v3.27
     if(wasOfflineIdentity && !offlineIdentity && currentUser){ synchroniserAvecServeur(); } // session renouvelée après un passage hors ligne
     // Couvre les deux cas : une vraie connexion manuelle (SIGNED_IN) ET la restauration d'une
     // session déjà active au chargement de la page (INITIAL_SESSION, ex. après avoir fermé et
@@ -3126,6 +3132,59 @@ async function resendConfirmationEmail(){
       : '📧 Nouveau courriel de confirmation envoyé à '+email.trim()+'. Clique sur le lien dedans, puis connecte-toi ici.');
   }catch(e){
     showAuthError(isEn?'No connection — try again when you\'re online.':'Pas de connexion — réessaie quand tu seras en ligne.');
+  }
+}
+/* v3.27 — « Mot de passe oublié? » : avant, aucun moyen de réinitialiser soi-même son mot de passe
+   (il fallait écrire à Alex, qui envoyait un lien depuis le tableau de bord Supabase). Le lien du
+   courriel ramène sur l'app ; supabase-js émet alors PASSWORD_RECOVERY (voir onAuthStateChange)
+   et on demande le nouveau mot de passe. Réponse volontairement identique que le courriel existe
+   ou non (ne révèle pas qui a un compte). */
+async function handleForgotPassword(){
+  const isEn = currentLang==='en';
+  const email = ((document.getElementById('auth-email')||{}).value||'').trim();
+  if(!email || email.indexOf('@')<1){ showAuthError(isEn?'Enter your email address above first, then tap "Forgot your password?" again.':'Entre d\'abord ton adresse courriel ci-dessus, puis touche « Mot de passe oublié? » de nouveau.'); return; }
+  if(!sb){ showAuthError(isEn?'No connection — try again when you\'re online.':'Pas de connexion — réessaie quand tu seras en ligne.'); return; }
+  try{
+    const { error } = await sb.auth.resetPasswordForEmail(email);
+    if(error){
+      showAuthError((isEn?'Could not send the email right now — wait a minute and try again. ':'Envoi impossible pour l\'instant — attends une minute et réessaie. ')+'('+error.message+')');
+      return;
+    }
+    showAuthError(isEn
+      ? '📧 If an account exists for '+email+', a reset link was just sent. Check your inbox (and spam / Promotions), then follow the link.'
+      : '📧 Si un compte existe pour '+email+', un lien de réinitialisation vient d\'être envoyé. Regarde ta boîte courriel (et tes indésirables / Promotions), puis suis le lien.');
+  }catch(e){
+    showAuthError(isEn?'No connection — try again when you\'re online.':'Pas de connexion — réessaie quand tu seras en ligne.');
+  }
+}
+function openNewPasswordModal(){
+  const isEn = currentLang==='en';
+  const inp = 'width:100%;font-size:16px;padding:10px;margin-bottom:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);';
+  showQuickModal(isEn?'🔑 Choose a new password':'🔑 Choisis un nouveau mot de passe',
+    '<p style="font-size:13px;color:var(--ink-dim);margin:0 0 10px;">'+(isEn?'At least 6 characters.':'6 caractères minimum.')+'</p>'+
+    '<input type="password" id="newpw-1" autocomplete="new-password" placeholder="'+(isEn?'New password':'Nouveau mot de passe')+'" style="'+inp+'"/>'+
+    '<input type="password" id="newpw-2" autocomplete="new-password" placeholder="'+(isEn?'Repeat the password':'Répète le mot de passe')+'" style="'+inp+'"/>'+
+    '<label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px;"><input type="checkbox" onchange="document.getElementById(\'newpw-1\').type=document.getElementById(\'newpw-2\').type=this.checked?\'text\':\'password\'" style="width:18px;height:18px;"/> '+(isEn?'Show password':'Afficher le mot de passe')+'</label>'+
+    '<div id="newpw-error" style="color:#e0554f;font-size:13px;margin-bottom:8px;display:none;"></div>'+
+    '<button class="save-btn" style="width:100%;" onclick="confirmNewPassword()">'+(isEn?'Save my new password':'Enregistrer mon nouveau mot de passe')+'</button>');
+}
+async function confirmNewPassword(){
+  const isEn = currentLang==='en';
+  const a = (document.getElementById('newpw-1')||{}).value||'';
+  const b = (document.getElementById('newpw-2')||{}).value||'';
+  const errEl = document.getElementById('newpw-error');
+  const fail = msg=>{ if(errEl){ errEl.textContent = msg; errEl.style.display = 'block'; } };
+  if(a.length < 6) return fail(isEn?'Password: 6 characters minimum.':'Mot de passe : 6 caractères minimum.');
+  if(a !== b) return fail(isEn?'The two passwords don\'t match.':'Les deux mots de passe ne sont pas identiques.');
+  if(!sb) return fail(isEn?'No connection.':'Pas de connexion.');
+  try{
+    const { error } = await sb.auth.updateUser({ password: a });
+    if(error) return fail((isEn?'Could not save: ':'Enregistrement impossible : ')+error.message);
+    closeQuickModal();
+    try{ history.replaceState(null, '', location.pathname); }catch(e){}
+    showToast('🔑 '+(isEn?'New password saved — you\'re signed in.':'Nouveau mot de passe enregistré — tu es connecté.'), 'success');
+  }catch(e){
+    fail(isEn?'No connection — try again when you\'re online.':'Pas de connexion — réessaie quand tu seras en ligne.');
   }
 }
 async function handleAuthSignIn(){
@@ -4666,6 +4725,7 @@ const I18N = {
     passwordLabel: 'Mot de passe',
     showPasswordBtn: '👁️ Afficher',
     hidePasswordBtn: '🙈 Cacher',
+    forgotPasswordLink: 'Mot de passe oublié?',
     signInBtn: 'Se connecter',
     createAccountBtn: 'Créer un compte',
     signOutBtn: 'Se déconnecter',
@@ -5227,6 +5287,7 @@ const I18N = {
     passwordLabel: 'Password',
     showPasswordBtn: '👁️ Show',
     hidePasswordBtn: '🙈 Hide',
+    forgotPasswordLink: 'Forgot your password?',
     signInBtn: 'Sign in',
     createAccountBtn: 'Create account',
     signOutBtn: 'Sign out',
