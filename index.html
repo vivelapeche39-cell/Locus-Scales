@@ -2152,7 +2152,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.36';
+const APP_VERSION = '2026.09.01.3.37';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4330,6 +4330,64 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'3.37', date:'2026-10-08',
+    title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
+    changes:{
+      fr:[
+        'Noms de morphs écrits comme dans le milieu : « Super Pastel Banana Granite het Clown » au lieu de « Pastel (Super), Banana (Visuel)… ». Les formes super passent en premier partout (fiches, listes, calculateur, ponte simulée).',
+        'Simuler une ponte : si le mâle est marqué Male Maker ou Female Maker, chaque œuf affiche son sexe probable (♂/♀), avec une note sur les exceptions possibles.',
+        '🎲 Mes chances cette saison (calculateur) : coche les traits de ton bébé visé, choisis le nombre de pontes et d\'œufs, et vois ta chance réelle d\'en avoir au moins un. Réservé aux paliers Première ponte et Illimité après la bêta.',
+        '🐣 Croissance vs frères et sœurs : sur la fiche d\'un bébé, sa courbe de poids comparée à celle de sa portée, avec son rang et son écart à la médiane.',
+        '⚖️ Rappels de pesée discrets en Mode Tournée : bébé de moins de 12 mois avec 3 refus de suite ou 21 jours sans manger, adulte sans repas depuis plus de 3 mois.',
+        '🖼️ Image à partager : choisis une photo, LOCUS ajoute le nom, le sexe, la génétique, le prix (en option) et un petit logo. Tout se fait sur ton appareil.',
+        '🖼️ Images de vente en lot (onglet Ventes) : une image par animal à vendre, toutes partagées d\'un coup (Facebook, Messenger…). Réservé au palier Illimité après la bêta.',
+        '📷 Plusieurs photos peuvent maintenant être ajoutées d\'un coup sur une fiche.',
+        'Correctif : le champ « Pièce » pouvait se faire remplir automatiquement par un courriel (remplissage automatique du téléphone). Bloqué, et un courriel n\'est plus accepté comme nom de pièce.',
+        'Correctif : les fenêtres Compatibilité et Image à partager s\'ouvraient derrière la fiche de l\'animal.',
+        'Génétique : le super des gènes du complexe Fire s\'affiche « Black-Eyed Leucistic (BlkEL) » — le sigle BEL désigne le Blue-Eyed Leucistic.'
+      ],
+      en:[
+        'Morph names now written the way the hobby does: "Super Pastel Banana Granite het Clown" instead of "Pastel (Super), Banana (Visual)…". Super forms come first everywhere (records, lists, calculator, simulated clutch).',
+        'Simulate a clutch: if the sire is marked Male Maker or Female Maker, each egg shows its likely sex (♂/♀), with a note about possible exceptions.',
+        '🎲 My odds this season (calculator): check the traits of your target baby, pick the number of clutches and eggs, and see your real chance of getting at least one. Reserved for the First Clutch and Unlimited tiers after the beta.',
+        '🐣 Growth vs clutchmates: on a baby\'s record, its weight curve compared with its clutch, with its rank and gap to the median.',
+        '⚖️ Discreet weigh reminders in Tour Mode: baby under 12 months with 3 refusals in a row or 21 days without a meal, adult with no meal for more than 3 months.',
+        '🖼️ Image to share: pick a photo, LOCUS adds the name, sex, genetics, price (optional) and a small logo. Everything happens on your device.',
+        '🖼️ Batch sale images (Sales tab): one image per animal for sale, all shared at once (Facebook, Messenger…). Reserved for the Unlimited tier after the beta.',
+        '📷 Several photos can now be added to a record at once.',
+        'Fix: the "Room" field could get auto-filled with an email address (phone autofill). Blocked, and an email is no longer accepted as a room name.',
+        'Fix: the Compatibility and Image to share windows opened behind the animal\'s record.',
+        'Genetics: the super form of Fire-complex genes now reads "Black-Eyed Leucistic (BlkEL)" — BEL stands for Blue-Eyed Leucistic.'
+      ]
+    }
+  },
+  { version:'3.30', date:'2026-10-08',
+    title:{ fr:'Journal d\'entretien, comptes et génétique', en:'Care log, accounts and genetics' },
+    changes:{
+      fr:[
+        '📒 Journal d\'entretien (Racks & Terrariums) : nettoyages et changements d\'eau de tous tes emplacements au même endroit, avec filtre, ajout à une date passée et suppression.',
+        'L\'entretien (nettoyage, eau) se fait maintenant dans Racks & Terrariums ; le Mode Tournée garde la nourriture, les mues, les refus et les pesées.',
+        'Les changements d\'eau des terrariums et des bacs se synchronisent maintenant entre tes appareils.',
+        'Connexion : si ton courriel n\'est pas encore confirmé, un bouton permet de renvoyer le courriel de confirmation.',
+        '« Mot de passe oublié? » : reçois un lien par courriel pour choisir un nouveau mot de passe.',
+        '☰ → Mon profil → « 🔑 Changer mon mot de passe ».',
+        'Génétique : ajout de Carbon et FNR Vanilla, « Caramel » renommé « Caramel Albino » (nom Morphpedia). 163 gènes vérifiés.',
+        'Conditions d\'utilisation : section sur l\'annulation et le remboursement des futurs abonnements (annulation en tout temps, satisfait ou remboursé 14 jours, tes données ne sont jamais effacées).',
+        'Marges réduites sur cellulaire pour utiliser toute la largeur de l\'écran.'
+      ],
+      en:[
+        '📒 Care log (Racks & Terrariums): cleanings and water changes for all your enclosures in one place, with a filter, back-dated entries and deletion.',
+        'Upkeep (cleaning, water) now lives in Racks & Terrariums; Tour Mode keeps feeding, sheds, refusals and weigh-ins.',
+        'Water changes for terrariums and tubs now sync between your devices.',
+        'Sign-in: if your email isn\'t confirmed yet, a button lets you resend the confirmation email.',
+        '"Forgot password?": get an email link to choose a new password.',
+        '☰ → My profile → "🔑 Change my password".',
+        'Genetics: Carbon and FNR Vanilla added, "Caramel" renamed "Caramel Albino" (Morphpedia name). 163 verified genes.',
+        'Terms of use: section on cancelling and refunding future subscriptions (cancel anytime, 14-day money-back guarantee, your data is never deleted).',
+        'Smaller side margins on phones to use the full screen width.'
+      ]
+    }
+  },
   { version:'3.22', date:'2026-10-08',
     title:{ fr:'Nourriture, stock et mise à jour automatique', en:'Feeding, stock and automatic updates' },
     changes:{
