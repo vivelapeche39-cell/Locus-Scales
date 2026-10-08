@@ -448,6 +448,10 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 .app-menu-overlay.open{display:block;}
 .app-menu-panel{position:fixed;top:0;left:0;bottom:0;width:280px;max-width:80vw;background:var(--bg-panel);border-right:1px solid var(--line);padding:20px 16px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:4px;transform:translateX(-100%);transition:transform .2s ease;}
 .app-menu-overlay.open .app-menu-panel{transform:translateX(0);}
+/* v3.46 — le menu ☰ dépassait le bas de l'écran sur iPhone (zoom 1.2 + texte agrandi) : défilement
+   dans le panneau, marge du bas pour l'indicateur iOS, et les items ne se compriment plus. */
+.app-menu-panel{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:calc(28px + env(safe-area-inset-bottom));}
+.app-menu-panel > *{flex-shrink:0;}
 .app-menu-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--line);}
 .app-menu-item{display:flex;align-items:center;gap:12px;background:transparent;border:none;color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Verdana,sans-serif;font-size:14px;font-weight:600;padding:13px 10px;border-radius:10px;cursor:pointer;text-align:left;width:100%;}
 .menu-badge{color:var(--rust);font-size:9px;margin-left:auto;}
@@ -2169,7 +2173,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.45';
+const APP_VERSION = '2026.09.01.3.46';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4356,10 +4360,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.45', date:'2026-10-08',
+  { version:'3.46', date:'2026-10-08',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        'Le menu ☰ défile maintenant sur cellulaire — les dernières options (Confidentialité, Signaler un bug…) étaient hors de l\'écran.',
         'Sécurité : un compte ne peut plus modifier lui-même son statut administrateur ni son palier (protection ajoutée côté serveur).',
         '🔒 Mode Verrou en pastilles : une ligne compacte par couple (🔒 lock d\'aujourd\'hui, 🤝 ensemble / ⏸ séparés, ▾ lock à une autre date et historique), « Ensemble ce soir » en premier, menu déroulant au-delà de 12 couples. Relié au Plan de saison (« Démarrer » = « Ensemble », « Séparer » fixe la vraie fin et le repos du mâle suit), locks affichés sur les séances, entrées « Mis ensemble / Séparés / Lock » dans le journal des 2 animaux, et statut des mâles (avec qui, en repos, prochaine séance) dans l\'Agenda.',
         '🗓️ Plan de saison (Reproduction → Calendrier) : prépare tes pairings d\'avance — mâle, femelles avec leur date de début prévue, poids comparé au minimum, notes, et rotation du mâle calculée selon ton rythme (nuits ensemble / jours de repos). Rappels dans l\'Agenda dès 7 jours avant, la veille et le jour J. « ▶ Démarrer » crée l\'accouplement habituel ; « ⏸ Décaler » déplace l\'horaire plus tard ou plus tôt en cours de saison (mue, refus, mâle…) et chaque repos du mâle entre deux séances est affiché et modifiable ; une femelle dont l\'ovulation est confirmée sort de la rotation. Réservé aux paliers Première ponte et Illimité après la bêta.',
@@ -4378,6 +4383,7 @@ const CHANGELOG = [
         'Génétique : le super des gènes du complexe Fire s\'affiche « Black-Eyed Leucistic (BlkEL) » — le sigle BEL désigne le Blue-Eyed Leucistic.'
       ],
       en:[
+        'The ☰ menu now scrolls on phones — the last options (Privacy, Report a bug…) were off screen.',
         'Security: an account can no longer change its own administrator status or tier (server-side protection added).',
         '🔒 Lock mode as compact pills: one row per pair (🔒 today\'s lock, 🤝 together / ⏸ separated, ▾ lock on another date and history), "Together tonight" first, a dropdown beyond 12 pairs. Linked to the Season plan ("Start" = "Together", "Separate" sets the real end and the male\'s rest follows), locks shown on sessions, "Put together / Separated / Lock" entries in both animals\' journals, and breeding male status (with whom, resting, next session) in the Agenda.',
         '🗓️ Season plan (Breeding → Calendar): prepare your pairings ahead — male, females with their planned start date, weight vs minimum, notes, and a male rotation built from your rhythm (nights together / rest days). Agenda reminders from 7 days before, the day before and on the day. "▶ Start" creates the usual pairing; "⏸ Postpone" moves the schedule later or earlier mid-season (shed, refusal, male…) and each male rest between sessions is shown and editable; a female with confirmed ovulation leaves the rotation. Reserved for the First Clutch and Unlimited tiers after the beta.',
