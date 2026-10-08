@@ -1527,6 +1527,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <div class="value-box actual"><div class="vb-label" data-i18n="statSoldMonth">Vendu ce mois-ci</div><div class="vb-amount" id="sales-stat-month">0 $</div></div>
       <div class="value-box actual"><div class="vb-label" data-i18n="statSoldTotal">Vendu (total)</div><div class="vb-amount" id="sales-stat-total">0 $</div></div>
     </div>
+    <button class="sc-btn accent" style="margin-top:18px;width:100%;" onclick="openBatchSaleImagesModal()" data-i18n="batchSaleImagesBtn">🖼️ Images de vente en lot (Facebook, etc.)</button>
     <div id="mm-bulk-export" style="margin-top:18px;"></div>
     <div class="mine-filter-bar" style="margin-top:22px;">
       <div class="mine-filter-group" id="sales-status-filters">
@@ -2151,7 +2152,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.35';
+const APP_VERSION = '2026.09.01.3.36';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2551,7 +2552,8 @@ const TIER_RANK = { gratuit:0, passionne:1, premiere_ponte:1, illimite:2 };
 const ILLIMITE_ONLY_FEATURES = [
   'objectifPlanner', 'bulkListingPrices', 'morphmarketImportCsv', 'shipping',
   'fertility', 'multiGenProjects', 'seasonComparison', 'outcomesView', 'icsExport', 'fiscalSummary',
-  'rodentManagement'
+  'rodentManagement',
+  'batchSaleImages' // v3.36 — images de vente en lot (choix d'Alex : Illimité seulement, = vente en masse)
 ];
 // Palier "reproduction" (10 sept) — Première Ponte OU Illimité, mais pas Gratuit ni Passionné (qui
 // exclut déjà explicitement la reproduction). Distinct de ILLIMITE_ONLY_FEATURES qui restreint à
@@ -5099,6 +5101,7 @@ const I18N = {
     subClients: '👥 Clients',
     subWaitlist: '📋 Liste d\'attente',
     statForSale: 'À vendre (stock)',
+    batchSaleImagesBtn: '🖼️ Images de vente en lot (Facebook, etc.)',
     statReserved: 'Réservé',
     statSoldMonth: 'Vendu ce mois-ci',
     statSoldTotal: 'Vendu (total)',
@@ -5661,6 +5664,7 @@ const I18N = {
     subClients: '👥 Clients',
     subWaitlist: '📋 Waitlist',
     statForSale: 'For Sale (stock)',
+    batchSaleImagesBtn: '🖼️ Batch sale images (Facebook, etc.)',
     statReserved: 'Reserved',
     statSoldMonth: 'Sold This Month',
     statSoldTotal: 'Sold (total)',
@@ -9388,7 +9392,7 @@ function siblingGrowthHtml(s){
 // L'éleveur choisit une de ses photos (ou en prend une nouvelle, jamais enregistrée sur la fiche) ;
 // l'app la redonne avec un bandeau nom + gènes (convention du milieu, summarizeGenes) et un petit
 // logo LOCUS discret. Tout se fait dans le navigateur (canvas) — rien n'est envoyé au serveur.
-var shareImg = { snakeId:null, src:null, format:'square', showName:true, showGenes:true };
+var shareImg = { snakeId:null, src:null, format:'square', showName:true, showGenes:true, showSex:true, showPrice:false };
 var shareLogoImg = null;
 function openShareImageModal(id){
   const s = savedSnakes.find(x=>x.id===id);
@@ -9407,6 +9411,8 @@ function openShareImageModal(id){
     '<div style="display:flex;gap:12px;flex-wrap:wrap;margin:12px 0;font-size:13px;align-items:center;">'+
       '<label><input type="checkbox" '+(shareImg.showName?'checked':'')+' onchange="shareImg.showName=this.checked;drawShareImage();"/> '+(isEn?'Name':'Nom')+'</label>'+
       '<label><input type="checkbox" '+(shareImg.showGenes?'checked':'')+' onchange="shareImg.showGenes=this.checked;drawShareImage();"/> '+(isEn?'Genetics':'Génétique')+'</label>'+
+      '<label><input type="checkbox" '+(shareImg.showSex?'checked':'')+' onchange="shareImg.showSex=this.checked;drawShareImage();"/> '+(isEn?'Sex':'Sexe')+'</label>'+
+      (s.askingPrice ? '<label><input type="checkbox" '+(shareImg.showPrice?'checked':'')+' onchange="shareImg.showPrice=this.checked;drawShareImage();"/> '+(isEn?'Price':'Prix')+'</label>' : '')+
       '<select style="font-size:16px;padding:6px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" onchange="shareImg.format=this.value;drawShareImage();">'+
         '<option value="square"'+(shareImg.format==='square'?' selected':'')+'>'+(isEn?'Square (1:1)':'Carré (1:1)')+'</option>'+
         '<option value="portrait"'+(shareImg.format==='portrait'?' selected':'')+'>'+(isEn?'Portrait (4:5)':'Portrait (4:5)')+'</option>'+
@@ -9419,12 +9425,7 @@ function openShareImageModal(id){
       '<button class="sc-btn" style="flex:1;" onclick="downloadShareImage()">⬇️ '+(isEn?'Download':'Télécharger')+'</button>'+
     '</div>';
   showQuickModal('🖼️ '+(isEn?'Image to share':'Image à partager'), body);
-  if(!shareLogoImg){
-    shareLogoImg = new Image();
-    shareLogoImg.onload = ()=>drawShareImage();
-    shareLogoImg.onerror = ()=>{ shareLogoImg.failed = true; };
-    shareLogoImg.src = 'icons/icon-192.png';
-  }
+  ensureShareLogo(drawShareImage);
   drawShareImage();
 }
 function pickSharePhoto(i){
@@ -9449,6 +9450,68 @@ function shareWrapLines(ctx, text, maxW){
   if(cur) lines.push(cur);
   return lines;
 }
+// Rendu partagé (fiche seule ET lot) — opts : format, showName, showGenes, showSex, showPrice.
+function renderShareCanvas(canvas, img, s, opts){
+  const W = 1080, H = opts.format==='portrait' ? 1350 : 1080;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const sc = Math.max(W/img.width, H/img.height); // « cover » : recadré au centre, jamais déformé
+  const dw = img.width*sc, dh = img.height*sc;
+  ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
+  ctx.drawImage(img, (W-dw)/2, (H-dh)/2, dw, dh);
+  const font = 'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+  const pad = 56;
+  ctx.font = '600 44px '+font;
+  const geneLines = (opts.showGenes && s) ? shareWrapLines(ctx, summarizeGenes(s.genes||{}), W-pad*2).slice(0,3) : [];
+  const sexSym = (opts.showSex && s) ? (s.sex==='male'?' ♂':s.sex==='female'?' ♀':'') : '';
+  const nameText = (opts.showName && s && s.name) ? s.name+sexSym : (sexSym ? sexSym.trim() : '');
+  const priceText = (opts.showPrice && s && s.askingPrice) ? (currentLang==='en' ? '$'+s.askingPrice : s.askingPrice+' $') : '';
+  const nameH = nameText ? 84 : 0;
+  const priceH = priceText ? 70 : 0;
+  const bandH = (nameH || geneLines.length || priceH) ? pad + nameH + geneLines.length*56 + priceH + 70 : 0;
+  if(bandH){
+    const grad = ctx.createLinearGradient(0, H-bandH-140, 0, H);
+    grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(.35,'rgba(0,0,0,.72)'); grad.addColorStop(1,'rgba(0,0,0,.9)');
+    ctx.fillStyle = grad; ctx.fillRect(0, H-bandH-140, W, bandH+140);
+    let y = H-bandH+pad;
+    ctx.textBaseline = 'top';
+    if(nameH){
+      ctx.fillStyle = '#ffffff'; ctx.font = '700 70px '+font;
+      ctx.fillText(shareWrapLines(ctx, nameText, W-pad*2)[0]||'', pad, y); y += nameH;
+    }
+    ctx.fillStyle = '#d8b25a'; ctx.font = '600 44px '+font;
+    geneLines.forEach(l=>{ ctx.fillText(l, pad, y); y += 56; });
+    if(priceH){
+      y += 10;
+      ctx.fillStyle = '#ffffff'; ctx.font = '800 54px '+font;
+      ctx.fillText(priceText, pad, y);
+    }
+  }
+  const logoSize = 64, lx = W-pad-logoSize, ly = pad-12; // petit logo discret en haut à droite
+  ctx.globalAlpha = .9;
+  if(shareLogoImg && shareLogoImg.complete && shareLogoImg.naturalWidth && !shareLogoImg.failed) ctx.drawImage(shareLogoImg, lx, ly, logoSize, logoSize);
+  ctx.textBaseline = 'middle'; ctx.textAlign = 'right';
+  ctx.font = '700 30px '+font; ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 8;
+  ctx.fillText('LOCUS Scales', lx-14, ly+logoSize/2);
+  ctx.shadowBlur = 0; ctx.globalAlpha = 1; ctx.textAlign = 'left';
+}
+function ensureShareLogo(onReady){
+  if(shareLogoImg){ if(shareLogoImg.complete || shareLogoImg.failed) onReady && onReady(); else shareLogoImg.addEventListener('load', ()=>onReady && onReady(), {once:true}); return; }
+  shareLogoImg = new Image();
+  shareLogoImg.onload = ()=>onReady && onReady();
+  shareLogoImg.onerror = ()=>{ shareLogoImg.failed = true; onReady && onReady(); };
+  shareLogoImg.src = 'icons/icon-192.png';
+}
+function loadImageAsync(src){
+  return new Promise((resolve,reject)=>{
+    const img = new Image();
+    if(/^https?:/i.test(src)) img.crossOrigin = 'anonymous';
+    img.onload = ()=>resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
 function drawShareImage(){
   const canvas = document.getElementById('share-canvas');
   const empty = document.getElementById('share-empty');
@@ -9456,54 +9519,12 @@ function drawShareImage(){
   if(!shareImg.src){ canvas.style.display='none'; if(empty) empty.style.display='block'; return; }
   canvas.style.display='block'; if(empty) empty.style.display='none';
   const s = savedSnakes.find(x=>x.id===shareImg.snakeId);
-  const img = new Image();
-  if(/^https?:/i.test(shareImg.src)) img.crossOrigin = 'anonymous';
-  img.onload = ()=>{
-    const W = 1080, H = shareImg.format==='portrait' ? 1350 : 1080;
-    canvas.width = W; canvas.height = H;
-    const ctx = canvas.getContext('2d');
-    // Photo en « cover » (recadrée au centre, jamais déformée)
-    const sc = Math.max(W/img.width, H/img.height);
-    const dw = img.width*sc, dh = img.height*sc;
-    ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
-    ctx.drawImage(img, (W-dw)/2, (H-dh)/2, dw, dh);
-    const font = 'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
-    const pad = 56;
-    ctx.font = '600 44px '+font;
-    const geneLines = (shareImg.showGenes && s) ? shareWrapLines(ctx, summarizeGenes(s.genes||{}), W-pad*2).slice(0,3) : [];
-    const nameH = (shareImg.showName && s && s.name) ? 84 : 0;
-    const bandH = (nameH || geneLines.length) ? pad + nameH + geneLines.length*56 + 70 : 0;
-    if(bandH){
-      const grad = ctx.createLinearGradient(0, H-bandH-140, 0, H);
-      grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(.35,'rgba(0,0,0,.72)'); grad.addColorStop(1,'rgba(0,0,0,.9)');
-      ctx.fillStyle = grad; ctx.fillRect(0, H-bandH-140, W, bandH+140);
-      let y = H-bandH+pad;
-      ctx.textBaseline = 'top';
-      if(nameH){
-        ctx.fillStyle = '#ffffff'; ctx.font = '700 70px '+font;
-        ctx.fillText(shareWrapLines(ctx, s.name, W-pad*2)[0]||'', pad, y); y += nameH;
-      }
-      ctx.fillStyle = '#d8b25a'; ctx.font = '600 44px '+font;
-      geneLines.forEach(l=>{ ctx.fillText(l, pad, y); y += 56; });
-    }
-    // Petit logo discret en haut à droite
-    const logoSize = 64, lx = W-pad-logoSize, ly = pad-12;
-    ctx.globalAlpha = .9;
-    if(shareLogoImg && shareLogoImg.complete && shareLogoImg.naturalWidth && !shareLogoImg.failed){
-      ctx.drawImage(shareLogoImg, lx, ly, logoSize, logoSize);
-    }
-    ctx.textBaseline = 'middle'; ctx.textAlign = 'right';
-    ctx.font = '700 30px '+font; ctx.fillStyle = '#ffffff';
-    ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 8;
-    ctx.fillText('LOCUS Scales', lx-14, ly+logoSize/2);
-    ctx.shadowBlur = 0; ctx.globalAlpha = 1; ctx.textAlign = 'left';
-  };
-  img.onerror = ()=>{ showToast(currentLang==='en'?'Could not load this photo.':'Impossible de charger cette photo.', 'error'); };
-  img.src = shareImg.src;
+  loadImageAsync(shareImg.src).then(img=>renderShareCanvas(canvas, img, s, shareImg))
+    .catch(()=>showToast(currentLang==='en'?'Could not load this photo.':'Impossible de charger cette photo.', 'error'));
 }
 function shareImageFileName(){
   const s = savedSnakes.find(x=>x.id===shareImg.snakeId);
-  const base = (s && s.name ? s.name : 'locus').replace(/[^\w\-]+/g,'_').slice(0,40) || 'locus';
+  const base = (s && s.name ? s.name : 'locus').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w\-]+/g,'_').slice(0,40) || 'locus';
   return base+'-locus.jpg';
 }
 function shareImageBlob(cb){
@@ -9530,6 +9551,100 @@ function shareShareImage(){
     } else {
       downloadShareImage();
     }
+  });
+}
+
+// ==================== Images de vente en lot (v3.36 — Illimité) ====================
+// Tous les reptiles non vendus sont listés ; ceux « à vendre » sont cochés d'avance. Chaque animal
+// coché AVEC au moins une photo donne une image (sa photo la plus récente). Partagées d'un coup via
+// le menu de partage (iPhone : plusieurs images à la fois), ou téléchargées une par une.
+var batchSale = { ids:[], opts:{ format:'square', showName:true, showGenes:true, showSex:true, showPrice:true }, files:[] };
+function openBatchSaleImagesModal(){
+  const isEn = currentLang==='en';
+  if(!hasAccess('batchSaleImages')){ showQuickModal('🖼️', lockedFeatureHtml()); return; }
+  savedSnakes.forEach(ensureSnakeMeta);
+  const pool = savedSnakes.filter(s=>s.status!=='sold');
+  batchSale.ids = pool.filter(s=>s.status==='forsale' && s.photos && s.photos.length).map(s=>s.id);
+  batchSale.files = [];
+  const o = batchSale.opts;
+  const rows = pool.length ? pool.map(s=>{
+    const ph = s.photos && s.photos.length ? s.photos[s.photos.length-1] : null;
+    const thumb = ph ? '<img src="'+escapeHtml(ph.dataUrl)+'" style="width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid var(--line);" alt=""/>'
+                     : '<span style="width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;border:1px dashed var(--line);border-radius:8px;font-size:18px;">📷</span>';
+    const price = s.askingPrice ? ' — '+escapeHtml(String(s.askingPrice))+' $' : '';
+    return '<label class="modal-row" style="align-items:center;gap:10px;'+(ph?'':'opacity:.55;')+'">'+
+      '<input type="checkbox" '+(ph?'':'disabled ')+(batchSale.ids.includes(s.id)?'checked ':'')+'onchange="toggleBatchSaleId(\''+s.id+'\', this.checked)"/>'+thumb+
+      '<span style="flex:1;"><b>'+escapeHtml(s.name)+'</b>'+price+'<br/><small style="color:var(--ink-dim);">'+(ph?escapeHtml(summarizeGenes(s.genes)):(isEn?'No photo — add one on its record':'Pas de photo — ajoutes-en une sur sa fiche'))+'</small></span></label>';
+  }).join('') : '<p style="font-size:12px;color:var(--ink-dim);">'+t('noReptileRegistered')+'</p>';
+  const chk = (key,label)=>'<label><input type="checkbox" '+(o[key]?'checked':'')+' onchange="batchSale.opts.'+key+'=this.checked;"/> '+label+'</label>';
+  const body =
+    '<p style="font-size:12px;color:var(--ink-dim);margin:0 0 10px;">'+(isEn
+      ? 'One image per checked animal (its latest photo) with the name, genetics and optional price. Everything stays on your device.'
+      : 'Une image par animal coché (sa photo la plus récente) avec le nom, la génétique et le prix en option. Tout reste sur ton appareil.')+'</p>'+
+    '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;font-size:13px;align-items:center;">'+
+      chk('showName', isEn?'Name':'Nom')+chk('showGenes', isEn?'Genetics':'Génétique')+chk('showSex', isEn?'Sex':'Sexe')+chk('showPrice', isEn?'Price':'Prix')+
+      '<select style="font-size:16px;padding:6px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" onchange="batchSale.opts.format=this.value;">'+
+        '<option value="square"'+(o.format==='square'?' selected':'')+'>'+(isEn?'Square (1:1)':'Carré (1:1)')+'</option>'+
+        '<option value="portrait"'+(o.format==='portrait'?' selected':'')+'>Portrait (4:5)</option>'+
+      '</select>'+
+    '</div>'+
+    '<div style="max-height:40vh;overflow-y:auto;margin-bottom:10px;">'+rows+'</div>'+
+    '<button class="save-btn" style="width:100%;" onclick="generateBatchSaleImages()">🖼️ '+(isEn?'Generate images':'Générer les images')+'</button>'+
+    '<div id="batch-sale-results" style="margin-top:12px;"></div>';
+  showQuickModal('🖼️ '+(isEn?'Batch sale images':'Images de vente en lot'), body);
+  ensureShareLogo();
+}
+function toggleBatchSaleId(id, on){
+  batchSale.ids = on ? Array.from(new Set(batchSale.ids.concat([id]))) : batchSale.ids.filter(x=>x!==id);
+}
+function generateBatchSaleImages(){
+  const isEn = currentLang==='en';
+  const wrap = document.getElementById('batch-sale-results');
+  const list = batchSale.ids.map(id=>savedSnakes.find(x=>x.id===id)).filter(s=>s && s.photos && s.photos.length);
+  if(!list.length){ showToast(isEn?'Check at least one animal with a photo.':'Coche au moins un animal avec une photo.', 'error'); return; }
+  if(wrap) wrap.innerHTML = '<p style="font-size:12px;color:var(--ink-dim);">'+(isEn?'Generating…':'Génération…')+'</p>';
+  batchSale.files = [];
+  ensureShareLogo(async ()=>{
+    for(const s of list){
+      try{
+        const img = await loadImageAsync(s.photos[s.photos.length-1].dataUrl);
+        const canvas = document.createElement('canvas');
+        renderShareCanvas(canvas, img, s, batchSale.opts);
+        const blob = await new Promise(res=>canvas.toBlob(res, 'image/jpeg', 0.9));
+        if(blob){
+          const base = (s.name||'locus').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w\-]+/g,'_').slice(0,40) || 'locus';
+          batchSale.files.push({ name:s.name, file:new File([blob], base+'-locus.jpg', {type:'image/jpeg'}), url:URL.createObjectURL(blob) });
+        }
+      }catch(e){ /* photo illisible : on passe à la suivante */ }
+    }
+    if(!wrap) return;
+    if(!batchSale.files.length){ wrap.innerHTML = '<div class="warn">'+(isEn?'No image could be generated.':'Aucune image n\'a pu être générée.')+'</div>'; return; }
+    wrap.innerHTML =
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px;">'+
+        batchSale.files.map(f=>'<img src="'+f.url+'" style="width:100%;border-radius:8px;border:1px solid var(--line);" alt="'+escapeHtml(f.name||'')+'"/>').join('')+
+      '</div>'+
+      '<div style="font-size:12px;color:var(--ink-dim);margin-bottom:8px;">'+batchSale.files.length+(isEn?' image(s) ready.':' image(s) prête(s).')+(batchSale.files.length<list.length?(isEn?' Some photos could not be read.':' Certaines photos n\'ont pas pu être lues.'):'')+'</div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+
+        '<button class="save-btn" style="flex:1;" onclick="shareBatchSaleImages()">📤 '+(isEn?'Share all':'Tout partager')+'</button>'+
+        '<button class="sc-btn" style="flex:1;" onclick="downloadBatchSaleImages()">⬇️ '+(isEn?'Download all':'Tout télécharger')+'</button>'+
+      '</div>';
+  });
+}
+function shareBatchSaleImages(){
+  const files = batchSale.files.map(f=>f.file);
+  if(files.length && navigator.canShare && navigator.canShare({ files })){
+    navigator.share({ files }).catch(()=>{});
+  } else {
+    downloadBatchSaleImages();
+  }
+}
+function downloadBatchSaleImages(){
+  batchSale.files.forEach((f,i)=>{
+    setTimeout(()=>{
+      const a = document.createElement('a');
+      a.href = f.url; a.download = f.file.name;
+      document.body.appendChild(a); a.click(); a.remove();
+    }, i*400); // un peu d'espace entre les téléchargements, sinon certains navigateurs en bloquent
   });
 }
 
@@ -9885,7 +10000,7 @@ function openLogbook(id){
       realizedMarginRow+
     '</div>'+
     '<div class="modal-section"><h3>'+t('photosTitle')+'</h3>'+
-      '<input type="file" accept="image/*" id="photo-input-'+id+'" style="display:none;" onchange="addPhotoToSnake(\''+id+'\', this.files[0])"/>'+
+      '<input type="file" accept="image/*" multiple id="photo-input-'+id+'" style="display:none;" onchange="addPhotosToSnake(\''+id+'\', this.files)"/>'+
       '<button class="sc-btn accent" onclick="document.getElementById(\'photo-input-'+id+'\').click()">'+t('addPhotoBtn')+'</button>'+
       photosHtml+
       '<button class="sc-btn" style="margin-top:8px;" onclick="openShareImageModal(\''+id+'\')">🖼️ '+(isEn?'Image to share':'Image à partager')+'</button>'+
@@ -19111,6 +19226,51 @@ function setPurchasePrice(id, value){
 
 // Upload manuel uniquement — LOCUS ne génère aucune photo. Redimensionnement local (max 900px large,
 // JPEG qualité 0.75) pour éviter de saturer le quota localStorage avec des photos de téléphone en pleine résolution.
+// v3.36 — plusieurs photos d'un coup (sélection multiple dans la galerie). Même compression que
+// addPhotoToSnake (900 px max, JPEG 0,75), traitées une à la fois pour ne pas saturer la mémoire
+// du téléphone ; une seule sauvegarde + un seul rafraîchissement de la fiche à la fin.
+function compressPhotoFile(file){
+  return new Promise((resolve)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const scale = Math.min(1, 900/img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width*scale);
+        canvas.height = Math.round(img.height*scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.75));
+      };
+      img.onerror = ()=>resolve(null);
+      img.src = e.target.result;
+    };
+    reader.onerror = ()=>resolve(null);
+    reader.readAsDataURL(file);
+  });
+}
+async function addPhotosToSnake(id, fileList){
+  const files = Array.from(fileList||[]);
+  if(!files.length) return;
+  if(files.length===1) return addPhotoToSnake(id, files[0]);
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const isEn = currentLang==='en';
+  showToast((isEn?'Adding ':'Ajout de ')+files.length+(isEn?' photos…':' photos…'), 'success');
+  const added = [];
+  for(const f of files){
+    const dataUrl = await compressPhotoFile(f);
+    if(!dataUrl) continue;
+    const photo = { id:'ph_'+Date.now()+'_'+Math.random().toString(36).slice(2,6), date:new Date().toISOString().slice(0,10), dataUrl };
+    s.photos.push(photo); added.push(photo);
+  }
+  storage.save(savedSnakes);
+  openLogbook(id);
+  renderSavedList();
+  showToast('📷 '+added.length+(isEn?' photo(s) added.':' photo(s) ajoutée(s).')+(added.length<files.length?(isEn?' Some files could not be read.':' Certains fichiers n\'ont pas pu être lus.'):''), added.length?'success':'error');
+  if(currentUser) added.forEach(ph=>ensurePhotoPublicUrl(s, ph));
+}
 function addPhotoToSnake(id, file){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s || !file) return;
