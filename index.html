@@ -794,7 +794,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    Aucune couleur touchée — uniquement tailles, espacements, disposition,
    cibles tactiles (≥44px) et défilement horizontal pour les grilles/tableaux. */
 @media (max-width: 760px){
-  .wrap{padding:calc(16px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));}
+  /* v3.24 — marges latérales réduites 12px → 5px (bandes noires trop larges sur téléphone, demandé par Alex). */
+  .wrap{padding:calc(16px + env(safe-area-inset-top)) calc(5px + env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) calc(5px + env(safe-area-inset-left));}
 
   /* Anti-zoom iOS : tout champ de saisie sous 16px déclenche un zoom automatique
      agaçant au focus sur Safari. On force 16px partout sur mobile sans toucher
@@ -986,6 +987,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   .hdr > .lang-toggle-top{display:flex;}
   .hdr .lang-toggle-desk{display:none;}
   .hdr .hdr-brand{margin-left:0;}
+  .hdr .hdr-top-actions{top:6px !important;right:8px !important;} /* v3.24 — décollé de l'arrondi */
   /* v3.14 — mobile : l'image devient une bande courte en haut (rangées boutons), le nom et le
      slogan reposent sur fond uni en dessous, plus lisibles. */
   /* v3.16 — hauteur d'en-tête d'origine ; l'image est décalée pour que la tête du serpent tombe
@@ -1385,7 +1387,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <button class="tour-action-btn shed" data-i18n="actionShed" onclick="applyTourAction('shed')">A mué</button>
         <button class="tour-action-btn refused" data-i18n="actionRefused" onclick="applyTourAction('refused')">Refus</button>
         <button class="tour-action-btn" data-i18n="actionWeigh" onclick="applyTourAction('weigh')">Peser</button>
-        <button class="tour-action-btn" onclick="applyTourAction('water')">💧 <span data-i18n="eventWater">Changement d'eau</span></button>
+        <!-- v3.25 — bouton « Changement d'eau » retiré du Mode Tournée (demande d'Alex) : l'entretien vit
+             dans Racks & Terrariums (💧 sur la carte/le bac + Journal d'entretien). -->
         <button class="sc-btn" data-i18n="deselectBtn" onclick="clearTourSelection()">Désélectionner</button>
       </div>
       <div class="tour-toolbar" id="tour-quickselect" style="padding-top:0;border-bottom:none;margin-bottom:10px;">
@@ -2144,7 +2147,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.23';
+const APP_VERSION = '2026.09.01.3.25';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -14941,6 +14944,26 @@ function maintenanceEntries(){
         place:'🗄️ '+r.name+' — R'+parts[0]+'/'+(isEn?'T':'B')+parts[1] }));
     });
   });
+  // v3.25 — anciens changements d'eau notés depuis le Mode Tournée : enregistrés sur l'ANIMAL
+  // (événement 'water' de son journal), affichés ici sous l'emplacement où il se trouve maintenant.
+  savedSnakes.forEach(sn=>{
+    ensureSnakeMeta(sn);
+    const evs = (sn.health && sn.health.events) || [];
+    evs.forEach((ev, idx)=>{
+      if(!ev || ev.type!=='water') return;
+      let filterOwner = null, ownerRack = null, place = '🐍 '+sn.name;
+      if(sn.placement.mode==='terrarium' && sn.placement.terrariumId){
+        const te = getTerrarium(sn.placement.terrariumId);
+        if(te){ filterOwner = 'te:'+te.id; place = '🏠 '+te.name; }
+      } else if(sn.placement.mode==='rack' && sn.placement.rackId){
+        const r = getRack(sn.placement.rackId);
+        if(r){ filterOwner = 'tub:'+r.id+'|'+sn.placement.row+'|'+sn.placement.tub; ownerRack = r.id;
+          place = '🗄️ '+r.name+' — R'+sn.placement.row+'/'+(isEn?'T':'B')+sn.placement.tub; }
+      }
+      out.push({ date:ev.date, kind:'snakewater', id:String(idx), owner:'snake:'+sn.id, filterOwner, ownerRack,
+        place: place+' · '+(isEn?'logged on ':'noté sur ')+sn.name });
+    });
+  });
   return out.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
 }
 // Les anciennes entrées d'eau n'avaient pas d'id : on leur en donne un pour pouvoir les supprimer.
@@ -14971,7 +14994,7 @@ function openMaintenanceJournal(filter){
   const entries = maintenanceEntries().filter(e=>{
     if(f==='all') return true;
     if(f.indexOf('rack:')===0) return e.ownerRack===f.slice(5);
-    return e.owner===f;
+    return (e.filterOwner||e.owner)===f;
   });
   const sel = 'width:100%;font-size:16px;padding:8px 10px;margin-bottom:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);';
   const addForm =
@@ -14993,7 +15016,7 @@ function openMaintenanceJournal(filter){
     filterOpts.map(o=>'<option value="'+escapeHtml(o.value)+'"'+(o.value===f?' selected':'')+'>'+escapeHtml(o.label)+'</option>').join('')+'</select>';
   const listHtml = entries.length
     ? entries.map(e=>{
-        const what = e.kind==='water' ? '💧 '+(isEn?'Water change':'Changement d\'eau')
+        const what = (e.kind==='water' || e.kind==='snakewater') ? '💧 '+(isEn?'Water change':'Changement d\'eau')
           : (e.type==='complete' ? '🧹 '+(isEn?'Complete':'Complet') : '🧽 '+(isEn?'Partial':'Partiel'));
         return '<div style="border-bottom:1px dashed var(--line);padding:8px 0;">'+
           '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'+
@@ -15043,6 +15066,16 @@ function deleteMaintenanceJournalEntry(encodedOwner, kind, entryId){
   const isEn = currentLang==='en';
   if(!confirm(isEn?'Delete this entry?':'Supprimer cette entrée ?')) return;
   const owner = decodeURIComponent(encodedOwner);
+  if(kind==='snakewater' && owner.indexOf('snake:')===0){
+    const sn = savedSnakes.find(x=>x.id===owner.slice(6));
+    const idx = parseInt(entryId,10);
+    if(sn && sn.health && sn.health.events && sn.health.events[idx] && sn.health.events[idx].type==='water'){
+      sn.health.events.splice(idx,1);
+      storage.save(savedSnakes);
+    }
+    openMaintenanceJournal();
+    return;
+  }
   if(owner.indexOf('te:')===0){
     const te = getTerrarium(owner.slice(3));
     if(!te) return;
