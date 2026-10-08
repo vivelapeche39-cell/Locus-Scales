@@ -2148,7 +2148,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.32';
+const APP_VERSION = '2026.09.01.3.34';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -6192,7 +6192,7 @@ function renderTags(sex){
         '<button class="maker-btn'+(makerStatus===v?' active':'')+'" data-v="'+v+'">'+l+'</button>').join('');
       wrap.appendChild(row);
       row.querySelectorAll('.maker-btn').forEach(btn=>{
-        btn.addEventListener('click', ()=>{ makerStatus = btn.dataset.v; renderTags('male'); });
+        btn.addEventListener('click', ()=>{ makerStatus = btn.dataset.v; renderTags('male'); if(lastClutchEggs.length) renderClutchEggs(); });
       });
     }
   }
@@ -8348,6 +8348,15 @@ function geneWarning(g){
   if(!g || !g.warning) return undefined;
   return (currentLang==='en') ? (g.warningEn || g.warning) : g.warning;
 }
+// v3.34 — même ordre que les fiches (summarizeGenes) : formes « super »/combos 2 copies d'abord,
+// puis les autres visuels, chaque groupe en ordre alphabétique. Résultats du calculateur, œufs
+// simulés et simulateur de rêverie.
+function sortedVisualLabels(traits){
+  const vis = traits.filter(tr=>tr.visual);
+  const sup = vis.filter(tr=>tr.isSuper).map(tr=>tr.label).sort();
+  const rest = vis.filter(tr=>!tr.isSuper).map(tr=>tr.label).sort();
+  return sup.concat(rest);
+}
 function phenotypeForLocusPair(locus, pair){
   const [a,b] = pair;
   if(a==='WT' && b==='WT') return null;
@@ -8355,7 +8364,7 @@ function phenotypeForLocusPair(locus, pair){
   if(a===b){
     const g = genesAtLocus.find(x=>x.id===a);
     if(g.type==='recessive') return {label:g.name, visual:true, geneIds:[g.id]};
-    return {label:superName(g), visual:true, warning:geneWarning(g), geneIds:[g.id]};
+    return {label:superName(g), visual:true, isSuper:true, warning:geneWarning(g), geneIds:[g.id]};
   }
   if(a==='WT' || b==='WT'){
     const mutId = a==='WT'?b:a;
@@ -8367,8 +8376,8 @@ function phenotypeForLocusPair(locus, pair){
   const compoundName = (COMPOUND_NAMES[locus] && COMPOUND_NAMES[locus][key]);
   const gA = genesAtLocus.find(x=>x.id===a), gB = genesAtLocus.find(x=>x.id===b);
   const warnings = [geneWarning(gA), geneWarning(gB)].filter(Boolean);
-  if(compoundName) return {label:compoundName, visual:true, geneIds:[a,b], warning: warnings.join(' ') || undefined};
-  return {label:gA.name+' + '+gB.name+' (combo)', visual:true, geneIds:[a,b], warning: warnings.join(' ') || undefined};
+  if(compoundName) return {label:compoundName, visual:true, isSuper:true, geneIds:[a,b], warning: warnings.join(' ') || undefined};
+  return {label:gA.name+' + '+gB.name+' (combo)', visual:true, isSuper:true, geneIds:[a,b], warning: warnings.join(' ') || undefined};
 }
 
 /* ==================== PLANIFICATEUR DE PAIRING PAR OBJECTIF ==================== */
@@ -8552,7 +8561,7 @@ function computeCrossOutcomes(genesA, genesB){
   });
   const agg = {};
   distributions.forEach(d=>{
-    const visuals = d.traits.filter(tr=>tr.visual).map(tr=>tr.label).sort();
+    const visuals = sortedVisualLabels(d.traits);
     const hets = d.traits.filter(tr=>!tr.visual).map(tr=>tr.label).sort();
     const key = JSON.stringify(d.genotype);
     if(!agg[key]) agg[key] = {visuals, hets, prob:0, genotype:d.genotype};
@@ -8859,7 +8868,7 @@ function runCross(){
   // aggregate by display key
   const agg = {};
   distributions.forEach(d=>{
-    const visuals = d.traits.filter(tr=>tr.visual).map(tr=>tr.label).sort();
+    const visuals = sortedVisualLabels(d.traits);
     const hets = d.traits.filter(tr=>!tr.visual).map(tr=>tr.label).sort();
     const warnings = d.traits.filter(tr=>tr.warning).map(tr=>tr.warning);
     const visualGeneIds = d.traits.filter(tr=>tr.visual).flatMap(tr=>tr.geneIds||[]);
@@ -9006,7 +9015,7 @@ function sampleEgg(){
   const cum = lastDistributions.map(d=>{ acc += d.prob; return {...d, cum:acc}; });
   const roll = Math.random()*acc;
   const picked = cum.find(c=>roll<=c.cum) || cum[cum.length-1];
-  const visuals = picked.traits.filter(tr=>tr.visual).map(tr=>tr.label).sort();
+  const visuals = sortedVisualLabels(picked.traits);
   const hets = picked.traits.filter(tr=>!tr.visual).map(tr=>tr.label).sort();
   const visualGeneIds = picked.traits.filter(tr=>tr.visual).flatMap(tr=>tr.geneIds||[]);
   const warnings = picked.traits.filter(tr=>tr.warning).map(tr=>tr.warning);
@@ -9023,17 +9032,47 @@ function simulateClutch(){
   if(isNaN(n)) n = 6;
   n = Math.max(1, Math.min(12, n));
 
-  const container = document.getElementById('clutch-results');
-  container.innerHTML = '';
   lastClutchEggs = [];
-  for(let i=0;i<n;i++){
-    const egg = sampleEgg();
-    lastClutchEggs.push(egg);
+  for(let i=0;i<n;i++) lastClutchEggs.push(sampleEgg());
+  renderClutchEggs();
+}
+// v3.33 — sexe probable par œuf quand le mâle est marqué Male/Female Maker (gratuit, choix d'Alex) :
+// montre que la simulation suit la logique du gène lié au sexe, pas un pur hasard. Indicatif
+// seulement (crossover possible) — n'est JAMAIS écrit dans une fiche. Redessine sans re-tirer.
+function clutchEggProbableSex(egg){
+  const makerGene = activeMakerGene('male');
+  if(!makerGene || makerStatus==='unknown' || !egg || !egg.genotype) return null;
+  const hasGene = !!egg.genotype[makerGene.id];
+  if(makerStatus==='male') return hasGene ? 'male' : 'female';
+  return hasGene ? 'female' : 'male';
+}
+function renderClutchEggs(){
+  const isEn = currentLang==='en';
+  const container = document.getElementById('clutch-results');
+  if(!container) return;
+  container.innerHTML = '';
+  let anySex = false;
+  lastClutchEggs.forEach((egg,i)=>{
+    if(!egg) return;
+    const sx = clutchEggProbableSex(egg);
+    if(sx) anySex = true;
+    const sexHtml = sx ? '<div class="egg-sex" style="font-size:10px;font-weight:700;margin-top:4px;color:'+(sx==='male'?'#2f6fa8':'#a8456f')+';">'+(sx==='male'?(isEn?'♂ likely':'♂ probable'):(isEn?'♀ likely':'♀ probable'))+'</div>' : '';
     const eggEl = document.createElement('div');
     eggEl.className='egg-card';
     eggEl.innerHTML = '<div class="egg-num">'+(isEn?'Egg ':'Œuf ')+(i+1)+'</div><div class="egg-name">'+egg.name+'</div>'+
-      (egg.hets.length ? '<div class="egg-het">het '+egg.hets.join(', ')+'</div>' : '');
+      (egg.hets.length ? '<div class="egg-het">het '+egg.hets.join(', ')+'</div>' : '')+sexHtml;
     container.appendChild(eggEl);
+  });
+  if(anySex){
+    const gn = activeMakerGene('male').name;
+    const note = document.createElement('div');
+    note.style.cssText = 'grid-column:1/-1;font-size:11px;color:var(--ink-dim);margin-top:8px;';
+    note.textContent = makerStatus==='male'
+      ? (isEn ? 'Likely sex deduced from the Male Maker sire: '+gn+' eggs → male, the others → female. Exceptions are possible (crossover) — always sex the babies to confirm.'
+              : 'Sexe probable déduit du mâle Male Maker : œufs '+gn+' → mâle, les autres → femelle. Des exceptions sont possibles (crossover) — toujours sexer les bébés pour confirmer.')
+      : (isEn ? 'Likely sex deduced from the Female Maker sire: '+gn+' eggs → female, the others → male. Exceptions are possible (crossover) — always sex the babies to confirm.'
+              : 'Sexe probable déduit du mâle Female Maker : œufs '+gn+' → femelle, les autres → mâle. Des exceptions sont possibles (crossover) — toujours sexer les bébés pour confirmer.');
+    container.appendChild(note);
   }
 }
 
