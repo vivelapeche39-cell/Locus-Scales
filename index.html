@@ -2152,7 +2152,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.37';
+const APP_VERSION = '2026.09.01.3.39';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3502,7 +3502,9 @@ const COMPOUND_NAMES = {
     'sulfur+vanilla': 'Black-Eyed Leucistic (BlkEL) — combo Sulfur/Vanilla',
   },
   tAlbinoComplex: {
-    'albino+candy': 'Ultramel — combo Albino/Candy(Toffee)',
+    // v3.39 — corrigé : Albino × Candy = « Candino » (World of Ball Pythons, « combination of Candy and Albino »).
+    // L'ancien libellé « Ultramel » était faux : Ultramel est un autre gène.
+    'albino+candy': 'Candino — combo Albino/Candy(Toffee)',
   },
   cinnamonComplex: {
     'blackpastel+cinnamon': '8-Ball — combo Cinnamon/Black Pastel',
@@ -4330,13 +4332,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.37', date:'2026-10-08',
+  { version:'3.39', date:'2026-10-08',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
         'Noms de morphs écrits comme dans le milieu : « Super Pastel Banana Granite het Clown » au lieu de « Pastel (Super), Banana (Visuel)… ». Les formes super passent en premier partout (fiches, listes, calculateur, ponte simulée).',
         'Simuler une ponte : si le mâle est marqué Male Maker ou Female Maker, chaque œuf affiche son sexe probable (♂/♀), avec une note sur les exceptions possibles.',
-        '🎲 Mes chances cette saison (calculateur) : coche les traits de ton bébé visé, choisis le nombre de pontes et d\'œufs, et vois ta chance réelle d\'en avoir au moins un. Réservé aux paliers Première ponte et Illimité après la bêta.',
+        '🎲 Mes chances cette saison (calculateur) : coche les traits de ton bébé visé, choisis le nombre de pontes et d\'œufs, et vois ta chance réelle d\'en avoir au moins un. « Pastel » compte aussi les Super Pastel, et un trait que tous les bébés auront est coché d\'office. Fonctionne aussi pour les récessifs visuels et les combos d\'allèles (BEL, BlkEL, Candino…). Réservé aux paliers Première ponte et Illimité après la bêta.',
         '🐣 Croissance vs frères et sœurs : sur la fiche d\'un bébé, sa courbe de poids comparée à celle de sa portée, avec son rang et son écart à la médiane.',
         '⚖️ Rappels de pesée discrets en Mode Tournée : bébé de moins de 12 mois avec 3 refus de suite ou 21 jours sans manger, adulte sans repas depuis plus de 3 mois.',
         '🖼️ Image à partager : choisis une photo, LOCUS ajoute le nom, le sexe, la génétique, le prix (en option) et un petit logo. Tout se fait sur ton appareil.',
@@ -4344,12 +4346,14 @@ const CHANGELOG = [
         '📷 Plusieurs photos peuvent maintenant être ajoutées d\'un coup sur une fiche.',
         'Correctif : le champ « Pièce » pouvait se faire remplir automatiquement par un courriel (remplissage automatique du téléphone). Bloqué, et un courriel n\'est plus accepté comme nom de pièce.',
         'Correctif : les fenêtres Compatibilité et Image à partager s\'ouvraient derrière la fiche de l\'animal.',
+        'Génétique : le combo Albino × Candy s\'appelle maintenant « Candino » (il était nommé « Ultramel » par erreur — Ultramel est un autre gène).',
+        'Correctif : le carré de Punnett plantait quand un seul des deux parents avait un gène (ex. Pastel × Normal).',
         'Génétique : le super des gènes du complexe Fire s\'affiche « Black-Eyed Leucistic (BlkEL) » — le sigle BEL désigne le Blue-Eyed Leucistic.'
       ],
       en:[
         'Morph names now written the way the hobby does: "Super Pastel Banana Granite het Clown" instead of "Pastel (Super), Banana (Visual)…". Super forms come first everywhere (records, lists, calculator, simulated clutch).',
         'Simulate a clutch: if the sire is marked Male Maker or Female Maker, each egg shows its likely sex (♂/♀), with a note about possible exceptions.',
-        '🎲 My odds this season (calculator): check the traits of your target baby, pick the number of clutches and eggs, and see your real chance of getting at least one. Reserved for the First Clutch and Unlimited tiers after the beta.',
+        '🎲 My odds this season (calculator): check the traits of your target baby, pick the number of clutches and eggs, and see your real chance of getting at least one. "Pastel" also counts Super Pastels, and a trait every baby will have is checked automatically. Also works for visual recessives and allelic combos (BEL, BlkEL, Candino…). Reserved for the First Clutch and Unlimited tiers after the beta.',
         '🐣 Growth vs clutchmates: on a baby\'s record, its weight curve compared with its clutch, with its rank and gap to the median.',
         '⚖️ Discreet weigh reminders in Tour Mode: baby under 12 months with 3 refusals in a row or 21 days without a meal, adult with no meal for more than 3 months.',
         '🖼️ Image to share: pick a photo, LOCUS adds the name, sex, genetics, price (optional) and a small logo. Everything happens on your device.',
@@ -4357,6 +4361,8 @@ const CHANGELOG = [
         '📷 Several photos can now be added to a record at once.',
         'Fix: the "Room" field could get auto-filled with an email address (phone autofill). Blocked, and an email is no longer accepted as a room name.',
         'Fix: the Compatibility and Image to share windows opened behind the animal\'s record.',
+        'Genetics: the Albino × Candy combo is now named "Candino" (it was wrongly labelled "Ultramel" — Ultramel is a different gene).',
+        'Fix: the Punnett square crashed when only one parent carried a gene (e.g. Pastel × Normal).',
         'Genetics: the super form of Fire-complex genes now reads "Black-Eyed Leucistic (BlkEL)" — BEL stands for Blue-Eyed Leucistic.'
       ]
     }
@@ -9020,7 +9026,8 @@ function runCross(){
   renderActualPanel();
 
   if(loci.length===1){
-    renderPunnett(loci[0], p1[loci[0]], p2[loci[0]]);
+    // v3.39 — un parent sans gène à ce locus (ex. Pastel × Normal) faisait planter le carré de Punnett.
+    renderPunnett(loci[0], p1[loci[0]]||['WT','WT'], p2[loci[0]]||['WT','WT']);
   } else {
     document.getElementById('punnett-wrap').style.display = 'none';
   }
@@ -9099,18 +9106,45 @@ function sampleEgg(){
 var chancesTargets = [];
 var chancesClutches = 1;
 var chancesEggs = 6;
-function chancesVisualLabelUniverse(){
-  const supSet = new Set(), restSet = new Set();
-  lastDistributions.forEach(d=>d.traits.forEach(tr=>{ if(tr.visual) (tr.isSuper?supSet:restSet).add(tr.label); }));
-  return [...supSet].sort().concat([...restSet].sort().filter(l=>!supSet.has(l)));
-}
-function chancesTargetProbability(targets){
-  if(!targets.length) return 0;
-  let p = 0;
-  lastDistributions.forEach(d=>{
-    const vis = d.traits.filter(tr=>tr.visual).map(tr=>tr.label);
-    if(targets.every(tg=>vis.includes(tg))) p += d.prob;
+// v3.38 — cibles basées sur le GÉNOTYPE, plus sur les libellés : « Pastel » = au moins 1 copie
+// (un Super Pastel est aussi Pastel), « Super Pastel » = 2 copies, récessif = visuel seulement.
+// Avant, « Pastel » exigeait exactement 1 copie, ce qui excluait les Super et faussait le %.
+// Un trait que TOUS les bébés auront (p = 100 %) est coché d'office et verrouillé.
+function chancesItems(){
+  const byId = {};
+  lastDistributions.forEach(d=>Object.keys(d.genotype||{}).forEach(gid=>{ (byId[gid] = byId[gid] || new Set()).add(d.genotype[gid]); }));
+  const sup = [], vis = [];
+  Object.keys(byId).forEach(gid=>{
+    const g = GENES.find(x=>x.id===gid);
+    if(!g || g.type==='unknown') return;
+    const st = byId[gid];
+    if(g.type==='recessive'){
+      if(st.has('visual')) vis.push({ key:'v:'+gid, label:g.name, test:gt=>gt[gid]==='visual' });
+      return;
+    }
+    vis.push({ key:'g:'+gid, label:g.name, test:gt=>gt[gid]==='single'||gt[gid]==='homo' });
+    if(st.has('homo')) sup.push({ key:'s:'+gid, label:superName(g), isSuper:true, test:gt=>gt[gid]==='homo' });
   });
+  // v3.39 — combos d'allèles du même locus (BEL Lesser/Mojave, BlkEL Fire/Flame, Candino Albino/Candy…) :
+  // l'animal porte UNE copie de chaque allèle. Pour les récessifs, c'est la seule façon d'avoir le
+  // visuel du combo (chaque allèle seul n'est que « het »), donc il faut sa propre case.
+  const seenCombo = {};
+  lastDistributions.forEach(d=>d.traits.forEach(tr=>{
+    if(!tr.visual || !tr.geneIds || tr.geneIds.length!==2) return;
+    const ids = [...tr.geneIds].sort(); const key = 'c:'+ids.join('+');
+    if(seenCombo[key]) return;
+    seenCombo[key] = true;
+    sup.push({ key, label:tr.label, isSuper:true, test:gt=>!!gt[ids[0]] && !!gt[ids[1]] });
+  }));
+  const byLabel = (a,b)=>a.label.localeCompare(b.label);
+  const items = sup.sort(byLabel).concat(vis.sort(byLabel));
+  items.forEach(it=>{ it.p = chancesTargetProbability([it]); it.locked = it.p>=0.999999; });
+  return items;
+}
+function chancesTargetProbability(items){
+  if(!items.length) return 0;
+  let p = 0;
+  lastDistributions.forEach(d=>{ const gt = d.genotype||{}; if(items.every(it=>it.test(gt))) p += d.prob; });
   return Math.min(1, p);
 }
 function fmtPct(x, precise){
@@ -9127,23 +9161,29 @@ function renderChancesPanel(){
   panel.style.display = 'block';
   const title = '<div class="clutch-hdr"><h2>🎲 '+(isEn?'My odds this season':'Mes chances cette saison')+'</h2></div>';
   if(!hasAccess('seasonChances')){ panel.innerHTML = title+lockedFeatureHtml(); return; }
-  const universe = chancesVisualLabelUniverse();
-  chancesTargets = chancesTargets.filter(tg=>universe.includes(tg));
+  const items = chancesItems();
+  const keys = items.map(it=>it.key);
+  chancesTargets = chancesTargets.filter(k=>keys.includes(k));
   const selStyle = 'font-size:16px;padding:6px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);';
   const clutchOpts = [1,2,3,4,5].map(n=>'<option value="'+n+'"'+(n===chancesClutches?' selected':'')+'>'+n+'</option>').join('');
   const eggOpts = Array.from({length:12},(_,i)=>i+1).map(n=>'<option value="'+n+'"'+(n===chancesEggs?' selected':'')+'>'+n+'</option>').join('');
-  const chips = universe.map((lab,i)=>{
-    const on = chancesTargets.includes(lab);
+  const chips = items.map((it,i)=>{
+    if(it.locked) return '<span style="display:inline-flex;align-items:center;gap:6px;margin:0 8px 8px 0;padding:6px 10px;border:1px solid var(--sage);border-radius:999px;font-size:13px;opacity:.85;">✓ '+escapeHtml(it.label)+' <small style="color:var(--ink-dim);">('+(isEn?'all babies':'tous les bébés')+')</small></span>';
+    const on = chancesTargets.includes(it.key);
     return '<label style="display:inline-flex;align-items:center;gap:6px;margin:0 8px 8px 0;padding:6px 10px;border:1px solid '+(on?'var(--gold)':'var(--line)')+';border-radius:999px;font-size:13px;cursor:pointer;">'+
-      '<input type="checkbox" data-chance-i="'+i+'"'+(on?' checked':'')+' onchange="toggleChanceTarget('+i+')"/> '+escapeHtml(lab)+'</label>';
+      '<input type="checkbox"'+(on?' checked':'')+' onchange="toggleChanceTarget(\''+it.key+'\')"/> '+escapeHtml(it.label)+'</label>';
   }).join('');
+  const lockedItems = items.filter(it=>it.locked);
+  const chosen = items.filter(it=>!it.locked && chancesTargets.includes(it.key));
   let resultHtml;
-  if(!chancesTargets.length){
+  if(!chosen.length){
     resultHtml = '<p style="font-size:13px;color:var(--ink-dim);margin:8px 0 0;">'+(isEn?'Check the traits your dream baby must show.':'Coche les traits que ton bébé visé doit montrer.')+'</p>';
   } else {
-    const p = chancesTargetProbability(chancesTargets);
+    const p = chancesTargetProbability(chosen);
     const n = chancesClutches*chancesEggs;
-    const target = escapeHtml(universe.filter(l=>chancesTargets.includes(l)).join(' '));
+    // Nom affiché : un « Pastel » coché avec « Super Pastel » est redondant → on garde le Super.
+    const shown = lockedItems.concat(chosen).filter(it=>!(it.key.indexOf('g:')===0 && (chosen.concat(lockedItems)).some(o=>o.key==='s:'+it.key.slice(2))));
+    const target = escapeHtml(shown.map(it=>it.label).join(' '));
     if(p<=0){
       resultHtml = '<div class="warn" style="margin-top:10px;">'+(isEn?'Impossible with this pairing: no baby can show all of these traits together.':'Impossible avec cet accouplement : aucun bébé ne peut montrer tous ces traits ensemble.')+'</div>';
     } else {
@@ -9177,10 +9217,8 @@ function renderChancesPanel(){
       '<label>'+(isEn?'Eggs per clutch: ':'Œufs par ponte : ')+'<select style="'+selStyle+'" onchange="chancesEggs=parseInt(this.value,10)||6;renderChancesPanel();">'+eggOpts+'</select></label>'+
     '</div>'+resultHtml;
 }
-function toggleChanceTarget(i){
-  const lab = chancesVisualLabelUniverse()[i];
-  if(lab===undefined) return;
-  chancesTargets = chancesTargets.includes(lab) ? chancesTargets.filter(x=>x!==lab) : chancesTargets.concat([lab]);
+function toggleChanceTarget(key){
+  chancesTargets = chancesTargets.includes(key) ? chancesTargets.filter(x=>x!==key) : chancesTargets.concat([key]);
   renderChancesPanel();
 }
 
