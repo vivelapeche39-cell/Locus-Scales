@@ -2093,6 +2093,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
     <button class="app-menu-item" onclick="closeAppMenu(); openTermsModal();"><span>📄</span> <span data-i18n="menuTerms">Conditions d'utilisation</span></button>
     <button class="app-menu-item" onclick="closeAppMenu(); openPrivacyModal();"><span>🔒</span> <span data-i18n="menuPrivacy">Confidentialité</span></button>
     <button class="app-menu-item" onclick="closeAppMenu(); openBugReportModal();"><span>🐛</span> <span data-i18n="menuBugReport">Signaler un bug</span></button>
+    <button class="app-menu-item" id="app-menu-admin" style="display:none;" onclick="closeAppMenu(); openAdminOverview();"><span>📊</span> <span data-i18n="menuAdmin">Admin</span></button>
     <div class="app-menu-foot">LOCUS Scales — Gestion d'élevage Python royal</div>
   </div>
 </div>
@@ -2168,7 +2169,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.44';
+const APP_VERSION = '2026.09.01.3.45';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3764,7 +3765,11 @@ function updateStorageBanner(){
 }
 
 /* ==================== MENU PRINCIPAL (☰) ==================== */
-function openAppMenu(){ document.getElementById('app-menu-overlay').classList.add('open'); }
+function openAppMenu(){
+  const adm = document.getElementById('app-menu-admin');
+  if(adm) adm.style.display = (typeof isAdminUser!=='undefined' && isAdminUser) ? '' : 'none';
+  document.getElementById('app-menu-overlay').classList.add('open');
+}
 function closeAppMenu(){ document.getElementById('app-menu-overlay').classList.remove('open'); }
 
 /* Rapport de bug (25 août) — dépôt volontairement à sens unique : n'importe qui peut soumettre
@@ -4351,10 +4356,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.44', date:'2026-10-08',
+  { version:'3.45', date:'2026-10-08',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        'Sécurité : un compte ne peut plus modifier lui-même son statut administrateur ni son palier (protection ajoutée côté serveur).',
         '🔒 Mode Verrou en pastilles : une ligne compacte par couple (🔒 lock d\'aujourd\'hui, 🤝 ensemble / ⏸ séparés, ▾ lock à une autre date et historique), « Ensemble ce soir » en premier, menu déroulant au-delà de 12 couples. Relié au Plan de saison (« Démarrer » = « Ensemble », « Séparer » fixe la vraie fin et le repos du mâle suit), locks affichés sur les séances, entrées « Mis ensemble / Séparés / Lock » dans le journal des 2 animaux, et statut des mâles (avec qui, en repos, prochaine séance) dans l\'Agenda.',
         '🗓️ Plan de saison (Reproduction → Calendrier) : prépare tes pairings d\'avance — mâle, femelles avec leur date de début prévue, poids comparé au minimum, notes, et rotation du mâle calculée selon ton rythme (nuits ensemble / jours de repos). Rappels dans l\'Agenda dès 7 jours avant, la veille et le jour J. « ▶ Démarrer » crée l\'accouplement habituel ; « ⏸ Décaler » déplace l\'horaire plus tard ou plus tôt en cours de saison (mue, refus, mâle…) et chaque repos du mâle entre deux séances est affiché et modifiable ; une femelle dont l\'ovulation est confirmée sort de la rotation. Réservé aux paliers Première ponte et Illimité après la bêta.',
         'Noms de morphs écrits comme dans le milieu : « Super Pastel Banana Granite het Clown » au lieu de « Pastel (Super), Banana (Visuel)… ». Les formes super passent en premier partout (fiches, listes, calculateur, ponte simulée).',
@@ -4372,6 +4378,7 @@ const CHANGELOG = [
         'Génétique : le super des gènes du complexe Fire s\'affiche « Black-Eyed Leucistic (BlkEL) » — le sigle BEL désigne le Blue-Eyed Leucistic.'
       ],
       en:[
+        'Security: an account can no longer change its own administrator status or tier (server-side protection added).',
         '🔒 Lock mode as compact pills: one row per pair (🔒 today\'s lock, 🤝 together / ⏸ separated, ▾ lock on another date and history), "Together tonight" first, a dropdown beyond 12 pairs. Linked to the Season plan ("Start" = "Together", "Separate" sets the real end and the male\'s rest follows), locks shown on sessions, "Put together / Separated / Lock" entries in both animals\' journals, and breeding male status (with whom, resting, next session) in the Agenda.',
         '🗓️ Season plan (Breeding → Calendar): prepare your pairings ahead — male, females with their planned start date, weight vs minimum, notes, and a male rotation built from your rhythm (nights together / rest days). Agenda reminders from 7 days before, the day before and on the day. "▶ Start" creates the usual pairing; "⏸ Postpone" moves the schedule later or earlier mid-season (shed, refusal, male…) and each male rest between sessions is shown and editable; a female with confirmed ovulation leaves the rotation. Reserved for the First Clutch and Unlimited tiers after the beta.',
         'Morph names now written the way the hobby does: "Super Pastel Banana Granite het Clown" instead of "Pastel (Super), Banana (Visual)…". Super forms come first everywhere (records, lists, calculator, simulated clutch).',
@@ -4718,6 +4725,7 @@ const I18N = {
     menuTerms: 'Conditions d\'utilisation',
     menuPrivacy: 'Confidentialité',
     menuBugReport: 'Signaler un bug',
+    menuAdmin: 'Admin — résumé',
     bugReportTitle: 'Signaler un bug',
     bugReportHint: 'Décris ce qui s\'est passé — même juste quelques mots aident. Une capture d\'écran est un plus, mais pas obligatoire.',
     bugReportDescLabel: 'Qu\'est-ce qui s\'est passé ?',
@@ -5284,6 +5292,7 @@ const I18N = {
     menuTerms: 'Terms of Use',
     menuPrivacy: 'Privacy',
     menuBugReport: 'Report a bug',
+    menuAdmin: 'Admin — summary',
     bugReportTitle: 'Report a bug',
     bugReportHint: 'Describe what happened — even a few words help. A screenshot is a plus, but not required.',
     bugReportDescLabel: 'What happened?',
@@ -22624,6 +22633,57 @@ function renderHealthLog(){
 // community_faq, RLS : lecture publique si approuvée, écriture propre à l'auteur, modération
 // réservée au drapeau is_admin sur profiles). Distincte de HUSBANDRY_FAQ (contenu officiel/sourcé
 // par LOCUS) — celle-ci est du contenu généré par la communauté, publié seulement après révision.
+// ==================== Onglet Admin (v3.45) — visible seulement pour Alex (profiles.is_admin) ====================
+// Lit le résumé via la RPC admin_overview() (SECURITY DEFINER, refuse tout non-admin côté serveur —
+// cacher le bouton n'est qu'un confort, la vraie protection est dans la base). Pas d'outil de
+// mesure de visites : « trafic » = inscriptions, connexions et données entrées, ce que Supabase sait.
+function adminAgo(iso){
+  if(!iso) return currentLang==='en' ? 'never' : 'jamais';
+  const d = Math.floor((Date.now() - Date.parse(iso)) / 86400000);
+  if(d<=0) return currentLang==='en' ? 'today' : 'aujourd\'hui';
+  if(d===1) return currentLang==='en' ? 'yesterday' : 'hier';
+  return currentLang==='en' ? d+' d ago' : 'il y a '+d+' j';
+}
+async function openAdminOverview(){
+  const isEn = currentLang==='en';
+  if(!isAdminUser || !sb || !currentUser) return;
+  if(!navigator.onLine){ showToast(isEn?'Offline — the admin summary needs the network.':'Hors ligne — le résumé admin a besoin du réseau.', 'error'); return; }
+  showQuickModal('📊 Admin', '<p style="font-size:14px;color:var(--ink-dim);">'+(isEn?'Loading…':'Chargement…')+'</p>');
+  const { data, error } = await sb.rpc('admin_overview');
+  if(error || !data){
+    document.getElementById('quick-modal-body').innerHTML = '<div class="warn">'+(isEn?'Could not load the summary: ':'Impossible de charger le résumé : ')+escapeHtml(error?error.message:'?')+'</div>';
+    return;
+  }
+  const tt = data.totals || {};
+  const tile = (n, label, sub)=>'<div style="flex:1 1 30%;min-width:96px;padding:10px;border:1px solid var(--line);border-radius:12px;text-align:center;">'+
+    '<div style="font-size:26px;font-weight:800;color:var(--gold);">'+(n==null?'—':n)+'</div>'+
+    '<div style="font-size:12.5px;color:var(--ink);">'+label+'</div>'+(sub?'<div style="font-size:11px;color:var(--ink-dim);">'+sub+'</div>':'')+'</div>';
+  const users = (data.users||[]);
+  const rows = users.map(u=>{
+    const dot = u.reptiles>0 ? '🟢' : (u.last_sign_in_at ? '🟡' : '⚪');
+    return '<div style="padding:10px 0;border-bottom:1px dashed var(--line);">'+
+      '<div style="font-size:15px;font-weight:700;word-break:break-all;color:var(--ink);">'+dot+' '+escapeHtml(u.email||'?')+(u.confirmed?'':' <span style="font-size:12px;color:var(--rust);">('+(isEn?'not confirmed':'non confirmé')+')</span>')+'</div>'+
+      '<div style="font-size:13px;color:var(--ink-dim);margin-top:3px;">'+
+        (isEn?'Signed up ':'Inscrit ')+escapeHtml(String(u.created_at||'').slice(0,10))+' · '+(isEn?'last sign-in ':'dernière connexion ')+adminAgo(u.last_sign_in_at)+'</div>'+
+      '<div style="font-size:13px;margin-top:3px;">🐍 '+u.reptiles+' · 🤝 '+u.pairings+' · 🥚 '+u.clutches+(u.last_data_change?' · '+(isEn?'data changed ':'données modifiées ')+adminAgo(u.last_data_change):'')+'</div>'+
+    '</div>';
+  }).join('');
+  document.getElementById('quick-modal-body').innerHTML =
+    '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">'+
+      tile(tt.users, isEn?'accounts':'comptes', (tt.confirmed||0)+(isEn?' confirmed':' confirmés'))+
+      tile(tt.signups_7d, isEn?'sign-ups (7 d)':'inscriptions (7 j)', (tt.signups_30d||0)+(isEn?' in 30 d':' en 30 j'))+
+      tile(tt.active_7d, isEn?'active (7 d)':'actifs (7 j)', (tt.active_30d||0)+(isEn?' in 30 d':' en 30 j'))+
+      tile(tt.with_data, isEn?'with animals':'avec des animaux', (tt.reptiles||0)+(isEn?' reptiles total':' reptiles au total'))+
+      tile(tt.reptiles_7d, isEn?'reptiles added (7 d)':'reptiles ajoutés (7 j)', '')+
+      tile(tt.bug_reports_open, isEn?'open bug reports':'bugs ouverts', (tt.bug_reports||0)+(isEn?' total':' au total'))+
+    '</div>'+
+    '<div style="font-size:12px;color:var(--ink-dim);margin-bottom:6px;">🟢 '+(isEn?'has animals':'a des animaux')+' · 🟡 '+(isEn?'signed in, nothing entered':'connecté, rien entré')+' · ⚪ '+(isEn?'never signed in':'jamais connecté')+'</div>'+
+    rows+
+    '<p class="husbandry-health-note" style="margin-top:12px;">'+(isEn
+      ? 'Counts only — no prices, buyers or locations. Page visits are not measured (no analytics tool installed).'
+      : 'Compteurs seulement — aucun prix, acheteur ni emplacement. Les visites de pages ne sont pas mesurées (aucun outil d\'analyse installé).')+'</p>'+
+    '<p style="font-size:11px;color:var(--ink-dim);text-align:right;">'+(isEn?'Updated ':'Mis à jour ')+escapeHtml(String(data.generated_at||'').slice(0,16).replace('T',' '))+' UTC</p>';
+}
 var isAdminUser = false;
 var userTier = 'gratuit'; // palier tarifaire du compte connecté — voir hasAccess() tout en haut du fichier
 async function checkAdminStatus(){
