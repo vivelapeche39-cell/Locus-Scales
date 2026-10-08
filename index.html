@@ -2147,7 +2147,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.25';
+const APP_VERSION = '2026.09.01.3.26';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3100,13 +3100,47 @@ function showAuthError(msg){
   err.textContent = msg;
   err.style.display = 'block';
 }
+function showUnconfirmedEmailHelp(email){
+  const isEn = currentLang==='en';
+  const err = document.getElementById('auth-error');
+  if(!err) return;
+  err.innerHTML = escapeHtml(isEn
+      ? 'Your email address hasn\'t been confirmed yet. Check your inbox (and spam / Promotions folder) for the confirmation email, or get a new link:'
+      : 'Ton adresse courriel n\'est pas encore confirmée. Regarde dans ta boîte de réception (et tes indésirables / l\'onglet Promotions), ou reçois un nouveau lien :')+
+    '<br><button type="button" class="sc-btn accent" style="margin-top:8px;width:100%;" onclick="resendConfirmationEmail()">📧 '+(isEn?'Resend confirmation email':'Renvoyer le courriel de confirmation')+'</button>';
+  err.style.display = 'block';
+}
+async function resendConfirmationEmail(){
+  const isEn = currentLang==='en';
+  const email = (document.getElementById('auth-email')||{}).value;
+  if(!sb || !email) return;
+  try{
+    const { error } = await sb.auth.resend({ type:'signup', email: email.trim() }); // même redirection que l'inscription (Site URL)
+    if(error){
+      // Limite anti-abus de Supabase (un renvoi par minute environ) ou autre refus du serveur.
+      showAuthError((isEn?'Could not resend right now — wait a minute and try again. ':'Renvoi impossible pour l\'instant — attends une minute et réessaie. ')+'('+error.message+')');
+      return;
+    }
+    showAuthError(isEn
+      ? '📧 New confirmation email sent to '+email.trim()+'. Click the link inside, then sign in here.'
+      : '📧 Nouveau courriel de confirmation envoyé à '+email.trim()+'. Clique sur le lien dedans, puis connecte-toi ici.');
+  }catch(e){
+    showAuthError(isEn?'No connection — try again when you\'re online.':'Pas de connexion — réessaie quand tu seras en ligne.');
+  }
+}
 async function handleAuthSignIn(){
   const isEn = currentLang==='en';
   const email = document.getElementById('auth-email').value.trim();
   const password = document.getElementById('auth-password').value;
   if(!email || !password){ showAuthError(isEn?'Email and password required.':'Courriel et mot de passe requis.'); return; }
   const res = await sbSignIn(email, password);
-  if(!res.ok){ showAuthError(res.error); return; }
+  if(!res.ok){
+    // v3.26 — courriel jamais confirmé : avant, la personne voyait juste « Email not confirmed » en
+    // anglais, sans aucun moyen de recevoir un nouveau lien (le premier expire). Bouton de renvoi.
+    if(/not confirmed/i.test(res.error||'')){ showUnconfirmedEmailHelp(email); return; }
+    if(/invalid login credentials/i.test(res.error||'')){ showAuthError(isEn?'Wrong email or password.':'Courriel ou mot de passe incorrect.'); return; }
+    showAuthError(res.error); return;
+  }
   closeAuthModal();
   showToast('🔐 '+(isEn?'Signed in successfully.':'Connecté avec succès.'), 'success');
   // Vraie cause trouvée (29 août) : le listener onAuthStateChange met currentUser à jour de façon
@@ -3128,7 +3162,7 @@ async function handleAuthSignUp(){
   const res = await sbSignUp(email, password);
   if(!res.ok){ showAuthError(res.error); return; }
   showAuthError('');
-  showToast('✅ '+(isEn?'Account created — check your inbox if confirmation is required.':'Compte créé — vérifie ta boîte courriel si une confirmation est requise.'), 'success');
+  showToast('✅ '+(isEn?'Account created — check your inbox (and spam / Promotions) for the confirmation email.':'Compte créé — vérifie ta boîte courriel (et tes indésirables / Promotions) pour le courriel de confirmation.'), 'success');
   // Même correctif que handleAuthSignIn (29 août) — mais ici on ne règle currentUser QUE si une
   // vraie session existe déjà (res.data.session). Si la confirmation par courriel est activée sur
   // ce projet Supabase, il peut y avoir un objet user sans session active tant que non confirmé —
