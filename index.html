@@ -2148,7 +2148,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.27';
+const APP_VERSION = '2026.09.01.3.28';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3179,7 +3179,10 @@ async function confirmNewPassword(){
   if(!sb) return fail(isEn?'No connection.':'Pas de connexion.');
   try{
     const { error } = await sb.auth.updateUser({ password: a });
-    if(error) return fail((isEn?'Could not save: ':'Enregistrement impossible : ')+error.message);
+    if(error){
+      if(/different from the old/i.test(error.message||'')) return fail(isEn?'Choose a password different from your current one.':'Choisis un mot de passe différent de ton mot de passe actuel.');
+      return fail((isEn?'Could not save: ':'Enregistrement impossible : ')+error.message);
+    }
     closeQuickModal();
     try{ history.replaceState(null, '', location.pathname); }catch(e){}
     showToast('🔑 '+(isEn?'New password saved — you\'re signed in.':'Nouveau mot de passe enregistré — tu es connecté.'), 'success');
@@ -4082,6 +4085,12 @@ function openProfileModal(){
     '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Phone':'Téléphone')+'</label>'+
     '<input type="text" id="profile-phone-input" class="draft-name" style="width:100%;margin:0 0 14px;" value="'+escapeHtml(p.phone||'')+'" placeholder="(514) 000-0000"/>'+
     '<button class="save-btn" style="width:100%;" onclick="saveProfileData()">'+(isEn?'Save':'Enregistrer')+'</button>'+
+    // v3.28 — changer son mot de passe en étant connecté (réutilise la fenêtre de la réinitialisation).
+    '<hr style="border:none;border-top:1px dashed var(--line);margin:18px 0;"/>'+
+    '<p style="margin:0 0 10px;"><b style="color:var(--sage);font-size:13px;">🔑 '+(isEn?'Password':'Mot de passe')+'</b></p>'+
+    ((currentUser && !offlineIdentity)
+      ? '<button class="sc-btn" style="width:100%;" onclick="openNewPasswordModal()">🔑 '+(isEn?'Change my password':'Changer mon mot de passe')+'</button>'
+      : '<p style="font-size:11px;color:var(--ink-dim);margin:0;">'+(isEn?'Sign in (with a connection) to change your password.':'Connecte-toi (avec une connexion internet) pour changer ton mot de passe.')+'</p>')+
     '<hr style="border:none;border-top:1px dashed var(--line);margin:18px 0;"/>'+
     '<p style="margin:0 0 6px;"><b style="color:var(--sage);font-size:13px;">🎛️ '+(isEn?'Personalized mode':'Mode personnalisé')+'</b></p>'+
     '<p style="font-size:11px;color:var(--ink-dim);margin:0 0 10px;line-height:1.5;">'+(isEn?'Show only the sections you actually use — build your own view of the app. Turn anything back on anytime.':'Affiche seulement les sections que tu utilises vraiment — construis ta propre vue de l\'app. Réactive n\'importe quoi en tout temps.')+'</p>'+
