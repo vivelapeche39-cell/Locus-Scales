@@ -48,6 +48,21 @@
      laissé à off. MAJ 7 oct (palier 2) : le service worker est maintenant enregistré, voir
      service-worker.js à la racine et le bloc SERVICE WORKER dans le script principal. -->
 <link rel="manifest" href="manifest.json"/>
+<!-- v3.42 — URL canonique (Search Console : « Page en double sans URL canonique sélectionnée »).
+     La même page répondait à /, /index.html, ?fbclid=…, ?nosw=1, etc. On garde seulement les
+     paramètres qui changent vraiment le contenu public (guide, public, litter, lang). -->
+<link rel="canonical" id="canonical-link" href="https://app.locusscales.com/"/>
+<script>
+(function(){
+  try{
+    var keep = ['guide','public','litter','lang'];
+    var q = new URLSearchParams(location.search), out = new URLSearchParams();
+    keep.forEach(function(k){ var v = q.get(k); if(v) out.set(k, v); });
+    var qs = out.toString();
+    document.getElementById('canonical-link').setAttribute('href', 'https://app.locusscales.com/' + (qs ? '?' + qs : ''));
+  }catch(e){}
+})();
+</script>
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png"/>
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png"/>
 <meta name="theme-color" content="#161210"/>
@@ -2153,7 +2168,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.41';
+const APP_VERSION = '2026.09.01.3.44';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2562,6 +2577,7 @@ const ILLIMITE_ONLY_FEATURES = [
 // ILLIMITE_ONLY_FEATURES à gérer 2 cas différents.
 const BREEDING_TIER_FEATURES = [
   'dreamSimulator',
+  'lockMode', // v3.44 — Mode Verrou (choix d'Alex : Première ponte + Illimité, cohérent avec la reproduction)
   'seasonPlan', // v3.40 — Plan de saison (choix d'Alex : Première ponte + Illimité)
   'seasonChances' // v3.35 — « Mes chances cette saison » (choix d'Alex : Première ponte + Illimité)
 ];
@@ -4335,11 +4351,12 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.41', date:'2026-10-08',
+  { version:'3.44', date:'2026-10-08',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
-        '🗓️ Plan de saison (Reproduction → Calendrier) : prépare tes pairings d\'avance — mâle, femelles avec leur date de début prévue, poids comparé au minimum, notes, et rotation du mâle calculée selon ton rythme (nuits ensemble / jours de repos). Rappels dans l\'Agenda dès 7 jours avant, la veille et le jour J. « ▶ Démarrer » crée l\'accouplement habituel ; « ⏸ Décaler » repousse l\'horaire en cours de saison (mue, refus…) ; une femelle dont l\'ovulation est confirmée sort de la rotation. Réservé aux paliers Première ponte et Illimité après la bêta.',
+        '🔒 Mode Verrou en pastilles : une ligne compacte par couple (🔒 lock d\'aujourd\'hui, 🤝 ensemble / ⏸ séparés, ▾ lock à une autre date et historique), « Ensemble ce soir » en premier, menu déroulant au-delà de 12 couples. Relié au Plan de saison (« Démarrer » = « Ensemble », « Séparer » fixe la vraie fin et le repos du mâle suit), locks affichés sur les séances, entrées « Mis ensemble / Séparés / Lock » dans le journal des 2 animaux, et statut des mâles (avec qui, en repos, prochaine séance) dans l\'Agenda.',
+        '🗓️ Plan de saison (Reproduction → Calendrier) : prépare tes pairings d\'avance — mâle, femelles avec leur date de début prévue, poids comparé au minimum, notes, et rotation du mâle calculée selon ton rythme (nuits ensemble / jours de repos). Rappels dans l\'Agenda dès 7 jours avant, la veille et le jour J. « ▶ Démarrer » crée l\'accouplement habituel ; « ⏸ Décaler » déplace l\'horaire plus tard ou plus tôt en cours de saison (mue, refus, mâle…) et chaque repos du mâle entre deux séances est affiché et modifiable ; une femelle dont l\'ovulation est confirmée sort de la rotation. Réservé aux paliers Première ponte et Illimité après la bêta.',
         'Noms de morphs écrits comme dans le milieu : « Super Pastel Banana Granite het Clown » au lieu de « Pastel (Super), Banana (Visuel)… ». Les formes super passent en premier partout (fiches, listes, calculateur, ponte simulée).',
         'Simuler une ponte : si le mâle est marqué Male Maker ou Female Maker, chaque œuf affiche son sexe probable (♂/♀), avec une note sur les exceptions possibles.',
         '🎲 Mes chances cette saison (calculateur) : coche les traits de ton bébé visé, choisis le nombre de pontes et d\'œufs, et vois ta chance réelle d\'en avoir au moins un. « Pastel » compte aussi les Super Pastel, et un trait que tous les bébés auront est coché d\'office. Fonctionne aussi pour les récessifs visuels et les combos d\'allèles (BEL, BlkEL, Candino…). Réservé aux paliers Première ponte et Illimité après la bêta.',
@@ -4355,7 +4372,8 @@ const CHANGELOG = [
         'Génétique : le super des gènes du complexe Fire s\'affiche « Black-Eyed Leucistic (BlkEL) » — le sigle BEL désigne le Blue-Eyed Leucistic.'
       ],
       en:[
-        '🗓️ Season plan (Breeding → Calendar): prepare your pairings ahead — male, females with their planned start date, weight vs minimum, notes, and a male rotation built from your rhythm (nights together / rest days). Agenda reminders from 7 days before, the day before and on the day. "▶ Start" creates the usual pairing; "⏸ Postpone" pushes the schedule back mid-season (shed, refusal…); a female with confirmed ovulation leaves the rotation. Reserved for the First Clutch and Unlimited tiers after the beta.',
+        '🔒 Lock mode as compact pills: one row per pair (🔒 today\'s lock, 🤝 together / ⏸ separated, ▾ lock on another date and history), "Together tonight" first, a dropdown beyond 12 pairs. Linked to the Season plan ("Start" = "Together", "Separate" sets the real end and the male\'s rest follows), locks shown on sessions, "Put together / Separated / Lock" entries in both animals\' journals, and breeding male status (with whom, resting, next session) in the Agenda.',
+        '🗓️ Season plan (Breeding → Calendar): prepare your pairings ahead — male, females with their planned start date, weight vs minimum, notes, and a male rotation built from your rhythm (nights together / rest days). Agenda reminders from 7 days before, the day before and on the day. "▶ Start" creates the usual pairing; "⏸ Postpone" moves the schedule later or earlier mid-season (shed, refusal, male…) and each male rest between sessions is shown and editable; a female with confirmed ovulation leaves the rotation. Reserved for the First Clutch and Unlimited tiers after the beta.',
         'Morph names now written the way the hobby does: "Super Pastel Banana Granite het Clown" instead of "Pastel (Super), Banana (Visual)…". Super forms come first everywhere (records, lists, calculator, simulated clutch).',
         'Simulate a clutch: if the sire is marked Male Maker or Female Maker, each egg shows its likely sex (♂/♀), with a note about possible exceptions.',
         '🎲 My odds this season (calculator): check the traits of your target baby, pick the number of clutches and eggs, and see your real chance of getting at least one. "Pastel" also counts Super Pastels, and a trait every baby will have is checked automatically. Also works for visual recessives and allelic combos (BEL, BlkEL, Candino…). Reserved for the First Clutch and Unlimited tiers after the beta.',
@@ -4982,6 +5000,9 @@ const I18N = {
     noLengthRecorded: 'Aucune mesure enregistrée',
     eventLength: 'Mesure',
     eventWater: 'Changement d\'eau',
+    eventPairIn: '🤝 Mis ensemble',
+    eventPairOut: '⏸ Séparés',
+    eventLock: '🔒 Lock',
     eventWaterQuality: 'Qualité de l\'eau',
     waterQualityHistoryTitle: 'Historique qualité de l\'eau',
     noWaterQualityRecorded: 'Aucune mesure de qualité d\'eau enregistrée.',
@@ -5545,6 +5566,9 @@ const I18N = {
     noLengthRecorded: 'No measurement recorded',
     eventLength: 'Measurement',
     eventWater: 'Water change',
+    eventPairIn: '🤝 Put together',
+    eventPairOut: '⏸ Separated',
+    eventLock: '🔒 Lock',
     eventWaterQuality: 'Water quality',
     waterQualityHistoryTitle: 'Water quality history',
     noWaterQualityRecorded: 'No water quality measurement recorded.',
@@ -9850,7 +9874,7 @@ function openLogbook(id){
   const eventsHtml = eventsSorted.length
     ? eventsSorted.map(e=>{
         const idx = s.health.events.indexOf(e);
-        const label = eventLabel(e.type)+(e.type==='weigh'?' ('+e.value+'g)':'')+(e.type==='length'?' ('+e.value+'cm)':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(currentLang==='en'?'partial':'partiel'):'')+feedPreyTag(e);
+        const label = eventLabel(e.type)+(e.type==='weigh'?' ('+e.value+'g)':'')+(e.type==='length'?' ('+e.value+'cm)':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(currentLang==='en'?'partial':'partiel'):'')+feedPreyTag(e)+(e.partner?' — '+escapeHtml(e.partner):'');
         return '<div class="modal-row"><span>'+e.date+'</span><span style="display:flex;align-items:center;gap:6px;">'+label+'<button class="sc-btn danger" style="padding:2px 8px;font-size:11px;line-height:1;" onclick="deleteHealthEvent(\''+id+'\','+idx+')">×</button></span></div>';
       }).join('')
     : '<div class="modal-row"><span>'+t('noEventRecorded')+'</span></div>';
@@ -9993,6 +10017,11 @@ function openLogbook(id){
       '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'weigh\')">'+t('eventWeigh')+'</button>'+
       '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'length\')">'+t('eventLength')+'</button>'+
     '</div>'+
+    (hasAccess('lockMode') ? pairings.filter(pp=>!pp.ovulationConfirmed && (pp.maleId===id||pp.femaleId===id)).map(pp=>{
+      const stL = pairCurrentState(pp); const tog = stL && stL.state==='in';
+      return '<div class="modal-row" style="margin-top:8px;"><span style="font-size:12.5px;">🐍 '+(isEn?'Pairing with ':'Accouplement avec ')+'<b>'+escapeHtml(spSnakeName(pp.maleId===id?pp.femaleId:pp.maleId))+'</b> · 🔒 '+(pp.lockDates||[]).length+'</span>'+
+        '<span style="display:flex;gap:4px;"><button class="sc-btn accent" onclick="quickAddLockToday(\''+pp.id+'\')">🔒 +</button><button class="sc-btn" onclick="togglePairSession(\''+pp.id+'\')">'+(tog?'⏸ '+(isEn?'Separate':'Séparer'):'🤝 '+(isEn?'Together':'Ensemble'))+'</button></span></div>';
+    }).join('') : '')+
     '<div class="modal-row" style="margin-top:10px;"><span>'+t('nextMealLabel')+'</span><span>'+nextFeedingDate(s)+'</span></div>'+
     '<div class="modal-row"><span>'+t('feedingIntervalLabel')+'</span><span><input type="number" class="price-input" style="width:60px;" min="1" value="'+(s.feedingIntervalDays||'')+'" placeholder="'+DEFAULT_FEEDING_INTERVAL+'" onchange="setFeedingInterval(\''+id+'\', this.value)"/> '+t('daysWord')+'</span></div>'+
     '<div class="modal-row"><span>❄️ '+(isEn?'Brumation/wintering':'Hivernage/brumation')+'</span><span>'+
@@ -10528,6 +10557,17 @@ function deleteHealthEvent(snakeId, idx){
   if(!s || !s.health || !s.health.events || idx<0 || idx>=s.health.events.length) return;
   if(!confirm(isEn?'Delete this journal entry?':'Supprimer cette entrée du journal ?')) return;
   const removed = s.health.events.splice(idx, 1)[0];
+  // v3.44 — supprimer un « Lock » du journal le retire aussi de l'accouplement (et du journal de l'autre animal)
+  if(removed && removed.type==='lock' && removed.lockId){
+    const pr = pairings.find(x=>x.id===removed.pairingId);
+    if(pr){
+      pr.lockDates = (pr.lockDates||[]).filter(l=>l.id!==removed.lockId);
+      const otherId = pr.maleId===snakeId ? pr.femaleId : pr.maleId;
+      const other = savedSnakes.find(x=>x.id===otherId);
+      if(other && other.health && other.health.events) other.health.events = other.health.events.filter(e=>!(e.type==='lock' && e.lockId===removed.lockId));
+      saveElevage();
+    }
+  }
   // v3.21 — supprimer un repas/refus qui avait retiré une proie la remet en stock.
   if(restorePreyFromEvent(removed)){ saveElevage(); try{ renderDefrostList(); renderFeederStockList(); renderFeederStockLiveList(); }catch(e){} }
   // v3.12 — une pesée/mesure est écrite à 2 endroits (events + weights/lengths). Avant, supprimer
@@ -11242,14 +11282,16 @@ function regenerateSeasonSessions(plan){
   const females = (plan.females||[]).filter(f=>f.plannedStart).sort((a,b)=>a.plannedStart.localeCompare(b.plannedStart));
   const order = females.map(f=>f.femaleId);
   let cursor = null, lastFemale = null;
+  // v3.44 — vraie fin (« ⏸ Retirer ») si connue, sinon début + nuits prévues
+  const doneEnd = se=> se.actualEnd || spAddDays(se.actualStart||se.start, nights);
   if(consumed.length){
     const last = consumed[consumed.length-1];
-    cursor = last.status==='done' ? spAddDays(last.actualStart||last.start, nights+rest) : last.start;
+    cursor = last.status==='done' ? spAddDays(doneEnd(last), rest) : last.start;
     lastFemale = last.status==='done' ? last.femaleId : null;
     if(last.status==='skipped'){ // la place sautée revient à la femelle suivante
       const prevDone = [...consumed].reverse().find(se=>se.status==='done');
       lastFemale = last.femaleId;
-      if(prevDone && spAddDays(prevDone.actualStart||prevDone.start, nights+rest) > cursor) cursor = spAddDays(prevDone.actualStart||prevDone.start, nights+rest);
+      if(prevDone && spAddDays(doneEnd(prevDone), rest) > cursor) cursor = spAddDays(doneEnd(prevDone), rest);
     }
   }
   if(!cursor && females.length) cursor = females[0].plannedStart;
@@ -11258,15 +11300,23 @@ function regenerateSeasonSessions(plan){
   let guard = 0;
   const appliedHolds = new Set();
   // un décalage déjà dépassé par une séance démarrée n'a plus d'effet
-  const lastConsumedStart = consumed.length ? (consumed[consumed.length-1].actualStart||consumed[consumed.length-1].start) : null;
-  if(lastConsumedStart) plan.holds = (plan.holds||[]).filter(h=>h.afterDate>lastConsumedStart);
+  // v3.43 — un décalage (positif OU négatif) est « réglé » dès qu'une séance qu'il visait est
+  // démarrée/sautée : point d'ancrage effectif = date d'origine + min(0, jours).
+  const lastConsumedPlanned = consumed.length ? consumed[consumed.length-1].start : null;
+  if(lastConsumedPlanned) plan.holds = (plan.holds||[]).filter(h=>spAddDays(h.afterDate, Math.min(0, h.days||0)) > lastConsumedPlanned);
+  let lastEnd = consumed.length ? (consumed[consumed.length-1].status==='done' ? doneEnd(consumed[consumed.length-1]) : null) : null;
   while(cursor && order.length && planned.length<16 && guard<200 && (!endDate || cursor<=endDate)){
     guard++;
     // v3.41 — décalages (mue, refus…) : quand l'horaire atteint la séance décalée, tout repart
     // de la nouvelle date. Chaque décalage ne s'applique qu'une fois.
     // Appliqué à la 1re séance qui tombe à partir de sa date → reste valide si le rythme change.
     const hold = (plan.holds||[]).filter(h=>!appliedHolds.has(h.id) && h.afterDate<=cursor).sort((a,b)=>a.afterDate.localeCompare(b.afterDate))[0];
-    if(hold){ appliedHolds.add(hold.id); cursor = spAddDays(cursor, hold.days||spDaysBetween(hold.afterDate, hold.until)); continue; }
+    if(hold){
+      appliedHolds.add(hold.id);
+      cursor = spAddDays(cursor, hold.days||0);
+      if(lastEnd && cursor<lastEnd) cursor = lastEnd; // avancer, oui — mais jamais avant la fin de la séance précédente
+      continue;
+    }
     // Une femelle déjà démarrée n'attend plus sa date prévue (elle a pu commencer plus tôt).
     const started = f=>consumed.some(se=>se.status==='done' && se.femaleId===f);
     const eligible = f=>{ const fe = females.find(x=>x.femaleId===f); return fe && (fe.plannedStart<=cursor || started(f)) && !spFemaleOvulated(plan, f); };
@@ -11279,6 +11329,7 @@ function regenerateSeasonSessions(plan){
       cursor = later; continue;
     }
     planned.push({ id:'ses_'+plan.id+'_'+cursor+'_'+pick, femaleId:pick, start:cursor, end:spAddDays(cursor, nights), status:'planned' });
+    lastEnd = spAddDays(cursor, nights);
     lastFemale = pick;
     cursor = spAddDays(cursor, nights+rest);
   }
@@ -11311,12 +11362,90 @@ function spPrepChecks(femaleId, maleId){
   return out;
 }
 
+// ==================== Reproduction reliée (v3.44) ====================
+// Un seul geste « ensemble » : « ▶ Démarrer » du Plan de saison et « 🤝 Mettre ensemble » du Mode
+// Verrou se mettent à jour l'un l'autre ; « ⏸ Retirer » fixe la vraie fin de la séance et le repos
+// du mâle se calcule à partir de là. Chaque geste (ensemble, retiré, lock) s'inscrit aussi dans le
+// journal des 2 animaux, comme un repas.
+function pairCurrentState(p){ const ss = p.pairSessions||[]; return ss.length ? ss[ss.length-1] : null; }
+function logPairingJournal(p, type, date, extra){
+  [p.maleId, p.femaleId].forEach(id=>{
+    const s = savedSnakes.find(x=>x.id===id); if(!s) return;
+    ensureSnakeMeta(s);
+    const otherId = id===p.maleId ? p.femaleId : p.maleId;
+    s.health.events.push(Object.assign({ type, date, partner: spSnakeName(otherId), pairingId:p.id }, extra||{}));
+  });
+  storage.save(savedSnakes);
+}
+function spPlanForPairing(p){
+  return activeSeasonPlans().find(plan=>plan.maleId===p.maleId && ((plan.pairingIds||{})[p.femaleId]===p.id || (plan.females||[]).some(fe=>fe.femaleId===p.femaleId)));
+}
+function spOnPairIn(p, date){
+  const plan = spPlanForPairing(p);
+  if(!plan) return;
+  plan.pairingIds = plan.pairingIds || {};
+  plan.pairingIds[p.femaleId] = p.id;
+  const se = (plan.sessions||[]).filter(x=>x.status==='planned' && x.femaleId===p.femaleId).sort((a,b)=>a.start.localeCompare(b.start))[0];
+  if(se){ se.status = 'done'; se.actualStart = date; plan.holds = (plan.holds||[]).filter(h=>spAddDays(h.afterDate, Math.min(0, h.days||0)) > se.start); }
+  else { plan.sessions = (plan.sessions||[]).concat([{ id:'ses_'+plan.id+'_'+date+'_'+p.femaleId+'_x', femaleId:p.femaleId, start:date, end:spAddDays(date, parseInt(plan.nightsTogether,10)||3), status:'done', actualStart:date }]); }
+  regenerateSeasonSessions(plan);
+  spTouch(plan);
+}
+function spOnPairOut(p, date){
+  const plan = spPlanForPairing(p);
+  if(!plan) return;
+  const se = (plan.sessions||[]).filter(x=>x.status==='done' && x.femaleId===p.femaleId && !x.actualEnd).sort((a,b)=>(b.actualStart||b.start).localeCompare(a.actualStart||a.start))[0];
+  if(se){ se.actualEnd = date; regenerateSeasonSessions(plan); spTouch(plan); }
+}
+function refreshBreedingViews(){
+  try{ renderLockModeGrid(); }catch(e){}
+  try{ renderSeasonPlans(); }catch(e){}
+  try{ if(currentLogbookId) openLogbook(currentLogbookId); }catch(e){}
+}
+function addLockOnDate(pairingId, date){
+  const isEn = currentLang==='en';
+  const p = pairings.find(x=>x.id===pairingId);
+  if(!p || !date) return;
+  p.lockDates = p.lockDates || [];
+  if(p.lockDates.some(l=>l.date===date)){ showToast(isEn?'Already logged for that date.':'Déjà noté pour cette date.'); return; }
+  const lockId = 'lock_'+Date.now();
+  p.lockDates.push({ id:lockId, date });
+  p.lockDates.sort((a,b)=>a.date.localeCompare(b.date));
+  saveElevage();
+  logPairingJournal(p, 'lock', date, { lockId });
+  showToast('🔒 '+(isEn?'Lock logged — ':'Lock noté — ')+spFmt(date)+'.', 'success');
+  refreshBreedingViews();
+  try{ renderTimeline(); }catch(e){}
+}
+// Agenda : où en est chaque mâle reproducteur (avec qui / en repos / prochaine séance prévue).
+function breedingMaleStatus(){
+  if(!hasAccess('lockMode') && !hasAccess('seasonPlan')) return [];
+  const today = spToday();
+  const maleIds = new Set();
+  pairings.filter(p=>!p.ovulationConfirmed).forEach(p=>maleIds.add(p.maleId));
+  activeSeasonPlans().forEach(plan=>maleIds.add(plan.maleId));
+  const out = [];
+  maleIds.forEach(mid=>{
+    if(!savedSnakes.find(s=>s.id===mid)) return;
+    const mine = pairings.filter(p=>p.maleId===mid);
+    const together = mine.filter(p=>{ const st = pairCurrentState(p); return st && st.state==='in'; });
+    const lastOut = mine.map(p=>pairCurrentState(p)).filter(st=>st && st.state==='out').map(st=>st.date).sort().pop() || null;
+    let next = null;
+    activeSeasonPlans().filter(pl=>pl.maleId===mid).forEach(pl=>(pl.sessions||[]).forEach(se=>{ if(se.status==='planned' && (!next || se.start<next.start)) next = se; }));
+    out.push({ maleId:mid, together: together.map(p=>({ p, since: pairCurrentState(p).date })), restSince: together.length ? null : lastOut, next });
+  });
+  return out;
+}
+
 function renderSeasonPlans(){
   const isEn = currentLang==='en';
   const wrap = document.getElementById('season-plan-section');
   if(!wrap) return;
-  const head = '<div class="results-hdr" style="margin-top:4px;"><h2 style="font-size:16px;">🗓️ '+(isEn?'Season plan':'Plan de saison')+'</h2></div>';
+  let collapsed = false;
+  try{ collapsed = localStorage.getItem('locus_sp_collapsed')==='1'; }catch(e){}
+  const head = '<div class="results-hdr" style="margin-top:4px;cursor:pointer;" onclick="toggleSeasonPlanCollapsed()"><h2 style="font-size:16px;">'+(collapsed?'▸':'▾')+' 🗓️ '+(isEn?'Season plan':'Plan de saison')+'</h2></div>';
   if(!hasAccess('seasonPlan')){ wrap.innerHTML = head+lockedFeatureHtml(); return; }
+  if(collapsed){ wrap.innerHTML = head; return; }
   const plans = activeSeasonPlans();
   const today = spToday();
   let html = head;
@@ -11351,11 +11480,33 @@ function renderSeasonPlans(){
     const expanded = !!spExpanded[plan.id];
     const visibleSessions = expanded ? allSorted : doneList.slice(-3).concat(plannedList.slice(0,4));
     const hiddenCount = allSorted.length - visibleSessions.length;
-    const sessionsHtml = allSorted.length ? visibleSessions.map(se=>{
+    const nightsN = parseInt(plan.nightsTogether,10)||3;
+    const sesEnd = se=> se.status==='done' ? (se.actualEnd || spAddDays(se.actualStart||se.start, nightsN)) : se.end;
+    const restRowHtml = (prev, next)=>{
+      if(!prev || !next || prev.status==='skipped' || next.status==='skipped') return '';
+      const gap = spDaysBetween(sesEnd(prev), next.actualStart||next.start);
+      const editable = next.status==='planned';
+      const changed = gap !== (parseInt(plan.restDays,10)||0);
+      return '<div class="modal-row" style="font-size:12px;color:var(--ink-dim);padding-left:14px;">'+
+        '<span>😴 '+(isEn?'Male rest':'Repos du mâle')+' : <b style="color:'+(changed?'var(--gold)':'var(--ink)')+';">'+gap+(isEn?' d':' j')+'</b>'+(changed?' <small>('+(isEn?'usual ':'habituel ')+(plan.restDays||0)+(isEn?' d':' j')+')</small>':'')+'</span>'+
+        (editable?'<button class="sc-btn" title="'+(isEn?'Change this rest':'Modifier ce repos')+'" onclick="openSeasonRestModal(\''+plan.id+'\',\''+next.id+'\','+gap+')">✏️</button>':'')+'</div>';
+    };
+    const sessionsHtml = allSorted.length ? visibleSessions.map((se,vi)=>restRowHtml(visibleSessions[vi-1], se)+(function(){
       const fname = escapeHtml(spSnakeName(se.femaleId));
       const isConflict = conflicts.some(c=>c.a.id===se.id);
       let right;
-      if(se.status==='done') right = '<span style="color:var(--sage);font-size:12px;">✓ '+(isEn?'started ':'démarré ')+spFmt(se.actualStart||se.start)+'</span>';
+      if(se.status==='done'){
+        const prS = spPairingFor(plan, se.femaleId);
+        const from = se.actualStart||se.start, to = sesEnd(se);
+        const locksIn = prS ? (prS.lockDates||[]).filter(l=>l.date>=from && l.date<=to) : [];
+        const stS = prS ? pairCurrentState(prS) : null;
+        const latestForF = allSorted.filter(x=>x.status==='done' && x.femaleId===se.femaleId).pop();
+        const isCurrent = prS && stS && stS.state==='in' && latestForF===se && !se.actualEnd;
+        right = (locksIn.length ? locksIn.map(l=>'<span style="display:inline-block;font-size:11px;padding:2px 6px;margin:2px;border:1px solid var(--gold);border-radius:999px;">🔒 '+spFmt(l.date)+'</span>').join('') : '')+
+          (isCurrent
+            ? ' <button class="sc-btn accent" onclick="quickAddLockToday(\''+prS.id+'\')">🔒 +</button> <button class="sc-btn" onclick="togglePairSession(\''+prS.id+'\')">⏸ '+(isEn?'Separate':'Retirer')+'</button>'
+            : (locksIn.length?'':'<span style="color:var(--sage);font-size:12px;">✓ '+(isEn?'done':'fait')+'</span>'));
+      }
       else if(se.status==='skipped') right = '<span style="color:var(--ink-dim);font-size:12px;">⏭ '+(isEn?'skipped':'sautée')+'</span> <button class="sc-btn" onclick="unskipSeasonSession(\''+plan.id+'\',\''+se.id+'\')">↩</button>';
       else {
         const d = spDaysBetween(today, se.start);
@@ -11365,9 +11516,9 @@ function renderSeasonPlans(){
           ' <button class="sc-btn" title="'+(isEn?'Postpone':'Décaler')+'" onclick="openSeasonDelayModal(\''+plan.id+'\',\''+se.id+'\')">⏸</button>'+
           ' <button class="sc-btn" title="'+(isEn?'Skip':'Sauter')+'" onclick="skipSeasonSession(\''+plan.id+'\',\''+se.id+'\')">⏭</button>';
       }
-      return '<div class="modal-row" style="'+(isConflict?'border-left:3px solid var(--rust);padding-left:6px;':'')+'"><span style="font-size:13px;">'+spFmt(se.actualStart||se.start)+' → '+spFmt(se.status==='done'?spAddDays(se.actualStart||se.start, parseInt(plan.nightsTogether,10)||3):se.end)+' · ♀ '+fname+
+      return '<div class="modal-row" style="'+(isConflict?'border-left:3px solid var(--rust);padding-left:6px;':'')+'"><span style="font-size:13px;">'+spFmt(se.actualStart||se.start)+' → '+spFmt(sesEnd(se))+' · ♀ '+fname+
         (isConflict?' <small style="color:var(--rust);">⚠ '+(isEn?'male already planned elsewhere':'mâle déjà prévu ailleurs')+'</small>':'')+'</span><span>'+right+'</span></div>';
-    }).join('') + ((hiddenCount>0 || expanded) ? '<button class="sc-btn" style="margin-top:6px;" onclick="spExpanded[\''+plan.id+'\']=!spExpanded[\''+plan.id+'\'];renderSeasonPlans();">'+(expanded?(isEn?'Show less':'Afficher moins'):(isEn?'Show the whole season (':'Voir toute la saison (')+allSorted.length+')')+'</button>' : '')
+    })()).join('') + ((hiddenCount>0 || expanded) ? '<button class="sc-btn" style="margin-top:6px;" onclick="spExpanded[\''+plan.id+'\']=!spExpanded[\''+plan.id+'\'];renderSeasonPlans();">'+(expanded?(isEn?'Show less':'Afficher moins'):(isEn?'Show the whole season (':'Voir toute la saison (')+allSorted.length+')')+'</button>' : '')
       : '<p style="font-size:12px;color:var(--ink-dim);">'+(isEn?'Add a female with a planned start date to build the rotation.':'Ajoute une femelle avec une date de début prévue pour bâtir la rotation.')+'</p>';
     html += '<div class="timeline-card" style="margin-bottom:14px;">'+
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">'+
@@ -11380,7 +11531,7 @@ function renderSeasonPlans(){
       '<h3 style="font-size:12px;margin:12px 0 6px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);">'+(isEn?'Females':'Femelles')+'</h3>'+femalesHtml+
       '<button class="sc-btn accent" style="margin-top:6px;" onclick="openSeasonFemaleModal(\''+plan.id+'\')">+ '+(isEn?'Add a female':'Ajouter une femelle')+'</button>'+
       '<h3 style="font-size:12px;margin:14px 0 6px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);">'+(isEn?'Male rotation':'Rotation du mâle')+'</h3>'+
-      ((plan.holds||[]).length ? (plan.holds||[]).map(h=>'<div class="modal-row" style="font-size:12px;"><span>⏸ '+(isEn?'Postponed ':'Décalé ')+'<b>'+(h.days||spDaysBetween(h.afterDate,h.until))+(isEn?' d':' j')+'</b> ('+(isEn?'from ':'à partir du ')+spFmt(h.afterDate)+')'+(h.reason?' — '+escapeHtml(spDelayReasonLabel(h.reason))+(h.femaleId?' '+escapeHtml(spSnakeName(h.femaleId)):''):'')+'</span><button class="sc-btn danger" onclick="removeSeasonHold(\''+plan.id+'\',\''+h.id+'\')">×</button></div>').join('') : '')+
+      ((plan.holds||[]).length ? (plan.holds||[]).map(h=>'<div class="modal-row" style="font-size:12px;"><span>⏸ '+(isEn?'Postponed ':'Décalé ')+'<b>'+((h.days||0)>0?'+':'')+(h.days||0)+(isEn?' d':' j')+'</b> ('+(isEn?'from ':'à partir du ')+spFmt(h.afterDate)+')'+(h.reason?' — '+escapeHtml(spDelayReasonLabel(h.reason))+(h.femaleId?' '+escapeHtml(spSnakeName(h.femaleId)):''):'')+'</span><button class="sc-btn danger" onclick="removeSeasonHold(\''+plan.id+'\',\''+h.id+'\')">×</button></div>').join('') : '')+
       sessionsHtml+
       '<p class="husbandry-health-note" style="margin-top:8px;">'+(isEn
         ? '▶ Start = the day you put them together (not a lock). The first one creates the usual pairing card (locks, follicles, ovulation); later ones attach to it. Dates shift automatically if you start earlier or later.'
@@ -11392,6 +11543,10 @@ function renderSeasonPlans(){
 }
 
 var spExpanded = {};
+function toggleSeasonPlanCollapsed(){
+  try{ localStorage.setItem('locus_sp_collapsed', localStorage.getItem('locus_sp_collapsed')==='1' ? '0' : '1'); }catch(e){}
+  renderSeasonPlans();
+}
 var spInputStyle = 'width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);';
 function openSeasonPlanModal(planId){
   const isEn = currentLang==='en';
@@ -11511,6 +11666,10 @@ function startSeasonSession(planId, sessionId){
   }
   se.status = 'done';
   se.actualStart = today;
+  plan.holds = (plan.holds||[]).filter(h=>spAddDays(h.afterDate, Math.min(0, h.days||0)) > se.start);
+  // v3.44 — même geste que « 🤝 Mettre ensemble » du Mode Verrou + entrée au journal
+  const curSt = pairCurrentState(pr);
+  if(!curSt || curSt.state!=='in'){ pr.pairSessions = (pr.pairSessions||[]).concat([{ id:'sess_'+Date.now(), date:today, state:'in' }]); logPairingJournal(pr, 'pair_in', today); }
   regenerateSeasonSessions(plan);
   spTouch(plan);
   renderTimeline();
@@ -11518,7 +11677,7 @@ function startSeasonSession(planId, sessionId){
 }
 function spDelayReasonLabel(r){
   const isEn = currentLang==='en';
-  return ({ shed:isEn?'shed of':'mue de', refusal:isEn?'refusal of':'refus de', other:isEn?'other —':'autre —' })[r] || '';
+  return ({ shed:isEn?'shed of':'mue de', refusal:isEn?'refusal of':'refus de', male:isEn?'male:':'mâle :', rest:isEn?'rest changed —':'repos modifié —', other:isEn?'other —':'autre —' })[r] || '';
 }
 function openSeasonDelayModal(planId, sessionId){
   const isEn = currentLang==='en';
@@ -11526,13 +11685,16 @@ function openSeasonDelayModal(planId, sessionId){
   const se = plan && (plan.sessions||[]).find(x=>x.id===sessionId);
   if(!se) return;
   const lab = (txt, inner)=>'<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+txt+'</span>'+inner+'</label>';
-  const females = (plan.females||[]).map(fe=>'<option value="'+fe.femaleId+'"'+(fe.femaleId===se.femaleId?' selected':'')+'>'+escapeHtml(spSnakeName(fe.femaleId))+'</option>').join('');
+  const females = '<option value="'+plan.maleId+'">♂ '+escapeHtml(spSnakeName(plan.maleId))+'</option>'+(plan.females||[]).map(fe=>'<option value="'+fe.femaleId+'"'+(fe.femaleId===se.femaleId?' selected':'')+'>♀ '+escapeHtml(spSnakeName(fe.femaleId))+'</option>').join('');
   const body =
     '<p style="font-size:12px;color:var(--ink-dim);margin:0 0 10px;">'+(isEn
-      ? 'The session of '+spFmt(se.start)+' and everything after it moves by this many days.'
-      : 'La séance du '+spFmt(se.start)+' et tout ce qui suit sont décalés de ce nombre de jours.')+'</p>'+
-    lab(isEn?'Postpone by (days)':'Décaler de (jours)', '<input type="number" id="spd-days" min="1" max="60" value="7" style="'+spInputStyle+'"/>')+
-    lab(isEn?'Reason':'Raison', '<select id="spd-reason" style="'+spInputStyle+'"><option value="shed">'+(isEn?'Shed':'Mue')+'</option><option value="refusal">'+(isEn?'Refusal / not ready':'Refus / pas prête')+'</option><option value="other">'+(isEn?'Other':'Autre')+'</option></select>')+
+      ? 'The session of '+spFmt(se.start)+' and everything after it move later or earlier (never before the male\'s previous session ends).'
+      : 'La séance du '+spFmt(se.start)+' et tout ce qui suit sont décalés plus tard ou plus tôt (jamais avant la fin de la séance précédente du mâle).')+'</p>'+
+    '<div style="display:flex;gap:10px;">'+
+      lab(isEn?'Direction':'Sens', '<select id="spd-dir" style="'+spInputStyle+'"><option value="1">⏩ '+(isEn?'Later':'Plus tard')+'</option><option value="-1">⏪ '+(isEn?'Earlier':'Plus tôt')+'</option></select>')+
+      lab(isEn?'Days':'Jours', '<input type="number" id="spd-days" min="1" max="60" value="7" style="'+spInputStyle+'"/>')+
+    '</div>'+
+    lab(isEn?'Reason':'Raison', '<select id="spd-reason" style="'+spInputStyle+'"><option value="shed">'+(isEn?'Shed':'Mue')+'</option><option value="refusal">'+(isEn?'Refusal / not ready':'Refus / pas prête')+'</option><option value="male">'+(isEn?'Male (ready earlier / needs more rest)':'Mâle (prêt plus tôt / besoin de repos)')+'</option><option value="other">'+(isEn?'Other':'Autre')+'</option></select>')+
     lab(isEn?'Animal concerned':'Animal concerné', '<select id="spd-female" style="'+spInputStyle+'">'+females+'</select>')+
     '<button class="save-btn" style="width:100%;" onclick="saveSeasonDelay(\''+planId+'\',\''+sessionId+'\')">⏸ '+(isEn?'Postpone':'Décaler')+'</button>';
   showQuickModal('⏸ '+(isEn?'Postpone the schedule':'Décaler l\'horaire'), body);
@@ -11541,14 +11703,14 @@ function saveSeasonDelay(planId, sessionId){
   const plan = seasonPlans.find(p=>p.id===planId);
   const se = plan && (plan.sessions||[]).find(x=>x.id===sessionId);
   if(!se) return;
-  const days = Math.max(1, Math.min(60, parseInt(document.getElementById('spd-days').value,10)||7));
+  const days = Math.max(1, Math.min(60, parseInt(document.getElementById('spd-days').value,10)||7)) * (document.getElementById('spd-dir').value==='-1' ? -1 : 1);
   plan.holds = plan.holds || [];
   plan.holds.push({ id:'hold_'+Date.now(), afterDate:se.start, days, until:spAddDays(se.start, days), reason:document.getElementById('spd-reason').value, femaleId:document.getElementById('spd-female').value||null });
   regenerateSeasonSessions(plan);
   spTouch(plan);
   closeQuickModal();
   renderSeasonPlans();
-  showToast('⏸ '+(currentLang==='en'?'Schedule moved by '+days+' days.':'Horaire décalé de '+days+' jours.'), 'success');
+  showToast('⏸ '+(currentLang==='en'?'Schedule moved '+(days>0?'later':'earlier')+' by '+Math.abs(days)+' days.':'Horaire décalé '+(days>0?'plus tard':'plus tôt')+' de '+Math.abs(days)+' jours.'), 'success');
 }
 function removeSeasonHold(planId, holdId){
   const plan = seasonPlans.find(p=>p.id===planId);
@@ -11556,6 +11718,38 @@ function removeSeasonHold(planId, holdId){
   plan.holds = (plan.holds||[]).filter(h=>h.id!==holdId);
   regenerateSeasonSessions(plan);
   spTouch(plan);
+  renderSeasonPlans();
+}
+// v3.43 — modifier UN repos du mâle (entre 2 séances) sans toucher au rythme habituel du plan.
+function openSeasonRestModal(planId, nextSessionId, currentGap){
+  const isEn = currentLang==='en';
+  const plan = seasonPlans.find(p=>p.id===planId);
+  if(!plan) return;
+  const body =
+    '<p style="font-size:12px;color:var(--ink-dim);margin:0 0 10px;">'+(isEn
+      ? 'Only this rest changes; the following sessions move with it. Your usual rhythm stays '+(plan.restDays||0)+' days.'
+      : 'Seul ce repos change ; les séances suivantes suivent. Ton rythme habituel reste '+(plan.restDays||0)+' jours.')+'</p>'+
+    '<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Rest length (days)':'Durée du repos (jours)')+'</span>'+
+      '<input type="number" id="spr-days" min="0" max="60" value="'+currentGap+'" style="'+spInputStyle+'"/></label>'+
+    '<button class="save-btn" style="width:100%;" onclick="saveSeasonRest(\''+planId+'\',\''+nextSessionId+'\','+currentGap+')">😴 '+(isEn?'Save':'Enregistrer')+'</button>';
+  showQuickModal('😴 '+(isEn?'Male rest':'Repos du mâle'), body);
+}
+function saveSeasonRest(planId, nextSessionId, currentGap){
+  const plan = seasonPlans.find(p=>p.id===planId);
+  const next = plan && (plan.sessions||[]).find(x=>x.id===nextSessionId);
+  if(!next) return;
+  const wanted = Math.max(0, Math.min(60, parseInt(document.getElementById('spr-days').value,10)||0));
+  const delta = wanted - currentGap;
+  if(delta!==0){
+    plan.holds = plan.holds || [];
+    // déjà un ajustement de repos sur ce même intervalle → on le combine
+    const existing = plan.holds.find(h=>h.reason==='rest' && spAddDays(h.afterDate, h.days||0)===next.start);
+    if(existing){ existing.days = (existing.days||0)+delta; if(!existing.days) plan.holds = plan.holds.filter(h=>h!==existing); }
+    else plan.holds.push({ id:'hold_'+Date.now(), afterDate:next.start, days:delta, reason:'rest', femaleId:plan.maleId });
+    regenerateSeasonSessions(plan);
+    spTouch(plan);
+  }
+  closeQuickModal();
   renderSeasonPlans();
 }
 function skipSeasonSession(planId, sessionId){
@@ -13146,7 +13340,8 @@ function hasPostShedRefusalPattern(s){
 // si le pattern existe en général)
 function isCurrentRefusalPostShed(s){
   if(!s.health || !s.health.events) return false;
-  const events = [...s.health.events].sort((a,b)=>a.date.localeCompare(b.date));
+  // v3.44 — les entrées d'accouplement (ensemble/séparés/lock) ne comptent pas comme « dernier événement »
+  const events = s.health.events.filter(e=>e.type!=='pair_in' && e.type!=='pair_out' && e.type!=='lock').sort((a,b)=>a.date.localeCompare(b.date));
   const last = events[events.length-1];
   if(!last || last.type!=='refused') return false;
   const priorShed = [...events].reverse().slice(1).find(ev=>ev.type==='shed');
@@ -20769,12 +20964,24 @@ function renderDashboard(){
   const pairingLongF = dashCardPrefs.today_pairing ? pairingLong : [];
   const lowStockEntriesF = dashCardPrefs.today_lowstock ? lowStockEntries : [];
   const seasonRemindersF = dashCardPrefs.today_season ? seasonPlanReminders() : [];
+  const maleStatusF = dashCardPrefs.today_season ? breedingMaleStatus() : [];
 
   const todayWrap = document.getElementById('dash-today-widget');
-  if(!seasonRemindersF.length && !shedSoonF.length && !weighDueF.length && !clutchesToCheckF.length && !terraCleanOverdueF.length && !uvbOverdueF.length && !pairingLongF.length && !rackTubsOverdueF.length && !lowStockEntriesF.length){
+  if(!maleStatusF.length && !seasonRemindersF.length && !shedSoonF.length && !weighDueF.length && !clutchesToCheckF.length && !terraCleanOverdueF.length && !uvbOverdueF.length && !pairingLongF.length && !rackTubsOverdueF.length && !lowStockEntriesF.length){
     todayWrap.innerHTML = '<div class="empty">🎉 '+(isEn?'Nothing needs special attention right now.':'Rien de particulier à surveiller pour l\'instant.')+'</div>';
   } else {
+    const todayS = spToday();
     todayWrap.innerHTML =
+      (maleStatusF.length ? '<div class="feed-day-group"><div class="feed-day-label">♂ '+(isEn?'Breeding males':'Mâles en reproduction')+' — '+maleStatusF.length+'</div><div class="sale-list">'+
+        maleStatusF.map(m=>{
+          let txt;
+          if(m.together.length) txt = '🤝 '+m.together.map(x=>(isEn?'with ':'avec ')+escapeHtml(spSnakeName(x.p.femaleId))+' '+(isEn?'for ':'depuis ')+spDaysBetween(x.since,todayS)+(isEn?' d':' j')).join(', ');
+          else if(m.restSince) txt = '😴 '+(isEn?'resting for ':'en repos depuis ')+spDaysBetween(m.restSince,todayS)+(isEn?' d':' j');
+          else txt = '😴 '+(isEn?'not paired yet':'pas encore en accouplement');
+          if(m.next && !m.together.length){ const dn = spDaysBetween(todayS, m.next.start); txt += ' — '+(isEn?'next: ':'prochaine : ')+escapeHtml(spSnakeName(m.next.femaleId))+' '+spFmt(m.next.start)+(dn>=0?' ('+(isEn?'in ':'dans ')+dn+(isEn?' d)':' j)'):' ('+(isEn?'late':'en retard')+')'); }
+          return '<div class="sale-row"><div class="sale-name">♂ '+escapeHtml(spSnakeName(m.maleId))+'<small>'+txt+'</small></div><button class="sc-btn accent" onclick="showTab(\'incubation\'); showReproSubtab(\'lockmode\');">🔒 '+(isEn?'Lock mode':'Mode Verrou')+'</button></div>';
+        }).join('')+
+      '</div></div>' : '')+
       (seasonRemindersF.length ? '<div class="feed-day-group"><div class="feed-day-label">🗓️ '+(isEn?'Planned pairings':'Pairings prévus')+' — '+seasonRemindersF.length+'</div><div class="sale-list">'+
         seasonRemindersF.map(r=>{
           const d = r.days;
@@ -21814,9 +22021,11 @@ function addLockDate(pairingId){
   const dateEl = document.getElementById('lock-date-'+pairingId);
   const date = dateEl ? dateEl.value : '';
   if(!date){ alert(isEn?'Pick a date first.':'Choisis d\'abord une date.'); return; }
-  p.lockDates.push({ id:'lock_'+Date.now(), date });
+  const lockId = 'lock_'+Date.now();
+  p.lockDates.push({ id:lockId, date });
   p.lockDates.sort((a,b)=>a.date.localeCompare(b.date));
   saveElevage();
+  logPairingJournal(p, 'lock', date, { lockId });
   renderTimeline();
 }
 // Mode Verrou (15 sept) — même principe que Mode Tournée (grille, un tap pour logger), mais pour
@@ -21829,16 +22038,18 @@ function quickAddLockToday(pairingId){
   const p = pairings.find(x=>x.id===pairingId);
   if(!p) return;
   if(!p.lockDates) p.lockDates = [];
-  const today = new Date().toISOString().slice(0,10);
+  const today = spToday();
   if(p.lockDates.some(l=>l.date===today)){
     showToast(isEn?'Already logged today.':'Déjà noté aujourd\'hui.');
     return;
   }
-  p.lockDates.push({ id:'lock_'+Date.now(), date:today });
+  const lockId = 'lock_'+Date.now();
+  p.lockDates.push({ id:lockId, date:today });
   p.lockDates.sort((a,b)=>a.date.localeCompare(b.date));
   saveElevage();
+  logPairingJournal(p, 'lock', today, { lockId });
   showToast('🔒 '+(isEn?'Lock logged for today.':'Lock noté pour aujourd\'hui.'), 'success');
-  renderLockModeGrid();
+  refreshBreedingViews();
 }
 // Dot de couleur réutilisant le code couleur d'alimentation déjà établi (vert/jaune/orange/rouge/
 // hivernage) — pour voir d'un coup d'œil si le mâle/la femelle a mangé, sans ouvrir sa fiche.
@@ -21857,10 +22068,13 @@ function togglePairSession(pairingId){
   if(!p.pairSessions) p.pairSessions = [];
   const last = p.pairSessions.length ? p.pairSessions[p.pairSessions.length-1] : null;
   const nextState = (!last || last.state==='out') ? 'in' : 'out';
-  p.pairSessions.push({ id:'sess_'+Date.now(), date:new Date().toISOString().slice(0,10), state:nextState });
+  const today = spToday();
+  p.pairSessions.push({ id:'sess_'+Date.now(), date:today, state:nextState });
   saveElevage();
+  logPairingJournal(p, nextState==='in'?'pair_in':'pair_out', today);
+  if(nextState==='in') spOnPairIn(p, today); else spOnPairOut(p, today);
   showToast(nextState==='in' ? '🤝 '+(isEn?'Marked as together.':'Noté comme ensemble.') : '⏸ '+(isEn?'Marked as removed (rest/feeding).':'Noté comme retiré (repos/nourriture).'), 'success');
-  renderLockModeGrid();
+  refreshBreedingViews();
 }
 // Ajout rapide d'accouplement directement depuis Mode Verrou (15 sept) — avant, fallait aller dans
 // l'onglet Calendrier pour créer un accouplement puis revenir ici pour le voir. Réutilise les mêmes
@@ -21899,37 +22113,60 @@ function quickAddPairingFromLockMode(){
   showToast('🤝 '+(isEn?'Pairing created: ':'Accouplement créé : ')+male.name+' × '+female.name+'.', 'success');
   renderLockModeGrid();
 }
+var lockModeFilter = 'all';
+var lockModeOpen = {};
 function renderLockModeGrid(){
   const isEn = currentLang==='en';
   const wrap = document.getElementById('lockmode-grid');
   if(!wrap) return;
+  if(!hasAccess('lockMode')){ wrap.innerHTML = lockedFeatureHtml(); return; }
   const active = pairings.filter(p=>!p.ovulationConfirmed);
   if(!active.length){
-    wrap.innerHTML = '<div class="empty">'+(isEn?'No active pairing right now — add one in the Calendar tab.':'Aucun accouplement actif pour l\'instant — ajoutes-en un dans l\'onglet Calendrier.')+'</div>';
+    wrap.innerHTML = '<div class="empty">'+(isEn?'No active pairing right now — add one above or start one from the Season plan.':'Aucun accouplement actif pour l\'instant — ajoutes-en un ci-dessus ou démarre-le depuis le Plan de saison.')+'</div>';
     return;
   }
-  const today = new Date().toISOString().slice(0,10);
-  wrap.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;">'+
-    active.map(p=>{
-      const male = savedSnakes.find(s=>s.id===p.maleId);
-      const female = savedSnakes.find(s=>s.id===p.femaleId);
-      const lockDates = p.lockDates || [];
-      const lockedToday = lockDates.some(l=>l.date===today);
-      const lastLock = lockDates.length ? lockDates[lockDates.length-1].date : null;
-      const sessions = p.pairSessions || [];
-      const lastSession = sessions.length ? sessions[sessions.length-1] : null;
-      const together = lastSession && lastSession.state==='in';
-      const sessionLabel = together ? (isEn?'🤝 Together since '+lastSession.date:'🤝 Ensemble depuis '+lastSession.date) : lastSession ? (isEn?'⏸ Removed since '+lastSession.date:'⏸ Retiré depuis '+lastSession.date) : (isEn?'No session logged yet':'Aucune session notée');
-      return '<div class="tub">'+
-        '<div class="tub-name">♂ '+(male?escapeHtml(male.name):'?')+' '+feedingDot(male)+'  ♀ '+(female?escapeHtml(female.name):'?')+' '+feedingDot(female)+'</div>'+
-        '<div class="tub-tag" style="margin-bottom:6px;">'+sessionLabel+'</div>'+
-        '<button class="sc-btn" style="width:100%;margin-bottom:4px;" onclick="togglePairSession(\''+p.id+'\')">'+(together?(isEn?'⏸ Remove (rest/feeding)':'⏸ Retirer (repos/nourriture)'):(isEn?'🤝 Put together':'🤝 Mettre ensemble'))+'</button>'+
-        '<button class="sc-btn'+(lockedToday?' accent':'')+'" style="width:100%;" onclick="quickAddLockToday(\''+p.id+'\')">🔒 '+lockDates.length+(lastLock?' — '+lastLock:'')+(lockedToday?' ✓':'')+'</button>'+
-        (lastLock ? '<div style="font-size:9.5px;color:var(--ink-dim);margin-top:6px;line-height:1.4;">👀 '+(isEn?'Watch for ovulation roughly ':'À surveiller pour une ovulation environ ')+addDays(lastLock,20)+' → '+addDays(lastLock,35)+' <i>('+(isEn?'very subjective, not a real prediction — only ovulation itself gives a reliable countdown':'très subjectif, pas une vraie prédiction — seule l\'ovulation elle-même donne un compte à rebours fiable')+')</i></div>' : '')+
-      '</div>';
-    }).join('')+
-  '</div>';
+  // v3.44 — pastilles compactes (une ligne par couple) au lieu de grosses cartes ; menu déroulant
+  // au-delà de 12 couples actifs (éleveurs à 20+ pontes par année).
+  const today = spToday();
+  if(lockModeFilter!=='all' && !active.some(p=>p.id===lockModeFilter)) lockModeFilter = 'all';
+  const shown = lockModeFilter==='all' ? active : active.filter(p=>p.id===lockModeFilter);
+  const nameOf = p=>spSnakeName(p.femaleId)+' × '+spSnakeName(p.maleId);
+  const rowHtml = p=>{
+    const st = pairCurrentState(p);
+    const together = st && st.state==='in';
+    const locks = p.lockDates||[];
+    const lockedToday = locks.some(l=>l.date===today);
+    const lastLock = locks.length ? locks[locks.length-1].date : null;
+    const stateTxt = st ? (together ? '🤝 '+(isEn?'together ':'ensemble ')+spDaysBetween(st.date,today)+(isEn?' d':' j') : '⏸ '+(isEn?'apart ':'séparés ')+spDaysBetween(st.date,today)+(isEn?' d':' j')) : (isEn?'not started':'pas commencé');
+    const open = !!lockModeOpen[p.id];
+    return '<div style="border:1px solid '+(together?'var(--sage)':'var(--line)')+';border-radius:12px;padding:8px 10px;margin-bottom:6px;">'+
+      '<div style="display:flex;align-items:center;gap:6px;">'+
+        '<span style="flex:1;min-width:0;font-size:13px;"><b>♀ '+escapeHtml(spSnakeName(p.femaleId))+'</b> × ♂ '+escapeHtml(spSnakeName(p.maleId))+'<br/><small style="color:var(--ink-dim);">'+stateTxt+(lastLock?' · '+(isEn?'last lock ':'dernier lock ')+spFmt(lastLock):'')+'</small></span>'+
+        '<button class="sc-btn'+(lockedToday?' accent':'')+'" style="min-width:64px;" onclick="quickAddLockToday(\''+p.id+'\')">🔒 '+locks.length+(lockedToday?' ✓':' +')+'</button>'+
+        '<button class="sc-btn" onclick="togglePairSession(\''+p.id+'\')">'+(together?'⏸':'🤝')+'</button>'+
+        '<button class="sc-btn" onclick="lockModeOpen[\''+p.id+'\']=!lockModeOpen[\''+p.id+'\'];renderLockModeGrid();">'+(open?'▴':'▾')+'</button>'+
+      '</div>'+
+      (open ? '<div style="margin-top:8px;border-top:1px dashed var(--line);padding-top:8px;font-size:12px;">'+
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">'+(isEn?'Lock on another date: ':'Lock à une autre date : ')+
+          '<input type="date" id="lm-date-'+p.id+'" max="'+today+'" style="font-size:16px;padding:4px 6px;"/>'+
+          '<button class="sc-btn accent" onclick="addLockOnDate(\''+p.id+'\', document.getElementById(\'lm-date-'+p.id+'\').value)">+ 🔒</button></div>'+
+        (locks.length ? locks.slice().reverse().map(l=>'<div class="modal-row"><span>🔒 '+spFmt(l.date)+'</span><button class="sc-btn danger" onclick="deleteLockDate(\''+p.id+'\',\''+l.id+'\')">×</button></div>').join('') : '<div style="color:var(--ink-dim);">'+(isEn?'No lock yet.':'Aucun lock pour l\'instant.')+'</div>')+
+        (lastLock ? '<div style="color:var(--ink-dim);margin-top:6px;">👀 '+(isEn?'Watch for ovulation roughly ':'Ovulation à surveiller environ ')+spFmt(spAddDays(lastLock,20))+' → '+spFmt(spAddDays(lastLock,35))+'</div>' : '')+
+      '</div>' : '')+
+    '</div>';
+  };
+  const togetherList = shown.filter(p=>{ const st = pairCurrentState(p); return st && st.state==='in'; });
+  const others = shown.filter(p=>togetherList.indexOf(p)===-1);
+  const sortByName = (a,b)=>nameOf(a).localeCompare(nameOf(b));
+  const picker = active.length>12 ? '<select style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" onchange="lockModeFilter=this.value;renderLockModeGrid();">'+
+      '<option value="all">'+(isEn?'All active pairings (':'Tous les accouplements actifs (')+active.length+')</option>'+
+      active.slice().sort(sortByName).map(p=>'<option value="'+p.id+'"'+(lockModeFilter===p.id?' selected':'')+'>'+escapeHtml(nameOf(p))+'</option>').join('')+
+    '</select>' : '';
+  wrap.innerHTML = picker+
+    (togetherList.length ? '<div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--sage);margin:4px 0 6px;">🤝 '+(isEn?'Together tonight':'Ensemble ce soir')+' — '+togetherList.length+'</div>'+togetherList.sort(sortByName).map(rowHtml).join('') : '')+
+    (others.length ? '<div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);margin:12px 0 6px;">'+(isEn?'Other active pairings':'Autres accouplements actifs')+' — '+others.length+'</div>'+others.sort(sortByName).map(rowHtml).join('') : '');
 }
+
 function deleteLockDate(pairingId, lockId){
   const isEn = currentLang==='en';
   if(!confirm(isEn?'Delete this lock date?':'Supprimer cette date de verrouillage ?')) return;
@@ -21937,7 +22174,11 @@ function deleteLockDate(pairingId, lockId){
   if(!p) return;
   p.lockDates = (p.lockDates||[]).filter(l=>l.id!==lockId);
   saveElevage();
+  // v3.44 — retire aussi l'entrée « Lock » du journal des 2 animaux
+  [p.maleId, p.femaleId].forEach(id=>{ const sn = savedSnakes.find(x=>x.id===id); if(sn && sn.health && sn.health.events) sn.health.events = sn.health.events.filter(e=>!(e.type==='lock' && e.lockId===lockId)); });
+  storage.save(savedSnakes);
   renderTimeline();
+  refreshBreedingViews();
 }
 // Mue pré-ponte — survient généralement ~30 jours avant la ponte, signal fiable que la ponte
 // approche. Une seule date (contrairement aux verrouillages/follicules qui sont répétés).
@@ -22247,7 +22488,7 @@ function renderTimeline(){
 }
 
 function eventLabel(type){
-  const map = { fed:'eventFed', shed:'eventShed', refused:'eventRefused', weigh:'eventWeigh', length:'eventLength', water:'eventWater' };
+  const map = { fed:'eventFed', shed:'eventShed', refused:'eventRefused', weigh:'eventWeigh', length:'eventLength', water:'eventWater', pair_in:'eventPairIn', pair_out:'eventPairOut', lock:'eventLock' };
   return map[type] ? t(map[type]) : type;
 }
 // Petit indicatif ❄️/🐭 accolé à un événement "fed" quand le type de proie est connu — les repas
