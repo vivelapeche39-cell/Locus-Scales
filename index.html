@@ -1499,7 +1499,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
           <option value="males" data-i18n="rodentSexeMales">Mâles seulement</option>
           <option value="femelles" data-i18n="rodentSexeFemelles">Femelles seulement</option>
         </select>
-        <input type="text" id="rodent-bin-room" data-i18n-placeholder="rodentBinRoomPlaceholder" placeholder="Pièce (optionnel)" style="flex:1;min-width:100px;"/>
+        <input type="text" id="rodent-bin-room" name="locus-room" autocomplete="off" autocorrect="off" data-1p-ignore data-lpignore="true" data-i18n-placeholder="rodentBinRoomPlaceholder" placeholder="Pièce (optionnel)" style="flex:1;min-width:100px;"/>
         <button class="save-btn" onclick="addRodentBin()" data-i18n="rodentBinAddBtn">+ Ajouter un bac</button>
       </div>
       <p style="font-size:10px;color:var(--ink-dim);margin:4px 0 12px;" data-i18n="rodentBinFormHint">Pour un bac Reproduction, le rack ci-dessus assigne automatiquement une lignée — ce formulaire reste surtout utile pour les bacs Stock/Croissance.</p>
@@ -2148,7 +2148,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.30';
+const APP_VERSION = '2026.09.01.3.32';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3265,14 +3265,14 @@ const GENES = [
   {id:'daddy', name:'Daddy Gene', type:'incdom', locus:'lesserComplex', cat:'Codominant / Incomplet dominant'},
   {id:'mocha', name:'Mocha', type:'incdom', locus:'lesserComplex', cat:'Codominant / Incomplet dominant'},
   // Fire Complex — locus partagé, vérifié via ReptiDex : toute paire d'allèles (y compris homozygote
-  // du même gène) produit un Blue/Black-Eyed Leucistic (BEL). superLabel couvre le cas homozygote simple ;
+  // du même gène) produit un Black-Eyed Leucistic (BlkEL) — à ne pas confondre avec le BEL (Blue-Eyed). superLabel couvre le cas homozygote simple ;
   // COMPOUND_NAMES (plus bas) couvre les combinaisons entre allèles différents.
-  {id:'fire', name:'Fire', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant', superLabel:'Black-Eyed Leucistic (BEL) — homozygote Fire'},
-  {id:'flame', name:'Flame', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant', superLabel:'Black-Eyed Leucistic (BEL) — homozygote Flame'},
-  {id:'vanilla', name:'Vanilla', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant', superLabel:'Black-Eyed Leucistic (BEL) — homozygote Vanilla'},
-  {id:'sulfur', name:'Sulfur', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant', superLabel:'Black-Eyed Leucistic (BEL) — homozygote Sulfur'},
-  {id:'disco', name:'Disco', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant', superLabel:'Black-Eyed Leucistic (BEL) — homozygote Disco'},
-  {id:'lemonback', name:'Lemonback', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant', superLabel:'Black-Eyed Leucistic (BEL) — homozygote Lemonback'},
+  {id:'fire', name:'Fire', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant', superLabel:'Black-Eyed Leucistic (BlkEL) — homozygote Fire'},
+  {id:'flame', name:'Flame', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant', superLabel:'Black-Eyed Leucistic (BlkEL) — homozygote Flame'},
+  {id:'vanilla', name:'Vanilla', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant', superLabel:'Black-Eyed Leucistic (BlkEL) — homozygote Vanilla'},
+  {id:'sulfur', name:'Sulfur', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant', superLabel:'Black-Eyed Leucistic (BlkEL) — homozygote Sulfur'},
+  {id:'disco', name:'Disco', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant', superLabel:'Black-Eyed Leucistic (BlkEL) — homozygote Disco'},
+  {id:'lemonback', name:'Lemonback', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant', superLabel:'Black-Eyed Leucistic (BlkEL) — homozygote Lemonback'},
   {id:'enchi', name:'Enchi', type:'incdom', locus:'enchi', cat:'Codominant / Incomplet dominant'},
   // Cinnamon / Black Pastel Complex — locus partagé (allélisme prouvé, vérifié ReptiDex).
   // Les deux formes homozygotes ET le composé hétérozygote Cinnamon×Black Pastel ("8-Ball", voir
@@ -3488,12 +3488,12 @@ const COMPOUND_NAMES = {
     // retombent sur le libellé générique "X + Y (combo)", toujours honnête, juste moins habillé.
   },
   fireComplex: {
-    'fire+flame': 'Black-Eyed Leucistic (BEL) — combo Fire/Flame',
-    'fire+sulfur': 'Black-Eyed Leucistic (BEL) — combo Fire/Sulfur',
-    'fire+vanilla': 'Black-Eyed Leucistic (BEL) — combo Fire/Vanilla',
-    'flame+sulfur': 'Black-Eyed Leucistic (BEL) — combo Flame/Sulfur',
-    'flame+vanilla': 'Black-Eyed Leucistic (BEL) — combo Flame/Vanilla',
-    'sulfur+vanilla': 'Black-Eyed Leucistic (BEL) — combo Sulfur/Vanilla',
+    'fire+flame': 'Black-Eyed Leucistic (BlkEL) — combo Fire/Flame',
+    'fire+sulfur': 'Black-Eyed Leucistic (BlkEL) — combo Fire/Sulfur',
+    'fire+vanilla': 'Black-Eyed Leucistic (BlkEL) — combo Fire/Vanilla',
+    'flame+sulfur': 'Black-Eyed Leucistic (BlkEL) — combo Flame/Sulfur',
+    'flame+vanilla': 'Black-Eyed Leucistic (BlkEL) — combo Flame/Vanilla',
+    'sulfur+vanilla': 'Black-Eyed Leucistic (BlkEL) — combo Sulfur/Vanilla',
   },
   tAlbinoComplex: {
     'albino+candy': 'Ultramel — combo Albino/Candy(Toffee)',
@@ -7442,13 +7442,28 @@ function speciesDisplayLabel(species){
   return species;
 }
 
+// v3.31 — convention du milieu (MorphMarket/Morphpedia) au lieu de « Nom (Visuel) / Nom (Super) » :
+// « Super Pastel Banana Granite het Clown ». Ordre : super → visuels → possibles → het. Le mot
+// « visuel » n'est jamais écrit (un dominant/incdom à 1 copie est toujours visuel ; un récessif
+// visuel s'écrit juste par son nom). Les boutons du calculateur gardent statusLabel() (bascule).
+// Nom court « Super X » ici — superLabel (long, ex. BlkEL) reste pour le calculateur/annonces.
 function summarizeGenes(genes){
-  return Object.keys(genes).map(gid=>{
-    if(isFreewayKey(gid)) return '⚠ '+freewayLabel(freewayLocusFromKey(gid));
+  genes = genes || {};
+  const groups = { sup:[], vis:[], pos:[], het:[] };
+  const possWord = function(){ return t('possiblePrefix').toLowerCase(); };
+  Object.keys(genes).forEach(gid=>{
+    if(isFreewayKey(gid)){ groups.pos.push('⚠ '+freewayLabel(freewayLocusFromKey(gid))); return; }
     const g = GENES.find(x=>x.id===gid);
-    if(!g) return null;
-    return g.name+' ('+geneEntryLabel(g, genes[gid])+')';
-  }).filter(Boolean).join(', ') || (currentLang==='en'?'No gene':'Aucun gène');
+    if(!g) return;
+    const norm = normalizeGeneEntry(genes[gid]);
+    const pre = norm.possible ? (norm.percent ? norm.percent+'% ' : possWord()+' ') : '';
+    if(g.type==='recessive' && norm.status==='het'){ groups.het.push(pre+'het '+g.name); return; }
+    if(g.type!=='recessive' && g.type!=='unknown' && norm.status==='homo'){
+      (norm.possible ? groups.pos : groups.sup).push(pre+'Super '+g.name); return;
+    }
+    (norm.possible ? groups.pos : groups.vis).push(pre+g.name);
+  });
+  return groups.sup.concat(groups.vis, groups.pos, groups.het).join(' ') || (currentLang==='en'?'No gene':'Aucun gène');
 }
 
 function renderParentSelects(){
@@ -13014,7 +13029,7 @@ function addRodentBin(){
   const label = labelInput.value.trim();
   const species = document.getElementById('rodent-bin-species').value;
   const binType = document.getElementById('rodent-bin-type').value;
-  const room = roomInput.value.trim();
+  const room = cleanRoomValue(roomInput.value) || '';
   if(!label){ showToast(isEn?'Enter a name/label for the bin.':'Entre un nom/étiquette pour le bac.', 'error'); return; }
   if(binType==='stock'){
     const sexeGroupe = document.getElementById('rodent-bin-sexe').value;
@@ -14740,7 +14755,7 @@ function renderRackGrid(){
         '<input type="text" id="rack-heat-custom-'+rack.id+'" placeholder="'+(isEn?'Type the heating type…':'Tape le type de chauffage…')+'" style="display:none;font-size:16px;padding:6px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);flex:1;min-width:140px;" onchange="commitRackHeatingCustom(\''+rack.id+'\', this)"/>'+
         (customFieldOptionsFor('heating').length ? '<button type="button" class="sc-btn" style="font-size:11px;" title="'+(isEn?'Manage my custom options':'Gérer mes options perso')+'" onclick="openCustomFieldOptionsManager(null)">⚙</button>' : '')+
         '<span style="font-size:11px;color:var(--ink-dim);">📍 '+(isEn?'Room':'Pièce')+' :</span>'+
-        '<input type="text" list="room-suggestions" value="'+escapeHtml(rack.room||'')+'" placeholder="'+(isEn?'e.g. Living room':'Ex. Salon')+'" style="font-size:16px;padding:6px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);width:130px;" onchange="saveRackRoom(\''+rack.id+'\', this.value)"/>'+
+        '<input type="text" name="locus-room" autocomplete="off" autocorrect="off" data-1p-ignore data-lpignore="true" list="room-suggestions" value="'+escapeHtml(rack.room||'')+'" placeholder="'+(isEn?'e.g. Living room':'Ex. Salon')+'" style="font-size:16px;padding:6px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);width:130px;" onchange="saveRackRoom(\''+rack.id+'\', this.value)"/>'+
       '</div>';
     const gridEl = document.createElement('div');
     gridEl.className = 'rack-grid';
@@ -14808,10 +14823,22 @@ function saveRackHeating(rackId, value){
 }
 // Pièce (2 septembre) — sert au filtre multi-pièces de Mode Tournée, pour les éleveurs dont la
 // collection est répartie entre plusieurs pièces physiques (sous-sol, salon, chambre dédiée...).
+// v3.31 — le remplissage automatique d'iOS a déjà inscrit un courriel comme nom de pièce
+// (il apparaissait ensuite dans le filtre Pièce du Mode Tournée). Un nom de pièce ne contient
+// jamais « @ » : refusé avec un message, en plus de autocomplete="off" sur les champs.
+function cleanRoomValue(value){
+  const v = String(value||'').trim();
+  if(!v) return null;
+  if(v.indexOf('@')!==-1){
+    showToast(currentLang==='en'?'That looks like an email address, not a room name — not saved.':'Ça ressemble à un courriel, pas à un nom de pièce — non enregistré.', 'error');
+    return null;
+  }
+  return v;
+}
 function saveRackRoom(rackId, value){
   const rack = getRack(rackId);
   if(!rack) return;
-  rack.room = value.trim() || null;
+  rack.room = cleanRoomValue(value);
   saveElevage();
   renderRoomSuggestions();
   renderTourRoomFilterOptions();
@@ -15641,7 +15668,7 @@ function openTerrariumEditModal(terrariumId){
       '<select id="te-edit-substrate" onchange="toggleCustomFieldInput(this,\'te-edit-substrate-custom\')" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+fieldOptionsHtml('substrate', te.substrate)+'</select>'+
       '<input type="text" id="te-edit-substrate-custom" placeholder="'+(isEn?'Type the substrate…':'Tape le substrat…')+'" style="display:none;width:100%;font-size:16px;padding:8px 10px;margin-top:6px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
     '<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Room':'Pièce')+'</span>'+
-      '<input type="text" id="te-edit-room" list="room-suggestions" value="'+escapeHtml(te.room||'')+'" placeholder="'+(isEn?'e.g. Living room':'Ex. Salon')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
+      '<input type="text" id="te-edit-room" name="locus-room" autocomplete="off" autocorrect="off" data-1p-ignore data-lpignore="true" list="room-suggestions" value="'+escapeHtml(te.room||'')+'" placeholder="'+(isEn?'e.g. Living room':'Ex. Salon')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
     '<label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><input type="checkbox" id="te-edit-bioactive" '+(te.bioactive?'checked':'')+' style="width:18px;height:18px;"/> <span>'+(isEn?'Bioactive setup':'Installation bioactive')+'</span></label>'+
     '<p style="font-size:10px;color:var(--ink-dim);margin:0 0 16px;">'+(isEn?'Status (free / occupied / pairing) is automatic based on how many animals are inside — no need to set it by hand.':'Le statut (libre / occupé / en accouplement) est automatique selon le nombre d\'animaux dedans — pas besoin de le régler à la main.')+'</p>'+
     (['lighting','heating','substrate'].some(k=>customFieldOptionsFor(k).length) ? '<button type="button" class="sc-btn" style="width:100%;margin-bottom:8px;font-size:11px;" onclick="openCustomFieldOptionsManager(\''+terrariumId+'\')">⚙ '+(isEn?'Manage my custom options':'Gérer mes options perso')+'</button>' : '')+
@@ -15664,7 +15691,7 @@ function saveTerrariumEdit(terrariumId){
   te.heating = resolveFieldValue('te-edit-heating', 'te-edit-heating-custom', 'heating');
   te.substrate = resolveFieldValue('te-edit-substrate', 'te-edit-substrate-custom', 'substrate');
   te.bioactive = document.getElementById('te-edit-bioactive').checked;
-  te.room = document.getElementById('te-edit-room').value.trim() || null;
+  te.room = cleanRoomValue(document.getElementById('te-edit-room').value);
   saveElevage();
   renderRoomSuggestions();
   renderTourRoomFilterOptions();
@@ -15977,8 +16004,9 @@ function snakeFromKey(key){
 }
 
 function knownRooms(){
-  const fromRacks = racks.map(r=>r.room).filter(Boolean);
-  const fromTerrariums = terrariums.map(te=>te.room).filter(Boolean);
+  const okRoom = r=>r && String(r).indexOf('@')===-1; // v3.31 — ignore un courriel inscrit par le remplissage auto
+  const fromRacks = racks.map(r=>r.room).filter(okRoom);
+  const fromTerrariums = terrariums.map(te=>te.room).filter(okRoom);
   return [...new Set([...fromRacks, ...fromTerrariums])].sort();
 }
 function renderRoomSuggestions(){
