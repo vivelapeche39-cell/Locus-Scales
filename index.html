@@ -1590,6 +1590,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 
     <div id="sub-repro-calendar" style="display:none;">
       <div id="onboarding-banner-calendar" class="onboarding-banner" style="display:none;"></div>
+      <div id="season-plan-section"></div>
       <div class="pairing-form">
         <select id="pairing-male" onchange="updatePairingReproductionInfo()"></select>
         <span style="color:var(--ink-dim);font-family:'Courier New',monospace;font-size:11px;">×</span>
@@ -2152,7 +2153,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.39';
+const APP_VERSION = '2026.09.01.3.40';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2561,6 +2562,7 @@ const ILLIMITE_ONLY_FEATURES = [
 // ILLIMITE_ONLY_FEATURES à gérer 2 cas différents.
 const BREEDING_TIER_FEATURES = [
   'dreamSimulator',
+  'seasonPlan', // v3.40 — Plan de saison (choix d'Alex : Première ponte + Illimité)
   'seasonChances' // v3.35 — « Mes chances cette saison » (choix d'Alex : Première ponte + Illimité)
 ];
 function currentUserTier(){
@@ -3904,6 +3906,7 @@ const DASH_CARDS = [
   { key:'today_cleaning', fr:'— Nettoyage en retard', en:'— Cleaning overdue' },
   { key:'today_uvb', fr:'— Remplacement UVB dépassé', en:'— UVB replacement overdue' },
   { key:'today_pairing', fr:'— En accouplement depuis 5j+', en:'— Pairing 5+ days' },
+  { key:'today_season', fr:'— Plan de saison (pairings prévus)', en:'— Season plan (planned pairings)' },
   { key:'today_lowstock', fr:'— Stock de proies bas', en:'— Low prey stock' },
   { key:'birthdays', fr:'Anniversaires du mois', en:'Birthdays this month' },
   { key:'todos', fr:'Tâches', en:'Tasks' },
@@ -3952,7 +3955,7 @@ function applyDashCardVisibility(){
   // "Aujourd'hui" (2 septembre) — plus un seul interrupteur : le titre/widget ne s'affiche que
   // si AU MOINS un des 7 sous-items est activé ; renderDashboard() filtre ensuite chaque groupe
   // individuellement selon dashCardPrefs.today_xxx au moment de construire le contenu.
-  const todaySubKeys = ['today_shed','today_weigh','today_clutch','today_cleaning','today_uvb','today_pairing','today_lowstock'];
+  const todaySubKeys = ['today_shed','today_weigh','today_clutch','today_cleaning','today_uvb','today_pairing','today_season','today_lowstock'];
   const anyTodayOn = todaySubKeys.some(k=>dashCardPrefs[k]);
   const todayTitle = document.getElementById('dash-today-title');
   const todayWidget = document.getElementById('dash-today-widget');
@@ -4332,10 +4335,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.39', date:'2026-10-08',
+  { version:'3.40', date:'2026-10-08',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '🗓️ Plan de saison (Reproduction → Calendrier) : prépare tes pairings d\'avance — mâle, femelles avec leur date de début prévue, poids comparé au minimum, notes, et rotation du mâle calculée selon ton rythme (nuits ensemble / jours de repos). Rappels dans l\'Agenda dès 7 jours avant, la veille et le jour J. « ▶ Démarrer » crée l\'accouplement habituel ; une femelle dont l\'ovulation est confirmée sort de la rotation. Réservé aux paliers Première ponte et Illimité après la bêta.',
         'Noms de morphs écrits comme dans le milieu : « Super Pastel Banana Granite het Clown » au lieu de « Pastel (Super), Banana (Visuel)… ». Les formes super passent en premier partout (fiches, listes, calculateur, ponte simulée).',
         'Simuler une ponte : si le mâle est marqué Male Maker ou Female Maker, chaque œuf affiche son sexe probable (♂/♀), avec une note sur les exceptions possibles.',
         '🎲 Mes chances cette saison (calculateur) : coche les traits de ton bébé visé, choisis le nombre de pontes et d\'œufs, et vois ta chance réelle d\'en avoir au moins un. « Pastel » compte aussi les Super Pastel, et un trait que tous les bébés auront est coché d\'office. Fonctionne aussi pour les récessifs visuels et les combos d\'allèles (BEL, BlkEL, Candino…). Réservé aux paliers Première ponte et Illimité après la bêta.',
@@ -4351,6 +4355,7 @@ const CHANGELOG = [
         'Génétique : le super des gènes du complexe Fire s\'affiche « Black-Eyed Leucistic (BlkEL) » — le sigle BEL désigne le Blue-Eyed Leucistic.'
       ],
       en:[
+        '🗓️ Season plan (Breeding → Calendar): prepare your pairings ahead — male, females with their planned start date, weight vs minimum, notes, and a male rotation built from your rhythm (nights together / rest days). Agenda reminders from 7 days before, the day before and on the day. "▶ Start" creates the usual pairing; a female with confirmed ovulation leaves the rotation. Reserved for the First Clutch and Unlimited tiers after the beta.',
         'Morph names now written the way the hobby does: "Super Pastel Banana Granite het Clown" instead of "Pastel (Super), Banana (Visual)…". Super forms come first everywhere (records, lists, calculator, simulated clutch).',
         'Simulate a clutch: if the sire is marked Male Maker or Female Maker, each egg shows its likely sex (♂/♀), with a note about possible exceptions.',
         '🎲 My odds this season (calculator): check the traits of your target baby, pick the number of clutches and eggs, and see your real chance of getting at least one. "Pastel" also counts Super Pastels, and a trait every baby will have is checked automatically. Also works for visual recessives and allelic combos (BEL, BlkEL, Candino…). Reserved for the First Clutch and Unlimited tiers after the beta.',
@@ -11145,7 +11150,7 @@ function saveElevage(){
   trackLocalChanges('expenses', expenses);
   trackLocalChanges('customers', customers);
   try{
-    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, feederStockLive, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, rodentPriorityBins, rodentRacks, rodentGoal, dreamSnakes }));
+    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, feederStockLive, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, rodentPriorityBins, rodentRacks, rodentGoal, dreamSnakes, seasonPlans }));
     storageWriteFailed = false;
   }catch(e){
     console.warn('LOCUS: écriture élevage impossible', e);
@@ -11194,6 +11199,342 @@ var rodentGoal = elevageData.rodentGoal || { unit:'females', target:null, mode:'
 // calculateur existant), plus sireId/damId qui peuvent pointer vers un vrai reptile OU un autre
 // bébé rêve — c'est ça qui permet d'enchaîner les générations hypothétiques.
 var dreamSnakes = elevageData.dreamSnakes || [];
+// ==================== Plan de saison (v3.40 — Première ponte + Illimité) ====================
+// Demandé par Alex : préparer ses pairings d'avance (Kara ~24 oct, Angela début nov) avec rappels
+// dans l'Agenda. Un plan = 1 mâle + ses femelles prévues + un rythme (nuits ensemble / jours de
+// repos du mâle). La rotation alterne les femelles dans l'ordre, chacune à partir de SA date de
+// début prévue ; une femelle dont l'ovulation est confirmée sort de la rotation. « ▶ Démarrer »
+// = la vraie introduction (pas un lock) : la 1re crée l'accouplement habituel (locks, follicules,
+// ovulation, ponte), les suivantes s'y rattachent. Rien n'est dédoublé.
+// Stockage : app_state.season_plans (jsonb, migration du 8 oct). Suppression douce (deleted:true)
+// pour qu'un plan effacé ne revienne pas par la synchro.
+var seasonPlans = elevageData.seasonPlans || [];
+function spToday(){ const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function spAddDays(dateStr, n){
+  const p = dateStr.split('-').map(Number);
+  const d = new Date(p[0], p[1]-1, p[2]+n);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function spDaysBetween(a, b){ // b − a, en jours
+  const pa = a.split('-').map(Number), pb = b.split('-').map(Number);
+  return Math.round((new Date(pb[0],pb[1]-1,pb[2]) - new Date(pa[0],pa[1]-1,pa[2]))/86400000);
+}
+function spFmt(dateStr){
+  if(!dateStr) return '—';
+  const p = dateStr.split('-').map(Number);
+  const d = new Date(p[0], p[1]-1, p[2]);
+  try{ return d.toLocaleDateString(currentLang==='en'?'en-CA':'fr-CA', { day:'numeric', month:'short' }); }catch(e){ return dateStr; }
+}
+function activeSeasonPlans(){ return seasonPlans.filter(sp=>!sp.deleted); }
+function spTouch(plan){ plan.updatedAt = Date.now(); saveElevage(); }
+function spSnakeName(id){ const s = savedSnakes.find(x=>x.id===id); return s ? s.name : '?'; }
+function spPairingFor(plan, femaleId){
+  const pid = plan.pairingIds && plan.pairingIds[femaleId];
+  return pid ? pairings.find(p=>p.id===pid) : null;
+}
+function spFemaleOvulated(plan, femaleId){ const pr = spPairingFor(plan, femaleId); return !!(pr && pr.ovulationConfirmed); }
+
+// Recalcule les séances PRÉVUES ; les séances faites/sautées restent telles quelles.
+function regenerateSeasonSessions(plan){
+  const nights = Math.max(1, parseInt(plan.nightsTogether,10)||3);
+  const rest = Math.max(0, parseInt(plan.restDays,10)||0);
+  const consumed = (plan.sessions||[]).filter(se=>se.status!=='planned').sort((a,b)=>(a.actualStart||a.start).localeCompare(b.actualStart||b.start));
+  const females = (plan.females||[]).filter(f=>f.plannedStart).sort((a,b)=>a.plannedStart.localeCompare(b.plannedStart));
+  const order = females.map(f=>f.femaleId);
+  let cursor = null, lastFemale = null;
+  if(consumed.length){
+    const last = consumed[consumed.length-1];
+    cursor = last.status==='done' ? spAddDays(last.actualStart||last.start, nights+rest) : last.start;
+    lastFemale = last.status==='done' ? last.femaleId : null;
+    if(last.status==='skipped'){ // la place sautée revient à la femelle suivante
+      const prevDone = [...consumed].reverse().find(se=>se.status==='done');
+      lastFemale = last.femaleId;
+      if(prevDone && spAddDays(prevDone.actualStart||prevDone.start, nights+rest) > cursor) cursor = spAddDays(prevDone.actualStart||prevDone.start, nights+rest);
+    }
+  }
+  if(!cursor && females.length) cursor = females[0].plannedStart;
+  const planned = [];
+  const endDate = plan.endDate || (cursor ? spAddDays(cursor, 180) : null);
+  let guard = 0;
+  while(cursor && order.length && planned.length<16 && guard<200 && (!endDate || cursor<=endDate)){
+    guard++;
+    // Une femelle déjà démarrée n'attend plus sa date prévue (elle a pu commencer plus tôt).
+    const started = f=>consumed.some(se=>se.status==='done' && se.femaleId===f);
+    const eligible = f=>{ const fe = females.find(x=>x.femaleId===f); return fe && (fe.plannedStart<=cursor || started(f)) && !spFemaleOvulated(plan, f); };
+    let pick = null;
+    const startIdx = lastFemale ? (order.indexOf(lastFemale)+1) : 0;
+    for(let k=0;k<order.length;k++){ const f = order[(startIdx+k)%order.length]; if(eligible(f)){ pick = f; break; } }
+    if(!pick){
+      const later = females.filter(fe=>fe.plannedStart>cursor && !started(fe.femaleId) && !spFemaleOvulated(plan, fe.femaleId)).map(fe=>fe.plannedStart).sort()[0];
+      if(!later) break;
+      cursor = later; continue;
+    }
+    planned.push({ id:'ses_'+plan.id+'_'+cursor+'_'+pick, femaleId:pick, start:cursor, end:spAddDays(cursor, nights), status:'planned' });
+    lastFemale = pick;
+    cursor = spAddDays(cursor, nights+rest);
+  }
+  plan.sessions = consumed.concat(planned);
+}
+function spMaleConflicts(plan){
+  // même mâle prévu dans 2 plans aux mêmes dates
+  const out = [];
+  activeSeasonPlans().forEach(other=>{
+    if(other.id===plan.id || other.maleId!==plan.maleId) return;
+    (plan.sessions||[]).forEach(a=>(other.sessions||[]).forEach(b=>{
+      if(a.status==='skipped'||b.status==='skipped') return;
+      if(a.start<=b.end && b.start<=a.end) out.push({ a, b, other });
+    }));
+  });
+  return out;
+}
+function spPrepChecks(femaleId, maleId){
+  const isEn = currentLang==='en';
+  const out = [];
+  [[femaleId,'female'],[maleId,'male']].forEach(([id,sex])=>{
+    const s = savedSnakes.find(x=>x.id===id); if(!s) return;
+    ensureSnakeMeta(s);
+    const w = lastWeight(s);
+    const min = MIN_BREEDING_WEIGHT[sex];
+    const dW = daysSinceLastWeigh(s);
+    if(w===null) out.push({ ok:false, txt:escapeHtml(s.name)+' — '+(isEn?'never weighed':'jamais pesé'+(sex==='female'?'e':'')) });
+    else out.push({ ok:w>=min, txt:escapeHtml(s.name)+' — '+w+' g '+(w>=min?'✓':(isEn?'(under '+min+' g)':'(sous '+min+' g)'))+(dW!=null&&dW>14?(isEn?' · weighed '+dW+'d ago':' · pesé'+(sex==='female'?'e':'')+' il y a '+dW+' j'):'') });
+  });
+  return out;
+}
+
+function renderSeasonPlans(){
+  const isEn = currentLang==='en';
+  const wrap = document.getElementById('season-plan-section');
+  if(!wrap) return;
+  const head = '<div class="results-hdr" style="margin-top:4px;"><h2 style="font-size:16px;">🗓️ '+(isEn?'Season plan':'Plan de saison')+'</h2></div>';
+  if(!hasAccess('seasonPlan')){ wrap.innerHTML = head+lockedFeatureHtml(); return; }
+  const plans = activeSeasonPlans();
+  const today = spToday();
+  let html = head;
+  if(!plans.length){
+    html += '<p style="font-size:12px;color:var(--ink-dim);margin:0 0 10px;">'+(isEn
+      ? 'Plan your pairings ahead: females, planned start dates, your male\'s rhythm, and reminders in the Agenda.'
+      : 'Prépare tes pairings d\'avance : femelles, dates de début prévues, rythme de ton mâle, et rappels dans l\'Agenda.')+'</p>';
+  }
+  plans.forEach(plan=>{
+    const male = savedSnakes.find(x=>x.id===plan.maleId);
+    const conflicts = spMaleConflicts(plan);
+    const femalesHtml = (plan.females||[]).map(fe=>{
+      const f = savedSnakes.find(x=>x.id===fe.femaleId);
+      if(!f) return '';
+      ensureSnakeMeta(f);
+      const checks = spPrepChecks(fe.femaleId, null).map(c=>'<span style="color:'+(c.ok?'var(--sage)':'var(--gold)')+';">'+c.txt+'</span>').join('');
+      const fed = daysSinceLastFed(f);
+      const ovu = spFemaleOvulated(plan, fe.femaleId);
+      return '<div class="modal-row" style="align-items:flex-start;gap:8px;">'+
+        '<span style="flex:1;font-size:13px;"><b>♀ '+escapeHtml(f.name)+'</b> — '+(isEn?'start ':'début ')+'<b>'+spFmt(fe.plannedStart)+'</b>'+
+          (ovu?' <span style="color:var(--sage);">✓ '+(isEn?'ovulation confirmed — out of rotation':'ovulation confirmée — retirée de la rotation')+'</span>':'')+
+          '<br/><small style="color:var(--ink-dim);">'+checks+(fed!=null?' · '+(isEn?'last meal ':'dernier repas ')+fed+(isEn?'d ago':' j'):'')+
+          (fe.coolingDate?' · ❄️ '+spFmt(fe.coolingDate):'')+'</small>'+
+          (fe.notes?'<br/><small style="color:var(--ink);">📝 '+escapeHtml(fe.notes)+'</small>':'')+
+        '</span>'+
+        '<span style="display:flex;gap:4px;"><button class="sc-btn" onclick="openSeasonFemaleModal(\''+plan.id+'\',\''+fe.femaleId+'\')">✏️</button>'+
+        '<button class="sc-btn danger" onclick="removeSeasonFemale(\''+plan.id+'\',\''+fe.femaleId+'\')">×</button></span></div>';
+    }).join('') || '<p style="font-size:12px;color:var(--ink-dim);">'+(isEn?'No female yet.':'Aucune femelle pour l\'instant.')+'</p>';
+    const nextPlannedId = ((plan.sessions||[]).filter(se=>se.status==='planned').sort((a,b)=>a.start.localeCompare(b.start))[0]||{}).id;
+    const allSorted = (plan.sessions||[]).slice().sort((a,b)=>(a.actualStart||a.start).localeCompare(b.actualStart||b.start));
+    const doneList = allSorted.filter(se=>se.status!=='planned'), plannedList = allSorted.filter(se=>se.status==='planned');
+    const expanded = !!spExpanded[plan.id];
+    const visibleSessions = expanded ? allSorted : doneList.slice(-3).concat(plannedList.slice(0,4));
+    const hiddenCount = allSorted.length - visibleSessions.length;
+    const sessionsHtml = allSorted.length ? visibleSessions.map(se=>{
+      const fname = escapeHtml(spSnakeName(se.femaleId));
+      const isConflict = conflicts.some(c=>c.a.id===se.id);
+      let right;
+      if(se.status==='done') right = '<span style="color:var(--sage);font-size:12px;">✓ '+(isEn?'started ':'démarré ')+spFmt(se.actualStart||se.start)+'</span>';
+      else if(se.status==='skipped') right = '<span style="color:var(--ink-dim);font-size:12px;">⏭ '+(isEn?'skipped':'sautée')+'</span> <button class="sc-btn" onclick="unskipSeasonSession(\''+plan.id+'\',\''+se.id+'\')">↩</button>';
+      else {
+        const d = spDaysBetween(today, se.start);
+        const when = d<0 ? (isEn?'late by '+(-d)+'d':'en retard de '+(-d)+' j') : d===0 ? (isEn?'today':'aujourd\'hui') : d===1 ? (isEn?'tomorrow':'demain') : (isEn?'in '+d+'d':'dans '+d+' j');
+        right = '<span style="font-size:11px;color:'+(d<=1?'var(--gold)':'var(--ink-dim)')+';margin-right:6px;">'+when+'</span>'+
+          (se.id===nextPlannedId ? '<button class="save-btn" style="padding:6px 10px;" onclick="startSeasonSession(\''+plan.id+'\',\''+se.id+'\')">▶ '+(isEn?'Start':'Démarrer')+'</button>' : '')+
+          ' <button class="sc-btn" onclick="skipSeasonSession(\''+plan.id+'\',\''+se.id+'\')">⏭</button>';
+      }
+      return '<div class="modal-row" style="'+(isConflict?'border-left:3px solid var(--rust);padding-left:6px;':'')+'"><span style="font-size:13px;">'+spFmt(se.actualStart||se.start)+' → '+spFmt(se.status==='done'?spAddDays(se.actualStart||se.start, parseInt(plan.nightsTogether,10)||3):se.end)+' · ♀ '+fname+
+        (isConflict?' <small style="color:var(--rust);">⚠ '+(isEn?'male already planned elsewhere':'mâle déjà prévu ailleurs')+'</small>':'')+'</span><span>'+right+'</span></div>';
+    }).join('') + ((hiddenCount>0 || expanded) ? '<button class="sc-btn" style="margin-top:6px;" onclick="spExpanded[\''+plan.id+'\']=!spExpanded[\''+plan.id+'\'];renderSeasonPlans();">'+(expanded?(isEn?'Show less':'Afficher moins'):(isEn?'Show the whole season (':'Voir toute la saison (')+allSorted.length+')')+'</button>' : '')
+      : '<p style="font-size:12px;color:var(--ink-dim);">'+(isEn?'Add a female with a planned start date to build the rotation.':'Ajoute une femelle avec une date de début prévue pour bâtir la rotation.')+'</p>';
+    html += '<div class="timeline-card" style="margin-bottom:14px;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">'+
+        '<div><div style="font-size:15px;font-weight:700;color:var(--ink);">'+escapeHtml(plan.name||'')+'</div>'+
+        '<div style="font-size:12px;color:var(--ink-dim);">♂ '+(male?escapeHtml(male.name):'?')+' · '+(plan.nightsTogether||3)+(isEn?' nights together · ':' nuits ensemble · ')+(plan.restDays||0)+(isEn?' days of rest':' jours de repos')+
+          (plan.endDate?' · '+(isEn?'until ':'jusqu\'au ')+spFmt(plan.endDate):'')+'</div></div>'+
+        '<div style="display:flex;gap:6px;"><button class="sc-btn" onclick="openSeasonPlanModal(\''+plan.id+'\')">✏️</button><button class="sc-btn danger" onclick="deleteSeasonPlan(\''+plan.id+'\')">🗑</button></div>'+
+      '</div>'+
+      (male ? '<div style="font-size:11.5px;margin-top:6px;">'+spPrepChecks(null, plan.maleId).map(c=>'<span style="color:'+(c.ok?'var(--sage)':'var(--gold)')+';">♂ '+c.txt+'</span>').join('')+'</div>' : '')+
+      '<h3 style="font-size:12px;margin:12px 0 6px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);">'+(isEn?'Females':'Femelles')+'</h3>'+femalesHtml+
+      '<button class="sc-btn accent" style="margin-top:6px;" onclick="openSeasonFemaleModal(\''+plan.id+'\')">+ '+(isEn?'Add a female':'Ajouter une femelle')+'</button>'+
+      '<h3 style="font-size:12px;margin:14px 0 6px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);">'+(isEn?'Male rotation':'Rotation du mâle')+'</h3>'+sessionsHtml+
+      '<p class="husbandry-health-note" style="margin-top:8px;">'+(isEn
+        ? '▶ Start = the day you put them together (not a lock). The first one creates the usual pairing card (locks, follicles, ovulation); later ones attach to it. Dates shift automatically if you start earlier or later.'
+        : '▶ Démarrer = le jour où tu les mets ensemble (pas un lock). La 1re fois crée la fiche d\'accouplement habituelle (locks, follicules, ovulation) ; les suivantes s\'y rattachent. Les dates suivantes se décalent toutes seules si tu commences plus tôt ou plus tard.')+'</p>'+
+    '</div>';
+  });
+  html += '<button class="save-btn" style="width:100%;margin-bottom:18px;" onclick="openSeasonPlanModal()">🗓️ '+(isEn?'New season plan':'Nouveau plan de saison')+'</button>';
+  wrap.innerHTML = html;
+}
+
+var spExpanded = {};
+var spInputStyle = 'width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);';
+function openSeasonPlanModal(planId){
+  const isEn = currentLang==='en';
+  if(!hasAccess('seasonPlan')){ showQuickModal('🗓️', lockedFeatureHtml()); return; }
+  const plan = planId ? seasonPlans.find(p=>p.id===planId) : null;
+  const males = savedSnakes.filter(s=>s.sex==='male' && s.status!=='sold');
+  if(!males.length){ showToast(isEn?'Add a male first.':'Ajoute d\'abord un mâle.', 'error'); return; }
+  const yr = new Date().getFullYear();
+  const lab = (txt, inner)=>'<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+txt+'</span>'+inner+'</label>';
+  const body =
+    lab(isEn?'Name':'Nom', '<input type="text" id="sp-name" style="'+spInputStyle+'" value="'+escapeHtml(plan?plan.name:(isEn?'Season ':'Saison ')+yr+'-'+(yr+1))+'"/>')+
+    lab(isEn?'Male':'Mâle', '<select id="sp-male" style="'+spInputStyle+'">'+males.map(m=>'<option value="'+m.id+'"'+(plan&&plan.maleId===m.id?' selected':'')+'>'+escapeHtml(m.name)+'</option>').join('')+'</select>')+
+    '<div style="display:flex;gap:10px;">'+
+      lab(isEn?'Nights together':'Nuits ensemble', '<input type="number" id="sp-nights" min="1" max="14" style="'+spInputStyle+'" value="'+(plan?plan.nightsTogether:3)+'"/>')+
+      lab(isEn?'Male rest (days)':'Repos du mâle (jours)', '<input type="number" id="sp-rest" min="0" max="60" style="'+spInputStyle+'" value="'+(plan?plan.restDays:7)+'"/>')+
+    '</div>'+
+    lab(isEn?'Season end (optional)':'Fin de la saison (optionnel)', '<input type="date" id="sp-end" style="'+spInputStyle+'" value="'+(plan&&plan.endDate?plan.endDate:'')+'"/>')+
+    '<button class="save-btn" style="width:100%;" onclick="saveSeasonPlan('+(plan?'\''+plan.id+'\'':'null')+')">'+(isEn?'Save':'Enregistrer')+'</button>';
+  showQuickModal('🗓️ '+(plan?(isEn?'Edit season plan':'Modifier le plan'):(isEn?'New season plan':'Nouveau plan de saison')), body);
+}
+function saveSeasonPlan(planId){
+  const isEn = currentLang==='en';
+  const name = document.getElementById('sp-name').value.trim() || (isEn?'Season':'Saison');
+  const maleId = document.getElementById('sp-male').value;
+  const nights = Math.max(1, Math.min(14, parseInt(document.getElementById('sp-nights').value,10)||3));
+  const rest = Math.max(0, Math.min(60, parseInt(document.getElementById('sp-rest').value,10)||0));
+  const endDate = document.getElementById('sp-end').value || null;
+  let plan = planId ? seasonPlans.find(p=>p.id===planId) : null;
+  if(!plan){ plan = { id:'sp_'+Date.now(), females:[], sessions:[], pairingIds:{} }; seasonPlans.push(plan); }
+  Object.assign(plan, { name, maleId, nightsTogether:nights, restDays:rest, endDate });
+  regenerateSeasonSessions(plan);
+  spTouch(plan);
+  closeQuickModal();
+  renderSeasonPlans();
+  if(!planId) openSeasonFemaleModal(plan.id);
+}
+function deleteSeasonPlan(planId){
+  const isEn = currentLang==='en';
+  const plan = seasonPlans.find(p=>p.id===planId);
+  if(!plan) return;
+  if(!confirm(isEn?'Delete this season plan? Pairings already started are kept.':'Supprimer ce plan de saison? Les accouplements déjà démarrés sont gardés.')) return;
+  plan.deleted = true;
+  spTouch(plan);
+  renderSeasonPlans();
+}
+function openSeasonFemaleModal(planId, femaleId){
+  const isEn = currentLang==='en';
+  const plan = seasonPlans.find(p=>p.id===planId);
+  if(!plan) return;
+  const fe = femaleId ? (plan.females||[]).find(x=>x.femaleId===femaleId) : null;
+  const used = (plan.females||[]).map(x=>x.femaleId);
+  const females = savedSnakes.filter(s=>s.sex==='female' && s.status!=='sold' && (!used.includes(s.id) || (fe && s.id===fe.femaleId)));
+  if(!females.length){ showToast(isEn?'No other female available.':'Aucune autre femelle disponible.', 'error'); return; }
+  const lab = (txt, inner)=>'<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+txt+'</span>'+inner+'</label>';
+  const body =
+    lab(isEn?'Female':'Femelle', '<select id="spf-female" style="'+spInputStyle+'"'+(fe?' disabled':'')+'>'+females.map(f=>'<option value="'+f.id+'"'+(fe&&fe.femaleId===f.id?' selected':'')+'>'+escapeHtml(f.name)+'</option>').join('')+'</select>')+
+    lab(isEn?'Planned start (first introduction)':'Début prévu (1re introduction)', '<input type="date" id="spf-start" style="'+spInputStyle+'" value="'+(fe?fe.plannedStart:'')+'"/>')+
+    lab(isEn?'❄️ Cooling start (optional)':'❄️ Début du cooling (optionnel)', '<input type="date" id="spf-cooling" style="'+spInputStyle+'" value="'+(fe&&fe.coolingDate?fe.coolingDate:'')+'"/>')+
+    lab(isEn?'Notes (optional)':'Notes (optionnel)', '<textarea id="spf-notes" rows="3" style="'+spInputStyle+'">'+escapeHtml(fe&&fe.notes?fe.notes:'')+'</textarea>')+
+    '<button class="save-btn" style="width:100%;" onclick="saveSeasonFemale(\''+planId+'\','+(fe?'\''+fe.femaleId+'\'':'null')+')">'+(isEn?'Save':'Enregistrer')+'</button>';
+  showQuickModal('♀ '+(fe?(isEn?'Edit female':'Modifier la femelle'):(isEn?'Add a female':'Ajouter une femelle')), body);
+}
+function saveSeasonFemale(planId, existingId){
+  const isEn = currentLang==='en';
+  const plan = seasonPlans.find(p=>p.id===planId);
+  if(!plan) return;
+  const femaleId = existingId || document.getElementById('spf-female').value;
+  const plannedStart = document.getElementById('spf-start').value;
+  if(!femaleId || !plannedStart){ showToast(isEn?'Pick a female and a planned start date.':'Choisis une femelle et une date de début prévue.', 'error'); return; }
+  const coolingDate = document.getElementById('spf-cooling').value || null;
+  const notes = document.getElementById('spf-notes').value.trim();
+  plan.females = plan.females || [];
+  let fe = plan.females.find(x=>x.femaleId===femaleId);
+  if(!fe){ fe = { femaleId }; plan.females.push(fe); }
+  Object.assign(fe, { plannedStart, coolingDate, notes });
+  regenerateSeasonSessions(plan);
+  spTouch(plan);
+  closeQuickModal();
+  renderSeasonPlans();
+}
+function removeSeasonFemale(planId, femaleId){
+  const isEn = currentLang==='en';
+  const plan = seasonPlans.find(p=>p.id===planId);
+  if(!plan) return;
+  if(!confirm(isEn?'Remove '+spSnakeName(femaleId)+' from this plan?':'Retirer '+spSnakeName(femaleId)+' de ce plan?')) return;
+  plan.females = (plan.females||[]).filter(x=>x.femaleId!==femaleId);
+  plan.sessions = (plan.sessions||[]).filter(se=>se.status!=='planned' || se.femaleId!==femaleId);
+  regenerateSeasonSessions(plan);
+  spTouch(plan);
+  renderSeasonPlans();
+}
+function startSeasonSession(planId, sessionId){
+  const isEn = currentLang==='en';
+  const plan = seasonPlans.find(p=>p.id===planId);
+  const se = plan && (plan.sessions||[]).find(x=>x.id===sessionId);
+  if(!se) return;
+  const today = spToday();
+  plan.pairingIds = plan.pairingIds || {};
+  let pr = spPairingFor(plan, se.femaleId);
+  if(!pr){
+    const male = savedSnakes.find(s=>s.id===plan.maleId), female = savedSnakes.find(s=>s.id===se.femaleId);
+    if(male) ensureSnakeMeta(male);
+    if(female) ensureSnakeMeta(female);
+    const warnings = [];
+    const mw = male ? lastWeight(male) : null, fw = female ? lastWeight(female) : null;
+    if(mw===null || mw<MIN_BREEDING_WEIGHT.male) warnings.push((isEn?'Male ':'Mâle ')+spSnakeName(plan.maleId)+' : '+(mw===null?(isEn?'not weighed':'non pesé'):mw+' g')+' (≥ '+MIN_BREEDING_WEIGHT.male+' g)');
+    if(fw===null || fw<MIN_BREEDING_WEIGHT.female) warnings.push((isEn?'Female ':'Femelle ')+spSnakeName(se.femaleId)+' : '+(fw===null?(isEn?'not weighed':'non pesée'):fw+' g')+' (≥ '+MIN_BREEDING_WEIGHT.female+' g)');
+    const pairF = inbreedingCoefficient(plan.maleId, se.femaleId);
+    if(pairF>0) warnings.push((isEn?'Inbreeding coefficient: ':'Coefficient de consanguinité : ')+(Math.round(pairF*10000)/100)+' %');
+    if(warnings.length && !confirm((isEn?'⚠ Points to check:\n\n':'⚠ Points à vérifier :\n\n')+warnings.join('\n')+(isEn?'\n\nStart anyway?':'\n\nDémarrer quand même ?'))) return;
+    const fe = (plan.females||[]).find(x=>x.femaleId===se.femaleId) || {};
+    pr = { id:'pr_'+Date.now(), maleId:plan.maleId, femaleId:se.femaleId, pairedDate:today, coolingDate:fe.coolingDate||null, ovulationConfirmed:false, ovulationDate:null, follicleSizes:[], lockDates:[], preLayShedDate:null, projectId:null, seasonPlanId:plan.id, introductions:[today] };
+    pairings.push(pr);
+    plan.pairingIds[se.femaleId] = pr.id;
+  } else {
+    pr.introductions = Array.from(new Set((pr.introductions||[pr.pairedDate]).concat([today]))).sort();
+  }
+  se.status = 'done';
+  se.actualStart = today;
+  regenerateSeasonSessions(plan);
+  spTouch(plan);
+  renderTimeline();
+  showToast('▶ '+spSnakeName(se.femaleId)+' × '+spSnakeName(plan.maleId)+(isEn?' — pairing started.':' — accouplement démarré.'), 'success');
+}
+function skipSeasonSession(planId, sessionId){
+  const plan = seasonPlans.find(p=>p.id===planId);
+  const se = plan && (plan.sessions||[]).find(x=>x.id===sessionId);
+  if(!se) return;
+  se.status = 'skipped';
+  regenerateSeasonSessions(plan);
+  spTouch(plan);
+  renderSeasonPlans();
+}
+function unskipSeasonSession(planId, sessionId){
+  const plan = seasonPlans.find(p=>p.id===planId);
+  if(!plan) return;
+  plan.sessions = (plan.sessions||[]).filter(x=>x.id!==sessionId);
+  regenerateSeasonSessions(plan);
+  spTouch(plan);
+  renderSeasonPlans();
+}
+// Rappels de l'Agenda : séances prévues de J-7 à J, et celles en retard (jusqu'à 7 j).
+function seasonPlanReminders(){
+  if(!hasAccess('seasonPlan')) return [];
+  const today = spToday();
+  const out = [];
+  activeSeasonPlans().forEach(plan=>{
+    const next = (plan.sessions||[]).filter(se=>se.status==='planned').sort((a,b)=>a.start.localeCompare(b.start))[0];
+    if(!next) return;
+    const d = spDaysBetween(today, next.start);
+    if(d<=7 && d>=-7) out.push({ plan, se:next, days:d });
+  });
+  return out.sort((a,b)=>a.days-b.days);
+}
+
 // Recherche unifiée — vrai reptile OU bébé rêve, pour que l'arbre de pedigree et le calcul de
 // consanguinité fonctionnent identiquement peu importe si un ancêtre est réel ou hypothétique.
 function findSnakeOrDream(id){
@@ -11537,7 +11878,7 @@ async function pushAllUserData(forceAll){
         else markPushed('customers', [[cu.id, custSig]]);
       }
     }
-    var stRes = await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock, feeder_stock_live: feederStockLive, todos, genetic_ambiguities: geneticAmbiguities, rodent_bins: rodentBins, rodent_expenses: rodentExpenses, rodent_value_per_unit: rodentValuePerUnit, rodent_priority_bins: rodentPriorityBins, rodent_racks: rodentRacks, rodent_goal: rodentGoal, dream_snakes: dreamSnakes });
+    var stRes = await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock, feeder_stock_live: feederStockLive, todos, genetic_ambiguities: geneticAmbiguities, rodent_bins: rodentBins, rodent_expenses: rodentExpenses, rodent_value_per_unit: rodentValuePerUnit, rodent_priority_bins: rodentPriorityBins, rodent_racks: rodentRacks, rodent_goal: rodentGoal, dream_snakes: dreamSnakes, season_plans: seasonPlans });
     if(stRes && stRes.error){ allOk = false; console.warn('LOCUS: envoi échoué (app_state)', stRes.error); }
     else saveAppStatePushedAt(Date.now());
     var profile = loadProfile();
@@ -11661,6 +12002,7 @@ async function pullAllUserData(){
     if(stateRes.data && stateRes.data.rodent_racks && remoteAppStateWins) rodentRacks = stateRes.data.rodent_racks;
     if(stateRes.data && stateRes.data.rodent_goal && remoteAppStateWins) rodentGoal = stateRes.data.rodent_goal;
     if(stateRes.data && stateRes.data.dream_snakes && remoteAppStateWins) dreamSnakes = stateRes.data.dream_snakes;
+    if(stateRes.data && stateRes.data.season_plans) seasonPlans = mergeById(seasonPlans, stateRes.data.season_plans);
     if(stateRes.data && stateRes.data.feeder_stock && remoteAppStateWins) feederStock = stateRes.data.feeder_stock;
     if(stateRes.data && stateRes.data.feeder_stock_live && remoteAppStateWins) feederStockLive = stateRes.data.feeder_stock_live;
     if(stateRes.data && stateRes.data.dismissed_banners){
@@ -11734,7 +12076,7 @@ function buildBackupPayload(){
   return {
     app:'LOCUS', version:2, exportedAt:new Date().toISOString(),
     snakes: savedSnakes,
-    elevage: { racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, feederStockLive, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, rodentPriorityBins, rodentRacks, rodentGoal, dreamSnakes }
+    elevage: { racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, feederStockLive, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, rodentPriorityBins, rodentRacks, rodentGoal, dreamSnakes, seasonPlans }
   };
 }
 function lbkOpen(){
@@ -11925,6 +12267,7 @@ function applyBackupData(data){
     rodentRacks = el.rodentRacks || [];
     rodentGoal = el.rodentGoal || { unit:'females', target:null, mode:'expansion' };
     dreamSnakes = el.dreamSnakes || [];
+    seasonPlans = el.seasonPlans || [];
     projects = el.projects || [];
     feederStock = el.feederStock || {};
     feederStockLive = el.feederStockLive || {};
@@ -20371,12 +20714,23 @@ function renderDashboard(){
   const uvbOverdueF = dashCardPrefs.today_uvb ? uvbOverdue : [];
   const pairingLongF = dashCardPrefs.today_pairing ? pairingLong : [];
   const lowStockEntriesF = dashCardPrefs.today_lowstock ? lowStockEntries : [];
+  const seasonRemindersF = dashCardPrefs.today_season ? seasonPlanReminders() : [];
 
   const todayWrap = document.getElementById('dash-today-widget');
-  if(!shedSoonF.length && !weighDueF.length && !clutchesToCheckF.length && !terraCleanOverdueF.length && !uvbOverdueF.length && !pairingLongF.length && !rackTubsOverdueF.length && !lowStockEntriesF.length){
+  if(!seasonRemindersF.length && !shedSoonF.length && !weighDueF.length && !clutchesToCheckF.length && !terraCleanOverdueF.length && !uvbOverdueF.length && !pairingLongF.length && !rackTubsOverdueF.length && !lowStockEntriesF.length){
     todayWrap.innerHTML = '<div class="empty">🎉 '+(isEn?'Nothing needs special attention right now.':'Rien de particulier à surveiller pour l\'instant.')+'</div>';
   } else {
     todayWrap.innerHTML =
+      (seasonRemindersF.length ? '<div class="feed-day-group"><div class="feed-day-label">🗓️ '+(isEn?'Planned pairings':'Pairings prévus')+' — '+seasonRemindersF.length+'</div><div class="sale-list">'+
+        seasonRemindersF.map(r=>{
+          const d = r.days;
+          const when = d<0 ? (isEn?'late by '+(-d)+'d':'en retard de '+(-d)+' j') : d===0 ? (isEn?'today':'aujourd\'hui') : d===1 ? (isEn?'tomorrow':'demain') : (isEn?'in '+d+' days':'dans '+d+' jours');
+          const prep = d>=2 ? spPrepChecks(r.se.femaleId, r.plan.maleId).filter(c=>!c.ok).map(c=>c.txt).join(' · ') : '';
+          return '<div class="sale-row"><div class="sale-name">♀ '+escapeHtml(spSnakeName(r.se.femaleId))+' × ♂ '+escapeHtml(spSnakeName(r.plan.maleId))+
+            '<small>'+when+' ('+spFmt(r.se.start)+')'+(prep?' — ⚖ '+(isEn?'to check: ':'à vérifier : ')+prep:(d>=2?' — '+(isEn?'weigh both before the pairing':'pèse les deux avant le pairing'):''))+'</small></div>'+
+            '<button class="sc-btn accent" onclick="showTab(\'incubation\'); showReproSubtab(\'calendar\');">🗓️ '+(isEn?'View':'Voir')+'</button></div>';
+        }).join('')+
+      '</div></div>' : '')+
       (shedSoonF.length ? '<div class="feed-day-group"><div class="feed-day-label">🐍 '+(isEn?'Shed expected soon':'Mue prévue bientôt')+' — '+shedSoonF.length+'</div><div class="mini-animal-grid">'+
         shedSoonF.map(x=>miniAnimalCardHtml(x.snake.name, '~'+x.date, '<button class="sc-btn accent" onclick="openLogbook(\''+x.snake.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button>')).join('')+
       '</div></div>' : '')+
@@ -21710,6 +22064,7 @@ function seasonStepperHtml(p){
 }
 
 function renderTimeline(){
+  renderSeasonPlans();
   renderLastYearReference();
   renderOutcomesView();
   renderCustomEvents();
