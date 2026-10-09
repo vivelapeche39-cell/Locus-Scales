@@ -2179,7 +2179,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.49';
+const APP_VERSION = '2026.09.01.3.50';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4368,10 +4368,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.49', date:'2026-10-09',
+  { version:'3.50', date:'2026-10-09',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '✨ Après une mue, le message te dit quand la prochaine est prévue (ou combien de mues il reste à noter pour la prédire).',
         '🔄 Synchro entre appareils plus sûre : si tu notes un repas, une pesée ou une photo sur ton cellulaire et autre chose sur ton ordi, les deux sont maintenant conservés (avant, le plus récent écrasait l\'autre). Une entrée supprimée sur un appareil ne revient pas.',
         '🌳 Arbre généalogique : choisis 3, 4 ou 5 générations (glisse de côté sur cellulaire). Le coefficient de consanguinité reste calculé sur tout le pedigree connu.',
         'Sources génétiques affichées : Morphpedia et World of Ball Pythons.',
@@ -4395,6 +4396,7 @@ const CHANGELOG = [
         'Génétique : le super des gènes du complexe Fire s\'affiche « Black-Eyed Leucistic (BlkEL) » — le sigle BEL désigne le Blue-Eyed Leucistic.'
       ],
       en:[
+        '✨ After a shed, the confirmation tells you when the next one is expected (or how many sheds are left to log before it can be predicted).',
         '🔄 Safer sync between devices: if you log a meal, a weight or a photo on your phone and something else on your computer, both are now kept (before, the newest one overwrote the other). An entry deleted on one device doesn\'t come back.',
         '🌳 Pedigree tree: pick 3, 4 or 5 generations (swipe sideways on mobile). The inbreeding coefficient is still calculated on the whole known pedigree.',
         'Genetics sources shown: Morphpedia and World of Ball Pythons.',
@@ -10924,7 +10926,8 @@ function confirmShed(id){
   storage.save(savedSnakes);
   registerEventUndo([{snakeId:id, event}]);
   closeQuickModal();
-  showToast('✨ '+s.name+(isEn?' shed — ':' a mué — ')+shedQualityLabel(quality), quality==='complete'?'success':undefined, 'undoLastLoggedEvent()');
+  const shedHint = shedPredictionHint(s);
+  showToast('✨ '+escapeHtml(s.name)+(isEn?' shed — ':' a mué — ')+shedQualityLabel(quality)+(shedHint?'<br/><small>'+shedHint+'</small>':''), quality==='complete'?'success':undefined, 'undoLastLoggedEvent()');
   renderFirstSnakeTip();
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
 }
@@ -13364,6 +13367,20 @@ function nextShedEstimate(s){
   }
   const avgInterval = Math.round(totalDays / (sheds.length-1));
   return addDays(sheds[sheds.length-1].date, avgInterval);
+}
+// Phrase ajoutée au message de confirmation d'une mue (v3.50, gratuit) — à appeler APRÈS avoir
+// ajouté la mue au journal. 1 mue → combien il en manque pour prédire ; 2+ → date estimée.
+// null si rien d'utile à dire (ex. 2 mues le même jour = doublon, intervalle nul).
+function shedPredictionHint(s){
+  const isEn = currentLang==='en';
+  const sheds = (s.health.events||[]).filter(e=>e.type==='shed');
+  if(sheds.length===1) return isEn ? '1 more shed to log to predict the next one.' : 'Encore 1 mue à noter pour prédire la prochaine.';
+  const est = nextShedEstimate(s);
+  if(!est) return null;
+  const todayStr = new Date().toISOString().slice(0,10);
+  const days = Math.round((new Date(est+'T00:00:00').getTime() - new Date(todayStr+'T00:00:00').getTime()) / 86400000);
+  if(days<=0) return null;
+  return isEn ? 'Next shed expected around '+est+' (in '+days+'d).' : 'Prochaine mue prévue vers le '+est+' (dans '+days+' j).';
 }
 
 // Nombre de jours depuis la dernière pesée — null si jamais pesé.
@@ -17611,7 +17628,14 @@ function applyTourAction(action){
       water: isEn ? n+' water change(s) logged.' : n+' changement(s) d\'eau noté(s).',
     };
     const icons = { fed_frozen:'🍽', fed_live:'🍽', refused:'⚠', shed:'✨', water:'💧' };
-    showToast((icons[action]||'✓')+' '+(actionLabels[action]||(isEn?'Done.':'Fait.')), 'success', 'undoLastLoggedEvent()');
+    // Mue d'un seul serpent : même indice de prédiction que dans la fiche (v3.50). En lot, on
+    // garde le message court (une phrase par serpent serait illisible dans un toast).
+    let shedHintTour = null;
+    if(action==='shed' && n===1){
+      const sh = savedSnakes.find(x=>x.id===undoPairs[0].snakeId);
+      shedHintTour = sh ? shedPredictionHint(sh) : null;
+    }
+    showToast((icons[action]||'✓')+' '+(actionLabels[action]||(isEn?'Done.':'Fait.'))+(shedHintTour?'<br/><small>'+shedHintTour+'</small>':''), 'success', 'undoLastLoggedEvent()');
   }
   tourSelection.clear();
   renderTourGrid();
