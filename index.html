@@ -404,6 +404,12 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 .ped-col{display:flex;flex-direction:column;justify-content:space-around;gap:4px;flex:1;min-width:76px;}
 .ped-col-mid{justify-content:space-around;}
 .ped-col-self{justify-content:center;}
+.ped-gen-picker{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:11px;color:var(--ink-dim);}
+.ped-gen-btn{min-width:34px;min-height:30px;border-radius:999px;border:1px solid var(--line);background:var(--bg-panel-2);color:var(--ink);font-size:12px;font-weight:600;cursor:pointer;}
+.ped-gen-btn.active{background:var(--gold);border-color:var(--gold);color:#111;}
+.ped-gen-hint{margin-left:auto;font-size:10px;}
+.pedigree-tree.ped-wide .ped-col{min-width:88px;}
+.pedigree-tree.ped-wide .ped-node{min-height:18px;padding:3px 5px;}
 .ped-node{background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;padding:5px 7px;font-size:9px;text-align:center;color:var(--ink);flex:1;display:flex;align-items:center;justify-content:center;min-height:24px;line-height:1.2;}
 .ped-node.ped-empty{color:var(--ink-dim);font-style:italic;background:transparent;border-style:dashed;}
 .ped-node.ped-self{background:var(--gold);color:#1a1409;font-weight:600;border-color:var(--gold);font-size:10.5px;}
@@ -2173,7 +2179,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.48';
+const APP_VERSION = '2026.09.01.3.49';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4362,10 +4368,12 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.48', date:'2026-10-09',
+  { version:'3.49', date:'2026-10-09',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '🔄 Synchro entre appareils plus sûre : si tu notes un repas, une pesée ou une photo sur ton cellulaire et autre chose sur ton ordi, les deux sont maintenant conservés (avant, le plus récent écrasait l\'autre). Une entrée supprimée sur un appareil ne revient pas.',
+        '🌳 Arbre généalogique : choisis 3, 4 ou 5 générations (glisse de côté sur cellulaire). Le coefficient de consanguinité reste calculé sur tout le pedigree connu.',
         'Sources génétiques affichées : Morphpedia et World of Ball Pythons.',
         'Génétique (vérifié sur Morphpedia) : Sable fait maintenant partie du complexe Spider (un Sable × Spider se calcule correctement) ; le super de Cinnamon et de Black Pastel s\'appelle « Super Cinnamon » / « Super Black Pastel » — « 8 Ball » est le combo Cinnamon × Black Pastel.',
         'Le menu ☰ défile maintenant sur cellulaire — les dernières options (Confidentialité, Signaler un bug…) étaient hors de l\'écran.',
@@ -4387,6 +4395,8 @@ const CHANGELOG = [
         'Génétique : le super des gènes du complexe Fire s\'affiche « Black-Eyed Leucistic (BlkEL) » — le sigle BEL désigne le Blue-Eyed Leucistic.'
       ],
       en:[
+        '🔄 Safer sync between devices: if you log a meal, a weight or a photo on your phone and something else on your computer, both are now kept (before, the newest one overwrote the other). An entry deleted on one device doesn\'t come back.',
+        '🌳 Pedigree tree: pick 3, 4 or 5 generations (swipe sideways on mobile). The inbreeding coefficient is still calculated on the whole known pedigree.',
         'Genetics sources shown: Morphpedia and World of Ball Pythons.',
         'Genetics (checked on Morphpedia): Sable is now part of the Spider complex (Sable × Spider is calculated correctly); the super form of Cinnamon and Black Pastel is "Super Cinnamon" / "Super Black Pastel" — "8 Ball" is the Cinnamon × Black Pastel combo.',
         'The ☰ menu now scrolls on phones — the last options (Privacy, Report a bug…) were off screen.',
@@ -10557,6 +10567,7 @@ function undoLastLoggedEvent(){
     const idx = snake.health.events.indexOf(event);
     if(idx>-1){
       snake.health.events.splice(idx,1);
+      addHealthTombstone(snake, healthEventKey(event)); // v3.49
       if(restorePreyFromEvent(event)) stockRestored = true; // v3.21 — la proie retourne en stock
     }
   });
@@ -10578,6 +10589,7 @@ function deleteHealthEvent(snakeId, idx){
   if(!s || !s.health || !s.health.events || idx<0 || idx>=s.health.events.length) return;
   if(!confirm(isEn?'Delete this journal entry?':'Supprimer cette entrée du journal ?')) return;
   const removed = s.health.events.splice(idx, 1)[0];
+  if(removed) addHealthTombstone(s, healthEventKey(removed)); // v3.49 — la suppression ne revient pas d'un autre appareil
   // v3.44 — supprimer un « Lock » du journal le retire aussi de l'accouplement (et du journal de l'autre animal)
   if(removed && removed.type==='lock' && removed.lockId){
     const pr = pairings.find(x=>x.id===removed.pairingId);
@@ -10585,7 +10597,7 @@ function deleteHealthEvent(snakeId, idx){
       pr.lockDates = (pr.lockDates||[]).filter(l=>l.id!==removed.lockId);
       const otherId = pr.maleId===snakeId ? pr.femaleId : pr.maleId;
       const other = savedSnakes.find(x=>x.id===otherId);
-      if(other && other.health && other.health.events) other.health.events = other.health.events.filter(e=>!(e.type==='lock' && e.lockId===removed.lockId));
+      if(other && other.health && other.health.events){ other.health.events.filter(e=>e.type==='lock' && e.lockId===removed.lockId).forEach(e=>addHealthTombstone(other, healthEventKey(e))); other.health.events = other.health.events.filter(e=>!(e.type==='lock' && e.lockId===removed.lockId)); }
       saveElevage();
     }
   }
@@ -10599,7 +10611,7 @@ function deleteHealthEvent(snakeId, idx){
     const arr = removed.type==='weigh' ? s.health.weights : s.health.lengths;
     if(Array.isArray(arr)){
       for(let i=arr.length-1; i>=0; i--){
-        if(arr[i] && arr[i].date===removed.date && Number(arr[i].value)===Number(removed.value)){ arr.splice(i,1); break; }
+        if(arr[i] && arr[i].date===removed.date && Number(arr[i].value)===Number(removed.value)){ addHealthTombstone(s, measureKey(removed.type==='weigh'?'w':'l', arr[i])); arr.splice(i,1); break; }
       }
     }
   }
@@ -11871,6 +11883,61 @@ var debutOccupation = 0;
 // (ex. un webhook Stripe) pendant que le navigateur tirait ses propres données périmées par-dessus.
 // Si l'horodatage manque des deux côtés (anciennes fiches jamais synchronisées), le local continue
 // de l'emporter par défaut, comme avant.
+// ==================== Fusion fine des fiches entre appareils (v3.49) ====================
+// Avant : une fiche reptile se synchronisait en un seul bloc — si 2 appareils modifiaient la même
+// fiche (repas noté sur le cell, pesée sur le PC), la dernière envoyée écrasait l'autre et une
+// entrée du journal pouvait disparaître. Maintenant, on garde la fiche gagnante (même règle
+// qu'avant : en attente d'envoi > plus récente) MAIS on fusionne son journal, ses pesées, ses
+// mesures et ses photos avec ceux de l'autre version.
+// Règle de comptage par « clé » d'entrée (mêmes type/date/valeurs) : on garde le MAXIMUM des
+// 2 côtés (une entrée ajoutée d'un seul côté est conservée, sans doublon) — sauf si la clé a été
+// supprimée quelque part (pierre tombale dans health.removed) : là on garde le MINIMUM, pour qu'une
+// suppression faite sur un appareil ne revienne pas de l'autre.
+function healthEventKey(e){
+  if(!e) return '';
+  if(e.id) return 'id|'+e.id;
+  const o = {};
+  ['type','date','value','preyType','preyCount','preySpecies','preySize','quantity','quality','partner','pairingId','lockId','note','reason'].forEach(k=>{ if(e[k]!=null && e[k]!=='') o[k] = e[k]; });
+  return 'e|'+JSON.stringify(o);
+}
+function measureKey(kind, m){ return kind+'|'+(m&&m.date)+'|'+Number(m&&m.value); }
+function addHealthTombstone(s, key){
+  if(!s || !key) return;
+  if(!s.health) s.health = { consecutiveRefusals:0, weights:[], events:[] };
+  const arr = Array.isArray(s.health.removed) ? s.health.removed : [];
+  if(arr.indexOf(key)===-1) arr.push(key);
+  s.health.removed = arr.slice(-300);
+}
+function mergeCountedLists(baseList, otherList, keyFn, removedSet){
+  const groupBy = list=>{ const m = new Map(); (list||[]).forEach(x=>{ const k = keyFn(x); if(!m.has(k)) m.set(k, []); m.get(k).push(x); }); return m; };
+  const A = groupBy(baseList), B = groupBy(otherList);
+  const out = [];
+  new Set([...A.keys(), ...B.keys()]).forEach(k=>{
+    const a = A.get(k)||[], b = B.get(k)||[];
+    const n = removedSet.has(k) ? Math.min(a.length, b.length) : Math.max(a.length, b.length);
+    const src = a.length>=b.length ? a : b;
+    for(let i=0;i<n;i++) out.push(src[i] || a[i] || b[i]);
+  });
+  return out.sort((x,y)=>String(x.date||'').localeCompare(String(y.date||'')));
+}
+function mergeSnakeRecords(winner, other){
+  if(!winner || !other || winner===other) return winner;
+  const wh = winner.health || {}, oh = other.health || {};
+  const removed = new Set([...(Array.isArray(wh.removed)?wh.removed:[]), ...(Array.isArray(oh.removed)?oh.removed:[])]);
+  const merged = Object.assign({}, winner);
+  merged.health = Object.assign({}, wh, {
+    events: mergeCountedLists(wh.events, oh.events, healthEventKey, removed),
+    weights: mergeCountedLists(wh.weights, oh.weights, m=>measureKey('w', m), removed),
+    lengths: mergeCountedLists(wh.lengths, oh.lengths, m=>measureKey('l', m), removed),
+    removed: [...removed].slice(-300)
+  });
+  if(!wh.lengths && !oh.lengths) delete merged.health.lengths;
+  const photos = new Map();
+  (winner.photos||[]).concat(other.photos||[]).forEach(ph=>{ if(ph && ph.id && !removed.has('p|'+ph.id) && !photos.has(ph.id)) photos.set(ph.id, ph); });
+  merged.photos = [...photos.values()];
+  merged.updatedAt = Math.max(winner.updatedAt||0, other.updatedAt||0);
+  return merged;
+}
 function mergeById(localArr, cloudArr, kind){
   const byId = {};
   (cloudArr||[]).forEach(item=>{ if(item && item.id!=null) byId[item.id] = item; });
@@ -11887,7 +11954,11 @@ function mergeById(localArr, cloudArr, kind){
     if(!item || item.id==null) return;
     const cloudItem = byId[item.id];
     const stillPending = pendingDirty && pendingDirty.has(item.id);
-    if(!cloudItem || stillPending || (item.updatedAt||0) >= (cloudItem.updatedAt||0)) byId[item.id] = item;
+    const localWins = !cloudItem || stillPending || (item.updatedAt||0) >= (cloudItem.updatedAt||0);
+    if(kind==='snakes' && cloudItem){
+      // v3.49 — fusion fine du journal/pesées/photos au lieu d'écraser toute la fiche
+      byId[item.id] = localWins ? mergeSnakeRecords(item, cloudItem) : mergeSnakeRecords(cloudItem, item);
+    } else if(localWins) byId[item.id] = item;
   });
   // Une suppression locale pas encore poussée (voir dirtyDeletedIds/trackLocalChanges) ne doit jamais
   // être ramenée par un tirage qui arrive avant que le DELETE ait fini d'être envoyé — sinon l'item
@@ -13102,9 +13173,18 @@ function pedigreeGenerationColumns(tree, generations){
   }
   return columns;
 }
+// v3.49 — choix du nombre de générations affichées (3/4/5), retenu sur l'appareil.
+var pedigreeGenerations = (function(){ try{ const v=parseInt(localStorage.getItem('locus_ped_gens'),10); return [3,4,5].includes(v)?v:4; }catch(e){ return 4; } })();
+function setPedigreeGenerations(n, snakeId){
+  if(![3,4,5].includes(n)) return;
+  pedigreeGenerations = n;
+  try{ localStorage.setItem('locus_ped_gens', String(n)); }catch(e){}
+  const wrap = document.getElementById('ped-wrap-'+snakeId);
+  if(wrap) wrap.outerHTML = renderPedigreeTree(snakeId);
+}
 function renderPedigreeTree(snakeId){
   const isEn = currentLang==='en';
-  const PEDIGREE_GENERATIONS = 4;
+  const PEDIGREE_GENERATIONS = pedigreeGenerations;
   const tree = buildAncestorTree(snakeId, 0, PEDIGREE_GENERATIONS);
   if(!tree || (!tree.sire && !tree.dam)) return '<div style="font-size:11.5px;color:var(--ink-dim);margin-top:8px;">'+(isEn?'Not enough pedigree recorded to build a tree (add sire/dam on the record).':'Pas assez de pedigree enregistré pour construire un arbre (ajoute père/mère sur la fiche).')+'</div>';
 
@@ -13128,17 +13208,23 @@ function renderPedigreeTree(snakeId){
     (repeatedIds.size ? '<br/><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Repeated ancestor(s) highlighted below show which branch it comes from.':'Le(s) ancêtre(s) répété(s) surligné(s) ci-dessous montre(nt) de quelle branche ça vient.')+'</span>' : '')+
   '</div>';
 
-  const genColumns = pedigreeGenerationColumns(tree, PEDIGREE_GENERATIONS); // [gen1..gen4], 2/4/8/16 noeuds
+  const genColumns = pedigreeGenerationColumns(tree, PEDIGREE_GENERATIONS); // [gen1..genN], 2/4/8/16/32 noeuds
   const displayColumns = [...genColumns].reverse(); // affichage : le plus loin à gauche, parents juste avant soi
   const colsHtml = displayColumns.map((col,i)=>{
     const isParentsCol = i===displayColumns.length-1;
     return '<div class="ped-col'+(isParentsCol?' ped-col-mid':'')+'">'+col.map(n=>pedigreeNodeHtml(n,repeatedIds)).join('')+'</div>';
   }).join('');
 
-  return '<div class="pedigree-tree">'+
+  const sidJs = String(snakeId).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const genPicker = '<div class="ped-gen-picker" role="group" aria-label="'+(isEn?'Generations shown':'Générations affichées')+'">'+
+    '<span>'+(isEn?'Generations:':'Générations :')+'</span>'+
+    [3,4,5].map(n=>'<button type="button" class="ped-gen-btn'+(n===PEDIGREE_GENERATIONS?' active':'')+'" onclick="setPedigreeGenerations('+n+',\''+sidJs+'\')">'+n+'</button>').join('')+
+    (PEDIGREE_GENERATIONS>=5?'<span class="ped-gen-hint">'+(isEn?'↔ swipe':'↔ glisse')+'</span>':'')+
+  '</div>';
+  return '<div id="ped-wrap-'+escapeHtml(String(snakeId))+'">'+genPicker+'<div class="pedigree-tree'+(PEDIGREE_GENERATIONS>=5?' ped-wide':'')+'">'+
     colsHtml+
     '<div class="ped-col ped-col-self"><div class="ped-node ped-self">'+escapeHtml(tree.snake.name)+'</div></div>'+
-  '</div>'+inbreedingWarning;
+  '</div>'+inbreedingWarning+'</div>';
 }
 
 function ensureSnakeMeta(s){
@@ -16409,6 +16495,7 @@ function deleteMaintenanceJournalEntry(encodedOwner, kind, entryId){
     const sn = savedSnakes.find(x=>x.id===owner.slice(6));
     const idx = parseInt(entryId,10);
     if(sn && sn.health && sn.health.events && sn.health.events[idx] && sn.health.events[idx].type==='water'){
+      addHealthTombstone(sn, healthEventKey(sn.health.events[idx]));
       sn.health.events.splice(idx,1);
       storage.save(savedSnakes);
     }
@@ -20033,6 +20120,7 @@ function deletePhoto(snakeId, photoId){
   const s = savedSnakes.find(x=>x.id===snakeId);
   if(!s) return;
   s.photos = (s.photos||[]).filter(p=>p.id!==photoId);
+  addHealthTombstone(s, 'p|'+photoId); // v3.49
   storage.save(savedSnakes);
   openLogbook(snakeId);
   renderSavedList();
@@ -22196,7 +22284,7 @@ function deleteLockDate(pairingId, lockId){
   p.lockDates = (p.lockDates||[]).filter(l=>l.id!==lockId);
   saveElevage();
   // v3.44 — retire aussi l'entrée « Lock » du journal des 2 animaux
-  [p.maleId, p.femaleId].forEach(id=>{ const sn = savedSnakes.find(x=>x.id===id); if(sn && sn.health && sn.health.events) sn.health.events = sn.health.events.filter(e=>!(e.type==='lock' && e.lockId===lockId)); });
+  [p.maleId, p.femaleId].forEach(id=>{ const sn = savedSnakes.find(x=>x.id===id); if(sn && sn.health && sn.health.events){ sn.health.events.filter(e=>e.type==='lock' && e.lockId===lockId).forEach(e=>addHealthTombstone(sn, healthEventKey(e))); sn.health.events = sn.health.events.filter(e=>!(e.type==='lock' && e.lockId===lockId)); } });
   storage.save(savedSnakes);
   renderTimeline();
   refreshBreedingViews();
