@@ -1152,6 +1152,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   </div>
 
   <div id="view-calc" style="display:none;">
+  <div id="calc-species-bar" class="sex-toggle" style="margin-bottom:12px;flex-wrap:wrap;"></div>
   <div class="pair">
     <div class="specimen male" id="panel-male">
       <div class="specimen-head">
@@ -1308,7 +1309,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <input class="draft-name" id="draft-name" data-i18n-placeholder="namePlaceholder" placeholder="Nom (ex. Rex, Luna, #042)…" autocomplete="off"/>
       <div class="pedigree-row">
         <label style="flex:1;"><span data-i18n="speciesLabel">Espèce</span>
-          <select id="draft-species-select" class="pedigree-select" style="width:100%;margin-top:4px;" onchange="updateDraftSpeciesVisibility()"></select>
+          <select id="draft-species-select" class="pedigree-select" style="width:100%;margin-top:4px;" onchange="onDraftSpeciesChange()"></select>
         </label>
       </div>
       <div class="pedigree-row" id="draft-species-other-row" style="display:none;">
@@ -1361,7 +1362,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <input class="combo-input" id="input-draft" data-i18n-placeholder="searchGenePlaceholder" placeholder="Rechercher un gène (ex. Pastel, Mojave, Piebald)…" autocomplete="off"/>
         <div class="combo-list" id="list-draft"></div>
       </div>
-      <p id="species-gene-note" style="display:none;font-size:10.5px;color:var(--ink-dim);margin:6px 18px 0;line-height:1.5;" data-i18n="speciesGeneNote">⚠ Le calculateur génétique de LOCUS couvre actuellement le python royal seulement. Tu peux quand même suivre cet animal (fiche, poids, nourriture, reproduction) sans gène associé.</p>
+      <p id="species-gene-note" style="display:none;font-size:10.5px;color:var(--ink-dim);margin:6px 18px 0;line-height:1.5;" data-i18n="speciesGeneNote">⚠ Le calculateur génétique de LOCUS couvre actuellement le python royal et le gecko léopard. Tu peux quand même suivre cet animal (fiche, poids, nourriture, reproduction) sans gène associé.</p>
       <div class="tags" id="tags-draft"></div>
       <div class="save-bar">
         <button class="save-btn" id="save-btn" data-i18n="saveNewBtn" onclick="saveDraft()">Enregistrer ce reptile</button>
@@ -2186,7 +2187,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.53';
+const APP_VERSION = '2026.09.01.3.54';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3505,7 +3506,36 @@ const GENES = [
   //   Swirl (aucune source trouvée, reste 'unknown'), Goblin (pas de page Morphpedia).
   {id:'carbon', name:'Carbon', type:'incdom', locus:'carbon', cat:'Codominant / Incomplet dominant', superLabel:'Covalent (Super Carbon)'},
   {id:'fnrvanilla', name:'FNR Vanilla', type:'incdom', locus:'fnrvanilla', cat:'Codominant / Incomplet dominant', superLabel:'Super FNR Vanilla'},
+  // ==================== Gecko léopard (v3.54) — champ species:'leopard_gecko', ids préfixés lg_ ====================
+  // Source : MorphMarket Morphpedia (fiche par trait, vérifiée le 9 oct 2026). Les 3 albinos sont des
+  // gènes SÉPARÉS (Creatures.com : « genetically separate ») → loci distincts, Tremper × Bell = normaux
+  // het des deux. Hypo, Super Hypo, Tangerine = polygéniques (Morphpedia) → exclus. TUG/Gem Snow :
+  // compatibilité avec Mack Snow non documentée → loci séparés, aucun super combiné. Validé par Alex.
+  {id:'lg_tremper', name:'Albino Tremper', type:'recessive', locus:'lg_tremper', cat:'Récessif', species:'leopard_gecko'},
+  {id:'lg_bell', name:'Albino Bell', type:'recessive', locus:'lg_bell', cat:'Récessif', species:'leopard_gecko'},
+  {id:'lg_rainwater', name:'Albino Rainwater', type:'recessive', locus:'lg_rainwater', cat:'Récessif', species:'leopard_gecko'},
+  {id:'lg_eclipse', name:'Eclipse', type:'recessive', locus:'lg_eclipse', cat:'Récessif', species:'leopard_gecko'},
+  {id:'lg_blizzard', name:'Blizzard', type:'recessive', locus:'lg_blizzard', cat:'Récessif', species:'leopard_gecko'},
+  {id:'lg_murphy', name:'Murphy Patternless', type:'recessive', locus:'lg_murphy', cat:'Récessif', species:'leopard_gecko'},
+  {id:'lg_marble', name:'Marble Eye', type:'recessive', locus:'lg_marble', cat:'Récessif', species:'leopard_gecko'},
+  {id:'lg_ndbe', name:'NDBE (Noir Désir)', type:'recessive', locus:'lg_ndbe', cat:'Récessif', species:'leopard_gecko'},
+  {id:'lg_macksnow', name:'Mack Snow', type:'incdom', locus:'lg_macksnow', cat:'Codominant / Incomplet dominant', superLabel:'Super Snow', species:'leopard_gecko'},
+  {id:'lg_giant', name:'Giant', type:'incdom', locus:'lg_giant', cat:'Codominant / Incomplet dominant', superLabel:'Super Giant', species:'leopard_gecko'},
+  {id:'lg_lemonfrost', name:'Lemon Frost', type:'incdom', locus:'lg_lemonfrost', cat:'Codominant / Incomplet dominant', superLabel:'Super Lemon Frost', species:'leopard_gecko',
+    warning:"Associé à des tumeurs de la peau (iridophoromes) qui apparaissent souvent avec l'âge. Effet plus marqué chez la forme homozygote (Super Lemon Frost). Source : Guo et al., PLoS Genetics 2021.",
+    warningEn:"Associated with skin tumours (iridophoromas) that often appear with age. Stronger effect in the homozygous form (Super Lemon Frost). Source: Guo et al., PLoS Genetics 2021."},
+  {id:'lg_enigma', name:'Enigma', type:'dominant', locus:'lg_enigma', cat:'Dominant', species:'leopard_gecko',
+    warning:"Associé au « syndrome Enigma » : troubles neurologiques (tourne en rond, perte d'équilibre, difficulté à attraper ses proies, regard tourné vers le haut), d'intensité variable selon l'individu.",
+    warningEn:"Associated with \"Enigma syndrome\": neurological signs (circling, wobbling, trouble catching prey, stargazing), with severity varying between individuals."},
+  {id:'lg_wy', name:'White & Yellow', type:'dominant', locus:'lg_wy', cat:'Dominant', species:'leopard_gecko'},
+  {id:'lg_tugsnow', name:'TUG Snow', type:'dominant', locus:'lg_tugsnow', cat:'Dominant', species:'leopard_gecko'},
+  {id:'lg_gemsnow', name:'Gem Snow', type:'dominant', locus:'lg_gemsnow', cat:'Dominant', species:'leopard_gecko'},
 ];
+
+// v3.54 — espèces ayant une génétique dans LOCUS. Un gène sans champ species = python royal.
+const GENETIC_SPECIES = ['ball_python','leopard_gecko'];
+function geneSpecies(g){ return (g && g.species) || 'ball_python'; }
+function hasGenetics(speciesId){ return GENETIC_SPECIES.includes(speciesId||'ball_python'); }
 
 const GENES_BY_LOCUS = {};
 GENES.forEach(g=>{ (GENES_BY_LOCUS[g.locus] = GENES_BY_LOCUS[g.locus]||[]).push(g); });
@@ -3596,7 +3626,7 @@ function saleStatusLabel(status){
   return map[status] ? t(map[status]) : (STATUS_LABELS[status]||status);
 }
 
-const CAT_COUNTS = GENES.reduce((acc,g)=>{ acc[g.cat]=(acc[g.cat]||0)+1; return acc; }, {});
+const CAT_COUNTS = GENES.reduce((acc,g)=>{ acc[g.cat]=(acc[g.cat]||0)+1; return acc; }, {}); // ordre des catégories seulement (v3.54 : le compte affiché est calculé par espèce)
 const CATS_ORDER = Object.entries(CAT_COUNTS).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
 
 /* ---------------- UI BUILD ---------------- */
@@ -4379,10 +4409,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.53', date:'2026-10-09',
+  { version:'3.54', date:'2026-10-09',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '🦎 Génétique du gecko léopard dans le calculateur : choisis « Gecko léopard » en haut du calculateur (ou charge un de tes geckos) — 15 gènes vérifiés sur Morphpedia (MorphMarket) : 3 albinos séparés (Tremper, Bell, Rainwater), Eclipse, Blizzard, Murphy Patternless, Marble Eye, NDBE, Mack Snow (Super Snow), Giant, Lemon Frost, Enigma, White & Yellow, TUG Snow, Gem Snow. Avertissements santé pour Enigma et Lemon Frost. Hypo et Tangerine sont polygéniques, donc pas calculables. Les gènes s\'ajoutent aussi sur la fiche d\'un gecko léopard. Mêmes paliers que le calculateur du python royal après la bêta.',
         '💊 Suppléments (lézards et tortues) : bouton « Supplément » sur la fiche (calcium, calcium + D3, multivitamines), historique dans le journal, et rappel optionnel « aux X jours » qui apparaît dans Aujourd\'hui quand c\'est le moment.',
         '🌡️ Sexe selon la température d\'incubation : pour le gecko léopard, le gecko à queue grasse, le dragon barbu et la tortue à oreilles rouges, entre la température de la ponte et LOCUS affiche la tendance probable (ex. gecko léopard à 32 °C → surtout des mâles), avec la source. Gecko à crête : effet débattu, aucune prédiction.',
         '🦎 Autres espèces : le rythme de repas par défaut suit maintenant l\'espèce et l\'âge (ex. corn adulte aux 10 jours, gecko léopard bébé chaque jour, boa adulte aux 14 jours) au lieu de 7 jours pour tout le monde. Les couleurs du Mode Tournée et l\'alerte « sans repas » suivent ce rythme. Tu peux toujours mettre ton propre intervalle sur la fiche.',
@@ -4414,6 +4445,7 @@ const CHANGELOG = [
         'Génétique : le super des gènes du complexe Fire s\'affiche « Black-Eyed Leucistic (BlkEL) » — le sigle BEL désigne le Blue-Eyed Leucistic.'
       ],
       en:[
+        '🦎 Leopard gecko genetics in the calculator: pick "Leopard gecko" at the top of the calculator (or load one of your geckos) — 15 genes checked on Morphpedia (MorphMarket): 3 separate albinos (Tremper, Bell, Rainwater), Eclipse, Blizzard, Murphy Patternless, Marble Eye, NDBE, Mack Snow (Super Snow), Giant, Lemon Frost, Enigma, White & Yellow, TUG Snow, Gem Snow. Health warnings for Enigma and Lemon Frost. Hypo and Tangerine are polygenic, so they can\'t be calculated. Genes can also be added on a leopard gecko\'s record. Same tiers as the ball python calculator after the beta.',
         '💊 Supplements (lizards and turtles/tortoises): a "Supplement" button on the record (calcium, calcium + D3, multivitamins), history in the log, and an optional "every X days" reminder that shows up in Today when it\'s time.',
         '🌡️ Sex by incubation temperature: for leopard geckos, fat-tailed geckos, bearded dragons and red-eared sliders, enter the clutch temperature and LOCUS shows the probable trend (e.g. leopard gecko at 32 °C → mostly males), with the source. Crested gecko: effect debated, no prediction.',
         '🦎 Other species: the default feeding rhythm now follows species and age (e.g. adult corn every 10 days, baby leopard gecko daily, adult boa every 14 days) instead of 7 days for everyone. Feeding Round colours and the "no meal" alert follow that rhythm. You can still set your own interval on the record.',
@@ -5017,7 +5049,7 @@ const I18N = {
     speciesIsBallPython: 'Python royal (Ball Python)',
     speciesOtherLabel: 'Espèce (texte libre)',
     speciesOtherPlaceholder: 'Précise l\'espèce…',
-    speciesGeneNote: '⚠ Le calculateur génétique de LOCUS couvre actuellement le python royal seulement. Tu peux quand même suivre cet animal (fiche, poids, nourriture, reproduction) sans gène associé.',
+    speciesGeneNote: '⚠ Le calculateur génétique de LOCUS couvre actuellement le python royal et le gecko léopard. Tu peux quand même suivre cet animal (fiche, poids, nourriture, reproduction) sans gène associé.',
     quarantineTitle: 'Quarantaine',
     quarantineNotActive: 'Pas en quarantaine',
     quarantineStartBtn: '🔒 Démarrer la quarantaine',
@@ -5584,7 +5616,7 @@ const I18N = {
     speciesIsBallPython: 'Ball Python',
     speciesOtherLabel: 'Species (free text)',
     speciesOtherPlaceholder: 'Specify the species…',
-    speciesGeneNote: '⚠ LOCUS\'s genetic calculator currently covers ball pythons only. You can still track this animal (sheet, weight, feeding, breeding) without an associated gene.',
+    speciesGeneNote: '⚠ LOCUS\'s genetic calculator currently covers ball pythons and leopard geckos. You can still track this animal (sheet, weight, feeding, breeding) without an associated gene.',
     quarantineTitle: 'Quarantine',
     quarantineNotActive: 'Not in quarantine',
     quarantineStartBtn: '🔒 Start quarantine',
@@ -5871,7 +5903,7 @@ function applyTranslations(){
   document.documentElement.lang = currentLang;
   document.querySelectorAll('[data-i18n]').forEach(el=>{
     // v3.12 — {geneCount} : nombre réel de gènes dans GENES (la note affichait encore « 78 » en dur).
-    el.textContent = t(el.dataset.i18n).replace('{geneCount}', String(GENES.length));
+    el.textContent = t(el.dataset.i18n).replace('{geneCount}', String(GENES.filter(g=>geneSpecies(g)==='ball_python').length)); // v3.54 — note = python royal
   });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{
     el.placeholder = t(el.dataset.i18nPlaceholder);
@@ -5918,6 +5950,7 @@ function applyTranslations(){
       openLogbook(currentLogbookId);
     }
   }catch(e){}
+  try{ renderCalcSpeciesBar(); }catch(e){} // v3.54 — sélecteur d'espèce du calculateur
   // renderPairingForm(), renderClutchForm() et renderPreBuyCalculator() sont exclus volontairement :
   // ils reconstruisent des <select>/<input> à partir de valeurs par défaut et effaceraient une
   // sélection ou saisie en cours si rappelés ici pendant un changement de langue.
@@ -6363,14 +6396,54 @@ function addGene(sex, geneId, status){
   renderTags(sex);
 }
 
+// v3.54 — espèce dont on montre les gènes dans chaque liste de recherche.
+var calcSpecies = 'ball_python';
+function comboSpeciesFor(sex){
+  if(sex==='male' || sex==='female') return calcSpecies;
+  if(sex==='draft'){ const sel = document.getElementById('draft-species-select'); return sel ? sel.value : 'ball_python'; }
+  return 'ball_python'; // objectif (planificateur) : python royal seulement
+}
+function setCalcSpecies(sp, keepState){
+  if(!hasGenetics(sp)) return;
+  const changed = sp!==calcSpecies;
+  calcSpecies = sp;
+  if(changed && !keepState){
+    state.male = {}; state.female = {};
+    renderTags('male'); renderTags('female');
+    const res = document.getElementById('results'); if(res) res.innerHTML = '<div class="empty">'+t('calcEmptyState')+'</div>';
+    ['parent-combo','sex-note','combo-count'].forEach(i=>{ const el = document.getElementById(i); if(el) el.innerHTML = ''; });
+  }
+  renderCalcSpeciesBar();
+}
+function renderCalcSpeciesBar(){
+  const isEn = currentLang==='en';
+  const bar = document.getElementById('calc-species-bar');
+  if(!bar) return;
+  const opts = [['ball_python', '🐍 '+(isEn?'Ball python':'Python royal')], ['leopard_gecko', '🦎 '+(isEn?'Leopard gecko':'Gecko léopard')]];
+  bar.innerHTML = opts.map(([v,l])=>'<button class="sex-btn'+(calcSpecies===v?' active':'')+'" style="font-size:15px;padding:9px 14px;" onclick="setCalcSpecies(\''+v+'\')">'+l+'</button>').join('');
+  const isLeo = (typeof calcSpecies!=='undefined') && calcSpecies==='leopard_gecko';
+  ['input-male','input-female'].forEach(i=>{ const el = document.getElementById(i); if(el) el.placeholder = isLeo ? (isEn?'Search a gene (e.g. Tremper, Mack Snow, Eclipse)…':'Rechercher un gène (ex. Tremper, Mack Snow, Eclipse)…') : t('searchGenePlaceholder'); });
+  // Simulateur de rêverie et Chemin optimal : python royal seulement pour l'instant.
+  document.querySelectorAll('.calc-bar .calc-btn[onclick^="openDreamSimModal"], .calc-bar .calc-btn[onclick^="openGoalPathModal"]').forEach(b=>{ b.style.display = isLeo ? 'none' : ''; });
+}
 function buildCombobox(sex){
   const isEn = currentLang==='en';
   const input = document.getElementById('input-'+sex);
   const list = document.getElementById('list-'+sex);
 
   function renderList(query){
+    const isEn = currentLang==='en';
     const q = (query||'').trim().toLowerCase();
-    const matches = q ? SEARCH_INDEX.filter(it=>it.name.toLowerCase().includes(q)) : SEARCH_INDEX;
+    // v3.54 — seulement les gènes de l'espèce en cours (calculateur, fiche en création, objectif).
+    const sp = comboSpeciesFor(sex);
+    if(!hasGenetics(sp)){
+      list.innerHTML = '<div class="combo-empty">'+(isEn?'No genetics in LOCUS for this species yet.':'Pas encore de génétique dans LOCUS pour cette espèce.')+'</div>';
+      list.classList.add('open');
+      return;
+    }
+    const pool = SEARCH_INDEX.filter(it=>geneSpecies(it.gene)===sp);
+    const matches = q ? pool.filter(it=>it.name.toLowerCase().includes(q)) : pool;
+    const catCount = (cat)=>GENES.filter(g=>geneSpecies(g)===sp && g.cat===cat).length;
     if(matches.length===0){
       list.innerHTML = '<div class="combo-empty">'+(isEn?'No results for “':'Aucun résultat pour « ')+escapeHtml(query)+(isEn?'”.':' ».')+'</div>';
       list.classList.add('open');
@@ -6379,7 +6452,7 @@ function buildCombobox(sex){
     let html = '';
     let lastGroup = null;
     matches.slice(0,60).forEach(it=>{
-      if(it.group !== lastGroup){ html += '<div class="combo-group-label">'+translateCat(it.group)+' ('+CAT_COUNTS[it.group]+')</div>'; lastGroup = it.group; }
+      if(it.group !== lastGroup){ html += '<div class="combo-group-label">'+translateCat(it.group)+' ('+catCount(it.group)+')</div>'; lastGroup = it.group; }
       const baseTag = it.gene.type==='recessive'?(isEn?'recessive':'récessif'):(it.gene.type==='incdom'?(isEn?'codominant':'codominant'):(isEn?'dominant':'dominant'));
       const tag = it.isFreeway ? (isEn?'unconfirmed':'non confirmé') : (it.isSuper ? (isEn?'homozygous':'homozygote') : baseTag);
       const isSelected = state[sex][it.id] === it.status;
@@ -7807,8 +7880,19 @@ function updateDraftSpeciesVisibility(){
   const isOther = sel && sel.value==='other';
   const isBallPython = sel && sel.value==='ball_python';
   document.getElementById('draft-species-other-row').style.display = isOther ? 'block' : 'none';
-  document.getElementById('species-gene-note').style.display = isBallPython ? 'none' : 'block';
+  document.getElementById('species-gene-note').style.display = (sel && hasGenetics(sel.value)) ? 'none' : 'block';
   updateDraftPreySpeciesOptions();
+}
+// v3.54 — seulement quand l'utilisateur change lui-même l'espèce : retire les gènes d'une autre
+// espèce (jamais au chargement d'une fiche existante, pour ne rien effacer en silence).
+function onDraftSpeciesChange(){
+  const sel = document.getElementById('draft-species-select');
+  if(sel){
+    let removed = false;
+    Object.keys(state.draft).forEach(gid=>{ const g = GENES.find(x=>x.id===gid); if(g && geneSpecies(g)!==sel.value){ delete state.draft[gid]; removed = true; } });
+    if(removed) renderTags('draft');
+  }
+  updateDraftSpeciesVisibility();
 }
 function saveDraft(){
   if(!requireAuthOrPrompt()) return;
@@ -8027,6 +8111,14 @@ function loadSnake(id, targetSex){
       : '« '+snake.name+' » est enregistré comme '+(snake.sex==='male'?'mâle':'femelle')+' — il ne peut être chargé que dans le panneau correspondant.');
     return;
   }
+  // v3.54 — chaque espèce a ses propres gènes : charger un animal d'une autre espèce bascule le
+  // calculateur (et vide l'autre parent, qui ne peut pas être croisé avec lui).
+  const sp = snake.species || 'ball_python';
+  if(!hasGenetics(sp)){
+    alert(isEn ? 'No genetics in LOCUS for this species yet.' : 'Pas encore de génétique dans LOCUS pour cette espèce.');
+    return;
+  }
+  if(sp!==calcSpecies) setCalcSpecies(sp);
   state[targetSex] = {...snake.genes};
   renderTags(targetSex);
 }
@@ -8412,7 +8504,7 @@ function buildLoadMenu(sex){
   btn.addEventListener('click', (e)=>{
     e.stopPropagation();
     const isEn = currentLang==='en';
-    const matches = savedSnakes.filter(s=>s.sex===sex);
+    const matches = savedSnakes.filter(s=>s.sex===sex && (s.species||'ball_python')===calcSpecies); // v3.54
     if(matches.length===0){
       list.innerHTML = '<div class="combo-empty">'+(isEn
         ? 'No '+(sex==='male'?'male':'female')+' reptile registered. Go to the "My reptiles" tab.'
@@ -8884,7 +8976,7 @@ function computeBridgeOptions(coveringSet){
   return options;
 }
 function goalPathGeneOptionsHtml(){
-  return [...GENES].sort((a,b)=>a.name.localeCompare(b.name)).map(g=>
+  return GENES.filter(g=>geneSpecies(g)==='ball_python').sort((a,b)=>a.name.localeCompare(b.name)).map(g=>
     '<label style="display:flex;align-items:center;gap:4px;font-size:11px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:14px;padding:4px 10px;margin:2px;"><input type="checkbox" class="goalpath-gene" value="'+g.id+'" style="margin:0;"/> '+escapeHtml(g.name)+'</label>'
   ).join('');
 }
@@ -9067,7 +9159,7 @@ function runCross(){
         '<span class="warn-short">🚨 '+shortWarn+' <u>'+(isEn?'(tap for details)':'(toucher pour détails)')+'</u></span>'+
         '<span class="warn-full">🚨 '+fullWarn+'</span></div>';
     }
-    let wf = r.visualsCount>=3 ? '<div class="worldfirst">🌍 '+(isEn?'Possible World First — no known price reference':'Possible World First — pas de référence de prix connue')+'</div>' : '';
+    let wf = (r.visualsCount>=3 && calcSpecies==='ball_python') ? '<div class="worldfirst">🌍 '+(isEn?'Possible World First — no known price reference':'Possible World First — pas de référence de prix connue')+'</div>' : '';
     card.innerHTML = '<div class="pct">'+(r.prob*100).toFixed(2).replace(/\.00$/,'')+'%</div>'+
       '<div class="name">'+r.name+'</div>'+
       (sub?'<div class="subline">'+sub+'</div>':'') + warn + wf;
@@ -9383,7 +9475,7 @@ function renderActualPanel(){
     row.className = 'actual-row';
     row.innerHTML =
       '<span class="actual-name">'+r.name+(r.hets.length?'<small>het '+r.hets.join(', ')+'</small>':'')+
-        (r.visualsCount>=3?'<small class="wf-tag">🌍 '+(isEn?'Possible World First — no known price reference':'Possible World First — aucune référence de prix connue')+'</small>':'')+'</span>'+
+        ((r.visualsCount>=3 && calcSpecies==='ball_python')?'<small class="wf-tag">🌍 '+(isEn?'Possible World First — no known price reference':'Possible World First — aucune référence de prix connue')+'</small>':'')+'</span>'+
       '<div class="price-field"><span>$</span><input type="number" class="price-input" id="price-'+i+'" data-i="'+i+'" min="0" step="1" placeholder="0 (manuel)"/></div>'+
       '<div class="stepper">'+
         '<button class="step-btn" data-i="'+i+'" data-d="-1">−</button>'+
@@ -12809,7 +12901,7 @@ document.getElementById('csv-file-input').addEventListener('change', (e)=>{
       const sex = /^m/i.test(sexRaw) ? 'male' : 'female';
       const genes = {};
       genesRaw.split('|').map(g=>g.trim()).filter(Boolean).forEach(gname=>{
-        const g = GENES.find(x=>x.name.toLowerCase()===gname.toLowerCase());
+        const g = GENES.find(x=>geneSpecies(x)==='ball_python' && x.name.toLowerCase()===gname.toLowerCase());
         if(g) genes[g.id] = defaultStatus(g);
       });
       savedSnakes.push({ id:'snk_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), name, sex, genes, sireId:null, damId:null });
@@ -12941,7 +13033,7 @@ function confirmGenericCsvImport(){
   pendingGenericCsvRows.forEach(r=>{
     const genes = {};
     (r.genesRaw||'').split(/[|,]/).map(g=>g.trim()).filter(Boolean).forEach(gname=>{
-      const g = GENES.find(x=>x.name.toLowerCase()===gname.toLowerCase());
+      const g = GENES.find(x=>geneSpecies(x)==='ball_python' && x.name.toLowerCase()===gname.toLowerCase());
       if(g) genes[g.id] = defaultStatus(g);
     });
     savedSnakes.push({
@@ -13002,6 +13094,7 @@ function extractGenesFromText(text){
   const lower = ' '+text.toLowerCase().replace(/[^a-z0-9\s]/g,' ')+' ';
   const genes = {};
   GENES.forEach(g=>{
+    if(geneSpecies(g)!=='ball_python') return; // v3.54 — import d'annonces python royal
     const needle = ' '+g.name.toLowerCase()+' ';
     if(lower.includes(needle)) genes[g.id] = defaultStatus(g);
   });
