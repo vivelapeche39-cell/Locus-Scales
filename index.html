@@ -2187,7 +2187,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.54';
+const APP_VERSION = '2026.09.01.3.55';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3312,12 +3312,12 @@ const GENES = [
   // Fire Complex — locus partagé, vérifié via ReptiDex, reconfirmé sur Morphpedia le 9 oct (« Complex: Black Eyed Leucistic (BlkEL) ») : toute paire d'allèles (y compris homozygote
   // du même gène) produit un Black-Eyed Leucistic (BlkEL) — à ne pas confondre avec le BEL (Blue-Eyed). superLabel couvre le cas homozygote simple ;
   // COMPOUND_NAMES (plus bas) couvre les combinaisons entre allèles différents.
-  {id:'fire', name:'Fire', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant', superLabel:'Black-Eyed Leucistic (BlkEL) — homozygote Fire'},
-  {id:'flame', name:'Flame', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant', superLabel:'Black-Eyed Leucistic (BlkEL) — homozygote Flame'},
-  {id:'vanilla', name:'Vanilla', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant', superLabel:'Black-Eyed Leucistic (BlkEL) — homozygote Vanilla'},
-  {id:'sulfur', name:'Sulfur', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant', superLabel:'Black-Eyed Leucistic (BlkEL) — homozygote Sulfur'},
-  {id:'disco', name:'Disco', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant', superLabel:'Black-Eyed Leucistic (BlkEL) — homozygote Disco'},
-  {id:'lemonback', name:'Lemonback', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant', superLabel:'Black-Eyed Leucistic (BlkEL) — homozygote Lemonback'},
+  {id:'fire', name:'Fire', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant'},
+  {id:'flame', name:'Flame', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant'},
+  {id:'vanilla', name:'Vanilla', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant'},
+  {id:'sulfur', name:'Sulfur', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant'},
+  {id:'disco', name:'Disco', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant'},
+  {id:'lemonback', name:'Lemonback', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant'},
   {id:'enchi', name:'Enchi', type:'incdom', locus:'enchi', cat:'Codominant / Incomplet dominant'},
   // Cinnamon / Black Pastel Complex — locus partagé (allélisme prouvé ; reconfirmé sur Morphpedia le 9 oct : complexe « 8 Ball »).
   // Les deux formes homozygotes ET le composé hétérozygote Cinnamon×Black Pastel ("8-Ball", voir
@@ -3328,11 +3328,11 @@ const GENES = [
   {id:'huffman', name:'Huffman', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant'},
   {id:'jolt', name:'Jolt', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant'},
   {id:'razor', name:'Razor', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant'},
-  {id:'banana', name:'Banana', type:'incdom', locus:'banana', cat:'Codominant / Incomplet dominant', superLabel:'Super Banana (phénotype Coral Glow)',
+  {id:'banana', name:'Banana', type:'incdom', locus:'banana', cat:'Codominant / Incomplet dominant', superLabel:'Super Banana',
     sexLinkedMaker:true,
     warning:"Gène lié au sexe (porté par X, parfois Y) : certains mâles porteurs de ce gène sont « Male Maker » ou « Female Maker » et produisent une portée très déséquilibrée en sexe. Ce moteur calcule les probabilités de traits visuels, pas la répartition des sexes — voir la note affichée si le mâle est marqué Male/Female Maker.",
     warningEn:"Sex-linked gene (carried on X, sometimes Y): some males carrying this gene are \"Male Maker\" or \"Female Maker\" and produce a heavily sex-skewed clutch. This engine calculates visual trait probabilities, not sex ratios — see the note displayed if the male is flagged as Male/Female Maker."},
-  {id:'yellowbelly', name:'Yellowbelly', type:'incdom', locus:'yellowbellyComplex', cat:'Codominant / Incomplet dominant', superLabel:'Ivory (super Yellowbelly)'},
+  {id:'yellowbelly', name:'Yellowbelly', type:'incdom', locus:'yellowbellyComplex', cat:'Codominant / Incomplet dominant', superLabel:'Ivory'},
   {id:'asphalt', name:'Asphalt', type:'incdom', locus:'yellowbellyComplex', cat:'Codominant / Incomplet dominant'},
   {id:'specter', name:'Specter', type:'incdom', locus:'yellowbellyComplex', cat:'Codominant / Incomplet dominant'},
   {id:'gravel', name:'Gravel', type:'incdom', locus:'yellowbellyComplex', cat:'Codominant / Incomplet dominant'},
@@ -3344,7 +3344,7 @@ const GENES = [
   {id:'ghi', name:'GHI (Gotta Have It)', type:'incdom', locus:'ghi', cat:'Codominant / Incomplet dominant'},
   {id:'orangedream', name:'Orange Dream', type:'incdom', locus:'orangedream', cat:'Codominant / Incomplet dominant'},
   {id:'scrambler', name:'Scrambler', type:'incdom', locus:'scrambler', cat:'Codominant / Incomplet dominant'},
-  {id:'hetredaxanthic', name:'Het Red Axanthic', type:'incdom', locus:'hetredaxanthic', cat:'Codominant / Incomplet dominant', superLabel:'Red Axanthic (super Het Red Axanthic)'},
+  {id:'hetredaxanthic', name:'Het Red Axanthic', type:'incdom', locus:'hetredaxanthic', cat:'Codominant / Incomplet dominant', superLabel:'Red Axanthic'},
   // v3.48 — Sable fait partie du complexe Spider (Morphpedia, fiche Sable : « Complex: Spider », super Sable = wobble).
   {id:'sable', name:'Sable', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant', warning:"Forme homozygote (Super Sable) associée au wobble (trouble neurologique) selon Morphpedia. Sable fait partie du complexe Spider : un Sable × Spider peut donner des bébés porteurs des 2 allèles.", warningEn:"Homozygous form (Super Sable) is associated with wobble (neurological issue) according to Morphpedia. Sable is part of the Spider complex: a Sable × Spider pairing can produce babies carrying both alleles."},
   {id:'redstripe', name:'Red Stripe', type:'incdom', locus:'redstripe', cat:'Codominant / Incomplet dominant'},
@@ -3489,7 +3489,7 @@ const GENES = [
   {id:'panther', name:'Panther', type:'incdom', locus:'panther', cat:'Codominant / Incomplet dominant'},
   {id:'phenomenon', name:'Phenomenon', type:'incdom', locus:'phenomenon', cat:'Codominant / Incomplet dominant'},
   {id:'pixel', name:'Pixel', type:'incdom', locus:'pixel', cat:'Codominant / Incomplet dominant'},
-  {id:'scalelesshead', name:'Scaleless Head', type:'incdom', locus:'scalelesshead', cat:'Codominant / Incomplet dominant', superLabel:'Scaleless (homozygote Scaleless Head — sans écailles complet)'},
+  {id:'scalelesshead', name:'Scaleless Head', type:'incdom', locus:'scalelesshead', cat:'Codominant / Incomplet dominant', superLabel:'Scaleless'},
   {id:'surge', name:'Surge', type:'incdom', locus:'surge', cat:'Codominant / Incomplet dominant'},
   {id:'taronja', name:'Taronja', type:'incdom', locus:'taronja', cat:'Codominant / Incomplet dominant'},
   // Batch 6/6 — dernier de la vague. Total : 107 → 161 gènes (54 ajoutés le 15 sept).
@@ -3504,7 +3504,7 @@ const GENES = [
   // - Dinker : PAS un gène (nom donné à un phénotype non prouvé) — exclu définitivement.
   // - Toujours exclus faute de confirmation : Ghost (Vesper) (allélisme avec Hypo non précisé),
   //   Swirl (aucune source trouvée, reste 'unknown'), Goblin (pas de page Morphpedia).
-  {id:'carbon', name:'Carbon', type:'incdom', locus:'carbon', cat:'Codominant / Incomplet dominant', superLabel:'Covalent (Super Carbon)'},
+  {id:'carbon', name:'Carbon', type:'incdom', locus:'carbon', cat:'Codominant / Incomplet dominant', superLabel:'Covalent'},
   {id:'fnrvanilla', name:'FNR Vanilla', type:'incdom', locus:'fnrvanilla', cat:'Codominant / Incomplet dominant', superLabel:'Super FNR Vanilla'},
   // ==================== Gecko léopard (v3.54) — champ species:'leopard_gecko', ids préfixés lg_ ====================
   // Source : MorphMarket Morphpedia (fiche par trait, vérifiée le 9 oct 2026). Les 3 albinos sont des
@@ -3552,32 +3552,17 @@ function freewayLabel(locus){
   return 'Freeway — '+members.map(g=>g.name).join('/')+' (non confirmé)';
 }
 
+// v3.55 — noms courts demandés par Alex (« on garde ça simple en terminologie ») : plus de
+// « Blue-Eyed Leucistic (BEL) — combo … » ni « Black-Eyed Leucistic (BlkEL) — … ». Un combo
+// d'allèles s'écrit avec les deux noms (« Lesser Mojave », « Fire Flame ») et un homozygote
+// « Super Fire ». Seuls les noms consacrés courts restent (Candino, 8 Ball).
 const COMPOUND_NAMES = {
-  lesserComplex: {
-    'lesser+mojave': 'Blue-Eyed Leucistic (BEL) — combo Lesser/Mojave',
-    'butter+mojave': 'Blue-Eyed Leucistic (BEL) — combo Butter/Mojave',
-    'mojave+phantom': 'Blue-Eyed Leucistic (BEL) — combo Mojave/Phantom',
-    'butter+lesser': 'Blue-Eyed Leucistic (BEL) — combo Butter/Lesser',
-    'lesser+phantom': 'Blue-Eyed Leucistic (BEL) — combo Lesser/Phantom',
-    'butter+phantom': 'Blue-Eyed Leucistic (BEL) — combo Butter/Phantom',
-    // Combos impliquant Mystic/Russo/Bamboo/Special : pas de nom individuel listé —
-    // retombent sur le libellé générique "X + Y (combo)", toujours honnête, juste moins habillé.
-  },
-  fireComplex: {
-    'fire+flame': 'Black-Eyed Leucistic (BlkEL) — combo Fire/Flame',
-    'fire+sulfur': 'Black-Eyed Leucistic (BlkEL) — combo Fire/Sulfur',
-    'fire+vanilla': 'Black-Eyed Leucistic (BlkEL) — combo Fire/Vanilla',
-    'flame+sulfur': 'Black-Eyed Leucistic (BlkEL) — combo Flame/Sulfur',
-    'flame+vanilla': 'Black-Eyed Leucistic (BlkEL) — combo Flame/Vanilla',
-    'sulfur+vanilla': 'Black-Eyed Leucistic (BlkEL) — combo Sulfur/Vanilla',
-  },
   tAlbinoComplex: {
-    // v3.39 — corrigé : Albino × Candy = « Candino » (World of Ball Pythons, « combination of Candy and Albino »).
-    // L'ancien libellé « Ultramel » était faux : Ultramel est un autre gène.
-    'albino+candy': 'Candino — combo Albino/Candy(Toffee)',
+    // v3.39 — Albino × Candy = « Candino » (World of Ball Pythons, « combination of Candy and Albino »).
+    'albino+candy': 'Candino',
   },
   cinnamonComplex: {
-    'blackpastel+cinnamon': '8-Ball — combo Cinnamon/Black Pastel',
+    'blackpastel+cinnamon': '8 Ball',
   }
 };
 
@@ -4409,7 +4394,7 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.54', date:'2026-10-09',
+  { version:'3.55', date:'2026-10-09',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
@@ -4442,7 +4427,7 @@ const CHANGELOG = [
         'Correctif : les fenêtres Compatibilité et Image à partager s\'ouvraient derrière la fiche de l\'animal.',
         'Génétique : le combo Albino × Candy s\'appelle maintenant « Candino » (il était nommé « Ultramel » par erreur — Ultramel est un autre gène).',
         'Correctif : le carré de Punnett plantait quand un seul des deux parents avait un gène (ex. Pastel × Normal).',
-        'Génétique : le super des gènes du complexe Fire s\'affiche « Black-Eyed Leucistic (BlkEL) » — le sigle BEL désigne le Blue-Eyed Leucistic.'
+        'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
         '🦎 Leopard gecko genetics in the calculator: pick "Leopard gecko" at the top of the calculator (or load one of your geckos) — 15 genes checked on Morphpedia (MorphMarket): 3 separate albinos (Tremper, Bell, Rainwater), Eclipse, Blizzard, Murphy Patternless, Marble Eye, NDBE, Mack Snow (Super Snow), Giant, Lemon Frost, Enigma, White & Yellow, TUG Snow, Gem Snow. Health warnings for Enigma and Lemon Frost. Hypo and Tangerine are polygenic, so they can\'t be calculated. Genes can also be added on a leopard gecko\'s record. Same tiers as the ball python calculator after the beta.',
@@ -4474,7 +4459,7 @@ const CHANGELOG = [
         'Fix: the Compatibility and Image to share windows opened behind the animal\'s record.',
         'Genetics: the Albino × Candy combo is now named "Candino" (it was wrongly labelled "Ultramel" — Ultramel is a different gene).',
         'Fix: the Punnett square crashed when only one parent carried a gene (e.g. Pastel × Normal).',
-        'Genetics: the super form of Fire-complex genes now reads "Black-Eyed Leucistic (BlkEL)" — BEL stands for Blue-Eyed Leucistic.'
+        'Genetics: short names everywhere (calculator, dream simulator, My odds…) — "Super Fire", "Lesser Mojave", "Fire Flame", "Super Banana", "Ivory", "Red Axanthic", "Scaleless", "Covalent", "8 Ball", "Candino" instead of the long labels.'
       ]
     }
   },
@@ -8632,7 +8617,8 @@ function phenotypeForLocusPair(locus, pair){
   const gA = genesAtLocus.find(x=>x.id===a), gB = genesAtLocus.find(x=>x.id===b);
   const warnings = [geneWarning(gA), geneWarning(gB)].filter(Boolean);
   if(compoundName) return {label:compoundName, visual:true, isSuper:true, geneIds:[a,b], warning: warnings.join(' ') || undefined};
-  return {label:gA.name+' + '+gB.name+' (combo)', visual:true, isSuper:true, geneIds:[a,b], warning: warnings.join(' ') || undefined};
+  // v3.55 — combo sans nom consacré : les deux noms, en ordre alphabétique (« Lesser Mojave »).
+  return {label:[gA.name, gB.name].sort().join(' '), visual:true, isSuper:true, geneIds:[a,b], warning: warnings.join(' ') || undefined};
 }
 
 /* ==================== PLANIFICATEUR DE PAIRING PAR OBJECTIF ==================== */
