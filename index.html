@@ -2187,7 +2187,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.64';
+const APP_VERSION = '2026.09.01.3.65';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4395,13 +4395,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.64', date:'2026-10-09',
+  { version:'3.65', date:'2026-10-09',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
         'Correctif Chemin optimal : il tient maintenant compte du sexe des animaux (il pouvait proposer de croiser deux femelles) et la consanguinité affichée pour un plan avec recroisement est celle du vrai plan.',
         'Génétique : Granite corrigé en codominant / incomplet dominant (Morphpedia, World of Ball Pythons) — il était classé « dominant » par erreur. Son super s\'appelle Super Granite.',
-        '🎯 Chemin optimal : choisis d\'abord tes animaux, puis tes gènes cibles parmi ceux qu\'ils portent vraiment (avec le nombre de porteurs) au lieu des 163 gènes — décoche « Seulement les gènes de mes animaux cochés » pour revoir toute la liste. Chaque gène peut viser le Super (ou le visuel pour un récessif) ; LOCUS vérifie qu\'il faut un porteur de chaque côté et refuse les objectifs impossibles (ex. Super Asphalt + Super Specter, même locus). « Essayer dans le Simulateur de rêverie » emporte l\'objectif : parents choisis d\'office, calcul lancé, et seulement les bébés les plus utiles affichés (🎯 sur ceux qui complètent l\'objectif), avec les étapes quand il faut 2 générations — et la vraie chance par œuf d\'atteindre l\'objectif, plus la chance d\'en avoir au moins un selon ton nombre d\'œufs. Quand un Super n\'a qu\'un seul porteur, l\'étape de recroisement nécessaire est ajoutée au plan. Viser un Super Banana affiche un avertissement : gène lié au sexe (Male/Female Maker), le % ne tient pas compte du sexe. Case « Il me faut un sexe précis pour ce bébé » : ajoute le ×½ à la chance par œuf et au « au moins un ». Réservé aux paliers Première ponte et Illimité après la bêta.',
+        '🎯 Chemin optimal : choisis d\'abord tes animaux, puis tes gènes cibles parmi ceux qu\'ils portent vraiment (avec le nombre de porteurs) au lieu des 163 gènes — décoche « Seulement les gènes de mes animaux cochés » pour revoir toute la liste. Chaque gène peut viser le Super (ou le visuel pour un récessif) ; LOCUS vérifie qu\'il faut un porteur de chaque côté et refuse les objectifs impossibles (ex. Super Asphalt + Super Specter, même locus). « Essayer dans le Simulateur de rêverie » emporte l\'objectif : parents choisis d\'office, calcul lancé, et seulement les bébés les plus utiles affichés (🎯 sur ceux qui complètent l\'objectif), avec les étapes quand il faut 2 générations — et la vraie chance par œuf d\'atteindre l\'objectif, plus la chance d\'en avoir au moins un selon ton nombre d\'œufs. Quand un Super n\'a qu\'un seul porteur, l\'étape de recroisement nécessaire est ajoutée au plan. Viser un Super Banana affiche un avertissement : gène lié au sexe (Male/Female Maker), le % ne tient pas compte du sexe. Case « Il me faut un sexe précis pour ce bébé » : ajoute le ×½ à la chance par œuf et au « au moins un ». Les bébés rêve gardés ont un « × » sur chaque gène pour retirer ce qu\'ils n\'auront pas en vrai (ex. une fille de Male Maker sans Banana). Réservé aux paliers Première ponte et Illimité après la bêta.',
         '🦎 Génétique du gecko léopard dans le calculateur : choisis « Gecko léopard » en haut du calculateur (ou charge un de tes geckos) — 15 gènes vérifiés sur Morphpedia (MorphMarket) : 3 albinos séparés (Tremper, Bell, Rainwater), Eclipse, Blizzard, Murphy Patternless, Marble Eye, NDBE, Mack Snow (Super Snow), Giant, Lemon Frost, Enigma, White & Yellow, TUG Snow, Gem Snow. Avertissements santé pour Enigma et Lemon Frost. Hypo et Tangerine sont polygéniques, donc pas calculables. Les gènes s\'ajoutent aussi sur la fiche d\'un gecko léopard. Mêmes paliers que le calculateur du python royal après la bêta.',
         '💊 Suppléments (lézards et tortues) : bouton « Supplément » sur la fiche (calcium, calcium + D3, multivitamines), historique dans le journal, et rappel optionnel « aux X jours » qui apparaît dans Aujourd\'hui quand c\'est le moment.',
         '🌡️ Sexe selon la température d\'incubation : pour le gecko léopard, le gecko à queue grasse, le dragon barbu et la tortue à oreilles rouges, entre la température de la ponte et LOCUS affiche la tendance probable (ex. gecko léopard à 32 °C → surtout des mâles), avec la source. Gecko à crête : effet débattu, aucune prédiction.',
@@ -4436,7 +4436,7 @@ const CHANGELOG = [
       en:[
         'Optimal Path fix: it now takes the animals\' sex into account (it could suggest pairing two females), and the inbreeding shown for a plan with a back-cross is that of the real plan.',
         'Genetics: Granite corrected to codominant / incomplete dominant (Morphpedia, World of Ball Pythons) — it was wrongly listed as dominant. Its super form is Super Granite.',
-        '🎯 Optimal Path: pick your animals first, then your target genes from the ones they actually carry (with the number of carriers) instead of all 163 genes — uncheck "Only genes carried by the checked animals" to see the full list again. Each gene can target the Super (or the visual for a recessive); LOCUS checks that a carrier is needed on each side and rejects impossible goals (e.g. Super Asphalt + Super Specter, same locus). "Try it in the Dream Simulator" carries the goal over: parents picked for you, calculation started, and only the most useful babies shown (🎯 on those that complete the goal), with the steps when 2 generations are needed — plus the real chance per egg of reaching the goal and the chance of at least one for your number of eggs. When a Super has only one carrier, the needed back-cross step is added to the plan. Targeting a Super Banana shows a warning: sex-linked gene (Male/Female Maker), the % ignores sex. "I need a specific sex for this baby" box: adds the ×½ to the chance per egg and the "at least one". Reserved for the First Clutch and Unlimited tiers after the beta.',
+        '🎯 Optimal Path: pick your animals first, then your target genes from the ones they actually carry (with the number of carriers) instead of all 163 genes — uncheck "Only genes carried by the checked animals" to see the full list again. Each gene can target the Super (or the visual for a recessive); LOCUS checks that a carrier is needed on each side and rejects impossible goals (e.g. Super Asphalt + Super Specter, same locus). "Try it in the Dream Simulator" carries the goal over: parents picked for you, calculation started, and only the most useful babies shown (🎯 on those that complete the goal), with the steps when 2 generations are needed — plus the real chance per egg of reaching the goal and the chance of at least one for your number of eggs. When a Super has only one carrier, the needed back-cross step is added to the plan. Targeting a Super Banana shows a warning: sex-linked gene (Male/Female Maker), the % ignores sex. "I need a specific sex for this baby" box: adds the ×½ to the chance per egg and the "at least one". Kept dream babies have an "×" on each gene to remove what they won\'t really have (e.g. a Male Maker\'s daughter without Banana). Reserved for the First Clutch and Unlimited tiers after the beta.',
         '🦎 Leopard gecko genetics in the calculator: pick "Leopard gecko" at the top of the calculator (or load one of your geckos) — 15 genes checked on Morphpedia (MorphMarket): 3 separate albinos (Tremper, Bell, Rainwater), Eclipse, Blizzard, Murphy Patternless, Marble Eye, NDBE, Mack Snow (Super Snow), Giant, Lemon Frost, Enigma, White & Yellow, TUG Snow, Gem Snow. Health warnings for Enigma and Lemon Frost. Hypo and Tangerine are polygenic, so they can\'t be calculated. Genes can also be added on a leopard gecko\'s record. Same tiers as the ball python calculator after the beta.',
         '💊 Supplements (lizards and turtles/tortoises): a "Supplement" button on the record (calcium, calcium + D3, multivitamins), history in the log, and an optional "every X days" reminder that shows up in Today when it\'s time.',
         '🌡️ Sex by incubation temperature: for leopard geckos, fat-tailed geckos, bearded dragons and red-eared sliders, enter the clutch temperature and LOCUS shows the probable trend (e.g. leopard gecko at 32 °C → mostly males), with the source. Crested gecko: effect debated, no prediction.',
@@ -9004,16 +9004,29 @@ function saveDreamBaby(index){
 function dreamSnakesListHtml(){
   const isEn = currentLang==='en';
   if(!dreamSnakes.length) return '<p style="font-size:11px;color:var(--ink-dim);">'+(isEn?'None yet.':'Aucun pour l\'instant.')+'</p>';
+  // v3.65 — chaque gène d'un bébé rêve a son « × » : retirer un gène qu'il n'aura pas en vrai
+  // (ex. fille d'un Male Maker → pas de Banana), pour que l'étape suivante calcule juste.
   return dreamSnakes.map(d=>{
-    const parts = Object.keys(d.genes).map(gid=>{
+    const chips = Object.keys(d.genes).map(gid=>{
       const g = GENES.find(x=>x.id===gid);
-      const label = g ? g.name : gid;
-      return d.genes[gid]==='het' ? label+' ('+(isEn?'het':'het')+')' : label;
-    });
-    const genesStr = parts.length ? parts.join(', ') : (isEn?'Normal':'Normal');
-    return '<div class="modal-row"><span>🔮 <b>'+escapeHtml(d.name)+'</b><br/><small style="color:var(--ink-dim);">'+escapeHtml(genesStr)+'</small></span>'+
+      const st = d.genes[gid];
+      const label = !g ? gid : ((st==='homo'||st==='visual') ? (g.type==='recessive' ? g.name : superName(g)) : (st==='het' ? g.name+' (het)' : g.name));
+      return '<span style="display:inline-flex;align-items:center;gap:4px;font-size:12.5px;border:1px solid var(--line);border-radius:12px;padding:2px 4px 2px 8px;margin:2px;">'+escapeHtml(label)+
+        '<button type="button" onclick="removeDreamGene(\''+d.id+'\',\''+gid+'\')" title="'+(isEn?'Remove this gene':'Retirer ce gène')+'" style="border:none;background:transparent;color:var(--rust);font-size:15px;padding:0 4px;">×</button></span>';
+    }).join('');
+    const genesStr = chips || ('<small style="color:var(--ink-dim);">'+(isEn?'Normal':'Normal')+'</small>');
+    return '<div class="modal-row" style="align-items:flex-start;"><span>🔮 <b>'+escapeHtml(d.name)+'</b><br/>'+genesStr+'</span>'+
       '<button class="sc-btn danger" onclick="deleteDreamBaby(\''+d.id+'\')">×</button></div>';
   }).join('');
+}
+function removeDreamGene(dreamId, gid){
+  const d = dreamSnakes.find(x=>x.id===dreamId);
+  if(!d || !d.genes) return;
+  delete d.genes[gid];
+  saveElevage();
+  const list = document.getElementById('dreamsim-list');
+  if(list) list.innerHTML = dreamSnakesListHtml();
+  if(window.__dreamSimLastOutcomes) runDreamSimCross(); // recalcul si ce bébé est un parent affiché
 }
 function deleteDreamBaby(id){
   const isEn = currentLang==='en';
