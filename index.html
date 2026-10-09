@@ -2179,7 +2179,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.50';
+const APP_VERSION = '2026.09.01.3.51';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3070,6 +3070,8 @@ function updateAuthUI(){
       headerBtn.title = isEn ? 'Breeder account' : 'Compte éleveur';
     }
   }
+  // v3.51 — statut admin/palier lu ici, avant tout retour anticipé de cette fonction.
+  try{ if(!currentUser || accountStatusUserId!==currentUser.id) checkAdminStatus(); }catch(e){}
   if(!statusEl) return;
   if(sbInitError){
     statusEl.textContent = '⚠ '+sbInitError;
@@ -3780,6 +3782,7 @@ function updateStorageBanner(){
 function openAppMenu(){
   const adm = document.getElementById('app-menu-admin');
   if(adm) adm.style.display = (typeof isAdminUser!=='undefined' && isAdminUser) ? '' : 'none';
+  if(currentUser && sb && accountStatusUserId!==currentUser.id && navigator.onLine) checkAdminStatus(); // v3.51 — relecture si échec précédent
   document.getElementById('app-menu-overlay').classList.add('open');
 }
 function closeAppMenu(){ document.getElementById('app-menu-overlay').classList.remove('open'); }
@@ -4368,10 +4371,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.50', date:'2026-10-09',
+  { version:'3.51', date:'2026-10-09',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        'Correctif : le palier de ton compte (et le menu Admin) pouvait ne pas être reconnu au démarrage sur certains appareils ; il est maintenant relu de façon fiable.',
         '✨ Après une mue, le message te dit quand la prochaine est prévue (ou combien de mues il reste à noter pour la prédire).',
         '🔄 Synchro entre appareils plus sûre : si tu notes un repas, une pesée ou une photo sur ton cellulaire et autre chose sur ton ordi, les deux sont maintenant conservés (avant, le plus récent écrasait l\'autre). Une entrée supprimée sur un appareil ne revient pas.',
         '🌳 Arbre généalogique : choisis 3, 4 ou 5 générations (glisse de côté sur cellulaire). Le coefficient de consanguinité reste calculé sur tout le pedigree connu.',
@@ -4396,6 +4400,7 @@ const CHANGELOG = [
         'Génétique : le super des gènes du complexe Fire s\'affiche « Black-Eyed Leucistic (BlkEL) » — le sigle BEL désigne le Blue-Eyed Leucistic.'
       ],
       en:[
+        'Fix: your account\'s plan (and the Admin menu) could go unrecognized at startup on some devices; it is now read reliably.',
         '✨ After a shed, the confirmation tells you when the next one is expected (or how many sheds are left to log before it can be predicted).',
         '🔄 Safer sync between devices: if you log a meal, a weight or a photo on your phone and something else on your computer, both are now kept (before, the newest one overwrote the other). An entry deleted on one device doesn\'t come back.',
         '🌳 Pedigree tree: pick 3, 4 or 5 generations (swipe sideways on mobile). The inbreeding coefficient is still calculated on the whole known pedigree.',
@@ -22810,14 +22815,28 @@ async function openAdminOverview(){
 }
 var isAdminUser = false;
 var userTier = 'gratuit'; // palier tarifaire du compte connecté — voir hasAccess() tout en haut du fichier
+// v3.51 — le statut admin/palier était lu SEULEMENT dans renderCommunityFaqAdmin(), derrière son
+// garde-fou de 1,5 s : au chargement, un 1er appel sans session armait le garde-fou et le vrai appel
+// (session restaurée) était sauté → ni menu Admin ni palier. Maintenant lu à part, une fois par
+// compte, et relu à l'ouverture du menu ☰ si la lecture précédente a échoué (réseau).
+var accountStatusUserId = null; // compte dont le statut admin/palier a été lu avec succès
 async function checkAdminStatus(){
-  if(!currentUser || !sb){ isAdminUser = false; userTier = 'gratuit'; return false; }
+  if(!currentUser || !sb){ isAdminUser = false; userTier = 'gratuit'; accountStatusUserId = null; syncAdminMenuItem(); return false; }
+  if(accountStatusUserId && accountStatusUserId!==currentUser.id){ isAdminUser = false; userTier = 'gratuit'; accountStatusUserId = null; }
   try{
     const { data, error } = await sb.from('profiles').select('is_admin, tier').eq('user_id', currentUser.id).single();
-    isAdminUser = !error && data && data.is_admin === true;
-    userTier = (!error && data && data.tier) || 'gratuit';
-  }catch(e){ isAdminUser = false; userTier = 'gratuit'; }
+    if(!error && data){
+      isAdminUser = data.is_admin === true;
+      userTier = data.tier || 'gratuit';
+      accountStatusUserId = currentUser.id;
+    }
+  }catch(e){}
+  syncAdminMenuItem();
   return isAdminUser;
+}
+function syncAdminMenuItem(){
+  const adm = document.getElementById('app-menu-admin');
+  if(adm) adm.style.display = isAdminUser ? '' : 'none';
 }
 async function renderCommunityFaq(){
   const isEn = currentLang==='en';
@@ -22881,11 +22900,12 @@ async function renderCommunityFaqAdmin(){
   // peuvent chacun appeler updateAuthUI() en succession rapide au chargement, et chacun relançait
   // cette fonction — donc 2-3 requêtes identiques vers profiles/community_faq pour rien. Si on
   // vient de tourner il y a moins de 1.5s, on saute plutôt que de répéter le même travail.
+  wrap.innerHTML = '';
+  if(!currentUser || !sb) return;
+  // v3.51 — garde-fou armé seulement avec une session (un appel « invité » ne bloque plus le vrai).
   const now = Date.now();
   if(now - lastCommunityFaqAdminRun < 1500) return;
   lastCommunityFaqAdminRun = now;
-  wrap.innerHTML = '';
-  if(!currentUser || !sb) return;
   await checkAdminStatus();
   if(!isAdminUser) return;
   const isEn = currentLang==='en';
