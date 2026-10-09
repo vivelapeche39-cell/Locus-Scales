@@ -1853,7 +1853,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   </div>
 
   <div class="footnote">
-    <b data-i18n="geneCountNoteLabel">Note :</b> <span data-i18n="geneCountNoteBody">161 gènes actuellement dans la base, chacun vérifié individuellement (Morphpedia, ReptiDex, ou source communautaire fiable citée) — mode de transmission, allélisme et risques santé connus, pas des suppositions. La génétique complète du python royal compte encore d'autres gènes moins documentés ou débattus dans la communauté ; ceux-ci sont volontairement exclus tant qu'ils ne sont pas confirmés plutôt que d'être ajoutés par approximation. Certaines interactions restent à vérifier avant tout usage réel d'élevage.</span>
+    <b data-i18n="geneCountNoteLabel">Note :</b> <span data-i18n="geneCountNoteBody">163 gènes actuellement dans la base, chacun vérifié individuellement (Morphpedia, World of Ball Pythons, ou source communautaire fiable citée) — mode de transmission, allélisme et risques santé connus, pas des suppositions. La génétique complète du python royal compte encore d'autres gènes moins documentés ou débattus dans la communauté ; ceux-ci sont volontairement exclus tant qu'ils ne sont pas confirmés plutôt que d'être ajoutés par approximation. Certaines interactions restent à vérifier avant tout usage réel d'élevage.</span>
     <p style="margin-top:12px;margin-bottom:0;opacity:.65;" data-i18n="footerCopyright">© 2026 LOCUS Scales — Alexandre Young. Tous droits réservés. La reproduction ou la copie de ce logiciel, en tout ou en partie, est interdite sans autorisation.</p>
   </div>
 
@@ -2173,7 +2173,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.46';
+const APP_VERSION = '2026.09.01.3.48';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3293,7 +3293,7 @@ const GENES = [
   {id:'special', name:'Special', type:'incdom', locus:'lesserComplex', cat:'Codominant / Incomplet dominant'},
   {id:'daddy', name:'Daddy Gene', type:'incdom', locus:'lesserComplex', cat:'Codominant / Incomplet dominant'},
   {id:'mocha', name:'Mocha', type:'incdom', locus:'lesserComplex', cat:'Codominant / Incomplet dominant'},
-  // Fire Complex — locus partagé, vérifié via ReptiDex : toute paire d'allèles (y compris homozygote
+  // Fire Complex — locus partagé, vérifié via ReptiDex, reconfirmé sur Morphpedia le 9 oct (« Complex: Black Eyed Leucistic (BlkEL) ») : toute paire d'allèles (y compris homozygote
   // du même gène) produit un Black-Eyed Leucistic (BlkEL) — à ne pas confondre avec le BEL (Blue-Eyed). superLabel couvre le cas homozygote simple ;
   // COMPOUND_NAMES (plus bas) couvre les combinaisons entre allèles différents.
   {id:'fire', name:'Fire', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant', superLabel:'Black-Eyed Leucistic (BlkEL) — homozygote Fire'},
@@ -3303,12 +3303,12 @@ const GENES = [
   {id:'disco', name:'Disco', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant', superLabel:'Black-Eyed Leucistic (BlkEL) — homozygote Disco'},
   {id:'lemonback', name:'Lemonback', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant', superLabel:'Black-Eyed Leucistic (BlkEL) — homozygote Lemonback'},
   {id:'enchi', name:'Enchi', type:'incdom', locus:'enchi', cat:'Codominant / Incomplet dominant'},
-  // Cinnamon / Black Pastel Complex — locus partagé (allélisme prouvé, vérifié ReptiDex).
+  // Cinnamon / Black Pastel Complex — locus partagé (allélisme prouvé ; reconfirmé sur Morphpedia le 9 oct : complexe « 8 Ball »).
   // Les deux formes homozygotes ET le composé hétérozygote Cinnamon×Black Pastel ("8-Ball", voir
   // COMPOUND_NAMES) partagent le même risque santé accru — texte d'avertissement volontairement identique.
   {id:'champagne', name:'Champagne', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant', warning:"Wobble (trouble neurologique de la tête/du regard) présent chez la quasi-totalité des porteurs, même à l'état simple. Forme homozygote (Super Champagne) létale in ovo — jamais viable. Combinaison avec Spider (même locus) également létale.", warningEn:"Wobble (neurological head/eye-tracking disorder) present in nearly all carriers, even in single (het) form. Homozygous form (Super Champagne) is lethal in ovo — never viable. Combination with Spider (same locus) is also lethal."},
-  {id:'cinnamon', name:'Cinnamon', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant', superLabel:'8-Ball — homozygote Cinnamon', warning:"Forme homozygote (Super Cinnamon / « 8-Ball ») associée à un risque accru de kinking (déformations vertébrales), microphtalmie (« bug eyes »), malformation de la mâchoire (duckbill) et retard de croissance. Tous les individus supers ne sont pas affectés, mais l'incidence est jugée significative par de nombreux éleveurs expérimentés.", warningEn:"Homozygous form (Super Cinnamon / \"8-Ball\") is associated with an increased risk of kinking (spinal deformities), microphthalmia (\"bug eyes\"), jaw malformation (duckbill), and stunted growth. Not every super individual is affected, but the incidence is considered significant by many experienced breeders."},
-  {id:'blackpastel', name:'Black Pastel', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant', superLabel:'8-Ball — homozygote Black Pastel', warning:"Forme homozygote (Super Black Pastel / « 8-Ball ») associée au même risque accru que Super Cinnamon : kinking, microphtalmie, malformation de la mâchoire, retard de croissance.", warningEn:"Homozygous form (Super Black Pastel / \"8-Ball\") carries the same increased risk as Super Cinnamon: kinking, microphthalmia, jaw malformation, stunted growth."},
+  {id:'cinnamon', name:'Cinnamon', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant', superLabel:'Super Cinnamon', warning:"Forme homozygote (Super Cinnamon — même allure que le combo 8 Ball Cinnamon × Black Pastel) associée à un risque accru de kinking (déformations vertébrales), microphtalmie (« bug eyes »), malformation de la mâchoire (duckbill) et retard de croissance. Tous les individus supers ne sont pas affectés, mais l'incidence est jugée significative par de nombreux éleveurs expérimentés.", warningEn:"Homozygous form (Super Cinnamon — looks like the 8 Ball combo, Cinnamon × Black Pastel) is associated with an increased risk of kinking (spinal deformities), microphthalmia (\"bug eyes\"), jaw malformation (duckbill), and stunted growth. Not every super individual is affected, but the incidence is considered significant by many experienced breeders."},
+  {id:'blackpastel', name:'Black Pastel', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant', superLabel:'Super Black Pastel', warning:"Forme homozygote (Super Black Pastel — même allure que le combo 8 Ball) associée au même risque accru que Super Cinnamon : kinking, microphtalmie, malformation de la mâchoire, retard de croissance.", warningEn:"Homozygous form (Super Black Pastel — looks like the 8 Ball combo) carries the same increased risk as Super Cinnamon: kinking, microphthalmia, jaw malformation, stunted growth."},
   {id:'huffman', name:'Huffman', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant'},
   {id:'jolt', name:'Jolt', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant'},
   {id:'razor', name:'Razor', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant'},
@@ -3329,10 +3329,11 @@ const GENES = [
   {id:'orangedream', name:'Orange Dream', type:'incdom', locus:'orangedream', cat:'Codominant / Incomplet dominant'},
   {id:'scrambler', name:'Scrambler', type:'incdom', locus:'scrambler', cat:'Codominant / Incomplet dominant'},
   {id:'hetredaxanthic', name:'Het Red Axanthic', type:'incdom', locus:'hetredaxanthic', cat:'Codominant / Incomplet dominant', superLabel:'Red Axanthic (super Het Red Axanthic)'},
-  {id:'sable', name:'Sable', type:'incdom', locus:'sable', cat:'Codominant / Incomplet dominant'},
+  // v3.48 — Sable fait partie du complexe Spider (Morphpedia, fiche Sable : « Complex: Spider », super Sable = wobble).
+  {id:'sable', name:'Sable', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant', warning:"Forme homozygote (Super Sable) associée au wobble (trouble neurologique) selon Morphpedia. Sable fait partie du complexe Spider : un Sable × Spider peut donner des bébés porteurs des 2 allèles.", warningEn:"Homozygous form (Super Sable) is associated with wobble (neurological issue) according to Morphpedia. Sable is part of the Spider complex: a Sable × Spider pairing can produce babies carrying both alleles."},
   {id:'redstripe', name:'Red Stripe', type:'incdom', locus:'redstripe', cat:'Codominant / Incomplet dominant'},
   {id:'stranger', name:'Stranger', type:'incdom', locus:'stranger', cat:'Codominant / Incomplet dominant', warning:"Statut génétique noté « suspecté » (non encore confirmé à 100 %) par Morphpedia — traité ici comme codominant par défaut, à vérifier avant tout usage commercial engageant.", warningEn:"Genetic status listed as \"suspected\" (not yet 100% confirmed) by Morphpedia — treated here as codominant by default; verify before any binding commercial use."},
-  // Codominant / Incomplet dominant — Spider Complex : locus partagé (allélisme prouvé, vérifié ReptiDex). Spider et Champagne
+  // Codominant / Incomplet dominant — Spider Complex : locus partagé (allélisme prouvé ; reconfirmé sur Morphpedia le 9 oct, Sable inclus). Spider et Champagne
   // (ci-dessus) sont TOUJOURS létaux à l'état homozygote et létaux ensemble (Spider × Champagne) — géré
   // via CROSS_WARNINGS plus bas. HGW et Woma : wobble léger rapporté chez une partie des individus
   // (source explicite) ; Blackhead/Spotnose/Chocolate/Wookie/Cypress : pas de wobble rapporté spécifiquement
@@ -3354,8 +3355,9 @@ const GENES = [
   // Recessive
   {id:'piebald', name:'Piebald (Pied)', type:'recessive', locus:'piebald', cat:'Récessif'},
   {id:'clown', name:'Clown', type:'recessive', locus:'clown', cat:'Récessif'},
-  // T- Albino Complex — Albino et Candy partagent le locus TYR (vérifié ReptiDex) ; le composé
-  // hétérozygote Albino×Candy produit le phénotype Ultramel (voir COMPOUND_NAMES plus bas).
+  // T- Albino Complex — Albino et Candy partagent le locus TYR (reconfirmé sur Morphpedia le 9 oct : Toffee = Candy) ; le composé
+  // hétérozygote Albino×Candy produit le phénotype Candino (voir COMPOUND_NAMES plus bas — corrigé v3.39,
+  // « Ultramel » était faux ; ReptiDex n'est plus cité comme source dans l'app depuis v3.47 : c'est un concurrent).
   {id:'albino', name:'Albino', type:'recessive', locus:'tAlbinoComplex', cat:'Récessif', warning:"Photophobie (grande sensibilité à la lumière) rapportée chez les individus visuels, due au manque de pigment dans l'iris — éclairage du terrarium à adapter (lumière tamisée, cachettes ombragées disponibles).", warningEn:"Photophobia (high light sensitivity) reported in visual individuals, due to lack of pigment in the iris — terrarium lighting should be adapted (dimmed light, shaded hides available)."},
   {id:'candy', name:'Candy / Toffee', type:'recessive', locus:'tAlbinoComplex', cat:'Récessif', warning:"Même allèle que Candy, nommé différemment selon la lignée d'origine (Toffee = lignée Craig Stewart, Candy = lignée Peter Kahl) — génétiquement identiques. Photophobie rapportée chez les individus visuels, comme pour Albino, due au manque de pigment dans l'iris.", warningEn:"Same allele as Candy, named differently depending on the founding line (Toffee = Craig Stewart line, Candy = Peter Kahl line) — genetically identical. Photophobia reported in visual individuals, as with Albino, due to lack of pigment in the iris."},
   {id:'lavenderalbino', name:'Lavender Albino', type:'recessive', locus:'lavenderalbino', cat:'Récessif'},
@@ -4360,10 +4362,12 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.46', date:'2026-10-08',
+  { version:'3.48', date:'2026-10-09',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        'Sources génétiques affichées : Morphpedia et World of Ball Pythons.',
+        'Génétique (vérifié sur Morphpedia) : Sable fait maintenant partie du complexe Spider (un Sable × Spider se calcule correctement) ; le super de Cinnamon et de Black Pastel s\'appelle « Super Cinnamon » / « Super Black Pastel » — « 8 Ball » est le combo Cinnamon × Black Pastel.',
         'Le menu ☰ défile maintenant sur cellulaire — les dernières options (Confidentialité, Signaler un bug…) étaient hors de l\'écran.',
         'Sécurité : un compte ne peut plus modifier lui-même son statut administrateur ni son palier (protection ajoutée côté serveur).',
         '🔒 Mode Verrou en pastilles : une ligne compacte par couple (🔒 lock d\'aujourd\'hui, 🤝 ensemble / ⏸ séparés, ▾ lock à une autre date et historique), « Ensemble ce soir » en premier, menu déroulant au-delà de 12 couples. Relié au Plan de saison (« Démarrer » = « Ensemble », « Séparer » fixe la vraie fin et le repos du mâle suit), locks affichés sur les séances, entrées « Mis ensemble / Séparés / Lock » dans le journal des 2 animaux, et statut des mâles (avec qui, en repos, prochaine séance) dans l\'Agenda.',
@@ -4383,6 +4387,8 @@ const CHANGELOG = [
         'Génétique : le super des gènes du complexe Fire s\'affiche « Black-Eyed Leucistic (BlkEL) » — le sigle BEL désigne le Blue-Eyed Leucistic.'
       ],
       en:[
+        'Genetics sources shown: Morphpedia and World of Ball Pythons.',
+        'Genetics (checked on Morphpedia): Sable is now part of the Spider complex (Sable × Spider is calculated correctly); the super form of Cinnamon and Black Pastel is "Super Cinnamon" / "Super Black Pastel" — "8 Ball" is the Cinnamon × Black Pastel combo.',
         'The ☰ menu now scrolls on phones — the last options (Privacy, Report a bug…) were off screen.',
         'Security: an account can no longer change its own administrator status or tier (server-side protection added).',
         '🔒 Lock mode as compact pills: one row per pair (🔒 today\'s lock, 🤝 together / ⏸ separated, ▾ lock on another date and history), "Together tonight" first, a dropdown beyond 12 pairs. Linked to the Season plan ("Start" = "Together", "Separate" sets the real end and the male\'s rest follows), locks shown on sessions, "Put together / Separated / Lock" entries in both animals\' journals, and breeding male status (with whom, resting, next session) in the Agenda.',
@@ -5004,7 +5010,7 @@ const I18N = {
     addPhotoBtn: '📷 Ajouter une photo',
     genealogyTitle: 'Généalogie',
     geneCountNoteLabel: 'Note :',
-    geneCountNoteBody: "{geneCount} gènes actuellement dans la base, chacun vérifié individuellement (Morphpedia, ReptiDex, ou source communautaire fiable citée) — mode de transmission, allélisme et risques santé connus, pas des suppositions. La génétique complète du python royal compte encore d'autres gènes moins documentés ou débattus dans la communauté ; ceux-ci sont volontairement exclus tant qu'ils ne sont pas confirmés plutôt que d'être ajoutés par approximation. Certaines interactions restent à vérifier avant tout usage réel d'élevage.",
+    geneCountNoteBody: "{geneCount} gènes actuellement dans la base, chacun vérifié individuellement (Morphpedia, World of Ball Pythons, ou source communautaire fiable citée) — mode de transmission, allélisme et risques santé connus, pas des suppositions. La génétique complète du python royal compte encore d'autres gènes moins documentés ou débattus dans la communauté ; ceux-ci sont volontairement exclus tant qu'ils ne sont pas confirmés plutôt que d'être ajoutés par approximation. Certaines interactions restent à vérifier avant tout usage réel d'élevage.",
     footerCopyright: '© 2026 LOCUS Scales — Alexandre Young. Tous droits réservés. La reproduction ou la copie de ce logiciel, en tout ou en partie, est interdite sans autorisation.',
     viewCompatibilityBtn: 'Voir la compatibilité avec…',
     registeredOffspring: 'Descendance enregistrée',
@@ -5571,7 +5577,7 @@ const I18N = {
     addPhotoBtn: '📷 Add a photo',
     genealogyTitle: 'Genealogy',
     geneCountNoteLabel: 'Note:',
-    geneCountNoteBody: "{geneCount} genes currently in the database, each individually verified (Morphpedia, ReptiDex, or a cited reliable community source) — inheritance mode, allelism, and known health risks, not guesswork. Full ball python genetics still includes other genes that are less documented or debated in the community; these are deliberately excluded until confirmed rather than added by approximation. Some interactions still need verification before real breeding use.",
+    geneCountNoteBody: "{geneCount} genes currently in the database, each individually verified (Morphpedia, World of Ball Pythons, or a cited reliable community source) — inheritance mode, allelism, and known health risks, not guesswork. Full ball python genetics still includes other genes that are less documented or debated in the community; these are deliberately excluded until confirmed rather than added by approximation. Some interactions still need verification before real breeding use.",
     footerCopyright: '© 2026 LOCUS Scales — Alexandre Young. All rights reserved. Reproduction or copying of this software, in whole or in part, is prohibited without authorization.',
     viewCompatibilityBtn: 'View compatibility with…',
     registeredOffspring: 'Registered offspring',
@@ -5949,7 +5955,7 @@ function openTermsModal(){
       '<p><b style="color:var(--gold);">Uncertain genetic statuses ("Possible", "Freeway", "To verify")</b><br/>These statuses indicate genetics that are not 100% confirmed — statistical, inherited from a draw, or pending visual confirmation. They must never be presented as certain to a buyer before confirmation (test breeding, visual identification, or DNA testing, as applicable). You remain solely responsible for the genetic representations made to your clients.</p>'+
       '<p><b style="color:var(--gold);">Loss of local data</b><br/>Your data is synced to our secured servers once you are signed in, but the app also keeps a local copy on your device for offline access. We cannot be held liable for data loss caused by a cache clear, a change of device or browser, or any hardware failure before that sync completes. Regularly exporting your data remains good practice.</p>'+
       '<p><b style="color:var(--gold);">Notifications</b><br/>Notifications depend on the permissions and proper functioning of your browser and device, and only work while the Application is open in a tab. They do not constitute a guaranteed alert system — do not rely on them as your sole protection against a critical event (hatching, feeding, etc.).</p>'+
-      '<p style="margin-bottom:0;"><b style="color:var(--gold);">Gene database</b><br/>Each gene is verified through recognized public sources (Morphpedia, ReptiDex, World of Ball Pythons, among others). These third-party sources may themselves contain errors, be incomplete, or change over time without our being notified. We do not guarantee the absolute and permanent accuracy of each genetic classification.</p>'+
+      '<p style="margin-bottom:0;"><b style="color:var(--gold);">Gene database</b><br/>Each gene is verified through recognized public sources (Morphpedia, World of Ball Pythons, among others). These third-party sources may themselves contain errors, be incomplete, or change over time without our being notified. We do not guarantee the absolute and permanent accuracy of each genetic classification.</p>'+
       '</div>'+
       '<p><b style="color:var(--gold);">Prohibition on copying, scraping, and reverse engineering</b> <span style="color:var(--ink-dim);font-size:10px;">(LOCUS Scales–specific addition)</span><br/>All source code, the gene database and its content (inheritance modes, health warnings, verified sources), the genetics calculation engine, the visual design, and the overall structure of this Application are the exclusive property of Alexandre Young and are protected by copyright. You may not: copy, reproduce, extract, or redistribute the source code or gene database in whole or in part; use automated tools (scraping, crawling, bots) to extract data or content from the Application; reverse engineer, decompile, or attempt to derive the underlying logic of the genetics calculator; create a competing product substantially derived from this code or database. Any violation may result in legal action and immediate termination of your access.</p>'+
       '<p><b style="color:var(--gold);">Contact</b><br/>For any question or concern: <a href="mailto:support@locusscales.com" style="color:var(--gold);">support@locusscales.com</a></p>'+
@@ -5989,7 +5995,7 @@ function openTermsModal(){
       '<p><b style="color:var(--gold);">Statuts génétiques incertains (« Possible », « Freeway », « À vérifier »)</b><br/>Ces statuts indiquent une génétique non confirmée à 100 % — statistique, héritée d\'un tirage, ou en attente de confirmation visuelle. Ils ne doivent jamais être présentés comme une certitude à un acheteur avant confirmation (élevage-test, identification visuelle ou test ADN, selon le cas). Vous demeurez seul responsable des représentations génétiques faites à vos clients.</p>'+
       '<p><b style="color:var(--gold);">Perte de données locales</b><br/>Vos données sont synchronisées vers nos serveurs sécurisés une fois connecté, mais l\'application garde aussi une copie locale sur votre appareil pour l\'accès hors ligne. Nous ne pouvons être tenus responsables d\'une perte de données causée par un vidage de cache, un changement d\'appareil ou de navigateur, ou une défaillance matérielle survenant avant que cette synchronisation soit complétée. L\'exportation régulière de vos données demeure une bonne pratique.</p>'+
       '<p><b style="color:var(--gold);">Notifications</b><br/>Les notifications dépendent des permissions et du bon fonctionnement de votre navigateur et de votre appareil, et ne fonctionnent que pendant que l\'Application est ouverte dans un onglet. Elles ne constituent pas un système d\'alerte garanti — ne vous y fiez pas comme seule protection contre un événement critique (éclosion, repas, etc.).</p>'+
-      '<p style="margin-bottom:0;"><b style="color:var(--gold);">Base de données des gènes</b><br/>Chaque gène est vérifié via des sources publiques reconnues (Morphpedia, ReptiDex, World of Ball Pythons, entre autres). Ces sources tierces peuvent elles-mêmes contenir des erreurs, être incomplètes, ou changer avec le temps sans que nous en soyons avisés. Nous ne garantissons pas l\'exactitude absolue et permanente de chaque classification génétique.</p>'+
+      '<p style="margin-bottom:0;"><b style="color:var(--gold);">Base de données des gènes</b><br/>Chaque gène est vérifié via des sources publiques reconnues (Morphpedia, World of Ball Pythons, entre autres). Ces sources tierces peuvent elles-mêmes contenir des erreurs, être incomplètes, ou changer avec le temps sans que nous en soyons avisés. Nous ne garantissons pas l\'exactitude absolue et permanente de chaque classification génétique.</p>'+
       '</div>'+
       '<p><b style="color:var(--gold);">Interdiction de copie, d\'extraction et d\'ingénierie inverse</b> <span style="color:var(--ink-dim);font-size:10px;">(ajout spécifique à LOCUS Scales)</span><br/>L\'ensemble du code source, la base de données de gènes et son contenu (modes de transmission, avertissements de santé, sources vérifiées), le moteur de calcul génétique, le design visuel et la structure globale de cette Application sont la propriété exclusive d\'Alexandre Young et sont protégés par le droit d\'auteur. Il est interdit de : copier, reproduire, extraire ou redistribuer le code source ou la base de gènes en tout ou en partie ; utiliser des outils automatisés (extraction, robots d\'indexation, bots) pour extraire des données ou du contenu de l\'Application ; procéder à de l\'ingénierie inverse, décompiler ou tenter de reconstituer la logique sous-jacente du calculateur génétique ; créer un produit concurrent substantiellement dérivé de ce code ou de cette base de données. Toute violation peut entraîner des poursuites judiciaires et la résiliation immédiate de votre accès.</p>'+
       '<p><b style="color:var(--gold);">Contact</b><br/>Pour toute question ou préoccupation : <a href="mailto:support@locusscales.com" style="color:var(--gold);">support@locusscales.com</a></p>'+
