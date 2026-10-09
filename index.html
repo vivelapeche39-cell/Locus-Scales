@@ -2187,7 +2187,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.56';
+const APP_VERSION = '2026.09.01.3.57';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4394,11 +4394,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.56', date:'2026-10-09',
+  { version:'3.57', date:'2026-10-09',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
-        '🎯 Chemin optimal : choisis d\'abord tes animaux, puis tes gènes cibles parmi ceux qu\'ils portent vraiment (avec le nombre de porteurs) au lieu des 163 gènes — décoche « Seulement les gènes de mes animaux cochés » pour revoir toute la liste. Réservé aux paliers Première ponte et Illimité après la bêta.',
+        '🎯 Chemin optimal : choisis d\'abord tes animaux, puis tes gènes cibles parmi ceux qu\'ils portent vraiment (avec le nombre de porteurs) au lieu des 163 gènes — décoche « Seulement les gènes de mes animaux cochés » pour revoir toute la liste. Chaque gène peut viser le Super (ou le visuel pour un récessif) ; LOCUS vérifie qu\'il faut un porteur de chaque côté et refuse les objectifs impossibles (ex. Super Asphalt + Super Specter, même locus). Réservé aux paliers Première ponte et Illimité après la bêta.',
         '🦎 Génétique du gecko léopard dans le calculateur : choisis « Gecko léopard » en haut du calculateur (ou charge un de tes geckos) — 15 gènes vérifiés sur Morphpedia (MorphMarket) : 3 albinos séparés (Tremper, Bell, Rainwater), Eclipse, Blizzard, Murphy Patternless, Marble Eye, NDBE, Mack Snow (Super Snow), Giant, Lemon Frost, Enigma, White & Yellow, TUG Snow, Gem Snow. Avertissements santé pour Enigma et Lemon Frost. Hypo et Tangerine sont polygéniques, donc pas calculables. Les gènes s\'ajoutent aussi sur la fiche d\'un gecko léopard. Mêmes paliers que le calculateur du python royal après la bêta.',
         '💊 Suppléments (lézards et tortues) : bouton « Supplément » sur la fiche (calcium, calcium + D3, multivitamines), historique dans le journal, et rappel optionnel « aux X jours » qui apparaît dans Aujourd\'hui quand c\'est le moment.',
         '🌡️ Sexe selon la température d\'incubation : pour le gecko léopard, le gecko à queue grasse, le dragon barbu et la tortue à oreilles rouges, entre la température de la ponte et LOCUS affiche la tendance probable (ex. gecko léopard à 32 °C → surtout des mâles), avec la source. Gecko à crête : effet débattu, aucune prédiction.',
@@ -4431,7 +4431,7 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
-        '🎯 Optimal Path: pick your animals first, then your target genes from the ones they actually carry (with the number of carriers) instead of all 163 genes — uncheck "Only genes carried by the checked animals" to see the full list again. Reserved for the First Clutch and Unlimited tiers after the beta.',
+        '🎯 Optimal Path: pick your animals first, then your target genes from the ones they actually carry (with the number of carriers) instead of all 163 genes — uncheck "Only genes carried by the checked animals" to see the full list again. Each gene can target the Super (or the visual for a recessive); LOCUS checks that a carrier is needed on each side and rejects impossible goals (e.g. Super Asphalt + Super Specter, same locus). Reserved for the First Clutch and Unlimited tiers after the beta.',
         '🦎 Leopard gecko genetics in the calculator: pick "Leopard gecko" at the top of the calculator (or load one of your geckos) — 15 genes checked on Morphpedia (MorphMarket): 3 separate albinos (Tremper, Bell, Rainwater), Eclipse, Blizzard, Murphy Patternless, Marble Eye, NDBE, Mack Snow (Super Snow), Giant, Lemon Frost, Enigma, White & Yellow, TUG Snow, Gem Snow. Health warnings for Enigma and Lemon Frost. Hypo and Tangerine are polygenic, so they can\'t be calculated. Genes can also be added on a leopard gecko\'s record. Same tiers as the ball python calculator after the beta.',
         '💊 Supplements (lizards and turtles/tortoises): a "Supplement" button on the record (calcium, calcium + D3, multivitamins), history in the log, and an optional "every X days" reminder that shows up in Today when it\'s time.',
         '🌡️ Sex by incubation temperature: for leopard geckos, fat-tailed geckos, bearded dragons and red-eared sliders, enter the clutch temperature and LOCUS shows the probable trend (e.g. leopard gecko at 32 °C → mostly males), with the source. Crested gecko: effect debated, no prediction.',
@@ -8930,18 +8930,20 @@ function nCr(n, r){
   for(let i=0;i<r;i++) result = result*(n-i)/(i+1);
   return result;
 }
-function findMinCoveringSet(targetGeneIds, candidates){
+function findMinCoveringSet(targetGeneIds, candidates, needs){
+  // v3.57 — needs[gid] = nombre d'animaux porteurs requis dans l'ensemble (2 pour un Super / un
+  // visuel récessif : il faut une copie de chaque côté). Absent = 1, comme avant.
+  needs = needs || {};
   const missing = targetGeneIds.filter(gid => !candidates.some(s=>s.genes && s.genes[gid]));
   if(missing.length) return { ok:false, missing };
+  const enough = (subset, gid)=> subset.filter(s=>s.genes && s.genes[gid]).length >= (needs[gid]||1);
   const n = candidates.length;
   const maxSize = Math.min(n, GOALPATH_MAX_SET_SIZE);
   for(let size=1; size<=maxSize; size++){
     if(nCr(n, size) > GOALPATH_MAX_COMBOS_PER_SIZE) return { ok:false, missing:[], tooComplex:true };
     const combos = combinationsOfSize(candidates, size);
     for(const subset of combos){
-      const covered = new Set();
-      subset.forEach(s=>{ targetGeneIds.forEach(gid=>{ if(s.genes && s.genes[gid]) covered.add(gid); }); });
-      if(covered.size === targetGeneIds.length) return { ok:true, set:subset };
+      if(targetGeneIds.every(gid=>enough(subset, gid))) return { ok:true, set:subset };
     }
   }
   return { ok:false, missing:[], tooComplex:true };
@@ -8965,12 +8967,13 @@ function computeBridgeOptions(coveringSet){
 }
 // v3.56 — par défaut, seulement les gènes portés par les animaux cochés (+ nombre de porteurs) ;
 // décocher « Seulement les gènes de mes animaux » réaffiche toute la base python royal.
-function goalPathGeneOptionsHtml(){
+function goalPathGeneOptionsHtml(fresh){
   const isEn = currentLang==='en';
   const mineEl = document.getElementById('goalpath-mine-only');
-  const mineOnly = mineEl ? mineEl.checked : true;
-  const prevChecked = new Set([...document.querySelectorAll('.goalpath-gene:checked')].map(el=>el.value));
-  const snakeEls = document.querySelectorAll('.goalpath-snake');
+  const mineOnly = (fresh || !mineEl) ? true : mineEl.checked;
+  // fresh = ouverture de la fenêtre : on ignore les cases d'une fenêtre précédente encore dans la page.
+  const prevChecked = fresh ? new Set() : new Set([...document.querySelectorAll('.goalpath-gene:checked')].map(el=>el.value));
+  const snakeEls = fresh ? [] : document.querySelectorAll('.goalpath-snake');
   const pickedIds = snakeEls.length ? [...snakeEls].filter(el=>el.checked).map(el=>el.value) : savedSnakes.filter(x=>(x.species||'ball_python')==='ball_python').map(x=>x.id);
   const carriers = {};
   pickedIds.forEach(id=>{
@@ -8981,8 +8984,26 @@ function goalPathGeneOptionsHtml(){
   const pool = GENES.filter(g=>geneSpecies(g)==='ball_python' && (!mineOnly || carriers[g.id]));
   if(!pool.length) return '<div style="font-size:13px;color:var(--ink-dim);padding:4px;">'+(isEn?'The checked animals have no genes recorded yet.':'Les animaux cochés n\'ont encore aucun gène enregistré.')+'</div>';
   return pool.sort((a,b)=>a.name.localeCompare(b.name)).map(g=>
-    '<label style="display:flex;align-items:center;gap:4px;font-size:12px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:14px;padding:5px 10px;margin:2px;"><input type="checkbox" class="goalpath-gene" value="'+g.id+'"'+(prevChecked.has(g.id)?' checked':'')+' style="margin:0;"/> '+escapeHtml(g.name)+(carriers[g.id]?' <small style="color:var(--ink-dim);">×'+carriers[g.id]+'</small>':'')+'</label>'
+    '<span style="display:inline-flex;align-items:center;gap:4px;font-size:12px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:14px;padding:5px 8px 5px 10px;margin:2px;">'+
+      '<label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" class="goalpath-gene" value="'+g.id+'"'+(prevChecked.has(g.id)?' checked':'')+' style="margin:0;"/> '+escapeHtml(g.name)+(carriers[g.id]?' <small style="color:var(--ink-dim);">×'+carriers[g.id]+'</small>':'')+'</label>'+
+      (g.type!=='unknown' ? '<button type="button" class="goalpath-level" data-g="'+g.id+'" onclick="toggleGoalPathLevel(\''+g.id+'\')" style="font-size:11.5px;padding:2px 8px;border-radius:10px;border:1px solid '+((goalPathLevels[g.id]===2)?'var(--gold)':'var(--line)')+';background:'+((goalPathLevels[g.id]===2)?'rgba(201,151,62,.18)':'transparent')+';color:var(--ink);">'+goalPathLevelLabel(g)+'</button>' : '')+
+    '</span>'
   ).join('');
+}
+// v3.57 — niveau visé par gène : 1 copie (visuel pour incdom/dominant, porteur pour récessif) ou
+// 2 copies (Super, ou visuel pour un récessif). Retenu pendant la session (pas sauvegardé).
+var goalPathLevels = {};
+function goalPathLevelLabel(g){
+  const isEn = currentLang==='en';
+  const two = goalPathLevels[g.id]===2;
+  if(g.type==='recessive') return two ? (isEn?'Visual':'Visuel') : 'Het';
+  return two ? 'Super' : (isEn?'Single':'Simple');
+}
+function toggleGoalPathLevel(gid){
+  goalPathLevels[gid] = goalPathLevels[gid]===2 ? 1 : 2;
+  const cb = document.querySelector('.goalpath-gene[value="'+gid+'"]');
+  if(cb) cb.checked = true; // choisir un niveau = viser ce gène
+  refreshGoalPathGenes();
 }
 function refreshGoalPathGenes(){
   const wrap = document.getElementById('goalpath-gene-list');
@@ -8995,6 +9016,7 @@ function goalPathSnakeOptionsHtml(){
 }
 function openGoalPathModal(){
   if(!hasAccess('dreamSimulator')){ showQuickModal('🎯', lockedFeatureHtml()); return; }
+  goalPathLevels = {};
   const isEn = currentLang==='en';
   const body =
     '<p style="font-size:11px;color:var(--ink-dim);margin:0 0 14px;">'+(isEn
@@ -9005,7 +9027,7 @@ function openGoalPathModal(){
     '<div style="display:flex;flex-wrap:wrap;max-height:120px;overflow-y:auto;margin-bottom:12px;" onchange="refreshGoalPathGenes()">'+goalPathSnakeOptionsHtml()+'</div>'+
     '<p style="font-size:12px;color:var(--ink-dim);margin:0 0 4px;">'+(isEn?'2. Target genes':'2. Gènes cibles')+'</p>'+
     '<label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:0 0 6px;"><input type="checkbox" id="goalpath-mine-only" checked onchange="refreshGoalPathGenes()" style="width:18px;height:18px;margin:0;"/> '+(isEn?'Only genes carried by the checked animals':'Seulement les gènes de mes animaux cochés')+'</label>'+
-    '<div id="goalpath-gene-list" style="display:flex;flex-wrap:wrap;max-height:160px;overflow-y:auto;margin-bottom:12px;">'+goalPathGeneOptionsHtml()+'</div>'+
+    '<div id="goalpath-gene-list" style="display:flex;flex-wrap:wrap;max-height:160px;overflow-y:auto;margin-bottom:12px;">'+goalPathGeneOptionsHtml(true)+'</div>'+
     '<button class="save-btn" style="width:100%;" onclick="analyzeGoalPath()">🎯 '+(isEn?'Analyze':'Analyser')+'</button>'+
     '<div id="goalpath-results" style="margin-top:14px;"></div>';
   showQuickModal('🎯 '+(isEn?'Optimal Path':'Chemin optimal'), body);
@@ -9021,17 +9043,49 @@ function analyzeGoalPath(){
   }
   const candidates = candidateIds.map(id=>savedSnakes.find(s=>s.id===id)).filter(Boolean);
   const geneNames = targetGeneIds.map(gid=>{ const g=GENES.find(x=>x.id===gid); return g?g.name:gid; });
+  // v3.57 — copies visées (1 ou 2) et vérification des places par locus : un serpent n'a que 2
+  // places par locus (ex. Super Asphalt + Super Specter = 4 copies au même locus → impossible).
+  const copies = {};
+  targetGeneIds.forEach(gid=>{ copies[gid] = goalPathLevels[gid]===2 ? 2 : 1; });
+  const byLocus = {};
+  targetGeneIds.forEach(gid=>{ const g = GENES.find(x=>x.id===gid); if(!g) return; (byLocus[g.locus] = byLocus[g.locus]||[]).push(g); });
+  const overfull = Object.keys(byLocus).filter(l=>byLocus[l].reduce((sum,g)=>sum+copies[g.id],0) > 2);
+  if(overfull.length){
+    el.innerHTML = overfull.map(l=>{
+      const gs = byLocus[l];
+      const wanted = gs.map(g=>copies[g.id]===2 ? superName(g) : g.name).join(' + ');
+      const ok = gs.slice(0,2).map(g=>g.name).sort().join(' ');
+      return '<div class="warn" style="border-color:var(--rust);">⚠ '+(isEn
+        ? '<b>'+escapeHtml(wanted)+'</b> in the same snake is impossible: these genes share the same locus, and a snake only has 2 places there. '+(gs.length>=2?'Possible instead: <b>'+escapeHtml(ok)+'</b> (one copy of each).':'')
+        : '<b>'+escapeHtml(wanted)+'</b> dans le même serpent, c\'est impossible : ces gènes partagent le même locus et un serpent n\'y a que 2 places. '+(gs.length>=2?'Possible à la place : <b>'+escapeHtml(ok)+'</b> (une copie de chaque).':''))+'</div>';
+    }).join('');
+    return;
+  }
+  const twoCopyIds = targetGeneIds.filter(gid=>copies[gid]===2);
+  const superWarnings = twoCopyIds.map(gid=>{ const g = GENES.find(x=>x.id===gid); const w = geneWarning(g); return w ? '<div class="warn" style="border-color:var(--rust);margin-top:6px;">🚨 <b>'+escapeHtml(superName(g))+'</b> — '+escapeHtml(w)+'</div>' : ''; }).join('');
 
   // Étape 1 — couverture : qui porte quoi
   const coverageHtml = targetGeneIds.map(gid=>{
     const gname = GENES.find(g=>g.id===gid)?.name || gid;
     const carriers = candidates.filter(s=>s.genes && s.genes[gid]);
-    return '<div class="modal-row"><span>'+escapeHtml(gname)+'</span><span>'+(carriers.length
+    const g0 = GENES.find(g=>g.id===gid);
+    const shown = copies[gid]===2 ? (g0 && g0.type==='recessive' ? gname+' ('+(isEn?'visual':'visuel')+')' : superName(g0)) : gname;
+    return '<div class="modal-row"><span>'+escapeHtml(shown)+'</span><span>'+(carriers.length
       ? carriers.map(s=>escapeHtml(s.name)).join(', ')
       : '<span style="color:var(--rust);">'+(isEn?'nobody':'personne')+'</span>')+'</span></div>';
   }).join('');
 
-  const covering = findMinCoveringSet(targetGeneIds, candidates);
+  // 2 copies : d'abord un ensemble avec 2 porteurs distincts ; sinon on retombe sur 1 porteur et
+  // on le dit honnêtement (il faudra recroiser un descendant avec ce porteur → +1 génération).
+  const needs = {}; twoCopyIds.forEach(gid=>{ needs[gid] = 2; });
+  let covering = findMinCoveringSet(targetGeneIds, candidates, needs);
+  let singleSourceTwoCopy = [];
+  if(!covering.ok && !covering.missing.length && twoCopyIds.length){
+    const relaxed = findMinCoveringSet(targetGeneIds, candidates);
+    if(relaxed.ok){ covering = relaxed; singleSourceTwoCopy = twoCopyIds.filter(gid=>relaxed.set.filter(s=>s.genes && s.genes[gid]).length<2); }
+  } else if(covering.ok){
+    singleSourceTwoCopy = twoCopyIds.filter(gid=>covering.set.filter(s=>s.genes && s.genes[gid]).length<2);
+  }
   if(!covering.ok){
     let warnMsg;
     if(covering.tooComplex){
@@ -9078,8 +9132,16 @@ function analyzeGoalPath(){
       : set.length+' sources différentes nécessaires — c\'est plus que ce que je peux suggérer automatiquement de façon fiable pour l\'instant. Travaillons ça ensemble manuellement avec le Simulateur de rêverie, une génération à la fois.')+'</div>';
   }
 
+  const singleHtml = singleSourceTwoCopy.map(gid=>{
+    const g = GENES.find(x=>x.id===gid);
+    const label = g.type==='recessive' ? g.name+' ('+(isEn?'visual':'visuel')+')' : superName(g);
+    const src = covering.set.find(s=>s.genes && s.genes[gid]);
+    return '<div class="warn" style="border-color:var(--gold);margin-top:8px;">⚠ '+(isEn
+      ? '<b>'+escapeHtml(label)+'</b> needs a copy from each parent, but only <b>'+escapeHtml(src?src.name:'?')+'</b> carries '+escapeHtml(g.name)+'. Plan one more generation: cross a '+escapeHtml(g.name)+' baby back to '+escapeHtml(src?src.name:'?')+' or to a '+escapeHtml(g.name)+' sibling (inbreeding goes up).'
+      : '<b>'+escapeHtml(label)+'</b> demande une copie de chaque parent, mais seul <b>'+escapeHtml(src?src.name:'?')+'</b> porte '+escapeHtml(g.name)+'. Prévois une génération de plus : recroiser un bébé '+escapeHtml(g.name)+' avec '+escapeHtml(src?src.name:'?')+' ou avec un frère/une sœur '+escapeHtml(g.name)+' (la consanguinité monte).')+'</div>';
+  }).join('');
   el.innerHTML = '<h3 style="font-size:13px;">'+(isEn?'Coverage':'Couverture')+'</h3>'+coverageHtml+
-    '<h3 style="font-size:13px;margin-top:14px;">'+(isEn?'Suggested path':'Chemin suggéré')+'</h3>'+pathHtml;
+    '<h3 style="font-size:13px;margin-top:14px;">'+(isEn?'Suggested path':'Chemin suggéré')+'</h3>'+pathHtml+singleHtml+superWarnings;
 }
 
 function parentComboSummary(){
