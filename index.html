@@ -1412,6 +1412,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <span class="tour-count" id="tour-count">0 bac sélectionné</span>
         <button class="tour-action-btn fed" data-i18n="actionFedFrozen" onclick="applyTourAction('fed_frozen')">❄️ A mangé</button>
         <button class="tour-action-btn fed" data-i18n="actionFedLive" onclick="applyTourAction('fed_live')">🐭 A mangé</button>
+        <button class="tour-action-btn fed" id="tour-plate-btn" style="display:none;" onclick="applyTourAction('plate')">🥗 Assiette</button>
         <button class="tour-action-btn shed" data-i18n="actionShed" onclick="applyTourAction('shed')">A mué</button>
         <button class="tour-action-btn refused" data-i18n="actionRefused" onclick="applyTourAction('refused')">Refus</button>
         <button class="tour-action-btn" data-i18n="actionWeigh" onclick="applyTourAction('weigh')">Peser</button>
@@ -1607,7 +1608,13 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <input type="number" id="clutch-incubation-days" min="50" max="70" value="60" style="width:56px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:4px;color:var(--ink);font-family:'Courier New',monospace;font-size:12px;padding:7px 6px;text-align:center;"/>
         j
       </label>
+      <label id="clutch-temp-wrap" style="display:none;align-items:center;gap:6px;font-family:'Courier New',monospace;font-size:11px;color:var(--ink-dim);">
+        <span id="clutch-temp-label">Temp.</span>
+        <input type="number" id="clutch-incub-temp" step="0.1" min="20" max="40" oninput="updateClutchTsdHint()" style="width:64px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:4px;color:var(--ink);font-family:'Courier New',monospace;font-size:14px;padding:7px 6px;text-align:center;"/>
+        °C
+      </label>
       <button class="save-btn" onclick="addClutch()">Enregistrer la portée</button>
+      <div id="clutch-tsd-hint" style="display:none;width:100%;font-size:13px;line-height:1.5;color:var(--ink);"></div>
     </div>
     <div id="next-hatch-banner"></div>
     <div id="clutch-list" class="clutch-grid"></div>
@@ -2179,7 +2186,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.51';
+const APP_VERSION = '2026.09.01.3.53';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2720,7 +2727,7 @@ function setPageMeta(title, description, noindex){
       return g ? g.name : gid;
     }).join(', ') : (isEn?'No genetics recorded':'Aucune génétique enregistrée');
     const sexLabel = r.sex==='male' ? (isEn?'Male':'Mâle') : r.sex==='female' ? (isEn?'Female':'Femelle') : (isEn?'Unsexed':'Non sexé');
-    const speciesLabel = (!r.species || r.species==='ball_python') ? 'Ball Python' : (r.species==='other' ? (isEn?'Other species':'Autre espèce') : escapeHtml(r.species));
+    const speciesLabel = escapeHtml(speciesDisplayLabel(r.species, isEn)); // v3.52
     setPageMeta(
       r.name+' — '+speciesLabel+' | LOCUS Scales',
       isEn ? (r.name+', a '+speciesLabel+' ('+sexLabel+'). Genetics: '+geneNames+'. Public profile shared via LOCUS Scales.')
@@ -2854,7 +2861,7 @@ function setPageMeta(title, description, noindex){
       return g ? g.name : gid;
     }).join(', ') : (isEn?'No genetics recorded':'Aucune génétique enregistrée');
     const sexLabel = r.sex==='male' ? (isEn?'Male':'Mâle') : r.sex==='female' ? (isEn?'Female':'Femelle') : (isEn?'Unsexed':'Non sexé');
-    const speciesLabel = (!r.species || r.species==='ball_python') ? 'Ball Python' : (r.species==='other' ? (isEn?'Other species':'Autre espèce') : escapeHtml(r.species));
+    const speciesLabel = escapeHtml(speciesDisplayLabel(r.species, isEn)); // v3.52
     const h = r.health || {};
     const weights = (h.weights||[]);
     const lengths = (h.lengths||[]);
@@ -3944,6 +3951,7 @@ const DASH_CARDS = [
   { key:'today_pairing', fr:'— En accouplement depuis 5j+', en:'— Pairing 5+ days' },
   { key:'today_season', fr:'— Plan de saison (pairings prévus)', en:'— Season plan (planned pairings)' },
   { key:'today_lowstock', fr:'— Stock de proies bas', en:'— Low prey stock' },
+  { key:'today_supplement', fr:'— Suppléments à donner', en:'— Supplements due' },
   { key:'birthdays', fr:'Anniversaires du mois', en:'Birthdays this month' },
   { key:'todos', fr:'Tâches', en:'Tasks' },
   { key:'feeding', fr:'Calendrier de nourrissage', en:'Feeding calendar' },
@@ -3991,7 +3999,7 @@ function applyDashCardVisibility(){
   // "Aujourd'hui" (2 septembre) — plus un seul interrupteur : le titre/widget ne s'affiche que
   // si AU MOINS un des 7 sous-items est activé ; renderDashboard() filtre ensuite chaque groupe
   // individuellement selon dashCardPrefs.today_xxx au moment de construire le contenu.
-  const todaySubKeys = ['today_shed','today_weigh','today_clutch','today_cleaning','today_uvb','today_pairing','today_season','today_lowstock'];
+  const todaySubKeys = ['today_shed','today_weigh','today_clutch','today_cleaning','today_uvb','today_pairing','today_season','today_lowstock','today_supplement'];
   const anyTodayOn = todaySubKeys.some(k=>dashCardPrefs[k]);
   const todayTitle = document.getElementById('dash-today-title');
   const todayWidget = document.getElementById('dash-today-widget');
@@ -4371,10 +4379,16 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.51', date:'2026-10-09',
+  { version:'3.53', date:'2026-10-09',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '💊 Suppléments (lézards et tortues) : bouton « Supplément » sur la fiche (calcium, calcium + D3, multivitamines), historique dans le journal, et rappel optionnel « aux X jours » qui apparaît dans Aujourd\'hui quand c\'est le moment.',
+        '🌡️ Sexe selon la température d\'incubation : pour le gecko léopard, le gecko à queue grasse, le dragon barbu et la tortue à oreilles rouges, entre la température de la ponte et LOCUS affiche la tendance probable (ex. gecko léopard à 32 °C → surtout des mâles), avec la source. Gecko à crête : effet débattu, aucune prédiction.',
+        '🦎 Autres espèces : le rythme de repas par défaut suit maintenant l\'espèce et l\'âge (ex. corn adulte aux 10 jours, gecko léopard bébé chaque jour, boa adulte aux 14 jours) au lieu de 7 jours pour tout le monde. Les couleurs du Mode Tournée et l\'alerte « sans repas » suivent ce rythme. Tu peux toujours mettre ton propre intervalle sur la fiche.',
+        '🥗 Uromastyx, tortues terrestres et dragon barbu : bouton « Assiette » (tout mangé / un peu / rien touché) au lieu de « A mangé / Refus ». Une assiette pas touchée ne déclenche pas d\'alarme. Aussi dans le Mode Tournée (« Assiette mangée »).',
+        'Correctif : chez les lézards, une mue en morceaux est normale et ne déclenche plus l\'alerte « dernière mue incomplète ».',
+        'Correctif : le nom des espèces s\'affichait parfois en code (« corn_snake ») ou en français dans l\'app en anglais (fiches, recherche, filtre, étiquettes, fiche publique).',
         'Correctif : le palier de ton compte (et le menu Admin) pouvait ne pas être reconnu au démarrage sur certains appareils ; il est maintenant relu de façon fiable.',
         '✨ Après une mue, le message te dit quand la prochaine est prévue (ou combien de mues il reste à noter pour la prédire).',
         '🔄 Synchro entre appareils plus sûre : si tu notes un repas, une pesée ou une photo sur ton cellulaire et autre chose sur ton ordi, les deux sont maintenant conservés (avant, le plus récent écrasait l\'autre). Une entrée supprimée sur un appareil ne revient pas.',
@@ -4400,6 +4414,12 @@ const CHANGELOG = [
         'Génétique : le super des gènes du complexe Fire s\'affiche « Black-Eyed Leucistic (BlkEL) » — le sigle BEL désigne le Blue-Eyed Leucistic.'
       ],
       en:[
+        '💊 Supplements (lizards and turtles/tortoises): a "Supplement" button on the record (calcium, calcium + D3, multivitamins), history in the log, and an optional "every X days" reminder that shows up in Today when it\'s time.',
+        '🌡️ Sex by incubation temperature: for leopard geckos, fat-tailed geckos, bearded dragons and red-eared sliders, enter the clutch temperature and LOCUS shows the probable trend (e.g. leopard gecko at 32 °C → mostly males), with the source. Crested gecko: effect debated, no prediction.',
+        '🦎 Other species: the default feeding rhythm now follows species and age (e.g. adult corn every 10 days, baby leopard gecko daily, adult boa every 14 days) instead of 7 days for everyone. Feeding Round colours and the "no meal" alert follow that rhythm. You can still set your own interval on the record.',
+        '🥗 Uromastyx, tortoises and bearded dragons: a "Plate" button (ate it all / ate some / didn\'t touch it) instead of "Fed / Refused". An untouched plate doesn\'t raise an alarm. Also in Feeding Round ("Plate eaten").',
+        'Fix: for lizards, shedding in pieces is normal and no longer triggers the "incomplete last shed" alert.',
+        'Fix: species names sometimes showed as code ("corn_snake") or in French in the English app (records, search, filter, labels, public page).',
         'Fix: your account\'s plan (and the Admin menu) could go unrecognized at startup on some devices; it is now read reliably.',
         '✨ After a shed, the confirmation tells you when the next one is expected (or how many sheds are left to log before it can be predicted).',
         '🔄 Safer sync between devices: if you log a meal, a weight or a photo on your phone and something else on your computer, both are now kept (before, the newest one overwrote the other). An entry deleted on one device doesn\'t come back.',
@@ -7574,11 +7594,15 @@ function showSpeciesRefNote(id){
   noteEl.innerHTML = ref ? (escapeHtml(isEn?ref.noteEn:ref.noteFr) + speciesEnclosureHtml(ref, isEn)) : '';
 }
 
-function speciesDisplayLabel(species){
-  const isEn = currentLang==='en';
+// v3.52 — retournait l'identifiant brut (« corn_snake ») pour toute espèce de SPECIES_REFERENCE ;
+// maintenant le vrai nom FR/EN. isEnOpt : pour les pages publiques qui ont leur propre langue.
+function speciesDisplayLabel(species, isEnOpt){
+  const isEn = (isEnOpt===undefined) ? currentLang==='en' : !!isEnOpt;
   if(!species || species==='ball_python') return isEn?'Ball Python':'Python royal';
   if(species==='other') return isEn?'Other species':'Autre espèce';
-  return species;
+  const ref = SPECIES_REFERENCE.find(sp=>sp.id===species);
+  if(ref) return isEn ? (ref.nameEn||ref.nameFr) : ref.nameFr;
+  return species; // ancien texte libre — les appelants l'échappent
 }
 
 // v3.31 — convention du milieu (MorphMarket/Morphpedia) au lieu de « Nom (Visuel) / Nom (Super) » :
@@ -10049,9 +10073,12 @@ function openLogbook(id){
 
   document.getElementById('logbook-body').innerHTML =
     '<div class="modal-section"><h3>'+t('quickActionsTitle')+'</h3><div style="display:flex;gap:8px;flex-wrap:wrap;">'+
-      '<button class="tour-action-btn fed" onclick="logAction(\''+id+'\',\'fed\')">'+t('eventFed')+'</button>'+
+      (isPlateFeeder(s)
+        ? '<button class="tour-action-btn fed" onclick="logAction(\''+id+'\',\'plate\')">🥗 '+(isEn?'Plate':'Assiette')+'</button>'
+        : '<button class="tour-action-btn fed" onclick="logAction(\''+id+'\',\'fed\')">'+t('eventFed')+'</button>')+
       '<button class="tour-action-btn shed" onclick="logAction(\''+id+'\',\'shed\')">'+t('eventShed')+'</button>'+
-      '<button class="tour-action-btn refused" onclick="logAction(\''+id+'\',\'refused\')">'+t('eventRefused')+'</button>'+
+      (isPlateFeeder(s) ? '' : '<button class="tour-action-btn refused" onclick="logAction(\''+id+'\',\'refused\')">'+t('eventRefused')+'</button>')+
+      (needsSupplements(s) ? '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'supplement\')">💊 '+(isEn?'Supplement':'Supplément')+'</button>' : '')+
       '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'weigh\')">'+t('eventWeigh')+'</button>'+
       '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'length\')">'+t('eventLength')+'</button>'+
     '</div>'+
@@ -10061,7 +10088,12 @@ function openLogbook(id){
         '<span style="display:flex;gap:4px;"><button class="sc-btn accent" onclick="quickAddLockToday(\''+pp.id+'\')">🔒 +</button><button class="sc-btn" onclick="togglePairSession(\''+pp.id+'\')">'+(tog?'⏸ '+(isEn?'Separate':'Séparer'):'🤝 '+(isEn?'Together':'Ensemble'))+'</button></span></div>';
     }).join('') : '')+
     '<div class="modal-row" style="margin-top:10px;"><span>'+t('nextMealLabel')+'</span><span>'+nextFeedingDate(s)+'</span></div>'+
-    '<div class="modal-row"><span>'+t('feedingIntervalLabel')+'</span><span><input type="number" class="price-input" style="width:60px;" min="1" value="'+(s.feedingIntervalDays||'')+'" placeholder="'+DEFAULT_FEEDING_INTERVAL+'" onchange="setFeedingInterval(\''+id+'\', this.value)"/> '+t('daysWord')+'</span></div>'+
+    '<div class="modal-row"><span>'+t('feedingIntervalLabel')+'</span><span><input type="number" class="price-input" style="width:60px;" min="1" value="'+(s.feedingIntervalDays||'')+'" placeholder="'+(speciesDefaultFeedDays(s)||DEFAULT_FEEDING_INTERVAL)+'" onchange="setFeedingInterval(\''+id+'\', this.value)"/> '+t('daysWord')+'</span></div>'+
+    (needsSupplements(s) ? (function(){ // v3.53 — rappel de supplément (optionnel)
+      const lastSup = lastSupplementEvent(s);
+      return '<div class="modal-row"><span>💊 '+(isEn?'Supplement reminder every':'Rappel supplément aux')+'</span><span><input type="number" class="price-input" style="width:60px;" min="1" value="'+((s.careParams&&s.careParams.supplementDays)||'')+'" placeholder="—" onchange="setCareParam(\''+id+'\', \'supplementDays\', this.value); renderDashboard();"/> '+t('daysWord')+'</span></div>'+
+        '<div style="font-size:12px;color:var(--ink-dim);margin:-2px 0 6px;">'+(lastSup ? (isEn?'Last: ':'Dernier : ')+lastSup.date+' — '+supplementKindLabel(lastSup.kind) : (isEn?'No supplement logged yet.':'Aucun supplément noté pour l\'instant.'))+' '+(isEn?'Leave empty for no reminder — frequency depends on species, age and product.':'Laisse vide pour aucun rappel — la fréquence dépend de l\'espèce, de l\'âge et du produit.')+'</div>';
+    })() : '')+
     '<div class="modal-row"><span>❄️ '+(isEn?'Brumation/wintering':'Hivernage/brumation')+'</span><span>'+
       (s.brumation && s.brumation.active
         ? '<span style="color:#6fa8c9;">'+(isEn?'Active since ':'Actif depuis ')+s.brumation.startDate+'</span> <button class="sc-btn" style="padding:2px 10px;margin-left:6px;" onclick="toggleBrumation(\''+id+'\')">'+(isEn?'End':'Terminer')+'</button>'
@@ -10477,7 +10509,7 @@ function printTubLabel(id){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
   const lastWeight = s.health.weights.length ? s.health.weights[s.health.weights.length-1].value+'g' : null;
-  const speciesLabel = (s.species && s.species!=='ball_python') ? (SPECIES_REFERENCE.find(sp=>sp.id===s.species)||{}).nameFr||s.species : (isEn?'Ball Python':'Python royal');
+  const speciesLabel = speciesDisplayLabel(s.species); // v3.52 — nom traduit
   const lines = [];
   if(labelFieldsPrefs.species) lines.push(speciesLabel);
   if(labelFieldsPrefs.sex) lines.push(s.sex==='male'?t('sexMale'):t('sexFemale'));
@@ -10655,6 +10687,8 @@ function logAction(id, type){
   const isEn = currentLang==='en';
   const today = new Date().toISOString().slice(0,10);
   if(type==='fed'){ openFedModal(id); return; }
+  else if(type==='plate'){ openPlateModal(id); return; }
+  else if(type==='supplement'){ openSupplementModal(id); return; }
   else if(type==='refused'){ openRefusedModal(id); return; }
   else if(type==='shed'){ openShedModal(id); return; }
   else if(type==='weigh'){ openWeighModal(id); return; }
@@ -10686,6 +10720,106 @@ function openFedModal(id){
     '</div>'
   );
 }
+// v3.52 — « Assiette » pour les espèces nourries de verdures chaque jour (PLATE_SPECIES) : un tap
+// note ce qu'il a mangé de l'assiette. « Rien touché » = événement refused (raison 'plate') mais
+// feedingStatus ne déclenche pas d'alarme pour une seule assiette ; aucun décompte de stock.
+function openPlateModal(id){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  const today = new Date().toISOString().slice(0,10);
+  const oneYearAgo = addDays(today, -365);
+  showQuickModal((isEn?'Plate — ':'Assiette — ')+s.name,
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">'+
+      '<span style="font-size:13px;color:var(--ink-dim);">'+(isEn?'Date:':'Date :')+'</span>'+
+      '<input type="date" id="plate-date-input" value="'+today+'" min="'+oneYearAgo+'" max="'+today+'" style="font-size:15px;padding:6px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
+    '</div>'+
+    '<div style="display:flex;flex-direction:column;gap:8px;">'+
+      '<button class="save-btn" onclick="confirmPlate(\''+id+'\', \'complete\')">'+(isEn?'✅ Ate it all':'✅ Tout mangé')+'</button>'+
+      '<button class="sc-btn" style="font-size:15px;padding:10px;" onclick="confirmPlate(\''+id+'\', \'partial\')">'+(isEn?'🍽 Ate some':'🍽 Un peu')+'</button>'+
+      '<button class="sc-btn" style="font-size:15px;padding:10px;" onclick="confirmPlate(\''+id+'\', \'none\')">'+(isEn?'❌ Didn\'t touch it':'❌ Rien touché')+'</button>'+
+    '</div>'
+  );
+}
+function confirmPlate(id, appetite){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const dateInput = document.getElementById('plate-date-input');
+  const day = (dateInput && dateInput.value) ? dateInput.value : new Date().toISOString().slice(0,10);
+  let event, msg;
+  if(appetite==='none'){
+    s.health.consecutiveRefusals = (s.health.consecutiveRefusals||0)+1;
+    event = {date:day, type:'refused', reason:'plate', plate:true};
+    msg = '🥗 '+escapeHtml(s.name)+(isEn?' — plate not touched.':' — assiette pas touchée.');
+  } else {
+    s.health.consecutiveRefusals = 0;
+    event = {date:day, type:'fed', quantity:appetite, plate:true};
+    msg = '🥗 '+escapeHtml(s.name)+(appetite==='partial' ? (isEn?' ate some of the plate.':' a mangé un peu.') : (isEn?' ate the whole plate.':' a tout mangé.'));
+  }
+  s.health.events.push(event);
+  storage.save(savedSnakes);
+  registerEventUndo([{snakeId:id, event}]);
+  closeQuickModal();
+  showToast(msg, appetite==='none'?undefined:'success', 'undoLastLoggedEvent()');
+  if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
+  renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderFirstSnakeTip();
+  if(document.getElementById('view-dash').style.display!=='none') renderDashboard();
+}
+// v3.53 — Suppléments (calcium, calcium + D3, multivitamines) pour lézards et tortues, gratuit.
+// Événement 'supplement' {kind} dans health.events ; rappel optionnel careParams.supplementDays
+// (aucune valeur par défaut : la fréquence dépend de l'espèce, de l'âge et du produit).
+const SUPPLEMENT_KINDS = ['calcium','calcium_d3','multivit'];
+function supplementKindLabel(k){
+  const isEn = currentLang==='en';
+  return ({calcium: isEn?'Calcium':'Calcium', calcium_d3: isEn?'Calcium + D3':'Calcium + D3', multivit: isEn?'Multivitamins':'Multivitamines'})[k] || k;
+}
+function needsSupplements(s){ const c = speciesCategoryOf(s && s.species); return c==='lezard' || c==='tortue'; }
+function lastSupplementEvent(s){
+  const ev = (s.health.events||[]).filter(e=>e.type==='supplement').sort((a,b)=>b.date.localeCompare(a.date));
+  return ev.length ? ev[0] : null;
+}
+function supplementDue(s){
+  if(!needsSupplements(s) || s.status==='sold') return null;
+  const every = s.careParams && s.careParams.supplementDays;
+  if(!every || every<1) return null;
+  const last = lastSupplementEvent(s);
+  if(!last) return {days:null};
+  const d = Math.floor((Date.now() - new Date(last.date+'T00:00:00').getTime()) / 86400000);
+  return d>=every ? {days:d} : null;
+}
+function openSupplementModal(id){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  const today = new Date().toISOString().slice(0,10);
+  showQuickModal('💊 '+(isEn?'Supplement — ':'Supplément — ')+s.name,
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">'+
+      '<span style="font-size:13px;color:var(--ink-dim);">'+(isEn?'Date:':'Date :')+'</span>'+
+      '<input type="date" id="supp-date-input" value="'+today+'" min="'+addDays(today,-365)+'" max="'+today+'" style="font-size:15px;padding:6px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
+    '</div>'+
+    '<div style="display:flex;flex-direction:column;gap:8px;">'+
+      SUPPLEMENT_KINDS.map(k=>'<button class="sc-btn" style="font-size:15px;padding:10px;" onclick="confirmSupplement(\''+id+'\', \''+k+'\')">'+supplementKindLabel(k)+'</button>').join('')+
+    '</div>'
+  );
+}
+function confirmSupplement(id, kind){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const el = document.getElementById('supp-date-input');
+  const day = (el && el.value) ? el.value : new Date().toISOString().slice(0,10);
+  const event = {date:day, type:'supplement', kind};
+  s.health.events.push(event);
+  storage.save(savedSnakes);
+  registerEventUndo([{snakeId:id, event}]);
+  closeQuickModal();
+  showToast('💊 '+escapeHtml(s.name)+' — '+supplementKindLabel(kind)+(isEn?' noted.':' noté.'), 'success', 'undoLastLoggedEvent()');
+  if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
+  if(document.getElementById('view-dash').style.display!=='none') renderDashboard();
+}
 function confirmFed(id, quantity){
   const isEn = currentLang==='en';
   const s = savedSnakes.find(x=>x.id===id);
@@ -10710,7 +10844,7 @@ function confirmFed(id, quantity){
   try{ renderDefrostList(); }catch(e){}
   closeQuickModal();
   const countTag = preyCount>1 ? (isEn?' ('+preyCount+' prey)':' ('+preyCount+' proies)') : '';
-  showToast('🍽 '+s.name+(isEn?' ate':' a mangé')+(quantity==='partial'?(isEn?' (partial).':' (partiellement).'):'.')+countTag+stockMsg, 'success', 'undoLastLoggedEvent()');
+  showToast('🍽 '+escapeHtml(s.name)+(isEn?' ate':' a mangé')+(quantity==='partial'?(isEn?' (partial).':' (partiellement).'):'.')+countTag+stockMsg, 'success', 'undoLastLoggedEvent()');
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
   renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderFirstSnakeTip();
   if(document.getElementById('view-dash').style.display!=='none') renderDashboard();
@@ -10949,7 +11083,8 @@ function refusalReasonLabel(reason){
     stress: isEn?'Stress / recent disturbance':'Stress / dérangement récent',
     breeding_season: isEn?'Breeding season':'Saison de reproduction',
     recent_move: isEn?'Recent move / rehousing':'Déménagement / changement de bac récent',
-    other: isEn?'Other (see note)':'Autre (voir note)'
+    other: isEn?'Other (see note)':'Autre (voir note)',
+    plate: isEn?'Plate not touched':'Assiette pas touchée' // v3.52 — pas dans REFUSAL_REASONS (pas choisissable)
   };
   return labels[reason] || labels.unknown;
 }
@@ -11008,7 +11143,7 @@ function confirmRefused(id){
   registerEventUndo([{snakeId:id, event}]);
   try{ renderDefrostList(); }catch(e){}
   closeQuickModal();
-  showToast('⚠ '+(isEn?'Refusal noted for ':'Refus noté pour ')+s.name+' — '+refusalReasonLabel(reason)+(lostPrey?(isEn?' (prey lost).':' (proie perdue).'):'.')+stockMsg, undefined, 'undoLastLoggedEvent()');
+  showToast('⚠ '+(isEn?'Refusal noted for ':'Refus noté pour ')+escapeHtml(s.name)+' — '+refusalReasonLabel(reason)+(lostPrey?(isEn?' (prey lost).':' (proie perdue).'):'.')+stockMsg, undefined, 'undoLastLoggedEvent()');
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
   renderRackGrid(); renderTerrariumList(); renderTourGrid();
 }
@@ -11905,7 +12040,7 @@ function healthEventKey(e){
   if(!e) return '';
   if(e.id) return 'id|'+e.id;
   const o = {};
-  ['type','date','value','preyType','preyCount','preySpecies','preySize','quantity','quality','partner','pairingId','lockId','note','reason'].forEach(k=>{ if(e[k]!=null && e[k]!=='') o[k] = e[k]; });
+  ['type','date','value','preyType','preyCount','preySpecies','preySize','quantity','quality','partner','pairingId','lockId','note','reason','kind'].forEach(k=>{ if(e[k]!=null && e[k]!=='') o[k] = e[k]; });
   return 'e|'+JSON.stringify(o);
 }
 function measureKey(kind, m){ return kind+'|'+(m&&m.date)+'|'+Number(m&&m.value); }
@@ -13415,7 +13550,9 @@ const HEALTH_FLAG_DAYS_SINCE_FED = 21; // jours sans repas réussi avant de sign
 function isFeedingFlagged(s){
   if(s.brumation && s.brumation.active) return false; // hivernage volontaire — pas une vraie alerte
   const d = daysSinceLastFed(s);
-  return d!==null && d>=HEALTH_FLAG_DAYS_SINCE_FED;
+  // v3.52 — un adulte nourri aux 14-21 j (boa) n'est pas « à surveiller » après un seul repas sauté.
+  const limit = (s.species && s.species!=='ball_python') ? Math.max(HEALTH_FLAG_DAYS_SINCE_FED, feedingIntervalOf(s)*2) : HEALTH_FLAG_DAYS_SINCE_FED;
+  return d!==null && d>=limit;
 }
 
 // Statut couleur du Mode Tournée, basé sur le dernier événement fed/refused du journal.
@@ -13498,6 +13635,19 @@ function feedingStatus(s){
     etape = 'filter/sort';
     const relevant = s.health.events.filter(e=>e.type==='fed'||e.type==='refused').sort((a,b)=>a.date.localeCompare(b.date));
     if(relevant.length===0) return 'red'; // jamais nourri depuis l'enregistrement = à surveiller
+    etape = 'plate';
+    // v3.52 — assiette quotidienne : une assiette pas touchée n'est pas une alarme ; on regarde
+    // depuis combien de jours l'animal n'a rien mangé, à l'échelle de son rythme (1-2 j).
+    if(isPlateFeeder(s)){
+      const lastFedP = [...relevant].reverse().find(e=>e.type==='fed');
+      if(!lastFedP) return 'red';
+      const dP = Math.floor((Date.now() - new Date(lastFedP.date+'T00:00:00').getTime()) / 86400000);
+      const iP = feedingIntervalOf(s);
+      if(dP <= iP+1) return 'green';
+      if(dP <= iP+3) return 'yellow';
+      if(dP <= iP+5) return 'orange';
+      return 'red';
+    }
     etape = 'last';
     const last = relevant[relevant.length-1];
     if(last.type==='refused'){
@@ -13517,6 +13667,16 @@ function feedingStatus(s){
       if(days <= interval*0.85) return 'green';
       if(days <= interval*1.25) return 'yellow';
       if(days <= interval*1.6) return 'orange';
+      return 'red';
+    }
+    etape = 'species-interval';
+    // v3.52 — autres espèces : mêmes paliers proportionnels, sur l'intervalle de l'espèce/la fiche.
+    if(s.species && s.species!=='ball_python'){
+      const iS = feedingIntervalOf(s);
+      // Marge minimale de 2/4 jours pour les espèces nourries aux 1-3 jours (sinon rouge dès 2 j).
+      if(days <= iS) return 'green';
+      if(days <= Math.max(iS*1.25, iS+2)) return 'yellow';
+      if(days <= Math.max(iS*1.6, iS+4)) return 'orange';
       return 'red';
     }
     etape = 'tier-find';
@@ -13678,7 +13838,36 @@ function setPreyType(id, type){
   showToast((isEn?'Prey type updated for ':'Type de proie mis à jour pour ')+s.name+'.', 'success');
   try{ renderFoodView(); }catch(e){}
 }
-function feedingIntervalOf(s){ return s.feedingIntervalDays || DEFAULT_FEEDING_INTERVAL; }
+// v3.52 — intervalle par défaut selon l'espèce et l'âge, tiré des fréquences déjà sourcées de chaque
+// fiche (feedFreqFr) — borne basse de chaque fourchette, en jours : [bébé, juvénile, adulte].
+// Âges : bébé < 6 mois, juvénile 6-17 mois, adulte 18 mois+ (âge inconnu = adulte) ; hognose et
+// dragon barbu suivent les âges écrits dans leur fiche (adulte dès 12 mois). Le python royal garde
+// DEFAULT_FEEDING_INTERVAL (comportement inchangé). La valeur de la fiche (feedingIntervalDays) prime.
+const SPECIES_FEED_DAYS = {
+  corn_snake:[7,7,10], king_california:[5,7,10], king_florida:[5,7,10], king_mexican:[5,7,10], hognose:[4,6,10],
+  boa_bci:[5,7,14], boa_bcc:[5,7,14], boa_argentin:[5,7,14], rainbow_boa:[5,7,10],
+  leopard_gecko:[1,2,3], fat_tail_gecko:[1,2,3], crested_gecko:[1,1,2], gargoyle_gecko:[1,1,2],
+  bearded_dragon:[1,1,1], croc_skink_red:[1,1,2], croc_skink_white:[1,1,2], blue_tongue_skink:[1,1,2],
+  uro_nigriventris:[1,1,2], uro_maliensis:[1,1,2], uro_ornata:[1,1,2], uro_aegyptia:[1,1,2], orvet:[1,1,2],
+  star_tortoise:[1,1,1], sulcata_tortoise:[1,1,1], leopard_tortoise:[1,1,1], red_eared_slider:[1,1,2],
+  tree_monitor_green:[1,1,2], tree_monitor_blue:[1,1,2], tree_monitor_yellow:[1,1,2], tree_monitor_black:[1,1,2],
+  ackie_monitor:[1,1,2], savannah_monitor:[1,1,2], black_throated_monitor:[1,1,2], water_monitor:[1,1,2],
+  reeves_turtle:[1,1,2], diamondback_terrapin:[1,1,2], mata_mata:[2,2,2]
+};
+const SPECIES_ADULT_AT_12M = ['hognose','bearded_dragon'];
+function speciesDefaultFeedDays(s){
+  const d = s && SPECIES_FEED_DAYS[s.species];
+  if(!d) return null;
+  const m = ageInMonths(s.birthDate);
+  if(m==null) return d[2];
+  if(m<6) return d[0];
+  const adultAt = SPECIES_ADULT_AT_12M.includes(s.species) ? 12 : 18;
+  return m<adultAt ? d[1] : d[2];
+}
+function feedingIntervalOf(s){ return s.feedingIntervalDays || speciesDefaultFeedDays(s) || DEFAULT_FEEDING_INTERVAL; }
+// Espèces nourries à l'assiette chaque jour (verdures) : uromastyx, tortues terrestres, dragon barbu.
+const PLATE_SPECIES = ['uro_nigriventris','uro_maliensis','uro_ornata','uro_aegyptia','star_tortoise','sulcata_tortoise','leopard_tortoise','bearded_dragon'];
+function isPlateFeeder(s){ return !!(s && PLATE_SPECIES.includes(s.species)); }
 
 // Prochaine date de repas prévue = dernier repas/refus + intervalle (personnalisé ou générique).
 // Si jamais nourri, on projette à partir d'aujourd'hui (pas de date passée fictive).
@@ -17349,6 +17538,12 @@ function clearTourRackFilter(){
 }
 function renderTourGrid(){
   const isEn = currentLang==='en';
+  // v3.52 — bouton « Assiette » seulement si la collection compte une espèce nourrie à l'assiette.
+  const plateBtn = document.getElementById('tour-plate-btn');
+  if(plateBtn){
+    plateBtn.style.display = savedSnakes.some(isPlateFeeder) ? '' : 'none';
+    plateBtn.textContent = '🥗 '+(isEn?'Plate eaten':'Assiette mangée');
+  }
   renderTourRoomFilterOptions();
   renderTourCategoryFilterOptions();
   const grid = document.getElementById('tour-grid');
@@ -17604,6 +17799,13 @@ function applyTourAction(action){
       snake.health.events.push(event);
       undoPairs.push({snakeId:snake.id, event});
     }
+    else if(action==='plate'){
+      if(!isPlateFeeder(snake)) return; // seulement les espèces à l'assiette
+      snake.health.consecutiveRefusals = 0;
+      const event = {date:today, type:'fed', quantity:'complete', plate:true};
+      snake.health.events.push(event);
+      undoPairs.push({snakeId:snake.id, event});
+    }
     else if(action==='shed'){
       const event = {date:today, type:'shed'};
       snake.health.events.push(event);
@@ -17630,9 +17832,10 @@ function applyTourAction(action){
       fed_live: isEn ? n+' reptile(s) fed.' : n+' reptile(s) nourri(s).',
       refused: isEn ? n+' refusal(s) noted.' : n+' refus noté(s).',
       shed: isEn ? n+' shed(s) noted.' : n+' mue(s) notée(s).',
+      plate: isEn ? n+' plate(s) eaten.' : n+' assiette(s) mangée(s).',
       water: isEn ? n+' water change(s) logged.' : n+' changement(s) d\'eau noté(s).',
     };
-    const icons = { fed_frozen:'🍽', fed_live:'🍽', refused:'⚠', shed:'✨', water:'💧' };
+    const icons = { fed_frozen:'🍽', fed_live:'🍽', refused:'⚠', shed:'✨', water:'💧', plate:'🥗' };
     // Mue d'un seul serpent : même indice de prédiction que dans la fiche (v3.50). En lot, on
     // garde le message court (une phrase par serpent serait illisible dans un toast).
     let shedHintTour = null;
@@ -17641,6 +17844,8 @@ function applyTourAction(action){
       shedHintTour = sh ? shedPredictionHint(sh) : null;
     }
     showToast((icons[action]||'✓')+' '+(actionLabels[action]||(isEn?'Done.':'Fait.'))+(shedHintTour?'<br/><small>'+shedHintTour+'</small>':''), 'success', 'undoLastLoggedEvent()');
+  } else if(action==='plate'){
+    showToast(isEn?'🥗 None of the selected animals is fed from a plate.':'🥗 Aucun des animaux sélectionnés n\'est nourri à l\'assiette.', 'warning');
   }
   tourSelection.clear();
   renderTourGrid();
@@ -17660,7 +17865,10 @@ function healthRiskAssessment(s){
   if(isFeedingFlagged(s)) signals.push({ type:'feeding', label:isEn?daysSinceLastFed(s)+'d without a meal':daysSinceLastFed(s)+'j sans repas' });
   if(weightDropping(s)) signals.push({ type:'weight', label:isEn?'weight loss':'perte de poids' });
   const shedQ = lastShedQuality(s);
-  if(shedQ && shedQ!=='complete') signals.push({ type:'shed', label:isEn?'incomplete last shed':'dernière mue incomplète' });
+  // v3.52 — chez les lézards (et tortues), muer en morceaux est normal : seule « incomplète »
+  // (peau restée collée) compte. Chez les serpents, « en morceaux » reste un signal.
+  const shedIsSignal = shedQ && shedQ!=='complete' && !(shedQ==='pieces' && speciesCategoryOf(s.species)!=='serpent');
+  if(shedIsSignal) signals.push({ type:'shed', label:isEn?'incomplete last shed':'dernière mue incomplète' });
   const level = signals.length>=2 ? 'urgent' : (signals.length===1 ? 'watch' : 'none');
   return { level, signals };
 }
@@ -18933,6 +19141,81 @@ const REPRODUCTION_INFO_BY_SPECIES = {
   // plutôt qu'un compte de jours précis sourcé — aucune source consultée n'en donnait un.
   orvet: { mode:'ovovivipare', def:105, min:90, max:120 },
 };
+// v3.53 — Sexe selon la température d'incubation (gratuit). Seulement les espèces dont l'effet est
+// documenté, avec les points chiffrés des sources (rien d'interpolé au-delà de « surtout ») :
+// • gecko léopard : 80°F/26,7°C ≈ 100 % femelles, ~87°F/30,5°C ≈ moitié-moitié, 90°F/32,2°C ≈ 98 %
+//   mâles (Reptiles Magazine) ; 26°C femelles / 32,5°C mâles (Crews Lab, U. Texas) ; < 74°F/23,3°C
+//   peut être mortel (Reptiles Magazine).
+// • gecko à queue grasse : 83-85°F (28,3-29,4°C) surtout femelles, 88-89°F (31,1-31,7°C) surtout
+//   mâles, > 90°F (32,2°C) surtout femelles de nouveau (Reptiles Magazine) ; mélange ~29-30°C (fiche).
+// • dragon barbu : sexe génétique (ZZ/ZW) aux températures habituelles ; 34-37°C → presque toutes
+//   femelles, des mâles génétiques inversés (Quinn et al. 2007, National Geographic).
+// • tortue à oreilles rouges : 26°C → mâles, 32°C → toutes femelles (Duke University).
+// • gecko à crête : débattu (voir fiche) → aucune prédiction.
+const TSD_BY_SPECIES = {
+  leopard_gecko: { zones:[
+    {max:23.3, fr:'⚠ sous 23,3 °C (74 °F) : peut être mortel pour les œufs', en:'⚠ below 23.3 °C (74 °F): can be lethal to the eggs'},
+    {max:27, fr:'presque toutes des femelles', en:'almost all females'},
+    {max:30, fr:'surtout des femelles', en:'mostly females'},
+    {max:31, fr:'mélange, environ moitié-moitié', en:'a mix, roughly half and half'},
+    {max:32.5, fr:'surtout des mâles (≈ 98 % à 32,2 °C)', en:'mostly males (≈ 98% at 32.2 °C)'},
+    {max:99, fr:'au-delà des températures documentées — résultat incertain', en:'beyond the documented temperatures — uncertain result'}
+  ], src:'Reptiles Magazine; Crews Lab (U. Texas)' },
+  fat_tail_gecko: { zones:[
+    {max:28.2, fr:'plus frais = plus de femelles (sous la plage documentée)', en:'cooler = more females (below the documented range)'},
+    {max:29.4, fr:'surtout des femelles', en:'mostly females'},
+    {max:31, fr:'mélange des deux', en:'a mix of both'},
+    {max:31.9, fr:'surtout des mâles', en:'mostly males'},
+    {max:99, fr:'surtout des femelles de nouveau (au-dessus de ~32 °C)', en:'mostly females again (above ~32 °C)'}
+  ], src:'Reptiles Magazine' },
+  bearded_dragon: { zones:[
+    {max:33.9, fr:'sexe déterminé par la génétique (température sans effet connu)', en:'sex set by genetics (no known temperature effect)'},
+    {max:37, fr:'presque toutes des femelles — des mâles génétiques deviennent femelles', en:'almost all females — some genetic males become females'},
+    {max:99, fr:'au-delà des températures documentées — résultat incertain', en:'beyond the documented temperatures — uncertain result'}
+  ], src:'Quinn et al. 2007 (Science); National Geographic' },
+  red_eared_slider: { zones:[
+    {max:26, fr:'surtout des mâles', en:'mostly males'},
+    {max:31.9, fr:'zone de transition — mélange des deux', en:'transition zone — a mix of both'},
+    {max:99, fr:'toutes des femelles', en:'all females'}
+  ], src:'Duke University' },
+  crested_gecko: { debated:true }
+};
+function clutchSpeciesFor(sireId, damId){
+  const sire = savedSnakes.find(s=>s.id===sireId);
+  const dam = savedSnakes.find(s=>s.id===damId);
+  return (dam && dam.species) || (sire && sire.species) || 'ball_python';
+}
+function tsdHintText(speciesId, temp){
+  const isEn = currentLang==='en';
+  const info = TSD_BY_SPECIES[speciesId];
+  if(!info) return '';
+  if(info.debated) return isEn ? '🌡️ Temperature effect on sex is debated for this species — no prediction.' : '🌡️ Effet de la température sur le sexe débattu chez cette espèce — aucune prédiction.';
+  const n = parseFloat(temp);
+  if(isNaN(n)) return isEn ? '🌡️ Enter the incubation temperature to see the probable sex of the babies.' : '🌡️ Entre la température d\'incubation pour voir le sexe probable des bébés.';
+  const z = info.zones.find(zz=>n<=zz.max) || info.zones[info.zones.length-1];
+  return '🌡️ '+(isEn?n.toFixed(1):n.toFixed(1).replace('.',','))+' °C → <b>'+(isEn?z.en:z.fr)+'</b><br/><small style="color:var(--ink-dim);">'+(isEn?'Probable trend, not a guarantee. Source: ':'Tendance probable, pas une garantie. Source : ')+info.src+'</small>';
+}
+function updateClutchTsdHint(){
+  const wrap = document.getElementById('clutch-temp-wrap');
+  const hint = document.getElementById('clutch-tsd-hint');
+  if(!wrap || !hint) return;
+  const sp = clutchSpeciesFor(document.getElementById('clutch-sire').value, document.getElementById('clutch-dam').value);
+  const info = TSD_BY_SPECIES[sp];
+  wrap.style.display = info && !info.debated ? 'flex' : 'none';
+  const lbl = document.getElementById('clutch-temp-label');
+  if(lbl) lbl.textContent = currentLang==='en' ? 'Incub. temp.' : 'Temp. incub.';
+  const txt = info ? tsdHintText(sp, document.getElementById('clutch-incub-temp').value) : '';
+  hint.innerHTML = txt;
+  hint.style.display = txt ? '' : 'none';
+}
+function setClutchIncubTemp(id, value){
+  const c = clutches.find(x=>x.id===id);
+  if(!c) return;
+  const n = parseFloat(value);
+  c.incubTempC = (value==='' || isNaN(n)) ? null : n;
+  saveElevage();
+  renderClutches();
+}
 function reproductionModeForSnakes(sireId, damId){
   const sire = savedSnakes.find(s=>s.id===sireId);
   const dam = savedSnakes.find(s=>s.id===damId);
@@ -19012,6 +19295,7 @@ function updateClutchReproductionFields(){
   // Le nombre d'œufs est connu à l'avance chez l'ovipare, mais inconnu tant que la mise bas n'a
   // pas eu lieu chez l'ovovivipare (nés vivants/mort-nés/slugs saisis plus tard, à ce moment-là).
   eggCountInput.style.display = isOvo ? 'none' : '';
+  try{ updateClutchTsdHint(); }catch(e){}
 }
 // Alias de compatibilité — plusieurs endroits du code appellent encore l'ancien nom.
 function updateClutchIncubationDefault(){ updateClutchReproductionFields(); }
@@ -19195,7 +19479,8 @@ function addClutch(){
     eggCount: isOvo ? null : eggCount, layDate, incubationDays,
     hatchDate, hatched:false, hatchedAt:null,
     liveCount:null, stillbornCount:null, slugCount:null,
-    pairingId:pendingPairingIdForClutch, candidateSireIds
+    pairingId:pendingPairingIdForClutch, candidateSireIds,
+    incubTempC: (function(){ const el = document.getElementById('clutch-incub-temp'); const n = el ? parseFloat(el.value) : NaN; return (!isOvo && TSD_BY_SPECIES[clutchSpeciesFor(sireId, damId)] && !isNaN(n)) ? n : null; })()
   });
   pendingPairingIdForClutch = null; // consommé — repasse en création "libre" par défaut
   saveElevage();
@@ -19308,6 +19593,14 @@ function renderClutches(){
         countRowHtml +
         mrow(isOvo?(isEn?'Post-ov. shed':'Mue post-ov.'):t('layDateLabel'), c.layDate) +
         mrow(isOvo?(isEn?'Expected birth':'Mise bas prévue'):t('expectedHatchLabel'), c.hatchDate+' (+'+(c.incubationDays||60)+'j)') +
+        (function(){ // v3.53 — sexe selon la température
+          const sp = (dam && dam.species) || (sire && sire.species) || 'ball_python';
+          const info = TSD_BY_SPECIES[sp];
+          if(isOvo || !info) return '';
+          if(info.debated) return '<div style="font-size:12.5px;margin-top:6px;">'+tsdHintText(sp, null)+'</div>';
+          return '<div class="modal-row"><span>🌡️ '+(isEn?'Incubation temp.':'Temp. d\'incubation')+'</span><span><input type="number" step="0.1" min="20" max="40" class="price-input" style="width:70px;font-size:15px;" value="'+(c.incubTempC!=null?c.incubTempC:'')+'" onchange="setClutchIncubTemp(\''+c.id+'\', this.value)"/> °C</span></div>'+
+            '<div style="font-size:12.5px;line-height:1.5;margin:4px 0 2px;">'+tsdHintText(sp, c.incubTempC)+'</div>';
+        })() +
       '</div>'+
       clutchProfitSummary(c, sire, dam)+
       (c.publicToken ? '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);">'+
@@ -21103,9 +21396,10 @@ function renderDashboard(){
   const lowStockEntriesF = dashCardPrefs.today_lowstock ? lowStockEntries : [];
   const seasonRemindersF = dashCardPrefs.today_season ? seasonPlanReminders() : [];
   const maleStatusF = dashCardPrefs.today_season ? breedingMaleStatus() : [];
+  const supplementDueF = dashCardPrefs.today_supplement ? dashSnakes.map(s=>({s, due:supplementDue(s)})).filter(x=>x.due) : []; // v3.53
 
   const todayWrap = document.getElementById('dash-today-widget');
-  if(!maleStatusF.length && !seasonRemindersF.length && !shedSoonF.length && !weighDueF.length && !clutchesToCheckF.length && !terraCleanOverdueF.length && !uvbOverdueF.length && !pairingLongF.length && !rackTubsOverdueF.length && !lowStockEntriesF.length){
+  if(!supplementDueF.length && !maleStatusF.length && !seasonRemindersF.length && !shedSoonF.length && !weighDueF.length && !clutchesToCheckF.length && !terraCleanOverdueF.length && !uvbOverdueF.length && !pairingLongF.length && !rackTubsOverdueF.length && !lowStockEntriesF.length){
     todayWrap.innerHTML = '<div class="empty">🎉 '+(isEn?'Nothing needs special attention right now.':'Rien de particulier à surveiller pour l\'instant.')+'</div>';
   } else {
     const todayS = spToday();
@@ -21132,6 +21426,10 @@ function renderDashboard(){
       '</div></div>' : '')+
       (shedSoonF.length ? '<div class="feed-day-group"><div class="feed-day-label">🐍 '+(isEn?'Shed expected soon':'Mue prévue bientôt')+' — '+shedSoonF.length+'</div><div class="mini-animal-grid">'+
         shedSoonF.map(x=>miniAnimalCardHtml(x.snake.name, '~'+x.date, '<button class="sc-btn accent" onclick="openLogbook(\''+x.snake.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button>')).join('')+
+      '</div></div>' : '')+
+      (supplementDueF.length ? '<div class="feed-day-group"><div class="feed-day-label">💊 '+(isEn?'Supplements due':'Suppléments à donner')+' — '+supplementDueF.length+'</div><div class="mini-animal-grid">'+
+        supplementDueF.slice(0,10).map(x=>miniAnimalCardHtml(x.s.name, x.due.days==null?(isEn?'never logged':'jamais noté'):(isEn?x.due.days+'d ago':'il y a '+x.due.days+' j'),
+          '<button class="save-btn" onclick="logAction(\''+x.s.id+'\',\'supplement\')">💊 '+(isEn?'Log':'Noter')+'</button>')).join('')+
       '</div></div>' : '')+
       (weighDueF.length ? '<div class="feed-day-group"><div class="feed-day-label">⚖ '+(isEn?'Weigh-in due':'Pesée à faire')+' — '+weighDueF.length+'</div><div class="mini-animal-grid">'+
         weighDueF.slice(0,10).map(s=>{ const d = daysSinceLastWeigh(s); return miniAnimalCardHtml(s.name, (d===null?(isEn?'never weighed':'jamais pesé'):(isEn?d+'d ago':'il y a '+d+'j')),
@@ -21728,7 +22026,7 @@ function exportInventoryExcel(){
   };
   const rows = savedSnakes.map(s=>{
     const lastWeight = s.health.weights.length ? s.health.weights[s.health.weights.length-1].value : '';
-    const speciesLabel = (s.species && s.species!=='ball_python') ? (SPECIES_REFERENCE.find(sp=>sp.id===s.species)||{}).nameFr||s.species : (isEn?'Ball Python':'Python royal');
+    const speciesLabel = speciesDisplayLabel(s.species); // v3.52 — nom traduit
     return [
       s.name, s.sex==='male'?(isEn?'Male':'Mâle'):(isEn?'Female':'Femelle'), speciesLabel,
       summarizeGenes(s.genes), s.birthDate||'', statusLabel(s), lastWeight,
@@ -21760,7 +22058,7 @@ function exportInventoryPdf(){
     return te ? te.name : (isEn?'Unassigned':'Non classé');
   };
   const rows = [...savedSnakes].sort((a,b)=>a.name.localeCompare(b.name)).map(s=>{
-    const speciesLabel = (s.species && s.species!=='ball_python') ? (SPECIES_REFERENCE.find(sp=>sp.id===s.species)||{}).nameFr||s.species : (isEn?'Ball Python':'Python royal');
+    const speciesLabel = speciesDisplayLabel(s.species); // v3.52 — nom traduit
     return '<tr><td>'+escapeHtml(s.name)+'</td><td>'+(s.sex==='male'?t('sexMale'):s.sex==='female'?t('sexFemale'):t('sexUnknown'))+'</td><td>'+escapeHtml(speciesLabel)+'</td><td>'+summarizeGenes(s.genes)+'</td><td>'+statusLabel(s)+'</td><td>'+escapeHtml(locationLabel(s))+'</td></tr>';
   }).join('');
   const win = window.open('', '_blank');
@@ -21918,7 +22216,7 @@ function generateInvoicePdf(id){
   const total = isSold ? (s.soldPrice!=null?s.soldPrice:0) : (r.totalPrice!=null?r.totalPrice:0);
   const deposit = isSold ? total : (r.depositAmount||0);
   const balance = Math.max(0, total-deposit);
-  const speciesLabel = (s.species && s.species!=='ball_python') ? (SPECIES_REFERENCE.find(sp=>sp.id===s.species)||{}).nameFr||s.species : (isEn?'Ball Python':'Python royal');
+  const speciesLabel = speciesDisplayLabel(s.species); // v3.52 — nom traduit
   const docTitle = isSold ? (isEn?'Invoice':'Facture') : (isEn?'Deposit Receipt':'Reçu d\'acompte');
   const win = window.open('', '_blank');
   win.document.write(
@@ -22626,6 +22924,7 @@ function renderTimeline(){
 }
 
 function eventLabel(type){
+  if(type==='supplement') return '💊 '+(currentLang==='en'?'Supplement':'Supplément'); // v3.53
   const map = { fed:'eventFed', shed:'eventShed', refused:'eventRefused', weigh:'eventWeigh', length:'eventLength', water:'eventWater', pair_in:'eventPairIn', pair_out:'eventPairOut', lock:'eventLock' };
   return map[type] ? t(map[type]) : type;
 }
@@ -22633,6 +22932,8 @@ function eventLabel(type){
 // enregistrés avant l'ajout de ce champ (25 août) n'ont pas de preyType, donc rien ne s'affiche
 // pour eux plutôt qu'une valeur inventée.
 function feedPreyTag(e){
+  if(e.type==='supplement') return ' — '+supplementKindLabel(e.kind); // v3.53
+  if(e.type==='fed' && e.plate) return ' 🥗'; // v3.52 — assiette
   if(e.type!=='fed' || !e.preyType) return '';
   const countTag = (e.preyCount && e.preyCount>1) ? ' ×'+e.preyCount : '';
   return ' '+(e.preyType==='live'?'🐭':'❄️')+countTag;
@@ -22694,10 +22995,12 @@ function healthLogEventDetail(e){
   if(e.type==='shed' && e.quality) return shedQualityLabel(e.quality);
   if(e.type==='fed'){
     let d = (e.quantity==='partial') ? (isEn?'partial':'partiel') : (isEn?'complete':'complet');
+    if(e.plate) d = '🥗 '+d; // v3.52
     if(e.preyCount && e.preyCount>1) d += ' ×'+e.preyCount;
     return d;
   }
   if(e.type==='refused') return refusalReasonLabel(e.reason);
+  if(e.type==='supplement') return supplementKindLabel(e.kind); // v3.53
   return '';
 }
 function renderHealthLogTable(all){
