@@ -2187,7 +2187,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.55';
+const APP_VERSION = '2026.09.01.3.56';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4394,10 +4394,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.55', date:'2026-10-09',
+  { version:'3.56', date:'2026-10-09',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '🎯 Chemin optimal : choisis d\'abord tes animaux, puis tes gènes cibles parmi ceux qu\'ils portent vraiment (avec le nombre de porteurs) au lieu des 163 gènes — décoche « Seulement les gènes de mes animaux cochés » pour revoir toute la liste. Réservé aux paliers Première ponte et Illimité après la bêta.',
         '🦎 Génétique du gecko léopard dans le calculateur : choisis « Gecko léopard » en haut du calculateur (ou charge un de tes geckos) — 15 gènes vérifiés sur Morphpedia (MorphMarket) : 3 albinos séparés (Tremper, Bell, Rainwater), Eclipse, Blizzard, Murphy Patternless, Marble Eye, NDBE, Mack Snow (Super Snow), Giant, Lemon Frost, Enigma, White & Yellow, TUG Snow, Gem Snow. Avertissements santé pour Enigma et Lemon Frost. Hypo et Tangerine sont polygéniques, donc pas calculables. Les gènes s\'ajoutent aussi sur la fiche d\'un gecko léopard. Mêmes paliers que le calculateur du python royal après la bêta.',
         '💊 Suppléments (lézards et tortues) : bouton « Supplément » sur la fiche (calcium, calcium + D3, multivitamines), historique dans le journal, et rappel optionnel « aux X jours » qui apparaît dans Aujourd\'hui quand c\'est le moment.',
         '🌡️ Sexe selon la température d\'incubation : pour le gecko léopard, le gecko à queue grasse, le dragon barbu et la tortue à oreilles rouges, entre la température de la ponte et LOCUS affiche la tendance probable (ex. gecko léopard à 32 °C → surtout des mâles), avec la source. Gecko à crête : effet débattu, aucune prédiction.',
@@ -4430,6 +4431,7 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '🎯 Optimal Path: pick your animals first, then your target genes from the ones they actually carry (with the number of carriers) instead of all 163 genes — uncheck "Only genes carried by the checked animals" to see the full list again. Reserved for the First Clutch and Unlimited tiers after the beta.',
         '🦎 Leopard gecko genetics in the calculator: pick "Leopard gecko" at the top of the calculator (or load one of your geckos) — 15 genes checked on Morphpedia (MorphMarket): 3 separate albinos (Tremper, Bell, Rainwater), Eclipse, Blizzard, Murphy Patternless, Marble Eye, NDBE, Mack Snow (Super Snow), Giant, Lemon Frost, Enigma, White & Yellow, TUG Snow, Gem Snow. Health warnings for Enigma and Lemon Frost. Hypo and Tangerine are polygenic, so they can\'t be calculated. Genes can also be added on a leopard gecko\'s record. Same tiers as the ball python calculator after the beta.',
         '💊 Supplements (lizards and turtles/tortoises): a "Supplement" button on the record (calcium, calcium + D3, multivitamins), history in the log, and an optional "every X days" reminder that shows up in Today when it\'s time.',
         '🌡️ Sex by incubation temperature: for leopard geckos, fat-tailed geckos, bearded dragons and red-eared sliders, enter the clutch temperature and LOCUS shows the probable trend (e.g. leopard gecko at 32 °C → mostly males), with the source. Crested gecko: effect debated, no prediction.',
@@ -8961,13 +8963,33 @@ function computeBridgeOptions(coveringSet){
   }
   return options;
 }
+// v3.56 — par défaut, seulement les gènes portés par les animaux cochés (+ nombre de porteurs) ;
+// décocher « Seulement les gènes de mes animaux » réaffiche toute la base python royal.
 function goalPathGeneOptionsHtml(){
-  return GENES.filter(g=>geneSpecies(g)==='ball_python').sort((a,b)=>a.name.localeCompare(b.name)).map(g=>
-    '<label style="display:flex;align-items:center;gap:4px;font-size:11px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:14px;padding:4px 10px;margin:2px;"><input type="checkbox" class="goalpath-gene" value="'+g.id+'" style="margin:0;"/> '+escapeHtml(g.name)+'</label>'
+  const isEn = currentLang==='en';
+  const mineEl = document.getElementById('goalpath-mine-only');
+  const mineOnly = mineEl ? mineEl.checked : true;
+  const prevChecked = new Set([...document.querySelectorAll('.goalpath-gene:checked')].map(el=>el.value));
+  const snakeEls = document.querySelectorAll('.goalpath-snake');
+  const pickedIds = snakeEls.length ? [...snakeEls].filter(el=>el.checked).map(el=>el.value) : savedSnakes.filter(x=>(x.species||'ball_python')==='ball_python').map(x=>x.id);
+  const carriers = {};
+  pickedIds.forEach(id=>{
+    const sn = savedSnakes.find(x=>x.id===id);
+    if(!sn || !sn.genes) return;
+    Object.keys(sn.genes).forEach(gid=>{ carriers[gid] = (carriers[gid]||0)+1; });
+  });
+  const pool = GENES.filter(g=>geneSpecies(g)==='ball_python' && (!mineOnly || carriers[g.id]));
+  if(!pool.length) return '<div style="font-size:13px;color:var(--ink-dim);padding:4px;">'+(isEn?'The checked animals have no genes recorded yet.':'Les animaux cochés n\'ont encore aucun gène enregistré.')+'</div>';
+  return pool.sort((a,b)=>a.name.localeCompare(b.name)).map(g=>
+    '<label style="display:flex;align-items:center;gap:4px;font-size:12px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:14px;padding:5px 10px;margin:2px;"><input type="checkbox" class="goalpath-gene" value="'+g.id+'"'+(prevChecked.has(g.id)?' checked':'')+' style="margin:0;"/> '+escapeHtml(g.name)+(carriers[g.id]?' <small style="color:var(--ink-dim);">×'+carriers[g.id]+'</small>':'')+'</label>'
   ).join('');
 }
+function refreshGoalPathGenes(){
+  const wrap = document.getElementById('goalpath-gene-list');
+  if(wrap) wrap.innerHTML = goalPathGeneOptionsHtml();
+}
 function goalPathSnakeOptionsHtml(){
-  return savedSnakes.map(s=>
+  return savedSnakes.filter(s=>(s.species||'ball_python')==='ball_python').map(s=>
     '<label style="display:flex;align-items:center;gap:4px;font-size:11px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:14px;padding:4px 10px;margin:2px;"><input type="checkbox" class="goalpath-snake" value="'+s.id+'" checked style="margin:0;"/> '+escapeHtml(s.name)+'</label>'
   ).join('');
 }
@@ -8978,10 +9000,12 @@ function openGoalPathModal(){
     '<p style="font-size:11px;color:var(--ink-dim);margin:0 0 14px;">'+(isEn
       ? 'Pick your target genes and which animals you\'re working with — this checks who already carries what, and suggests the shortest path.'
       : 'Choisis tes gènes cibles et avec quels animaux tu travailles — ça vérifie qui porte déjà quoi, et suggère le chemin le plus court.')+'</p>'+
-    '<p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 4px;">'+(isEn?'Target genes':'Gènes cibles')+'</p>'+
-    '<div style="display:flex;flex-wrap:wrap;max-height:140px;overflow-y:auto;margin-bottom:12px;">'+goalPathGeneOptionsHtml()+'</div>'+
-    '<p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 4px;">'+(isEn?'Animals to consider':'Animaux à considérer')+'</p>'+
-    '<div style="display:flex;flex-wrap:wrap;max-height:120px;overflow-y:auto;margin-bottom:12px;">'+goalPathSnakeOptionsHtml()+'</div>'+
+    // v3.56 — animaux d'abord, puis gènes cibles limités (par défaut) aux gènes que ces animaux portent.
+    '<p style="font-size:12px;color:var(--ink-dim);margin:0 0 4px;">'+(isEn?'1. Animals to consider':'1. Animaux à considérer')+'</p>'+
+    '<div style="display:flex;flex-wrap:wrap;max-height:120px;overflow-y:auto;margin-bottom:12px;" onchange="refreshGoalPathGenes()">'+goalPathSnakeOptionsHtml()+'</div>'+
+    '<p style="font-size:12px;color:var(--ink-dim);margin:0 0 4px;">'+(isEn?'2. Target genes':'2. Gènes cibles')+'</p>'+
+    '<label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:0 0 6px;"><input type="checkbox" id="goalpath-mine-only" checked onchange="refreshGoalPathGenes()" style="width:18px;height:18px;margin:0;"/> '+(isEn?'Only genes carried by the checked animals':'Seulement les gènes de mes animaux cochés')+'</label>'+
+    '<div id="goalpath-gene-list" style="display:flex;flex-wrap:wrap;max-height:160px;overflow-y:auto;margin-bottom:12px;">'+goalPathGeneOptionsHtml()+'</div>'+
     '<button class="save-btn" style="width:100%;" onclick="analyzeGoalPath()">🎯 '+(isEn?'Analyze':'Analyser')+'</button>'+
     '<div id="goalpath-results" style="margin-top:14px;"></div>';
   showQuickModal('🎯 '+(isEn?'Optimal Path':'Chemin optimal'), body);
