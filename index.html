@@ -1188,7 +1188,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 
   <div class="calc-bar">
     <button class="calc-btn" data-i18n="calcBtn" onclick="runCross()">Calculer la portée</button>
-    <button class="calc-btn" style="background:var(--sage);margin-left:8px;" onclick="openDreamSimModal()" data-i18n="dreamSimBtn">🔮 Simulateur de rêverie</button>
+    <button class="calc-btn" style="background:var(--sage);margin-left:8px;" onclick="dreamGoal=null; openDreamSimModal()" data-i18n="dreamSimBtn">🔮 Simulateur de rêverie</button>
     <button class="calc-btn" style="background:var(--gold);margin-left:8px;" onclick="openGoalPathModal()" data-i18n="goalPathBtn">🎯 Chemin optimal</button>
   </div>
 
@@ -2187,7 +2187,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.57';
+const APP_VERSION = '2026.09.01.3.64';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3367,7 +3367,8 @@ const GENES = [
   {id:'eramosa', name:'Eramosa', type:'dominant', locus:'eramosa', cat:'Dominant'},
   {id:'pinstripe', name:'Pinstripe', type:'dominant', locus:'pinstripe', cat:'Dominant'},
   {id:'leopard', name:'Leopard', type:'dominant', locus:'leopard', cat:'Dominant'},
-  {id:'granite', name:'Granite', type:'dominant', locus:'granite', cat:'Dominant'},
+  // v3.60 — corrigé : incomplet dominant (Morphpedia « incomplete dominant » ; World of Ball Pythons a une fiche Super Granite, « Incomplete dominant »). Était « dominant » par erreur.
+  {id:'granite', name:'Granite', type:'incdom', locus:'granite', cat:'Codominant / Incomplet dominant'},
   // Recessive
   {id:'piebald', name:'Piebald (Pied)', type:'recessive', locus:'piebald', cat:'Récessif'},
   {id:'clown', name:'Clown', type:'recessive', locus:'clown', cat:'Récessif'},
@@ -4394,11 +4395,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.57', date:'2026-10-09',
+  { version:'3.64', date:'2026-10-09',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
-        '🎯 Chemin optimal : choisis d\'abord tes animaux, puis tes gènes cibles parmi ceux qu\'ils portent vraiment (avec le nombre de porteurs) au lieu des 163 gènes — décoche « Seulement les gènes de mes animaux cochés » pour revoir toute la liste. Chaque gène peut viser le Super (ou le visuel pour un récessif) ; LOCUS vérifie qu\'il faut un porteur de chaque côté et refuse les objectifs impossibles (ex. Super Asphalt + Super Specter, même locus). Réservé aux paliers Première ponte et Illimité après la bêta.',
+        'Correctif Chemin optimal : il tient maintenant compte du sexe des animaux (il pouvait proposer de croiser deux femelles) et la consanguinité affichée pour un plan avec recroisement est celle du vrai plan.',
+        'Génétique : Granite corrigé en codominant / incomplet dominant (Morphpedia, World of Ball Pythons) — il était classé « dominant » par erreur. Son super s\'appelle Super Granite.',
+        '🎯 Chemin optimal : choisis d\'abord tes animaux, puis tes gènes cibles parmi ceux qu\'ils portent vraiment (avec le nombre de porteurs) au lieu des 163 gènes — décoche « Seulement les gènes de mes animaux cochés » pour revoir toute la liste. Chaque gène peut viser le Super (ou le visuel pour un récessif) ; LOCUS vérifie qu\'il faut un porteur de chaque côté et refuse les objectifs impossibles (ex. Super Asphalt + Super Specter, même locus). « Essayer dans le Simulateur de rêverie » emporte l\'objectif : parents choisis d\'office, calcul lancé, et seulement les bébés les plus utiles affichés (🎯 sur ceux qui complètent l\'objectif), avec les étapes quand il faut 2 générations — et la vraie chance par œuf d\'atteindre l\'objectif, plus la chance d\'en avoir au moins un selon ton nombre d\'œufs. Quand un Super n\'a qu\'un seul porteur, l\'étape de recroisement nécessaire est ajoutée au plan. Viser un Super Banana affiche un avertissement : gène lié au sexe (Male/Female Maker), le % ne tient pas compte du sexe. Case « Il me faut un sexe précis pour ce bébé » : ajoute le ×½ à la chance par œuf et au « au moins un ». Réservé aux paliers Première ponte et Illimité après la bêta.',
         '🦎 Génétique du gecko léopard dans le calculateur : choisis « Gecko léopard » en haut du calculateur (ou charge un de tes geckos) — 15 gènes vérifiés sur Morphpedia (MorphMarket) : 3 albinos séparés (Tremper, Bell, Rainwater), Eclipse, Blizzard, Murphy Patternless, Marble Eye, NDBE, Mack Snow (Super Snow), Giant, Lemon Frost, Enigma, White & Yellow, TUG Snow, Gem Snow. Avertissements santé pour Enigma et Lemon Frost. Hypo et Tangerine sont polygéniques, donc pas calculables. Les gènes s\'ajoutent aussi sur la fiche d\'un gecko léopard. Mêmes paliers que le calculateur du python royal après la bêta.',
         '💊 Suppléments (lézards et tortues) : bouton « Supplément » sur la fiche (calcium, calcium + D3, multivitamines), historique dans le journal, et rappel optionnel « aux X jours » qui apparaît dans Aujourd\'hui quand c\'est le moment.',
         '🌡️ Sexe selon la température d\'incubation : pour le gecko léopard, le gecko à queue grasse, le dragon barbu et la tortue à oreilles rouges, entre la température de la ponte et LOCUS affiche la tendance probable (ex. gecko léopard à 32 °C → surtout des mâles), avec la source. Gecko à crête : effet débattu, aucune prédiction.',
@@ -4431,7 +4434,9 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
-        '🎯 Optimal Path: pick your animals first, then your target genes from the ones they actually carry (with the number of carriers) instead of all 163 genes — uncheck "Only genes carried by the checked animals" to see the full list again. Each gene can target the Super (or the visual for a recessive); LOCUS checks that a carrier is needed on each side and rejects impossible goals (e.g. Super Asphalt + Super Specter, same locus). Reserved for the First Clutch and Unlimited tiers after the beta.',
+        'Optimal Path fix: it now takes the animals\' sex into account (it could suggest pairing two females), and the inbreeding shown for a plan with a back-cross is that of the real plan.',
+        'Genetics: Granite corrected to codominant / incomplete dominant (Morphpedia, World of Ball Pythons) — it was wrongly listed as dominant. Its super form is Super Granite.',
+        '🎯 Optimal Path: pick your animals first, then your target genes from the ones they actually carry (with the number of carriers) instead of all 163 genes — uncheck "Only genes carried by the checked animals" to see the full list again. Each gene can target the Super (or the visual for a recessive); LOCUS checks that a carrier is needed on each side and rejects impossible goals (e.g. Super Asphalt + Super Specter, same locus). "Try it in the Dream Simulator" carries the goal over: parents picked for you, calculation started, and only the most useful babies shown (🎯 on those that complete the goal), with the steps when 2 generations are needed — plus the real chance per egg of reaching the goal and the chance of at least one for your number of eggs. When a Super has only one carrier, the needed back-cross step is added to the plan. Targeting a Super Banana shows a warning: sex-linked gene (Male/Female Maker), the % ignores sex. "I need a specific sex for this baby" box: adds the ×½ to the chance per egg and the "at least one". Reserved for the First Clutch and Unlimited tiers after the beta.',
         '🦎 Leopard gecko genetics in the calculator: pick "Leopard gecko" at the top of the calculator (or load one of your geckos) — 15 genes checked on Morphpedia (MorphMarket): 3 separate albinos (Tremper, Bell, Rainwater), Eclipse, Blizzard, Murphy Patternless, Marble Eye, NDBE, Mack Snow (Super Snow), Giant, Lemon Frost, Enigma, White & Yellow, TUG Snow, Gem Snow. Health warnings for Enigma and Lemon Frost. Hypo and Tangerine are polygenic, so they can\'t be calculated. Genes can also be added on a leopard gecko\'s record. Same tiers as the ball python calculator after the beta.',
         '💊 Supplements (lizards and turtles/tortoises): a "Supplement" button on the record (calcium, calcium + D3, multivitamins), history in the log, and an optional "every X days" reminder that shows up in Today when it\'s time.',
         '🌡️ Sex by incubation temperature: for leopard geckos, fat-tailed geckos, bearded dragons and red-eared sliders, enter the clutch temperature and LOCUS shows the probable trend (e.g. leopard gecko at 32 °C → mostly males), with the source. Crested gecko: effect debated, no prediction.',
@@ -8828,6 +8833,74 @@ function openDreamSimModal(){
   if(!hasAccess('dreamSimulator')){ showQuickModal('🔮', lockedFeatureHtml()); return; }
   renderDreamSimModalBody();
 }
+// v3.58 — Chemin optimal → Simulateur : l'objectif suit, les parents sont pré-choisis et le calcul
+// est lancé ; les résultats sont filtrés aux bébés les plus utiles pour l'objectif.
+var dreamGoal = null;      // { copies:{gid:1|2}, setIds:[...], bridge:{bridgeId, otherIds} | null }
+var dreamGoalFilter = true;
+var dreamGoalEggs = 6; // v3.59 — nombre d'œufs pour « au moins un »
+var dreamNeedSex = false; // v3.64 — « il me faut un sexe précis pour ce bébé » : ×½
+function openDreamSimFromGoal(){
+  const ctx = window.__goalPathCtx;
+  closeQuickModal();
+  if(!ctx){ openDreamSimModal(); return; }
+  dreamGoal = ctx; dreamGoalFilter = true;
+  openDreamSimModal();
+  let p1 = null, p2 = null;
+  if(ctx.bridge){ p1 = ctx.bridge.bridgeId; p2 = ctx.bridge.otherIds[0]; }
+  else { p1 = ctx.setIds[0]; p2 = ctx.setIds[1] || null; }
+  const s1 = document.getElementById('dreamsim-p1'), s2 = document.getElementById('dreamsim-p2');
+  if(s1 && p1) s1.value = 'real:'+p1;
+  if(s2 && p2) s2.value = 'real:'+p2;
+  if(p1 && p2) runDreamSimCross();
+}
+function dreamGoalBannerHtml(){
+  const isEn = currentLang==='en';
+  if(!dreamGoal) return '';
+  const nm = (id)=>{ const sn = savedSnakes.find(x=>x.id===id); return sn ? escapeHtml(sn.name) : '?'; };
+  const targets = Object.keys(dreamGoal.copies).map(gid=>{
+    const g = GENES.find(x=>x.id===gid); if(!g) return gid;
+    return dreamGoal.copies[gid]===2 ? (g.type==='recessive' ? g.name+' ('+(isEn?'visual':'visuel')+')' : superName(g)) : g.name;
+  });
+  // v3.61 — étapes complètes, y compris le recroisement quand un Super/visuel n'a qu'un seul porteur
+  // (ex. Super Enchi avec Kara seule) : il faut ramener ce porteur dans l'autre lignée avant la fin.
+  const superLbl = (gid)=>{ const g = GENES.find(x=>x.id===gid); return !g ? gid : (g.type==='recessive' ? g.name+' ('+(isEn?'visual':'visuel')+')' : superName(g)); };
+  const keep = isEn?' → keep the best baby (filter below)':' → garde le meilleur bébé (filtre plus bas)';
+  const items = [];
+  const singles = dreamGoal.singleSource || [];
+  if(dreamGoal.bridge){
+    const b = dreamGoal.bridge;
+    items.push(nm(b.bridgeId)+' × '+nm(b.otherIds[0])+keep+' — <b>'+(isEn?'baby 1':'bébé 1')+'</b>');
+    items.push(nm(b.bridgeId)+' × '+nm(b.otherIds[1])+keep+' — <b>'+(isEn?'baby 2':'bébé 2')+'</b>');
+    singles.filter(x=>x.srcId && x.srcId!==b.bridgeId).forEach(x=>{
+      const which = x.srcId===b.otherIds[0] ? (isEn?'baby 2':'bébé 2') : (isEn?'baby 1':'bébé 1');
+      items.push((isEn?'Cross ':'Croise ')+which+' × '+nm(x.srcId)+' ('+(isEn?'so ':'pour que ')+escapeHtml(superLbl(x.gid))+(isEn?' gets a copy from each side':' ait une copie de chaque côté')+')'+keep);
+    });
+    items.push(isEn?'Cross your last 2 kept dream babies — this is where the goal can appear':'Croise tes 2 derniers bébés rêve gardés — c\'est là que l\'objectif peut sortir');
+  } else if(dreamGoal.setIds.length===2){
+    items.push(nm(dreamGoal.setIds[0])+' × '+nm(dreamGoal.setIds[1])+(singles.length?keep:''));
+    singles.filter(x=>x.srcId).forEach(x=>{
+      items.push((isEn?'Cross that baby back to ':'Recroise ce bébé avec ')+nm(x.srcId)+(isEn?' or to a sibling carrier, for ':' ou avec un frère/une sœur porteur, pour ')+escapeHtml(superLbl(x.gid)));
+    });
+  }
+  const steps = items.length>1 ? '<ol style="margin:6px 0 0 18px;padding:0;font-size:13px;line-height:1.5;">'+items.map(x=>'<li>'+x+'</li>').join('')+'</ol>' : '';
+  const slWarn = Object.keys(dreamGoal.copies).filter(gid=>dreamGoal.copies[gid]===2).map(gid=>GENES.find(x=>x.id===gid)).filter(g=>g && g.sexLinkedMaker).map(g=>sexLinkedSuperWarningHtml(g)).join(''); // v3.62
+  return '<div class="warn" style="border-color:var(--gold);margin-bottom:12px;">🎯 <b>'+(isEn?'Goal: ':'Objectif : ')+escapeHtml(targets.join(' + '))+'</b>'+steps+slWarn+
+    '<label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:13px;"><input type="checkbox" '+(dreamGoalFilter?'checked':'')+' onchange="dreamGoalFilter=this.checked; if(window.__dreamSimLastOutcomes) runDreamSimCross();" style="width:18px;height:18px;margin:0;"/> '+(isEn?'Only the most useful babies for this goal':'Seulement les bébés les plus utiles pour cet objectif')+'</label>'+
+    '<button class="sc-btn" style="margin-top:8px;" onclick="dreamGoal=null; renderDreamSimModalBody();">✕ '+(isEn?'Forget this goal':'Oublier cet objectif')+'</button></div>';
+}
+// Score d'un bébé = copies utiles des gènes visés (plafonné au nombre visé). Copies : homo/visual = 2.
+function dreamGoalScore(genotype){
+  if(!dreamGoal) return 0;
+  return Object.keys(dreamGoal.copies).reduce((sum,gid)=>{
+    const st = genotype && genotype[gid];
+    const n = !st ? 0 : ((st==='homo'||st==='visual') ? 2 : 1);
+    return sum + Math.min(n, dreamGoal.copies[gid]);
+  }, 0);
+}
+function dreamGoalComplete(genotype){
+  if(!dreamGoal) return false;
+  return Object.keys(dreamGoal.copies).every(gid=>{ const st = genotype && genotype[gid]; const n = !st?0:((st==='homo'||st==='visual')?2:1); return n>=dreamGoal.copies[gid]; });
+}
 function renderDreamSimModalBody(){
   const isEn = currentLang==='en';
   const options = dreamSimParentOptionsHtml();
@@ -8840,7 +8913,8 @@ function renderDreamSimModalBody(){
     '<label style="display:block;margin-bottom:10px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Parent 2':'Parent 2')+'</span>'+
       '<select id="dreamsim-p2" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"><option value="">—</option>'+options+'</select></label>'+
     '<button class="save-btn" style="width:100%;" onclick="runDreamSimCross()">🔮 '+(isEn?'Calculate':'Calculer')+'</button>'+
-    '<div id="dreamsim-results" style="margin-top:14px;"></div>'+
+    '<div id="dreamsim-goal" style="margin-top:14px;">'+dreamGoalBannerHtml()+'</div>'+
+    '<div id="dreamsim-results" style="margin-top:4px;"></div>'+
     '<div style="margin-top:18px;padding-top:14px;border-top:1px dashed var(--line);">'+
       '<h3 style="font-size:13px;margin:0 0 8px;color:var(--ink);">'+(isEn?'Dream babies saved so far':'Bébés rêve enregistrés jusqu\'ici')+'</h3>'+
       '<div id="dreamsim-list">'+dreamSnakesListHtml()+'</div>'+
@@ -8860,10 +8934,57 @@ function runDreamSimCross(){
   window.__dreamSimLastParents = { p1id:p1.id, p2id:p2.id };
   const tone = F===0?'sage':(F<0.25?'gold':'rust');
   const inbreedHtml = '<div class="warn" style="border-color:var(--'+tone+');margin-bottom:10px;">'+(F===0?'✅ ':'⚠ ')+'<b>'+(isEn?'Inbreeding coefficient: ':'Coefficient de consanguinité : ')+Fpct+'%</b></div>';
-  const rowsHtml = outcomes.slice(0,40).map((o,i)=>{
+  // v3.58 — objectif venu du Chemin optimal : on garde les bébés au meilleur score (index d'origine
+  // conservé pour « Garder »), les complets en tête.
+  let shown = outcomes.map((o,i)=>({o,i}));
+  let hiddenNote = '';
+  if(dreamGoal && dreamGoalFilter){
+    const best = Math.max(0, ...outcomes.map(o=>dreamGoalScore(o.genotype)));
+    const kept = shown.filter(x=>best>0 && dreamGoalScore(x.o.genotype)===best);
+    if(kept.length){
+      hiddenNote = '<p style="font-size:12px;color:var(--ink-dim);margin:0 0 6px;">'+(isEn?(kept.length+' of '+outcomes.length+' results shown — the ones that bring the most of your goal.'):(kept.length+' résultats sur '+outcomes.length+' affichés — ceux qui apportent le plus de ton objectif.'))+'</p>';
+      shown = kept;
+    } else {
+      hiddenNote = '<p style="font-size:12px;color:var(--rust);margin:0 0 6px;">'+(isEn?'No baby from this pair carries any of your goal genes.':'Aucun bébé de ce couple ne porte un gène de ton objectif.')+'</p>';
+    }
+  }
+  // v3.59 — chance réelle de l'objectif : somme des bébés qui le complètent (par œuf), puis
+  // « au moins un » sur N œufs = 1 − (1 − p)^N, même formule que Mes chances. Étape intermédiaire
+  // (aucun bébé complet) : chance d'avoir un bébé parmi les plus utiles.
+  if(dreamGoal){
+    const pComplete = outcomes.filter(o=>dreamGoalComplete(o.genotype)).reduce((a,o)=>a+o.prob,0);
+    const best = Math.max(0, ...outcomes.map(o=>dreamGoalScore(o.genotype)));
+    const pUseful = best>0 ? outcomes.filter(o=>dreamGoalScore(o.genotype)===best).reduce((a,o)=>a+o.prob,0) : 0;
+    const eggs = Math.max(1, Math.min(30, parseInt(dreamGoalEggs,10)||6));
+    const fmtN = (n)=> isEn ? String(n) : String(n).replace('.',',');
+    const atLeast = (pp)=>fmtN(Math.round((1-Math.pow(1-pp, eggs))*1000)/10);
+    const pctTxt = (pp)=>fmtN(Math.round(pp*10000)/100)+' %';
+    const eggInput = '<input type="number" min="1" max="30" value="'+eggs+'" onchange="dreamGoalEggs=this.value; runDreamSimCross();" style="width:56px;font-size:15px;padding:4px 6px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);text-align:center;"/>';
+    const box = pComplete>0
+      ? '<div class="warn" style="border-color:var(--sage);margin-bottom:8px;font-size:14px;line-height:1.6;">🎯 <b>'+(isEn?'Chance per egg of reaching the goal: ':'Chance par œuf d\'atteindre l\'objectif : ')+pctTxt(pComplete)+'</b><br/>'+
+          (isEn?'With ':'Sur ')+eggInput+(isEn?' eggs, chance of at least one: ':' œufs, chance d\'en avoir au moins un : ')+'<b>'+atLeast(pComplete)+' %</b>'+
+          '<br/><small style="color:var(--ink-dim);">'+(isEn?'Assumes every egg hatches.':'Suppose que chaque œuf éclot.')+'</small></div>'
+      : (pUseful>0
+        ? '<div class="warn" style="border-color:var(--gold);margin-bottom:8px;font-size:14px;line-height:1.6;">'+(isEn?'This pair can\'t reach the full goal in one generation. Chance per egg of a useful baby (shown below): ':'Ce couple ne peut pas atteindre tout l\'objectif en une génération. Chance par œuf d\'un bébé utile (affichés plus bas) : ')+'<b>'+pctTxt(pUseful)+'</b><br/>'+
+          (isEn?'With ':'Sur ')+eggInput+(isEn?' eggs, chance of at least one: ':' œufs, chance d\'en avoir au moins un : ')+'<b>'+atLeast(pUseful)+' %</b></div>'
+        : '');
+    // v3.64 — sexe précis voulu (bébé à recroiser) : ×½, sexe indépendant des gènes ordinaires.
+    const pBase = pComplete>0 ? pComplete : pUseful;
+    let sexBox = '';
+    if(pBase>0){
+      sexBox = '<div style="margin:0 0 8px;font-size:14px;line-height:1.6;">'+
+        '<label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" '+(dreamNeedSex?'checked':'')+' onchange="dreamNeedSex=this.checked; runDreamSimCross();" style="width:18px;height:18px;margin:0;"/> '+(isEn?'I need a specific sex for this baby (×½)':'Il me faut un sexe précis pour ce bébé (×½)')+'</label>'+
+        (dreamNeedSex ? '<div class="warn" style="border-color:var(--gold);margin-top:6px;">♂/♀ '+(isEn?'With the right sex: ':'Avec le bon sexe : ')+'<b>'+pctTxt(pBase/2)+(isEn?' per egg':' par œuf')+'</b> — '+(isEn?'at least one on ':'au moins un sur ')+eggs+(isEn?' eggs: ':' œufs : ')+'<b>'+atLeast(pBase/2)+' %</b>'+
+          '<br/><small style="color:var(--ink-dim);">'+(isEn?'Exception: if the sex comes with a sex-linked gene (e.g. a Banana son from a Male Maker), don\'t halve.':'Exception : si le sexe vient avec un gène lié au sexe (ex. un fils Banana d\'un Male Maker), ne divise pas par 2.')+'</small></div>' : '')+
+      '</div>';
+    }
+    hiddenNote = box + sexBox + hiddenNote;
+  }
+  const rowsHtml = hiddenNote + shown.slice(0,40).map(({o,i})=>{
     const name = o.visuals.length ? o.visuals.join(' ') : (isEn?'Normal':'Normal');
     const pct = Math.round(o.prob*10000)/100;
-    return '<div class="modal-row"><span>'+escapeHtml(name)+(o.hets.length?' <small style="color:var(--ink-dim);">('+(isEn?'het ':'het ')+escapeHtml(o.hets.join(', '))+')</small>':'')+'</span>'+
+    const goalTag = (dreamGoal && dreamGoalComplete(o.genotype)) ? ' <span style="color:var(--sage);font-weight:700;">🎯 '+(isEn?'goal':'objectif')+'</span>' : '';
+    return '<div class="modal-row"><span>'+goalTag+escapeHtml(name)+(o.hets.length?' <small style="color:var(--ink-dim);">('+(isEn?'het ':'het ')+escapeHtml(o.hets.join(', '))+')</small>':'')+'</span>'+
       '<span style="display:flex;align-items:center;gap:6px;">'+pct+'% <button class="sc-btn" onclick="saveDreamBaby('+i+')">🔮 '+(isEn?'Keep':'Garder')+'</button></span></div>';
   }).join('');
   document.getElementById('dreamsim-results').innerHTML = inbreedHtml+rowsHtml;
@@ -8930,6 +9051,14 @@ function nCr(n, r){
   for(let i=0;i<r;i++) result = result*(n-i)/(i+1);
   return result;
 }
+// v3.63 — sexes : 2 animaux = sexes opposés ; 3 animaux = il faut un « pont » de sexe opposé aux
+// 2 autres (ex. Indiana avec Kara et Angela). Sexe inconnu = accepté (on ne bloque pas sur un doute).
+function sexesCompatible(a, b){ return !a.sex || !b.sex || a.sex!==b.sex; }
+function goalSetSexOk(subset){
+  if(subset.length===2) return sexesCompatible(subset[0], subset[1]);
+  if(subset.length===3) return subset.some((bridge,i)=>subset.filter((_,j)=>j!==i).every(o=>sexesCompatible(bridge,o)));
+  return true;
+}
 function findMinCoveringSet(targetGeneIds, candidates, needs){
   // v3.57 — needs[gid] = nombre d'animaux porteurs requis dans l'ensemble (2 pour un Super / un
   // visuel récessif : il faut une copie de chaque côté). Absent = 1, comme avant.
@@ -8943,7 +9072,7 @@ function findMinCoveringSet(targetGeneIds, candidates, needs){
     if(nCr(n, size) > GOALPATH_MAX_COMBOS_PER_SIZE) return { ok:false, missing:[], tooComplex:true };
     const combos = combinationsOfSize(candidates, size);
     for(const subset of combos){
-      if(targetGeneIds.every(gid=>enough(subset, gid))) return { ok:true, set:subset };
+      if(targetGeneIds.every(gid=>enough(subset, gid)) && goalSetSexOk(subset)) return { ok:true, set:subset };
     }
   }
   return { ok:false, missing:[], tooComplex:true };
@@ -9062,6 +9191,9 @@ function analyzeGoalPath(){
     return;
   }
   const twoCopyIds = targetGeneIds.filter(gid=>copies[gid]===2);
+  // v3.62 — Super d'un gène lié au sexe (Banana) : avertissement seulement (choix d'Alex), le calcul
+  // ne tient pas compte du sexe ni du Male/Female Maker.
+  const sexLinkedSuperWarn = twoCopyIds.map(gid=>GENES.find(x=>x.id===gid)).filter(g=>g && g.sexLinkedMaker).map(g=>sexLinkedSuperWarningHtml(g)).join('');
   const superWarnings = twoCopyIds.map(gid=>{ const g = GENES.find(x=>x.id===gid); const w = geneWarning(g); return w ? '<div class="warn" style="border-color:var(--rust);margin-top:6px;">🚨 <b>'+escapeHtml(superName(g))+'</b> — '+escapeHtml(w)+'</div>' : ''; }).join('');
 
   // Étape 1 — couverture : qui porte quoi
@@ -9104,34 +9236,66 @@ function analyzeGoalPath(){
   }
 
   const set = covering.set;
+  // v3.58 — contexte transmis au Simulateur de rêverie (parents pré-choisis + filtre des bébés utiles).
+  window.__goalPathCtx = { copies:{...copies}, setIds:set.map(x=>x.id), bridge:null };
   let pathHtml = '';
   if(set.length===1){
     pathHtml = '<div class="warn" style="border-color:var(--sage);">✅ '+(isEn
       ? escapeHtml(set[0].name)+' already carries everything on its own — no crossing needed for coverage (may still need a mate to reach Super/homozygous forms).'
-      : escapeHtml(set[0].name)+' porte déjà tout à lui seul — aucun croisement requis pour la couverture (peut quand même avoir besoin d\'un partenaire pour atteindre une forme Super/homozygote).')+'</div>';
+      : escapeHtml(set[0].name)+' porte déjà tout à lui seul — aucun croisement requis pour la couverture (peut quand même avoir besoin d\'un partenaire pour atteindre une forme Super/homozygote).')+'</div>'+
+      '<button class="sc-btn accent" style="margin-top:8px;" onclick="openDreamSimFromGoal()">🔮 '+(isEn?'Try it in the Dream Simulator':'Essayer dans le Simulateur de rêverie')+'</button>';
   } else if(set.length===2){
     const F = kinshipCoefficient(set[0].id, set[1].id, new Map());
     const Fpct = Math.round(F*10000)/100;
     pathHtml = '<div class="warn" style="border-color:var(--sage);">✅ '+(isEn?'1 generation needed:':'1 génération nécessaire :')+' <b>'+escapeHtml(set[0].name)+' × '+escapeHtml(set[1].name)+'</b><br/>'+
       (isEn?'Inbreeding coefficient: ':'Coefficient de consanguinité : ')+'<b>'+Fpct+'%</b></div>'+
-      '<button class="sc-btn accent" style="margin-top:8px;" onclick="closeQuickModal(); openDreamSimModal();">🔮 '+(isEn?'Try it in the Dream Simulator':'Essayer dans le Simulateur de rêverie')+'</button>';
+      '<button class="sc-btn accent" style="margin-top:8px;" onclick="openDreamSimFromGoal()">🔮 '+(isEn?'Try it in the Dream Simulator':'Essayer dans le Simulateur de rêverie')+'</button>';
   } else if(set.length===3){
-    const opts = computeBridgeOptions(set);
+    const opts = computeBridgeOptions(set).filter(o=>o.others.every(x=>sexesCompatible(o.bridge, x))); // v3.63 — ponts possibles seulement
     const best = [...opts].sort((a,b)=>a.finalInbreedingPct-b.finalInbreedingPct)[0];
-    pathHtml = '<div class="warn" style="border-color:var(--gold);">⚠ '+(isEn?'2 generations needed — 3 sources to merge:':'2 générations nécessaires — 3 sources à réunir :')+'</div>'+
+    window.__goalPathCtx.bridge = { bridgeId: best.bridge.id, otherIds: best.others.map(x=>x.id) };
+    // v3.61 — un Super à porteur unique hors « pont » ajoute un recroisement → 3 générations.
+    const extraGen = singleSourceTwoCopy.some(gid=>{ const src = set.find(x=>x.genes && x.genes[gid]); return src && src.id!==best.bridge.id; });
+    // v3.63 — avec un recroisement, la consanguinité finale n'est plus celle du pont seul : on la
+    // recalcule sur le vrai plan (nœuds temporaires, retirés aussitôt), pour chaque option de pont.
+    if(extraGen){
+      opts.forEach(o=>{
+        const tmp1 = { id:'_gp1', sireId:o.bridge.id, damId:o.others[0].id };
+        const tmp2 = { id:'_gp2', sireId:o.bridge.id, damId:o.others[1].id };
+        dreamSnakes.push(tmp1, tmp2);
+        let a = tmp1, b = tmp2; let n = 0;
+        singleSourceTwoCopy.forEach(gid=>{
+          const src = set.find(x=>x.genes && x.genes[gid]);
+          if(!src || src.id===o.bridge.id) return;
+          const lacking = (src.id===o.others[0].id) ? b : a;
+          const tc = { id:'_gpc'+(n++), sireId:lacking.id, damId:src.id };
+          dreamSnakes.push(tc);
+          if(lacking===b) b = tc; else a = tc;
+        });
+        const F = kinshipCoefficient(a.id, b.id, new Map());
+        dreamSnakes.splice(dreamSnakes.length-(2+n), 2+n);
+        o.finalInbreedingPct = Math.round(F*10000)/100;
+      });
+    }
+    pathHtml = '<div class="warn" style="border-color:var(--gold);">⚠ '+(extraGen
+      ? (isEn?'3 generations needed — 3 sources to merge, plus one back-cross (see below):':'3 générations nécessaires — 3 sources à réunir, plus un recroisement (voir plus bas) :')
+      : (isEn?'2 generations needed — 3 sources to merge:':'2 générations nécessaires — 3 sources à réunir :'))+'</div>'+
       opts.map(o=>{
         const isBest = o===best;
         return '<div class="modal-row"'+(isBest?' style="background:rgba(124,131,99,.12);"':'')+'><span>'+(isBest?'⭐ ':'')+
           (isEn?'Reuse ':'Réutiliser ')+'<b>'+escapeHtml(o.bridge.name)+'</b>'+(isEn?' in both gen-1 crosses (with ':' dans les 2 croisements gen-1 (avec ')+escapeHtml(o.others[0].name)+' '+(isEn?'and':'et')+' '+escapeHtml(o.others[1].name)+')</span>'+
           '<span><b>'+o.finalInbreedingPct+'%</b></span></div>';
       }).join('')+
-      '<button class="sc-btn accent" style="margin-top:8px;" onclick="closeQuickModal(); openDreamSimModal();">🔮 '+(isEn?'Build it in the Dream Simulator':'Construire ça dans le Simulateur de rêverie')+'</button>';
+      '<button class="sc-btn accent" style="margin-top:8px;" onclick="openDreamSimFromGoal()">🔮 '+(isEn?'Build it in the Dream Simulator':'Construire ça dans le Simulateur de rêverie')+'</button>';
   } else {
     pathHtml = '<div class="warn" style="border-color:var(--rust);">⚠ '+(isEn
       ? set.length+' different sources needed — that\'s more than I can reliably auto-suggest right now. Let\'s work through this one together manually using the Dream Simulator, one generation at a time.'
       : set.length+' sources différentes nécessaires — c\'est plus que ce que je peux suggérer automatiquement de façon fiable pour l\'instant. Travaillons ça ensemble manuellement avec le Simulateur de rêverie, une génération à la fois.')+'</div>';
   }
 
+  if(window.__goalPathCtx){
+    window.__goalPathCtx.singleSource = singleSourceTwoCopy.map(gid=>{ const src = covering.set.find(x=>x.genes && x.genes[gid]); return { gid, srcId: src ? src.id : null }; });
+  }
   const singleHtml = singleSourceTwoCopy.map(gid=>{
     const g = GENES.find(x=>x.id===gid);
     const label = g.type==='recessive' ? g.name+' ('+(isEn?'visual':'visuel')+')' : superName(g);
@@ -9141,7 +9305,13 @@ function analyzeGoalPath(){
       : '<b>'+escapeHtml(label)+'</b> demande une copie de chaque parent, mais seul <b>'+escapeHtml(src?src.name:'?')+'</b> porte '+escapeHtml(g.name)+'. Prévois une génération de plus : recroiser un bébé '+escapeHtml(g.name)+' avec '+escapeHtml(src?src.name:'?')+' ou avec un frère/une sœur '+escapeHtml(g.name)+' (la consanguinité monte).')+'</div>';
   }).join('');
   el.innerHTML = '<h3 style="font-size:13px;">'+(isEn?'Coverage':'Couverture')+'</h3>'+coverageHtml+
-    '<h3 style="font-size:13px;margin-top:14px;">'+(isEn?'Suggested path':'Chemin suggéré')+'</h3>'+pathHtml+singleHtml+superWarnings;
+    '<h3 style="font-size:13px;margin-top:14px;">'+(isEn?'Suggested path':'Chemin suggéré')+'</h3>'+pathHtml+singleHtml+sexLinkedSuperWarn+superWarnings;
+}
+function sexLinkedSuperWarningHtml(g){
+  const isEn = currentLang==='en';
+  return '<div class="warn" style="border-color:var(--gold);margin-top:8px;">⚠ <b>'+escapeHtml(superName(g))+'</b> — '+(isEn
+    ? escapeHtml(g.name)+' is sex-linked. A Male Maker passes it mostly to his sons, a Female Maker mostly to his daughters, so a '+escapeHtml(superName(g))+' usually needs a '+escapeHtml(g.name)+' female on the other side. A '+escapeHtml(g.name)+' daughter from a Male Maker is an exception (crossover — breeders report anywhere from 1 to 15 %, no established figure). The % shown here ignores sex and can be far too optimistic.'
+    : escapeHtml(g.name)+' est lié au sexe. Un Male Maker le donne surtout à ses fils, un Female Maker surtout à ses filles : un '+escapeHtml(superName(g))+' demande donc en général une femelle '+escapeHtml(g.name)+' de l\'autre côté. Une fille '+escapeHtml(g.name)+' d\'un Male Maker est une exception (crossing-over — les éleveurs rapportent de 1 à 15 %, aucun chiffre établi). Le % affiché ici ne tient pas compte du sexe et peut être beaucoup trop optimiste.')+'</div>';
 }
 
 function parentComboSummary(){
