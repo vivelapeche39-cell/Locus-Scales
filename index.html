@@ -1198,13 +1198,17 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   </div>
   <div id="parent-combo" class="parent-combo"></div>
   <div id="sex-note" class="sex-note"></div>
+  <!-- v3.67 — « Mes chances » remonté avant les résultats ; résultats repliables (gros croisements). -->
+  <div class="clutch-panel" id="chances-panel" style="display:none;"></div>
+  <div id="results-toggle-bar" style="display:none;margin:10px 0;"></div>
+  <div id="results-wrap">
   <div id="results" class="grid"><div class="empty" data-i18n="calcEmptyState">Sélectionne les gènes des deux parents, puis lance le calcul.</div></div>
   <div id="punnett-wrap" class="punnett-wrap">
     <h3><span data-i18n="punnettTitle">Carré de Punnett</span> — <span id="punnett-locus"></span></h3>
     <table class="punnett-table" id="punnett-table"></table>
   </div>
+  </div>
 
-  <div class="clutch-panel" id="chances-panel" style="display:none;"></div>
   <div class="clutch-panel" id="clutch-panel">
     <div class="clutch-hdr">
       <h2 data-i18n="simulateClutchTitle">Simuler une ponte</h2>
@@ -2187,7 +2191,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.66';
+const APP_VERSION = '2026.09.01.3.67';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4395,11 +4399,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.66', date:'2026-10-09',
+  { version:'3.67', date:'2026-10-09',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
-        '🧮 Calculateur : « Charger… » propose aussi tes bébés rêve du Simulateur (dans les deux panneaux), et le coefficient de consanguinité s\'affiche quand les deux parents ont été chargés.',
+        '🧮 Calculateur : « Charger… » propose aussi tes bébés rêve du Simulateur (dans les deux panneaux), et le coefficient de consanguinité s\'affiche quand les deux parents ont été chargés. « Mes chances cette saison » passe avant la liste des résultats, et la liste se masque d\'un bouton (choix retenu) pour aller direct à la ponte simulée.',
         'Correctif Chemin optimal : il tient maintenant compte du sexe des animaux (il pouvait proposer de croiser deux femelles) et la consanguinité affichée pour un plan avec recroisement est celle du vrai plan.',
         'Génétique : Granite corrigé en codominant / incomplet dominant (Morphpedia, World of Ball Pythons) — il était classé « dominant » par erreur. Son super s\'appelle Super Granite.',
         '🎯 Chemin optimal : choisis d\'abord tes animaux, puis tes gènes cibles parmi ceux qu\'ils portent vraiment (avec le nombre de porteurs) au lieu des 163 gènes — décoche « Seulement les gènes de mes animaux cochés » pour revoir toute la liste. Chaque gène peut viser le Super (ou le visuel pour un récessif) ; LOCUS vérifie qu\'il faut un porteur de chaque côté et refuse les objectifs impossibles (ex. Super Asphalt + Super Specter, même locus). « Essayer dans le Simulateur de rêverie » emporte l\'objectif : parents choisis d\'office, calcul lancé, et seulement les bébés les plus utiles affichés (🎯 sur ceux qui complètent l\'objectif), avec les étapes quand il faut 2 générations — et la vraie chance par œuf d\'atteindre l\'objectif, plus la chance d\'en avoir au moins un selon ton nombre d\'œufs. Quand un Super n\'a qu\'un seul porteur, l\'étape de recroisement nécessaire est ajoutée au plan. Viser un Super Banana affiche un avertissement : gène lié au sexe (Male/Female Maker), le % ne tient pas compte du sexe. Case « Il me faut un sexe précis pour ce bébé » : ajoute le ×½ à la chance par œuf et au « au moins un ». Les bébés rêve gardés ont un « × » sur chaque gène pour retirer ce qu\'ils n\'auront pas en vrai (ex. une fille de Male Maker sans Banana). Réservé aux paliers Première ponte et Illimité après la bêta.',
@@ -4435,7 +4439,7 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
-        '🧮 Calculator: "Load…" also offers your dream babies from the Dream Simulator (in both panels), and the inbreeding coefficient shows when both parents were loaded.',
+        '🧮 Calculator: "Load…" also offers your dream babies from the Dream Simulator (in both panels), and the inbreeding coefficient shows when both parents were loaded. "My odds this season" now comes before the results list, and the list can be hidden with one button (choice remembered) to go straight to the clutch simulator.',
         'Optimal Path fix: it now takes the animals\' sex into account (it could suggest pairing two females), and the inbreeding shown for a plan with a back-cross is that of the real plan.',
         'Genetics: Granite corrected to codominant / incomplete dominant (Morphpedia, World of Ball Pythons) — it was wrongly listed as dominant. Its super form is Super Granite.',
         '🎯 Optimal Path: pick your animals first, then your target genes from the ones they actually carry (with the number of carriers) instead of all 163 genes — uncheck "Only genes carried by the checked animals" to see the full list again. Each gene can target the Super (or the visual for a recessive); LOCUS checks that a carrier is needed on each side and rejects impossible goals (e.g. Super Asphalt + Super Specter, same locus). "Try it in the Dream Simulator" carries the goal over: parents picked for you, calculation started, and only the most useful babies shown (🎯 on those that complete the goal), with the steps when 2 generations are needed — plus the real chance per egg of reaching the goal and the chance of at least one for your number of eggs. When a Super has only one carrier, the needed back-cross step is added to the plan. Targeting a Super Banana shows a warning: sex-linked gene (Male/Female Maker), the % ignores sex. "I need a specific sex for this baby" box: adds the ×½ to the chance per egg and the "at least one". Kept dream babies have an "×" on each gene to remove what they won\'t really have (e.g. a Male Maker\'s daughter without Banana). Reserved for the First Clutch and Unlimited tiers after the beta.',
@@ -6404,6 +6408,7 @@ function setCalcSpecies(sp, keepState){
   if(changed && !keepState){
     state.male = {}; state.female = {};
     calcLoaded.male = null; calcLoaded.female = null;
+    lastCalcResultCount = 0; renderResultsToggleBar();
     renderTags('male'); renderTags('female');
     const res = document.getElementById('results'); if(res) res.innerHTML = '<div class="empty">'+t('calcEmptyState')+'</div>';
     ['parent-combo','sex-note','combo-count'].forEach(i=>{ const el = document.getElementById(i); if(el) el.innerHTML = ''; });
@@ -6419,7 +6424,7 @@ function renderCalcSpeciesBar(){
   const isLeo = (typeof calcSpecies!=='undefined') && calcSpecies==='leopard_gecko';
   ['input-male','input-female'].forEach(i=>{ const el = document.getElementById(i); if(el) el.placeholder = isLeo ? (isEn?'Search a gene (e.g. Tremper, Mack Snow, Eclipse)…':'Rechercher un gène (ex. Tremper, Mack Snow, Eclipse)…') : t('searchGenePlaceholder'); });
   // Simulateur de rêverie et Chemin optimal : python royal seulement pour l'instant.
-  document.querySelectorAll('.calc-bar .calc-btn[onclick^="openDreamSimModal"], .calc-bar .calc-btn[onclick^="openGoalPathModal"]').forEach(b=>{ b.style.display = isLeo ? 'none' : ''; });
+  document.querySelectorAll('.calc-bar .calc-btn[onclick*="openDreamSimModal"], .calc-bar .calc-btn[onclick*="openGoalPathModal"]').forEach(b=>{ b.style.display = isLeo ? 'none' : ''; });
 }
 function buildCombobox(sex){
   const isEn = currentLang==='en';
@@ -8128,6 +8133,27 @@ function loadDreamSnake(id, targetSex){
   calcLoaded[targetSex] = d.id;
   renderTags(targetSex);
 }
+// v3.67 — masquer/afficher la liste des résultats du calculateur (choix retenu sur l'appareil).
+var lastCalcResultCount = 0;
+var RESULTS_HIDDEN_KEY = 'locus_calc_results_hidden';
+function calcResultsHidden(){ try{ return localStorage.getItem(RESULTS_HIDDEN_KEY)==='1'; }catch(e){ return false; } }
+function toggleCalcResults(){
+  try{ localStorage.setItem(RESULTS_HIDDEN_KEY, calcResultsHidden() ? '0' : '1'); }catch(e){}
+  renderResultsToggleBar();
+}
+function renderResultsToggleBar(){
+  const isEn = currentLang==='en';
+  const bar = document.getElementById('results-toggle-bar');
+  const wrap = document.getElementById('results-wrap');
+  if(!bar || !wrap) return;
+  if(!lastCalcResultCount){ bar.style.display = 'none'; wrap.style.display = ''; return; }
+  const hidden = calcResultsHidden();
+  wrap.style.display = hidden ? 'none' : '';
+  bar.style.display = '';
+  bar.innerHTML = '<button class="sc-btn" style="width:100%;font-size:15px;padding:10px;" onclick="toggleCalcResults()">'+
+    (hidden ? '▸ '+(isEn?'Show the '+lastCalcResultCount+' results':'Afficher les '+lastCalcResultCount+' résultats')
+            : '▾ '+(isEn?'Hide the '+lastCalcResultCount+' results (go straight to the clutch simulator)':'Masquer les '+lastCalcResultCount+' résultats (aller direct à la ponte simulée)'))+'</button>';
+}
 function calcInbreedingHtml(){
   const isEn = currentLang==='en';
   if(!calcLoaded.male || !calcLoaded.female) return '';
@@ -9383,6 +9409,7 @@ function runCross(){
     document.getElementById('results').innerHTML = '<div class="empty">'+(isEn?'Select at least one gene for one of the parents.':'Sélectionne au moins un gène chez un des parents.')+'</div>';
     document.getElementById('combo-count').textContent = '';
     document.getElementById('parent-combo').textContent = '';
+    lastCalcResultCount = 0; renderResultsToggleBar(); // v3.67
     document.getElementById('punnett-wrap').style.display = 'none';
     document.getElementById('clutch-panel').style.display = 'none';
     var chp = document.getElementById('chances-panel'); if(chp) chp.style.display = 'none';
@@ -9433,6 +9460,8 @@ function runCross(){
 
   const grid = document.getElementById('results');
   grid.innerHTML = '';
+  lastCalcResultCount = results.length; // v3.67
+  renderResultsToggleBar();
   results.forEach(r=>{
     const card = document.createElement('div');
     card.className='card';
