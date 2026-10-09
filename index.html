@@ -2187,7 +2187,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.65';
+const APP_VERSION = '2026.09.01.3.66';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4395,10 +4395,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.65', date:'2026-10-09',
+  { version:'3.66', date:'2026-10-09',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '🧮 Calculateur : « Charger… » propose aussi tes bébés rêve du Simulateur (dans les deux panneaux), et le coefficient de consanguinité s\'affiche quand les deux parents ont été chargés.',
         'Correctif Chemin optimal : il tient maintenant compte du sexe des animaux (il pouvait proposer de croiser deux femelles) et la consanguinité affichée pour un plan avec recroisement est celle du vrai plan.',
         'Génétique : Granite corrigé en codominant / incomplet dominant (Morphpedia, World of Ball Pythons) — il était classé « dominant » par erreur. Son super s\'appelle Super Granite.',
         '🎯 Chemin optimal : choisis d\'abord tes animaux, puis tes gènes cibles parmi ceux qu\'ils portent vraiment (avec le nombre de porteurs) au lieu des 163 gènes — décoche « Seulement les gènes de mes animaux cochés » pour revoir toute la liste. Chaque gène peut viser le Super (ou le visuel pour un récessif) ; LOCUS vérifie qu\'il faut un porteur de chaque côté et refuse les objectifs impossibles (ex. Super Asphalt + Super Specter, même locus). « Essayer dans le Simulateur de rêverie » emporte l\'objectif : parents choisis d\'office, calcul lancé, et seulement les bébés les plus utiles affichés (🎯 sur ceux qui complètent l\'objectif), avec les étapes quand il faut 2 générations — et la vraie chance par œuf d\'atteindre l\'objectif, plus la chance d\'en avoir au moins un selon ton nombre d\'œufs. Quand un Super n\'a qu\'un seul porteur, l\'étape de recroisement nécessaire est ajoutée au plan. Viser un Super Banana affiche un avertissement : gène lié au sexe (Male/Female Maker), le % ne tient pas compte du sexe. Case « Il me faut un sexe précis pour ce bébé » : ajoute le ×½ à la chance par œuf et au « au moins un ». Les bébés rêve gardés ont un « × » sur chaque gène pour retirer ce qu\'ils n\'auront pas en vrai (ex. une fille de Male Maker sans Banana). Réservé aux paliers Première ponte et Illimité après la bêta.',
@@ -4434,6 +4435,7 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '🧮 Calculator: "Load…" also offers your dream babies from the Dream Simulator (in both panels), and the inbreeding coefficient shows when both parents were loaded.',
         'Optimal Path fix: it now takes the animals\' sex into account (it could suggest pairing two females), and the inbreeding shown for a plan with a back-cross is that of the real plan.',
         'Genetics: Granite corrected to codominant / incomplete dominant (Morphpedia, World of Ball Pythons) — it was wrongly listed as dominant. Its super form is Super Granite.',
         '🎯 Optimal Path: pick your animals first, then your target genes from the ones they actually carry (with the number of carriers) instead of all 163 genes — uncheck "Only genes carried by the checked animals" to see the full list again. Each gene can target the Super (or the visual for a recessive); LOCUS checks that a carrier is needed on each side and rejects impossible goals (e.g. Super Asphalt + Super Specter, same locus). "Try it in the Dream Simulator" carries the goal over: parents picked for you, calculation started, and only the most useful babies shown (🎯 on those that complete the goal), with the steps when 2 generations are needed — plus the real chance per egg of reaching the goal and the chance of at least one for your number of eggs. When a Super has only one carrier, the needed back-cross step is added to the plan. Targeting a Super Banana shows a warning: sex-linked gene (Male/Female Maker), the % ignores sex. "I need a specific sex for this baby" box: adds the ×½ to the chance per egg and the "at least one". Kept dream babies have an "×" on each gene to remove what they won\'t really have (e.g. a Male Maker\'s daughter without Banana). Reserved for the First Clutch and Unlimited tiers after the beta.',
@@ -6401,6 +6403,7 @@ function setCalcSpecies(sp, keepState){
   calcSpecies = sp;
   if(changed && !keepState){
     state.male = {}; state.female = {};
+    calcLoaded.male = null; calcLoaded.female = null;
     renderTags('male'); renderTags('female');
     const res = document.getElementById('results'); if(res) res.innerHTML = '<div class="empty">'+t('calcEmptyState')+'</div>';
     ['parent-combo','sex-note','combo-count'].forEach(i=>{ const el = document.getElementById(i); if(el) el.innerHTML = ''; });
@@ -8112,7 +8115,27 @@ function loadSnake(id, targetSex){
   }
   if(sp!==calcSpecies) setCalcSpecies(sp);
   state[targetSex] = {...snake.genes};
+  calcLoaded[targetSex] = snake.id; // v3.66 — pour la consanguinité
   renderTags(targetSex);
+}
+// v3.66 — charger un bébé rêve (Simulateur) comme parent du calculateur standard.
+var calcLoaded = { male:null, female:null };
+function loadDreamSnake(id, targetSex){
+  const d = dreamSnakes.find(x=>x.id===id);
+  if(!d) return;
+  if(calcSpecies!=='ball_python') setCalcSpecies('ball_python');
+  state[targetSex] = {...d.genes};
+  calcLoaded[targetSex] = d.id;
+  renderTags(targetSex);
+}
+function calcInbreedingHtml(){
+  const isEn = currentLang==='en';
+  if(!calcLoaded.male || !calcLoaded.female) return '';
+  const nameOf = (id)=>{ const x = (typeof findSnakeOrDream==='function') ? findSnakeOrDream(id) : null; return x ? x.name : '?'; };
+  const F = kinshipCoefficient(calcLoaded.male, calcLoaded.female, new Map());
+  const pct = Math.round(F*10000)/100;
+  const tone = F===0 ? 'sage' : (F<0.25 ? 'gold' : 'rust');
+  return '<div class="warn" style="border-color:var(--'+tone+');margin:8px 0;">'+(F===0?'✅ ':'⚠ ')+(isEn?'Inbreeding coefficient — ':'Coefficient de consanguinité — ')+escapeHtml(nameOf(calcLoaded.male))+' × '+escapeHtml(nameOf(calcLoaded.female))+' : <b>'+(isEn?String(pct):String(pct).replace('.',','))+' %</b></div>';
 }
 
 var mineSearchTerm = '';
@@ -8497,21 +8520,28 @@ function buildLoadMenu(sex){
     e.stopPropagation();
     const isEn = currentLang==='en';
     const matches = savedSnakes.filter(s=>s.sex===sex && (s.species||'ball_python')===calcSpecies); // v3.54
-    if(matches.length===0){
+    // v3.66 — bébés rêve du Simulateur (python royal) chargeables dans les 2 panneaux (ils n'ont pas de sexe).
+    const dreams = (calcSpecies==='ball_python' && typeof dreamSnakes!=='undefined') ? dreamSnakes.filter(d=>d && d.name && d.genes && String(d.id).indexOf('dream_')===0) : [];
+    const dreamHtml = dreams.length ? '<div class="combo-group-label">🔮 '+(isEn?'Dream babies':'Bébés rêve')+'</div>'+dreams.map(d=>
+      '<div class="combo-opt" data-dream="'+d.id+'"><span>🔮 '+escapeHtml(d.name)+'</span><span class="opt-tag">'+(isEn?'dream':'rêve')+'</span></div>').join('') : '';
+    if(matches.length===0 && dreams.length){
+      list.innerHTML = dreamHtml;
+    } else if(matches.length===0){
       list.innerHTML = '<div class="combo-empty">'+(isEn
         ? 'No '+(sex==='male'?'male':'female')+' reptile registered. Go to the "My reptiles" tab.'
         : 'Aucun reptile '+(sex==='male'?'mâle':'femelle')+' enregistré. Vas dans l\'onglet « Mes reptiles ».')+'</div>';
     } else {
       list.innerHTML = matches.map(s=>
         '<div class="combo-opt" data-id="'+s.id+'"><span>'+escapeHtml(s.name)+'</span><span class="opt-tag">'+(s.sex==='male'?(isEn?'male':'mâle'):(isEn?'female':'femelle'))+'</span></div>'
-      ).join('');
+      ).join('') + dreamHtml;
     }
     list.classList.toggle('open');
   });
   list.addEventListener('click', (e)=>{
     const opt = e.target.closest('.combo-opt');
     if(!opt) return;
-    loadSnake(opt.dataset.id, sex);
+    if(opt.dataset.dream) loadDreamSnake(opt.dataset.dream, sex);
+    else loadSnake(opt.dataset.id, sex);
     list.classList.remove('open');
   });
   document.addEventListener('click', (e)=>{
@@ -9397,6 +9427,8 @@ function runCross(){
   const comboEl = document.getElementById('parent-combo');
   comboEl.className = 'parent-combo' + (hasRisk?' risk':'');
   comboEl.textContent = (hasRisk?'🚨 ':'') + parentComboSummary();
+  const inbHtml = calcInbreedingHtml(); // v3.66
+  if(inbHtml) comboEl.insertAdjacentHTML('beforeend', inbHtml);
   document.getElementById('combo-count').textContent = results.length + (isEn?' result(s) — ':' résultat(s) — ') + loci.length + (isEn?' locus factored in':' locus pris en compte') + (lastFreewayLoci.length ? (isEn?' — 🔍 '+lastFreewayLoci.length+' unconfirmed locus':' — 🔍 '+lastFreewayLoci.length+' locus non confirmé(s)') : '') + (lastUncertainGenes.length ? (isEn?' — 🔍 '+lastUncertainGenes.length+' unconfirmed gene(s)':' — 🔍 '+lastUncertainGenes.length+' gène(s) non confirmé(s)') : '');
 
   const grid = document.getElementById('results');
