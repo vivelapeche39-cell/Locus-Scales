@@ -1425,6 +1425,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
              dans Racks & Terrariums (💧 sur la carte/le bac + Journal d'entretien). -->
         <button class="sc-btn" data-i18n="deselectBtn" onclick="clearTourSelection()">Désélectionner</button>
       </div>
+      <!-- v3.68 — date des actions du Mode Tournée (Aujourd'hui / Hier / Autre date), rendue en JS (FR/EN). -->
+      <div class="tour-toolbar" id="tour-date-bar" style="padding-top:0;border-bottom:none;"></div>
       <div class="tour-toolbar" id="tour-quickselect" style="padding-top:0;border-bottom:none;margin-bottom:10px;">
         <span class="tour-count" style="opacity:.7;" data-i18n="quickSelectPreyLabel">Sélection rapide par proie :</span>
         <button class="tour-action-btn" onclick="selectByPreyType('frozen')" data-i18n="selectFrozenBtn">❄️ Tout le décongelé</button>
@@ -2191,7 +2193,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.67';
+const APP_VERSION = '2026.09.01.3.68';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4399,10 +4401,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.67', date:'2026-10-09',
+  { version:'3.68', date:'2026-10-11',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '📅 Mode Tournée : nouvelle barre « Date de l\'action » (Aujourd\'hui / Hier / Autre date) pour noter un repas, un refus, une mue ou une pesée oubliés. Elle revient à Aujourd\'hui après chaque action. La date suit maintenant l\'heure locale (le soir, elle pouvait passer au lendemain).',
         '🧮 Calculateur : « Charger… » propose aussi tes bébés rêve du Simulateur (dans les deux panneaux), et le coefficient de consanguinité s\'affiche quand les deux parents ont été chargés. « Mes chances cette saison » passe avant la liste des résultats, et la liste se masque d\'un bouton (choix retenu) pour aller direct à la ponte simulée.',
         'Correctif Chemin optimal : il tient maintenant compte du sexe des animaux (il pouvait proposer de croiser deux femelles) et la consanguinité affichée pour un plan avec recroisement est celle du vrai plan.',
         'Génétique : Granite corrigé en codominant / incomplet dominant (Morphpedia, World of Ball Pythons) — il était classé « dominant » par erreur. Son super s\'appelle Super Granite.',
@@ -4439,6 +4442,7 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '📅 Tour Mode: new « Date of the action » bar (Today / Yesterday / Other date) to log a forgotten meal, refusal, shed or weigh-in. It goes back to Today after each action. The date now follows local time (in the evening it could jump to the next day).',
         '🧮 Calculator: "Load…" also offers your dream babies from the Dream Simulator (in both panels), and the inbreeding coefficient shows when both parents were loaded. "My odds this season" now comes before the results list, and the list can be hidden with one button (choice remembered) to go straight to the clutch simulator.',
         'Optimal Path fix: it now takes the animals\' sex into account (it could suggest pairing two females), and the inbreeding shown for a plan with a back-cross is that of the real plan.',
         'Genetics: Granite corrected to codominant / incomplete dominant (Morphpedia, World of Ball Pythons) — it was wrongly listed as dominant. Its super form is Super Granite.',
@@ -6212,6 +6216,52 @@ var savedSnakes = storage.load();
 // "undefined is not an object (evaluating 'tourSelection.has')". La déclarer ici, tout au début
 // aux côtés des autres variables d'état centrales, élimine cette fenêtre de risque au complet.
 var tourSelection = new Set();
+// v3.68 — date des actions du Mode Tournée. 'today' par défaut ; revient à 'today' après chaque
+// action pour ne jamais continuer à noter « hier » par accident. Date LOCALE (pas UTC) : le soir,
+// toISOString() donnait déjà le lendemain au Québec.
+var tourDateChoice = 'today';
+var tourDateOtherValue = '';
+var batchWeighDate = null;
+function localTodayStr(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function tourEventDate(){
+  const todayLocal = localTodayStr();
+  if(tourDateChoice==='yesterday') return addDays(todayLocal, -1);
+  if(tourDateChoice==='other' && /^\d{4}-\d{2}-\d{2}$/.test(tourDateOtherValue) && tourDateOtherValue<=todayLocal) return tourDateOtherValue;
+  return todayLocal;
+}
+function setTourDateChoice(choice){
+  tourDateChoice = choice;
+  if(choice==='other' && !tourDateOtherValue) tourDateOtherValue = addDays(localTodayStr(), -2);
+  renderTourDateBar();
+}
+function setTourDateOther(val){
+  tourDateOtherValue = val || '';
+  renderTourDateBar();
+}
+function renderTourDateBar(){
+  const bar = document.getElementById('tour-date-bar');
+  if(!bar) return;
+  const isEn = currentLang==='en';
+  const todayLocal = localTodayStr();
+  const pill = (choice, label)=>{
+    const on = tourDateChoice===choice;
+    return '<button class="tour-action-btn" onclick="setTourDateChoice(\''+choice+'\')" style="'+(on?'background:var(--gold);color:#1a1409;border-color:var(--gold);font-weight:bold;':'')+'">'+(on?'✓ ':'')+label+'</button>';
+  };
+  let html = '<span class="tour-count" style="opacity:.7;">📅 '+(isEn?'Date of the action:':'Date de l\'action :')+'</span>'+
+    pill('today', isEn?'Today':'Aujourd\'hui')+
+    pill('yesterday', isEn?'Yesterday':'Hier')+
+    pill('other', isEn?'Other date':'Autre date');
+  if(tourDateChoice==='other'){
+    html += '<input type="date" id="tour-date-other" value="'+escapeHtml(tourDateOtherValue)+'" min="'+addDays(todayLocal,-365)+'" max="'+todayLocal+'" onchange="setTourDateOther(this.value)" style="font-size:16px;padding:6px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>';
+  }
+  if(tourDateChoice!=='today'){
+    html += '<span class="tour-count" style="color:var(--gold);">'+(isEn?'Next action will be logged on ':'La prochaine action sera notée le ')+tourEventDate()+'</span>';
+  }
+  bar.innerHTML = html;
+}
 // Filtre multi-pièces (2 septembre) — pour les éleveurs dont la collection est répartie entre
 // plusieurs pièces physiques (sous-sol, salon, chambre dédiée...). 'all' = pas de filtre.
 var tourRoomFilter = 'all';
@@ -11719,8 +11769,10 @@ function confirmBatchWeigh(){
   const val = inp ? parseFloat(inp.value) : NaN;
   if(isNaN(val) || val<=0){ showToast(isEn?'Enter a valid weight in grams.':'Entre un poids valide en grammes.', 'error'); return; }
   const s = batchWeighQueue[batchWeighIndex];
-  const today = new Date().toISOString().slice(0,10);
+  // v3.68 — date choisie dans le Mode Tournée (peut être antérieure) ; pesées gardées en ordre chronologique.
+  const today = batchWeighDate || localTodayStr();
   s.health.weights.push({date:today, value:val});
+  s.health.weights.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
   s.health.events.push({date:today, type:'weigh', value:val});
   storage.save(savedSnakes);
   batchWeighIndex++;
@@ -17947,6 +17999,7 @@ function clearTourRackFilter(){
 }
 function renderTourGrid(){
   const isEn = currentLang==='en';
+  renderTourDateBar();
   // v3.52 — bouton « Assiette » seulement si la collection compte une espèce nourrie à l'assiette.
   const plateBtn = document.getElementById('tour-plate-btn');
   if(plateBtn){
@@ -18158,10 +18211,14 @@ function toggleTourPreyType(id){
 function applyTourAction(action){
   const isEn = currentLang==='en';
   if(tourSelection.size===0){ alert(isEn?'Select at least one tub or terrarium.':'Sélectionne au moins un bac ou terrarium.'); return; }
-  const today = new Date().toISOString().slice(0,10);
+  // v3.68 — date choisie dans la barre « Date de l'action » (aujourd'hui par défaut, en heure locale).
+  const today = tourEventDate();
+  const pastDateNote = today!==localTodayStr() ? ' ('+today+')' : '';
 
   if(action==='weigh'){
     const snakes = [...tourSelection].map(snakeFromKey).filter(Boolean);
+    batchWeighDate = today;
+    tourDateChoice = 'today';
     tourSelection.clear();
     renderTourGrid();
     startBatchWeigh(snakes, 0);
@@ -18252,10 +18309,11 @@ function applyTourAction(action){
       const sh = savedSnakes.find(x=>x.id===undoPairs[0].snakeId);
       shedHintTour = sh ? shedPredictionHint(sh) : null;
     }
-    showToast((icons[action]||'✓')+' '+(actionLabels[action]||(isEn?'Done.':'Fait.'))+(shedHintTour?'<br/><small>'+shedHintTour+'</small>':''), 'success', 'undoLastLoggedEvent()');
+    showToast((icons[action]||'✓')+' '+(actionLabels[action]||(isEn?'Done.':'Fait.'))+pastDateNote+(shedHintTour?'<br/><small>'+shedHintTour+'</small>':''), 'success', 'undoLastLoggedEvent()');
   } else if(action==='plate'){
     showToast(isEn?'🥗 None of the selected animals is fed from a plate.':'🥗 Aucun des animaux sélectionnés n\'est nourri à l\'assiette.', 'warning');
   }
+  tourDateChoice = 'today';
   tourSelection.clear();
   renderTourGrid();
 }
