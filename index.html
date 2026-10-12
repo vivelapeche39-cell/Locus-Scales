@@ -2193,7 +2193,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.68';
+const APP_VERSION = '2026.09.01.3.69';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4401,10 +4401,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.68', date:'2026-10-11',
+  { version:'3.69', date:'2026-10-12',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        'Correctif : le soir (dès 20 h l\'été, 19 h l\'hiver au Québec), l\'app pensait déjà être le lendemain — un repas, une mue ou une pesée notés en soirée tombaient au jour suivant, et les comptes à rebours décalaient d\'un jour. Toutes les dates suivent maintenant l\'heure de ton appareil.',
         '📅 Mode Tournée : nouvelle barre « Date de l\'action » (Aujourd\'hui / Hier / Autre date) pour noter un repas, un refus, une mue ou une pesée oubliés. Elle revient à Aujourd\'hui après chaque action. La date suit maintenant l\'heure locale (le soir, elle pouvait passer au lendemain).',
         '🧮 Calculateur : « Charger… » propose aussi tes bébés rêve du Simulateur (dans les deux panneaux), et le coefficient de consanguinité s\'affiche quand les deux parents ont été chargés. « Mes chances cette saison » passe avant la liste des résultats, et la liste se masque d\'un bouton (choix retenu) pour aller direct à la ponte simulée.',
         'Correctif Chemin optimal : il tient maintenant compte du sexe des animaux (il pouvait proposer de croiser deux femelles) et la consanguinité affichée pour un plan avec recroisement est celle du vrai plan.',
@@ -4442,6 +4443,7 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        'Fix: in the evening (in North America), the app already thought it was the next day — a meal, shed or weigh-in logged at night landed on the following day, and countdowns were off by one. All dates now follow your device\'s local time.',
         '📅 Tour Mode: new « Date of the action » bar (Today / Yesterday / Other date) to log a forgotten meal, refusal, shed or weigh-in. It goes back to Today after each action. The date now follows local time (in the evening it could jump to the next day).',
         '🧮 Calculator: "Load…" also offers your dream babies from the Dream Simulator (in both panels), and the inbreeding coefficient shows when both parents were loaded. "My odds this season" now comes before the results list, and the list can be hidden with one button (choice remembered) to go straight to the clutch simulator.',
         'Optimal Path fix: it now takes the animals\' sex into account (it could suggest pairing two females), and the inbreeding shown for a plan with a back-cross is that of the real plan.',
@@ -6222,9 +6224,14 @@ var tourSelection = new Set();
 var tourDateChoice = 'today';
 var tourDateOtherValue = '';
 var batchWeighDate = null;
+// v3.69 — toute l'app : « aujourd'hui » et les calculs de dates en heure LOCALE. toISOString() (UTC)
+// passait au lendemain le soir au Québec (dès 20 h l'été, 19 h l'hiver), et addDays() perdait un jour
+// pour les fuseaux à l'est de UTC (Europe).
+function localDateStr(dateObj){
+  return dateObj.getFullYear()+'-'+String(dateObj.getMonth()+1).padStart(2,'0')+'-'+String(dateObj.getDate()).padStart(2,'0');
+}
 function localTodayStr(){
-  const d = new Date();
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  return localDateStr(new Date());
 }
 function tourEventDate(){
   const todayLocal = localTodayStr();
@@ -7978,7 +7985,7 @@ function saveDraft(){
     const newGeneNames = summarizeGenes({...state.draft});
     if(oldGeneNames !== newGeneNames){
       if(!snake.geneticsHistory) snake.geneticsHistory = [];
-      snake.geneticsHistory.push({ id:'ghist_'+Date.now(), date:new Date().toISOString().slice(0,10), from:oldGeneNames, to:newGeneNames });
+      snake.geneticsHistory.push({ id:'ghist_'+Date.now(), date:localTodayStr(), from:oldGeneNames, to:newGeneNames });
     }
     snake.name = name; snake.sex = draftSex; snake.genes = {...state.draft}; snake.sireId = sireId; snake.damId = damId; snake.birthDate = birthDate; snake.provenance = provenance; snake.purchasePrice = purchasePrice; snake.species = species;
     snake.preySpecies = preySpecies; snake.preySize = preySize;
@@ -8365,7 +8372,7 @@ function batchSelectAll(){
 function batchMarkFed(){
   const isEn = currentLang==='en';
   if(batchSelectedIds.size===0) return;
-  const today = new Date().toISOString().slice(0,10);
+  const today = localTodayStr();
   let count = 0;
   let stockTouched = false;
   batchSelectedIds.forEach(id=>{
@@ -11131,7 +11138,7 @@ function toggleBrumation(id){
     s.brumation = { active:false, startDate:null };
     showToast('☀️ '+(isEn?'Brumation ended for ':'Hivernage terminé pour ')+s.name+'.', 'success');
   } else {
-    s.brumation = { active:true, startDate:new Date().toISOString().slice(0,10) };
+    s.brumation = { active:true, startDate:localTodayStr() };
     showToast('❄️ '+(isEn?'Brumation started for ':'Hivernage débuté pour ')+s.name+'.', 'success');
   }
   storage.save(savedSnakes);
@@ -11143,7 +11150,7 @@ function logAction(id, type){
   if(!s) return;
   ensureSnakeMeta(s);
   const isEn = currentLang==='en';
-  const today = new Date().toISOString().slice(0,10);
+  const today = localTodayStr();
   if(type==='fed'){ openFedModal(id); return; }
   else if(type==='plate'){ openPlateModal(id); return; }
   else if(type==='supplement'){ openSupplementModal(id); return; }
@@ -11161,7 +11168,7 @@ function openFedModal(id){
   const isEn = currentLang==='en';
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
-  const today = new Date().toISOString().slice(0,10);
+  const today = localTodayStr();
   const oneYearAgo = addDays(today, -365);
   showQuickModal((isEn?'Feeding — ':'Repas — ')+s.name,
     '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'+
@@ -11185,7 +11192,7 @@ function openPlateModal(id){
   const isEn = currentLang==='en';
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
-  const today = new Date().toISOString().slice(0,10);
+  const today = localTodayStr();
   const oneYearAgo = addDays(today, -365);
   showQuickModal((isEn?'Plate — ':'Assiette — ')+s.name,
     '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">'+
@@ -11205,7 +11212,7 @@ function confirmPlate(id, appetite){
   if(!s) return;
   ensureSnakeMeta(s);
   const dateInput = document.getElementById('plate-date-input');
-  const day = (dateInput && dateInput.value) ? dateInput.value : new Date().toISOString().slice(0,10);
+  const day = (dateInput && dateInput.value) ? dateInput.value : localTodayStr();
   let event, msg;
   if(appetite==='none'){
     s.health.consecutiveRefusals = (s.health.consecutiveRefusals||0)+1;
@@ -11251,7 +11258,7 @@ function openSupplementModal(id){
   const isEn = currentLang==='en';
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
-  const today = new Date().toISOString().slice(0,10);
+  const today = localTodayStr();
   showQuickModal('💊 '+(isEn?'Supplement — ':'Supplément — ')+s.name,
     '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">'+
       '<span style="font-size:13px;color:var(--ink-dim);">'+(isEn?'Date:':'Date :')+'</span>'+
@@ -11268,7 +11275,7 @@ function confirmSupplement(id, kind){
   if(!s) return;
   ensureSnakeMeta(s);
   const el = document.getElementById('supp-date-input');
-  const day = (el && el.value) ? el.value : new Date().toISOString().slice(0,10);
+  const day = (el && el.value) ? el.value : localTodayStr();
   const event = {date:day, type:'supplement', kind};
   s.health.events.push(event);
   storage.save(savedSnakes);
@@ -11284,7 +11291,7 @@ function confirmFed(id, quantity){
   if(!s) return;
   ensureSnakeMeta(s);
   const dateInput = document.getElementById('fed-date-input');
-  const today = (dateInput && dateInput.value) ? dateInput.value : new Date().toISOString().slice(0,10);
+  const today = (dateInput && dateInput.value) ? dateInput.value : localTodayStr();
   const countInput = document.getElementById('fed-prey-count');
   const preyCount = countInput ? Math.max(1, parseInt(countInput.value)||1) : 1;
   s.health.consecutiveRefusals = 0;
@@ -11332,7 +11339,7 @@ function confirmWeigh(id){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
   ensureSnakeMeta(s);
-  const today = new Date().toISOString().slice(0,10);
+  const today = localTodayStr();
   s.health.weights.push({date:today, value:val});
   s.health.events.push({date:today, type:'weigh', value:val});
   storage.save(savedSnakes);
@@ -11369,7 +11376,7 @@ function confirmLength(id){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
   ensureSnakeMeta(s);
-  const today = new Date().toISOString().slice(0,10);
+  const today = localTodayStr();
   s.health.lengths.push({date:today, value:val});
   s.health.events.push({date:today, type:'length', value:val});
   storage.save(savedSnakes);
@@ -11388,7 +11395,7 @@ function logTerrariumWaterChange(terrariumId){
   if(!te) return;
   if(!te.waterChanges) te.waterChanges = [];
   const entryId = 'twater_'+Date.now();
-  te.waterChanges.push({ id:entryId, date:new Date().toISOString().slice(0,10) });
+  te.waterChanges.push({ id:entryId, date:localTodayStr() });
   saveElevage();
   // v3.12 — bouton Annuler (double-tap accidentel) ; l'historique complet est dans 🧹 Nettoyage.
   showToast('💧 '+(isEn?'Water change logged.':'Changement d\'eau noté.'), 'success', "deleteTerrariumWaterLog('"+terrariumId+"','waterChanges','"+entryId+"',true)");
@@ -11466,7 +11473,7 @@ function openTerrariumWaterQualityModal(terrariumId){
 function confirmTerrariumWaterQuality(terrariumId){
   const isEn = currentLang==='en';
   const getVal = fieldId=>{ const el = document.getElementById(fieldId); const v = el ? parseFloat(el.value) : NaN; return isNaN(v) ? null : v; };
-  const entry = { id:'twq_'+Date.now(), date:new Date().toISOString().slice(0,10), ph:getVal('quick-wq-ph'), temp:getVal('quick-wq-temp'), ammonia:getVal('quick-wq-ammonia'), nitrite:getVal('quick-wq-nitrite'), nitrate:getVal('quick-wq-nitrate') };
+  const entry = { id:'twq_'+Date.now(), date:localTodayStr(), ph:getVal('quick-wq-ph'), temp:getVal('quick-wq-temp'), ammonia:getVal('quick-wq-ammonia'), nitrite:getVal('quick-wq-nitrite'), nitrate:getVal('quick-wq-nitrate') };
   if(entry.ph==null && entry.temp==null && entry.ammonia==null && entry.nitrite==null && entry.nitrate==null){
     showToast(isEn?'Enter at least one value.':'Entre au moins une valeur.', 'error'); return;
   }
@@ -11517,7 +11524,7 @@ function confirmShed(id){
   const noteEl = document.getElementById('shed-note-input');
   const quality = qualEl ? qualEl.value : 'complete';
   const note = noteEl ? noteEl.value.trim() : '';
-  const today = new Date().toISOString().slice(0,10);
+  const today = localTodayStr();
   const event = {date:today, type:'shed', quality, note};
   s.health.events.push(event);
   storage.save(savedSnakes);
@@ -11551,7 +11558,7 @@ function openRefusedModal(id){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
   ensureSnakeMeta(s);
-  const today = new Date().toISOString().slice(0,10);
+  const today = localTodayStr();
   const oneYearAgo = addDays(today, -365);
   showQuickModal((isEn?'Refusal — ':'Refus — ')+s.name,
     '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:6px;">'+(isEn?'Date':'Date')+'</label>'+
@@ -11585,7 +11592,7 @@ function confirmRefused(id){
   const note = noteEl ? noteEl.value.trim() : '';
   const lostPrey = lostEl ? lostEl.checked : false;
   const dateEl = document.getElementById('refused-date-input');
-  const today = (dateEl && dateEl.value) ? dateEl.value : new Date().toISOString().slice(0,10);
+  const today = (dateEl && dateEl.value) ? dateEl.value : localTodayStr();
   s.health.consecutiveRefusals = (s.health.consecutiveRefusals||0)+1;
   const event = {date:today, type:'refused', reason, note, lostPrey};
   // Proie décomptée seulement si « Proie perdue » est cochée (cochée par défaut si congelée, v3.21).
@@ -11619,7 +11626,7 @@ function activeLoanFor(s){
 }
 function isLoanOverdue(loan){
   if(!loan || !loan.expectedReturnDate) return false;
-  return loan.expectedReturnDate < new Date().toISOString().slice(0,10);
+  return loan.expectedReturnDate < localTodayStr();
 }
 function renderLoanSectionHtml(s){
   const isEn = currentLang==='en';
@@ -11642,7 +11649,7 @@ function renderLoanSectionHtml(s){
   return '<div class="pairing-form">'+
       '<input type="text" id="loan-borrower-'+s.id+'" placeholder="'+(isEn?'Borrower name':'Nom de l\'emprunteur')+'" style="flex:1;min-width:120px;"/>'+
       '<input type="text" id="loan-contact-'+s.id+'" placeholder="'+(isEn?'Contact (optional)':'Contact (optionnel)')+'" style="flex:1;min-width:120px;"/>'+
-      '<label style="display:flex;flex-direction:column;font-family:\'Courier New\',monospace;font-size:9px;color:var(--ink-dim);gap:2px;"><span>'+(isEn?'Loan date':'Date de prêt')+'</span><input type="date" id="loan-date-'+s.id+'" value="'+new Date().toISOString().slice(0,10)+'"/></label>'+
+      '<label style="display:flex;flex-direction:column;font-family:\'Courier New\',monospace;font-size:9px;color:var(--ink-dim);gap:2px;"><span>'+(isEn?'Loan date':'Date de prêt')+'</span><input type="date" id="loan-date-'+s.id+'" value="'+localTodayStr()+'"/></label>'+
       '<label style="display:flex;flex-direction:column;font-family:\'Courier New\',monospace;font-size:9px;color:var(--ink-dim);gap:2px;"><span>'+(isEn?'Expected return':'Retour prévu')+'</span><input type="date" id="loan-return-'+s.id+'"/></label>'+
       '<input type="text" id="loan-note-'+s.id+'" placeholder="'+(isEn?'Note (e.g. pairing at their place)':'Note (ex. accouplement chez eux)')+'" style="flex:1;min-width:160px;"/>'+
       '<button class="save-btn" onclick="startLoan(\''+s.id+'\')">🤝 '+(isEn?'Start loan':'Démarrer le prêt')+'</button>'+
@@ -11654,7 +11661,7 @@ function startLoan(id){
   if(!s) return;
   const borrowerName = document.getElementById('loan-borrower-'+id).value.trim();
   const borrowerContact = document.getElementById('loan-contact-'+id).value.trim();
-  const loanDate = document.getElementById('loan-date-'+id).value || new Date().toISOString().slice(0,10);
+  const loanDate = document.getElementById('loan-date-'+id).value || localTodayStr();
   const expectedReturnDate = document.getElementById('loan-return-'+id).value || null;
   const note = document.getElementById('loan-note-'+id).value.trim();
   if(!borrowerName){ showToast(isEn?'Enter a borrower name.':'Entre un nom d\'emprunteur.', 'error'); return; }
@@ -11669,7 +11676,7 @@ function markLoanReturned(id){
   if(!s) return;
   const active = activeLoanFor(s);
   if(!active) return;
-  active.returnedDate = new Date().toISOString().slice(0,10);
+  active.returnedDate = localTodayStr();
   storage.save(savedSnakes);
   openLogbook(id);
   showToast('✓ '+(currentLang==='en'?'Marked as returned.':'Marqué comme retourné.'), 'success');
@@ -13173,13 +13180,13 @@ function exportBackup(){
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'locus-sauvegarde-'+new Date().toISOString().slice(0,10)+'.json';
+  a.download = 'locus-sauvegarde-'+localTodayStr()+'.json';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
   // Rappel de sauvegarde (2 septembre) — la synchro cloud existe, mais un vrai fichier téléchargé
   // reste la meilleure police d'assurance. Date gardée en localStorage seulement (pas besoin de la
   // synchroniser entre appareils, chaque appareil peut avoir exporté à un moment différent).
-  try{ localStorage.setItem('locus_last_export', new Date().toISOString().slice(0,10)); }catch(e){}
+  try{ localStorage.setItem('locus_last_export', localTodayStr()); }catch(e){}
   updateBackupReminderBanner();
 }
 
@@ -13538,7 +13545,7 @@ document.getElementById('mm-csv-file-input').addEventListener('change', (e)=>{
         // l'app n'a pas de champ notes libre affiché ailleurs, provenance elle est bien visible/synchronisée.
         provenance: notes ? (baseProvenance+' — '+notes) : baseProvenance,
       };
-      if(weight!==null){ newSnake.health = { weights:[{date:new Date().toISOString().slice(0,10), value:weight}], events:[], consecutiveRefusals:0 }; }
+      if(weight!==null){ newSnake.health = { weights:[{date:localTodayStr(), value:weight}], events:[], consecutiveRefusals:0 }; }
 
       ensureSnakeMeta(newSnake);
       savedSnakes.push(newSnake);
@@ -13592,7 +13599,7 @@ function isDashSectionEmpty(key){
   if(key==='lastnext') return savedSnakes.length===0;
   if(key==='feeding'){
     if(savedSnakes.length===0) return true;
-    const todayStr = new Date().toISOString().slice(0,10);
+    const todayStr = localTodayStr();
     const horizon = addDays(todayStr, 7);
     return !savedSnakes.some(s=>nextFeedingDate(s)<=horizon);
   }
@@ -13893,7 +13900,7 @@ function toggleQuarantine(id){
     s.quarantine.active = false;
   } else {
     s.quarantine.active = true;
-    s.quarantine.startDate = new Date().toISOString().slice(0,10);
+    s.quarantine.startDate = localTodayStr();
     if(!s.quarantine.durationDays) s.quarantine.durationDays = 60;
   }
   storage.save(savedSnakes);
@@ -13978,7 +13985,7 @@ function shedPredictionHint(s){
   if(sheds.length===1) return isEn ? '1 more shed to log to predict the next one.' : 'Encore 1 mue à noter pour prédire la prochaine.';
   const est = nextShedEstimate(s);
   if(!est) return null;
-  const todayStr = new Date().toISOString().slice(0,10);
+  const todayStr = localTodayStr();
   const days = Math.round((new Date(est+'T00:00:00').getTime() - new Date(todayStr+'T00:00:00').getTime()) / 86400000);
   if(days<=0) return null;
   return isEn ? 'Next shed expected around '+est+' (in '+days+'d).' : 'Prochaine mue prévue vers le '+est+' (dans '+days+' j).';
@@ -14334,7 +14341,7 @@ function isPlateFeeder(s){ return !!(s && PLATE_SPECIES.includes(s.species)); }
 // Si jamais nourri, on projette à partir d'aujourd'hui (pas de date passée fictive).
 function nextFeedingDate(s){
   const relevant = s.health.events.filter(e=>e.type==='fed'||e.type==='refused').sort((a,b)=>a.date.localeCompare(b.date));
-  const base = relevant.length ? relevant[relevant.length-1].date : new Date().toISOString().slice(0,10);
+  const base = relevant.length ? relevant[relevant.length-1].date : localTodayStr();
   return addDays(base, feedingIntervalOf(s));
 }
 
@@ -14412,7 +14419,7 @@ var foodHorizonDays = 7;
 function renderFoodView(){
   const isEn = currentLang==='en';
   savedSnakes.forEach(ensureSnakeMeta);
-  const todayStr = new Date().toISOString().slice(0,10);
+  const todayStr = localTodayStr();
   const horizon = addDays(todayStr, foodHorizonDays-1);
   const due = savedSnakes.filter(s=> nextFeedingDate(s) <= horizon);
 
@@ -14460,7 +14467,7 @@ function renderDefrostList(){
   const wrap = document.getElementById('defrost-list');
   if(!wrap) return;
   savedSnakes.forEach(ensureSnakeMeta);
-  const todayStr = new Date().toISOString().slice(0,10);
+  const todayStr = localTodayStr();
   const horizon = addDays(todayStr, foodHorizonDays-1);
   const due = savedSnakes.filter(s=> nextFeedingDate(s) <= horizon && s.preySpecies && s.preySize);
   const frozenCounts = {};
@@ -14867,7 +14874,7 @@ function openRodentAddStockBatchModal(binId){
   const isEn = currentLang==='en';
   const bin = rodentBins.find(b=>b.id===binId);
   if(!bin) return;
-  const today = new Date().toISOString().slice(0,10);
+  const today = localTodayStr();
   const body =
     '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Quantity':'Quantité')+'</span>'+
       '<input type="number" id="rodent-batch-qty" min="1" value="1" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
@@ -15026,7 +15033,7 @@ function logRodentBinCleaning(binId){
   if(!bin.cleanings) bin.cleanings = [];
   const type = document.getElementById('rbc-type').value;
   const note = document.getElementById('rbc-note').value.trim();
-  bin.cleanings.push({ id:'clean_'+Date.now(), date:new Date().toISOString().slice(0,10), type, note });
+  bin.cleanings.push({ id:'clean_'+Date.now(), date:localTodayStr(), type, note });
   saveElevage();
   renderRodentBinCleaningModalBody(binId);
   renderRodentBins();
@@ -15075,7 +15082,7 @@ function logRodentWaterChange(binId){
   if(!bin) return;
   if(!bin.waterChanges) bin.waterChanges = [];
   const note = document.getElementById('rbw-note').value.trim();
-  bin.waterChanges.push({ id:'water_'+Date.now(), date:new Date().toISOString().slice(0,10), note });
+  bin.waterChanges.push({ id:'water_'+Date.now(), date:localTodayStr(), note });
   saveElevage();
   renderRodentWaterChangeModalBody(binId);
   renderRodentBins();
@@ -15194,12 +15201,12 @@ function confirmRodentMoveAnimal(sourceBinId){
         ? '⚠️ Inbreeding risk: this male shares a lineage with '+rodentLineageCode(destBin)+'\'s females. Move him anyway?'
         : '⚠️ Risque de consanguinité : ce mâle partage une lignée avec les femelles de '+rodentLineageCode(destBin)+'. Le déplacer quand même?')) return;
     }
-    sourceBin.maleRemovedDate = new Date().toISOString().slice(0,10);
+    sourceBin.maleRemovedDate = localTodayStr();
     sourceBin.maleRemovedNote = (isEn?'Moved to ':'Déplacé vers ')+rodentLineageCode(destBin);
     ensureRodentLineageHistory(destBin);
     const newLetter = nextRodentLetter(destBin.lineageLetter);
     if(newLetter){
-      destBin.lineageHistory.push({ generation:destBin.lineageGeneration||1, letter:newLetter, date:new Date().toISOString().slice(0,10), reason:(isEn?'Male from ':'Mâle depuis ')+rodentLineageCode(sourceBin), linkedToPrevious:true });
+      destBin.lineageHistory.push({ generation:destBin.lineageGeneration||1, letter:newLetter, date:localTodayStr(), reason:(isEn?'Male from ':'Mâle depuis ')+rodentLineageCode(sourceBin), linkedToPrevious:true });
       destBin.lineageLetter = newLetter;
     }
     destBin.maleOrigin = sourceBin.lineageNumber;
@@ -15234,7 +15241,7 @@ function toggleRodentMaleRemoval(binId){
   } else {
     const note = prompt(isEn?'Reason (optional):':'Raison (optionnel) :', '');
     if(note===null) return; // annulé
-    bin.maleRemovedDate = new Date().toISOString().slice(0,10);
+    bin.maleRemovedDate = localTodayStr();
     bin.maleRemovedNote = note.trim()||null;
     showToast('🐭 '+(isEn?'Male removed — noted.':'Mâle retiré — noté.'), 'success');
   }
@@ -15267,7 +15274,7 @@ function renderRodentBudgetModalBody(){
   const notImportedCount = rodentExpenses.filter(e=>!e.importedToMain).length;
   const body =
     '<div style="margin-bottom:16px;">'+
-      '<label style="display:block;margin-bottom:10px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Date':'Date')+'</span><input type="date" id="rodent-exp-date" value="'+new Date().toISOString().slice(0,10)+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
+      '<label style="display:block;margin-bottom:10px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Date':'Date')+'</span><input type="date" id="rodent-exp-date" value="'+localTodayStr()+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
       '<label style="display:block;margin-bottom:10px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Amount ($)':'Montant ($)')+'</span><input type="number" id="rodent-exp-amount" min="0" step="0.01" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
       '<label style="display:block;margin-bottom:10px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Note (e.g. feed, bedding)':'Note (ex. nourriture, litière)')+'</span><input type="text" id="rodent-exp-note" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
       '<button class="save-btn" style="width:100%;" onclick="addRodentExpense()">+ '+(isEn?'Log expense':'Ajouter une dépense')+'</button>'+
@@ -15285,7 +15292,7 @@ function renderRodentBudgetModalBody(){
 }
 function addRodentExpense(){
   const isEn = currentLang==='en';
-  const date = document.getElementById('rodent-exp-date').value || new Date().toISOString().slice(0,10);
+  const date = document.getElementById('rodent-exp-date').value || localTodayStr();
   const amount = parseFloat(document.getElementById('rodent-exp-amount').value);
   const note = document.getElementById('rodent-exp-note').value.trim();
   if(isNaN(amount) || amount<=0){ showToast(isEn?'Enter a valid amount.':'Entre un montant valide.', 'error'); return; }
@@ -15379,7 +15386,7 @@ function rodentReferenceDateForStartingStage(stageKey){
   const offsetDays = rodentStageStartDay(stageKey);
   const d = new Date();
   d.setDate(d.getDate() - offsetDays);
-  return d.toISOString().slice(0,10);
+  return localDateStr(d);
 }
 function rodentBatchStageKey(batch){
   const stageName = computeRodentStageFromAge(daysSinceDate(batch.referenceDate));
@@ -15537,7 +15544,7 @@ function confirmRodentLineageLetterIncrement(binId){
     bin.lineageGeneration = (bin.lineageGeneration||1) + 1;
     bin.lineageLetter = null;
   }
-  bin.lineageHistory.push({ generation:bin.lineageGeneration||1, letter:bin.lineageLetter, date:new Date().toISOString().slice(0,10), reason: reason||null, linkedToPrevious: sameFemales });
+  bin.lineageHistory.push({ generation:bin.lineageGeneration||1, letter:bin.lineageLetter, date:localTodayStr(), reason: reason||null, linkedToPrevious: sameFemales });
   bin.maleOrigin = maleOrigin;
   saveElevage();
   closeQuickModal();
@@ -15896,7 +15903,7 @@ function buildRodentLineageBin({species, ratio, rackId, row, col, femaleOriginNu
   });
   return { id:'rb_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), label:(isEn?'Lineage ':'Lignée ')+num+'.1', binType:'reproduction', species, ratio, room:null, litters:[],
     lineageNumber:num, lineageGeneration:1, lineageLetter:null, lineageCustomName:null, rackId, row, col,
-    lineageHistory:[{ generation:1, letter:null, date:new Date().toISOString().slice(0,10), reason:null, linkedToPrevious:null }],
+    lineageHistory:[{ generation:1, letter:null, date:localTodayStr(), reason:null, linkedToPrevious:null }],
     cumulativeFootprint, notIndependentNote: note||null, maleOrigin };
 }
 function confirmAssignNewRodentLineage(rackId, row, col){
@@ -16562,7 +16569,7 @@ function rodentMonthlyStatsForMonth(monthStr){
 }
 function showRodentMonthlyReport(monthStr){
   const isEn = currentLang==='en';
-  const month = monthStr || new Date().toISOString().slice(0,7);
+  const month = monthStr || localTodayStr().slice(0,7);
   if(!rodentBins.filter(b=>b.binType!=='stock').length){
     showQuickModal('📅 '+(isEn?'Monthly report':'Rapport mensuel'), '<div class="empty">'+(isEn?'No breeding bin registered yet.':'Aucun bac de reproduction enregistré pour l\'instant.')+'</div>');
     return;
@@ -17194,12 +17201,12 @@ function deleteMaintenanceJournalEntry(encodedOwner, kind, entryId){
 }
 function maintenanceDateInputHtml(id){
   const isEn = currentLang==='en';
-  const today = new Date().toISOString().slice(0,10);
+  const today = localTodayStr();
   return '<label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:12px;color:var(--ink-dim);">'+(isEn?'Date:':'Date :')+'</span>'+
     '<input type="date" id="'+id+'" value="'+today+'" min="'+addDays(today,-365)+'" max="'+today+'" style="flex:1;font-size:16px;padding:6px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>';
 }
 function readMaintenanceDate(id){
-  const today = new Date().toISOString().slice(0,10);
+  const today = localTodayStr();
   const el = document.getElementById(id);
   const v = el && el.value ? el.value : today;
   return v > today ? today : v;
@@ -17240,7 +17247,7 @@ function logRackTubWaterChange(rackId, row, tub){
   const key = row+'|'+tub;
   if(!rack.tubWaterChanges[key]) rack.tubWaterChanges[key] = [];
   const entryId = 'twater_'+Date.now()+'_'+key;
-  rack.tubWaterChanges[key].push({ id:entryId, date:new Date().toISOString().slice(0,10) });
+  rack.tubWaterChanges[key].push({ id:entryId, date:localTodayStr() });
   saveElevage();
   // v3.12 — Annuler + historique supprimable dans 🧹 du bac (avant : aucun moyen de corriger un tap par erreur).
   showToast('💧 '+(isEn?'Water change logged.':'Changement d\'eau noté.'), 'success', "deleteRackTubWaterChange('"+rackId+"','"+key+"','"+entryId+"',true)");
@@ -17532,7 +17539,7 @@ function toggleUvbDateField(selectEl){
 function setUvbDateFromNow(months){
   const d = new Date();
   d.setMonth(d.getMonth() + months);
-  const iso = d.toISOString().slice(0,10);
+  const iso = localDateStr(d);
   const input = document.getElementById('te-edit-uvb-date');
   if(input) input.value = iso;
 }
@@ -17564,7 +17571,7 @@ function refreshTerrariumStatus(te){
   if(count===0){ te.status='libre'; te.pairingStartDate=null; }
   else if(count===1){ te.status='occupe'; te.pairingStartDate=null; }
   else {
-    if(te.status!=='accouplement') te.pairingStartDate = new Date().toISOString().slice(0,10);
+    if(te.status!=='accouplement') te.pairingStartDate = localTodayStr();
     te.status='accouplement';
   }
 }
@@ -20158,7 +20165,7 @@ function proceedWithClutchBirth(id){
       : 'Portée de '+c.eggCount+' œufs — 12 fiches auto-créées (limite du simulateur), ajoute les suivantes manuellement dans « Mes reptiles ».';
   }
 
-  const today = new Date().toISOString().slice(0,10);
+  const today = localTodayStr();
 
   // Auto-création d'une fiche par œuf, génétique exacte reprise du tirage — sexe laissé "non sexé"
   // (le sexage réel se fait à la manipulation, pas à l'éclosion, sauf cas Male/Female Maker qui reste indicatif).
@@ -20466,7 +20473,7 @@ function applyGeneticSurpriseResolution(babyId, idx, mode, targetParentId){
   if(!surprise){ openGeneticSurpriseModal(babyId, idx+1); return; }
   const sire = savedSnakes.find(s=>s.id===baby.sireId);
   const dam = savedSnakes.find(s=>s.id===baby.damId);
-  const today = new Date().toISOString().slice(0,10);
+  const today = localTodayStr();
 
   if(mode==='single'){
     const target = savedSnakes.find(s=>s.id===targetParentId);
@@ -20573,7 +20580,7 @@ function applyRetroactiveResolution(babyId, idx){
   const otherCandidateId = amb.candidateIds.find(cid=>cid!==r.confirmedParentId);
   const otherCandidate = savedSnakes.find(s=>s.id===otherCandidateId);
   const gene = GENES.find(g=>g.id===amb.geneId);
-  const today = new Date().toISOString().slice(0,10);
+  const today = localTodayStr();
 
   if(confirmedParent){
     confirmedParent.genes = confirmedParent.genes || {};
@@ -20673,7 +20680,7 @@ function setListingStatus(id, status){
     return;
   }
   s.status = status; s.buyer = null; s.soldDate = null; s.soldPrice = null; s.reservation = null;
-  if(status==='forsale' && !s.listedDate) s.listedDate = new Date().toISOString().slice(0,10);
+  if(status==='forsale' && !s.listedDate) s.listedDate = localTodayStr();
   storage.save(savedSnakes);
   renderSavedList();
   if(document.getElementById('view-ventes') && document.getElementById('view-ventes').style.display!=='none') renderSalesView();
@@ -20696,7 +20703,7 @@ function openReservationModal(id){
     '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Deposit received ($)':'Acompte reçu ($)')+'</label>'+
     '<input type="number" id="res-deposit-input" class="price-input" style="width:100%;padding:9px 10px;font-size:14px;margin-bottom:14px;" value="'+(r.depositAmount!=null?r.depositAmount:'')+'" placeholder="0"/>'+
     '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Deposit date':'Date de l\'acompte')+'</label>'+
-    '<input type="date" id="res-date-input" class="price-input" style="width:100%;padding:9px 10px;font-size:14px;margin-bottom:14px;" value="'+(r.depositDate||new Date().toISOString().slice(0,10))+'"/>'+
+    '<input type="date" id="res-date-input" class="price-input" style="width:100%;padding:9px 10px;font-size:14px;margin-bottom:14px;" value="'+(r.depositDate||localTodayStr())+'"/>'+
     '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Note (optional)':'Note (optionnel)')+'</label>'+
     '<input type="text" id="res-note-input" class="price-input" style="width:100%;padding:9px 10px;font-size:14px;" value="'+escapeHtml(r.note||'')+'" placeholder="'+(isEn?'e.g. balance due at pickup':'ex. solde dû à la livraison')+'"/>'+
     '<button class="save-btn" style="margin-top:16px;width:100%;" onclick="confirmReservation(\''+id+'\')">🤝 '+(isEn?'Confirm reservation':'Confirmer la réservation')+'</button>'
@@ -20711,7 +20718,7 @@ function confirmReservation(id){
   if(!buyerName){ showToast(isEn?'Enter the buyer\'s name.':'Entre le nom de l\'acheteur.', 'error'); return; }
   const totalPrice = parseFloat(document.getElementById('res-total-input').value);
   const depositAmount = parseFloat(document.getElementById('res-deposit-input').value) || 0;
-  const depositDate = document.getElementById('res-date-input').value || new Date().toISOString().slice(0,10);
+  const depositDate = document.getElementById('res-date-input').value || localTodayStr();
   const note = document.getElementById('res-note-input').value.trim();
   s.status = 'reserved';
   s.reservation = { buyerName, totalPrice: isNaN(totalPrice)?null:totalPrice, depositAmount, depositDate, note };
@@ -20770,7 +20777,7 @@ function confirmSold(id){
   const priceVal = document.getElementById('quick-soldprice-input').value;
   const parsedPrice = parseFloat(priceVal);
   const price = priceVal!=='' ? (isNaN(parsedPrice) ? null : parsedPrice) : s.askingPrice;
-  s.status = 'sold'; s.buyer = buyer; s.soldDate = new Date().toISOString().slice(0,10); s.soldPrice = price; s.paidViaStripe = false;
+  s.status = 'sold'; s.buyer = buyer; s.soldDate = localTodayStr(); s.soldPrice = price; s.paidViaStripe = false;
   storage.save(savedSnakes);
   closeQuickModal();
   renderSavedList();
@@ -20847,7 +20854,7 @@ async function addPhotosToSnake(id, fileList){
   for(const f of files){
     const dataUrl = await compressPhotoFile(f);
     if(!dataUrl) continue;
-    const photo = { id:'ph_'+Date.now()+'_'+Math.random().toString(36).slice(2,6), date:new Date().toISOString().slice(0,10), dataUrl };
+    const photo = { id:'ph_'+Date.now()+'_'+Math.random().toString(36).slice(2,6), date:localTodayStr(), dataUrl };
     s.photos.push(photo); added.push(photo);
   }
   storage.save(savedSnakes);
@@ -20871,7 +20878,7 @@ function addPhotoToSnake(id, file){
       canvas.height = Math.round(img.height*scale);
       canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
-      const photo = { id:'ph_'+Date.now(), date:new Date().toISOString().slice(0,10), dataUrl };
+      const photo = { id:'ph_'+Date.now(), date:localTodayStr(), dataUrl };
       s.photos.push(photo);
       storage.save(savedSnakes);
       openLogbook(id);
@@ -21140,7 +21147,7 @@ async function exportMorphMarketBulk(){
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'locus-morphmarket-export-'+new Date().toISOString().slice(0,10)+'.csv';
+  a.download = 'locus-morphmarket-export-'+localTodayStr()+'.csv';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -21347,7 +21354,7 @@ function renderSalesView(){
   const forSale = savedSnakes.filter(s=>s.status==='forsale');
   const reserved = savedSnakes.filter(s=>s.status==='reserved');
   const sold = savedSnakes.filter(s=>s.status==='sold');
-  const ymPrefix = new Date().toISOString().slice(0,7);
+  const ymPrefix = localTodayStr().slice(0,7);
   const soldThisMonth = sold.filter(s=>s.soldDate && s.soldDate.slice(0,7)===ymPrefix);
   const sum = (arr, field) => arr.reduce((a,s)=>a+((s[field])||0),0);
 
@@ -21527,7 +21534,7 @@ function updateBackupReminderBanner(){
   if(!el) return;
   let snoozeUntil;
   try{ snoozeUntil = localStorage.getItem('locus_backup_reminder_snooze'); }catch(e){ snoozeUntil = null; }
-  if(snoozeUntil && snoozeUntil > new Date().toISOString().slice(0,10)){ el.style.display = 'none'; return; }
+  if(snoozeUntil && snoozeUntil > localTodayStr()){ el.style.display = 'none'; return; }
   const days = daysSinceLastExport();
   const shouldShow = savedSnakes.length>0 && (days===null || days>=30);
   if(!shouldShow){ el.style.display = 'none'; return; }
@@ -21543,7 +21550,7 @@ function updateBackupReminderBanner(){
     '<button class="ob-close" onclick="snoozeBackupReminder()" aria-label="Fermer">×</button>';
 }
 function snoozeBackupReminder(){
-  try{ localStorage.setItem('locus_backup_reminder_snooze', addDays(new Date().toISOString().slice(0,10), 14)); }catch(e){}
+  try{ localStorage.setItem('locus_backup_reminder_snooze', addDays(localTodayStr(), 14)); }catch(e){}
   const el = document.getElementById('backup-reminder-banner');
   if(el) el.style.display = 'none';
 }
@@ -21591,7 +21598,7 @@ function addTodo(){
   const input = document.getElementById('todo-input');
   const title = input.value.trim();
   if(!title) return;
-  todos.push({ id:'todo_'+Date.now(), title, done:false, createdAt:new Date().toISOString().slice(0,10) });
+  todos.push({ id:'todo_'+Date.now(), title, done:false, createdAt:localTodayStr() });
   input.value = '';
   saveElevage();
   renderTodos();
@@ -21636,7 +21643,7 @@ function loadSampleRodentBins(){
   const isEn = currentLang==='en';
   const prefix = isEn ? 'Sample — ' : 'Exemple — ';
   if(rodentBins.some(b=>b.isSample)) return;
-  const d = (daysAgo)=> new Date(Date.now()-daysAgo*86400000).toISOString().slice(0,10);
+  const d = (daysAgo)=> localDateStr(new Date(Date.now()-daysAgo*86400000));
   rodentBins.push({
     id:'rb_sample_good_'+Date.now(), label:prefix+(isEn?'Bin A1':'Bac A1'), species:'mouse', ratio:'2:1', room:null, isSample:true,
     maleRemovedDate:null,
@@ -21694,7 +21701,7 @@ function loadSampleData(){
     placement:{ mode:'terrarium', terrariumId:terraId }
   });
   if(!todos.some(x=>x.isSample)){
-    todos.push({ id:'todo_sample_'+Date.now(), title: isEn?'Sample task — try checking this off':'Tâche exemple — essaie de la cocher', done:false, createdAt:new Date().toISOString().slice(0,10), isSample:true });
+    todos.push({ id:'todo_sample_'+Date.now(), title: isEn?'Sample task — try checking this off':'Tâche exemple — essaie de la cocher', done:false, createdAt:localTodayStr(), isSample:true });
   }
 
   // Bacs de rongeurs d'exemple (4 sept) — un bon bac et un bac sous-performant, pour que le
@@ -21824,7 +21831,7 @@ function renderDashboard(){
 
   // Widget "Aujourd'hui" — mue prévue bientôt (7j, basé sur l'historique de mues) et pesée en
   // retard (30j+ ou jamais pesé), en plus des pontes proches de l'éclosion (14j).
-  const todayStr0 = new Date().toISOString().slice(0,10);
+  const todayStr0 = localTodayStr();
   const shedSoon = dashSnakes.map(s=>({snake:s, date:nextShedEstimate(s)})).filter(x=>x.date && x.date<=addDays(todayStr0,7)).sort((a,b)=>a.date.localeCompare(b.date));
   const weighDue = dashSnakes.filter(s=>{ const d = daysSinceLastWeigh(s); return d===null || d>=WEIGH_REMINDER_DAYS; });
   const clutchesToCheck = clutches.filter(c=>{
@@ -21966,7 +21973,7 @@ function renderDashboard(){
   }
 
   const feedWrap = document.getElementById('dash-feeding-list');
-  const todayStr = new Date().toISOString().slice(0,10);
+  const todayStr = localTodayStr();
   const horizon = addDays(todayStr, 7);
   const dueList = dashSnakes.map(s=>({ snake:s, due:nextFeedingDate(s) })).filter(x=>x.due<=horizon).sort((a,b)=>a.due.localeCompare(b.due));
   if(dueList.length===0){
@@ -22158,7 +22165,7 @@ var NOTIF_LOG_KEY = 'locus_notif_log_v1';
 function checkDailyNotifDigest(){
   const isEn = currentLang==='en';
   if(!notifPrefs.enabled || typeof Notification==='undefined' || Notification.permission!=='granted') return;
-  const today = new Date().toISOString().slice(0,10);
+  const today = localTodayStr();
   let log = {};
   try{ log = JSON.parse(localStorage.getItem(NOTIF_LOG_KEY)||'{}'); }catch(e){}
   if(log.lastSentDate===today) return; // déjà envoyé aujourd'hui
@@ -22341,7 +22348,7 @@ function renderBudgetImportPreview(colMap, headerRow){
 }
 function confirmBudgetImport(){
   const isEn = currentLang==='en';
-  const today = new Date().toISOString().slice(0,10);
+  const today = localTodayStr();
   let added = 0;
   pendingBudgetRows.forEach(r=>{
     expenses.push({ id:'exp_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), date:r.date||today, category:r.category, amount:r.amount, note:r.note });
@@ -22354,7 +22361,7 @@ function confirmBudgetImport(){
   showToast('📊 '+added+' '+(isEn?'expense(s) imported.':'dépense(s) importée(s).'), 'success');
 }
 function addExpense(){
-  const date = document.getElementById('expense-date').value || new Date().toISOString().slice(0,10);
+  const date = document.getElementById('expense-date').value || localTodayStr();
   const category = document.getElementById('expense-category').value;
   const amount = parseFloat(document.getElementById('expense-amount').value);
   const note = document.getElementById('expense-note').value.trim();
@@ -22506,7 +22513,7 @@ function exportInventoryExcel(){
   const ws = XLSX.utils.aoa_to_sheet([headerRow, ...rows]);
   ws['!cols'] = [{wch:16},{wch:8},{wch:16},{wch:28},{wch:13},{wch:12},{wch:12},{wch:20},{wch:12},{wch:16},{wch:20}];
   XLSX.utils.book_append_sheet(wb, ws, isEn?'Inventory':'Inventaire');
-  XLSX.writeFile(wb, (isEn?'LOCUS-Scales-inventory-':'LOCUS-Scales-inventaire-')+new Date().toISOString().slice(0,10)+'.xlsx');
+  XLSX.writeFile(wb, (isEn?'LOCUS-Scales-inventory-':'LOCUS-Scales-inventaire-')+localTodayStr()+'.xlsx');
 }
 // Version PDF (imprimable) de l'inventaire (4 sept) — même approche que le rapport de valeur déjà
 // existant : une page HTML bien formatée + window.print() automatique, ce qui laisse le navigateur
@@ -22679,7 +22686,7 @@ function generateInvoicePdf(id){
   const isSold = s.status==='sold';
   const r = s.reservation || {};
   const buyerName = isSold ? (s.buyer||'—') : (r.buyerName||'—');
-  const docDate = isSold ? (s.soldDate||new Date().toISOString().slice(0,10)) : (r.depositDate||new Date().toISOString().slice(0,10));
+  const docDate = isSold ? (s.soldDate||localTodayStr()) : (r.depositDate||localTodayStr());
   const total = isSold ? (s.soldPrice!=null?s.soldPrice:0) : (r.totalPrice!=null?r.totalPrice:0);
   const deposit = isSold ? total : (r.depositAmount||0);
   const balance = Math.max(0, total-deposit);
@@ -22843,7 +22850,7 @@ function exportValueReport(){
 function addDays(dateStr, n){
   const d = new Date(dateStr+'T00:00:00');
   d.setDate(d.getDate()+n);
-  return d.toISOString().slice(0,10);
+  return localDateStr(d);
 }
 
 function toggleOvulation(pairingId){
@@ -23010,7 +23017,7 @@ function quickAddPairingFromLockMode(){
     warnings.push((isEn?'Inbreeding coefficient for this pairing: ':'Coefficient de consanguinité pour cet accouplement : ')+pairFpct+'%'+(isEn?' (based on recorded pedigree).':' (basé sur le pedigree enregistré).'));
   }
   if(warnings.length && !confirm((isEn?'⚠ Points to check before this pairing:\n\n':'⚠ Points à vérifier avant cet accouplement :\n\n')+warnings.join('\n')+(isEn?'\n\nPair anyway?':'\n\nAccoupler quand même ?'))) return;
-  const date = new Date().toISOString().slice(0,10);
+  const date = localTodayStr();
   pairings.push({ id:'pr_'+Date.now(), maleId, femaleId, pairedDate:date, coolingDate:null, ovulationConfirmed:false, ovulationDate:null, follicleSizes:[], lockDates:[], preLayShedDate:null, projectId:null });
   saveElevage();
   showToast('🤝 '+(isEn?'Pairing created: ':'Accouplement créé : ')+male.name+' × '+female.name+'.', 'success');
@@ -23120,7 +23127,7 @@ function renderCustomEvents(){
   const wrap = document.getElementById('custom-events-list');
   if(!wrap) return;
   if(customEvents.length===0){ wrap.innerHTML = '<div class="empty">'+(isEn?'No custom reminders yet.':'Aucun rappel personnalisé pour l\'instant.')+'</div>'; return; }
-  const today = new Date().toISOString().slice(0,10);
+  const today = localTodayStr();
   const sorted = [...customEvents].sort((a,b)=>a.date.localeCompare(b.date));
   wrap.innerHTML = sorted.map(e=>{
     const isPast = e.date < today;
@@ -23277,7 +23284,7 @@ function renderTimeline(){
     card.className = 'timeline-card';
     let steps;
     if(p.ovulationConfirmed && p.ovulationDate){
-      const today = new Date().toISOString().slice(0,10);
+      const today = localTodayStr();
       const stepsData = [
         [t('stepPairing'), p.pairedDate, p.pairedDate],
         [t('stepOvulationConfirmed'), p.ovulationDate, p.ovulationDate],
