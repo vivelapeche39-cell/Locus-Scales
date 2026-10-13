@@ -325,6 +325,11 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    que .mini-animal-grid, réutilisée ici pour cocher rapidement plusieurs bacs à la fois. */
 .tub-select-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px;}
 .tub-select-chip{background:var(--bg-panel);border:1px solid var(--line);border-radius:10px;padding:7px 6px;display:flex;flex-direction:column;gap:2px;font-size:9.5px;cursor:pointer;line-height:1.3;}
+.maint-selectable{outline:2px dashed rgba(201,151,62,.55);outline-offset:-2px;cursor:pointer;}
+.maint-selected{outline:3px solid var(--gold) !important;outline-offset:-3px;background-color:rgba(201,151,62,.22) !important;}
+.maint-disabled{opacity:.35;}
+.maint-action-panel{position:fixed;left:8px;right:90px;bottom:16px;z-index:65;max-width:720px;margin:0 auto;display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px;border:1px solid var(--gold);border-radius:12px;background:var(--bg-panel);box-shadow:var(--shadow);}
+@media (max-width: 760px){ .maint-action-panel{right:8px;bottom:calc(64px + env(safe-area-inset-bottom));} }
 .tub-select-chip.checked{border-color:var(--sage);background:rgba(124,131,99,.18);}
 .tub-select-chip input{margin-right:4px;}
 .mini-animal-card{background:var(--bg-panel);border:1px solid var(--line);border-radius:10px;padding:8px 7px;display:flex;flex-direction:column;gap:3px;}
@@ -1395,8 +1400,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       </div>
       <button class="sc-btn" id="racks-show-all-btn" style="margin-bottom:14px;" onclick="showAllRacksTerrariums()">🔄 <span data-i18n="showAllSectionsBtn">Tout réafficher</span></button>
       <button class="sc-btn accent" style="margin-bottom:14px;" onclick="openMaintenanceJournal('all')">📒 <span data-i18n="maintenanceJournalBtn">Journal d'entretien</span></button>
-      <!-- v3.74 — entretien en lot (demande d'un utilisateur) : nettoyage / changement d'eau sur plusieurs bacs et terrariums d'un coup. -->
-      <button class="sc-btn accent" style="margin-bottom:14px;" onclick="openBulkMaintenance()">🧽 <span data-i18n="bulkMaintBtn">Entretien en lot</span></button>
+      <!-- v3.75 — entretien en lot directement sur la page (même principe que le Mode Tournée) : pastille d'action → toucher les bacs/terrariums → Enregistrer. Rendu en JS (FR/EN). -->
+      <div id="maint-bar" style="margin-bottom:10px;"></div>
       <div id="racks-terrariums-wrap">
         <div class="elevage-block" id="block-racks">
           <div class="section-line-head">
@@ -2199,7 +2204,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.74';
+const APP_VERSION = '2026.09.01.3.75';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4408,11 +4413,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.74', date:'2026-10-13',
+  { version:'3.75', date:'2026-10-13',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
-        '🧽 Entretien en lot (Racks & Terrariums) : choisis l\'action en haut (nettoyage partiel, complet ou changement d\'eau), puis sélectionne des bacs, une rangée, un rack entier ou tes terrariums, et enregistre tout d\'un coup. Date modifiable, bouton Annuler. Merci pour la suggestion!',
+        '🧽 Entretien en lot, directement sur la page Racks & Terrariums : touche une pastille en haut (changement d\'eau, nettoyage partiel ou complet, et UVB remplacé ou test d\'eau quand ça s\'applique), puis touche tes bacs et terrariums un par un, une rangée, un rack entier ou tous tes terrariums, et enregistre d\'un coup. Date modifiable, bouton Annuler. Retouche la pastille ou « Terminer » pour revenir à la page normale. Merci pour la suggestion!',
         'Traduction : une dizaine de textes restaient en français dans l\'app en anglais (formulaire de ponte, listes d\'attente, menu Légal, exemple de format CSV, provenance, bulles d\'aide).',
         'Mon profil affiche maintenant ton palier (ex. « Palier : Gratuit »), avec la mention « À vie (offert) » pour les comptes à qui il a été offert.',
         'Correctif : dans l\'app en anglais, le choix de la date de naissance d\'un nouveau reptile restait en français, et la case « Proie » débordait de l\'écran sur cellulaire.',
@@ -4454,7 +4459,7 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
-        '🧽 Bulk maintenance (Racks & Enclosures): pick the action at the top (partial cleaning, full cleaning or water change), then select tubs, a row, a whole rack or your enclosures, and log everything at once. Editable date, Undo button. Thanks for the suggestion!',
+        '🧽 Bulk maintenance, right on the Racks & Enclosures page: tap a pill at the top (water change, partial or full cleaning, plus UVB replaced or water test when they apply), then tap your tubs and enclosures one by one, a row, a whole rack or all enclosures, and save at once. Editable date, Undo button. Tap the pill again or « Done » to return to the normal page. Thanks for the suggestion!',
         'Translation: about ten texts stayed in French in the English app (clutch form, waitlists, Legal menu, CSV format example, provenance, tooltips).',
         'My Profile now shows your plan (e.g. « Plan: Free »), with « Lifetime (complimentary) » for accounts it was offered to.',
         'Fix: in the English app, the birth date choice for a new reptile stayed in French, and the « Prey » box overflowed the screen on phones.',
@@ -5165,7 +5170,6 @@ const I18N = {
     purchasePriceLabel: 'Prix d\'achat',
     purchasePriceHint: '(optionnel — laisse vide si né chez toi ; sert au calcul de profit par ponte/animal)',
     actualTotalInit: 'Total enregistré : 0', waitlistAllHint: 'Toutes les listes d\'attente de tous les accouplements, regroupées en une seule vue pour trier/contacter d\'un coup d\'œil.', clutchEggCountPh: 'Nb d\'œufs', saveClutchBtn: 'Enregistrer la portée', legalSidebarLabel: 'LÉGAL', csvFormatExample: 'nom;sexe(M/F);gene1|gene2|gene3', provenancePh: 'Ex. Python of the North, éleveur particulier, animalerie…', legalRegTitle: 'Réglementation par province', deleteSavedFilterTitle: 'Supprimer le filtre sélectionné',
-    bulkMaintBtn: 'Entretien en lot',
     birthDateLabel: 'Date de naissance', birthPrecUnknown: 'Inconnue', birthPrecFull: 'Jour/Mois/Année', birthPrecMonth: 'Mois/Année', birthPrecYear: 'Année seule', birthYearPlaceholder: 'AAAA',
     saveNewBtn: 'Enregistrer ce reptile',
     cancelEditBtn: 'Annuler la modification',
@@ -5735,7 +5739,6 @@ const I18N = {
     purchasePriceLabel: 'Purchase price',
     purchasePriceHint: '(optional — leave blank if born here; used for clutch/animal profit calculations)',
     actualTotalInit: 'Recorded total: 0', waitlistAllHint: 'Every waitlist from every pairing, grouped in one view to sort and contact at a glance.', clutchEggCountPh: 'No. of eggs', saveClutchBtn: 'Save clutch', legalSidebarLabel: 'LEGAL', csvFormatExample: 'name;sex(M/F);gene1|gene2|gene3', provenancePh: 'E.g. Python of the North, private breeder, pet store…', legalRegTitle: 'Regulations by province', deleteSavedFilterTitle: 'Delete the selected filter',
-    bulkMaintBtn: 'Bulk maintenance',
     birthDateLabel: 'Birth date', birthPrecUnknown: 'Unknown', birthPrecFull: 'Day/Month/Year', birthPrecMonth: 'Month/Year', birthPrecYear: 'Year only', birthYearPlaceholder: 'YYYY',
     saveNewBtn: 'Save This Reptile',
     cancelEditBtn: 'Cancel Editing',
@@ -16703,6 +16706,7 @@ function snakeTooltip(s){
 
 function renderRackGrid(){
   const isEn = currentLang==='en';
+  try{ renderMaintBar(); }catch(e){} // v3.75
   renderRoomSuggestions();
   const container = document.getElementById('racks-container');
   container.innerHTML = '';
@@ -16718,6 +16722,7 @@ function renderRackGrid(){
         '<button class="sc-btn" onclick="printRackLabel(\''+rack.id+'\')">🏷️ '+(isEn?'Rack QR':'QR du rack')+'</button>'+
         '<button class="sc-btn" onclick="openRackLogbookModal(\''+rack.id+'\')">🗒️ '+(isEn?'Rack journal':'Journal du rack')+'</button>'+
         (racks.length>1 ? '<button class="sc-btn danger" data-act="delrack" data-rack="'+rack.id+'">'+t('deleteThisRackBtn')+'</button>' : '')+
+        (maintMode && maintMode!=='uvb' && maintMode!=='wq' ? '<button class="sc-btn accent" onclick="toggleMaintRack(\''+rack.id+'\')">✅ '+(isEn?'Whole rack':'Tout le rack')+'</button>' : '')+ // v3.75
       '</div>'+
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">'+
         '<span style="font-size:11px;color:var(--ink-dim);">🔥 '+(isEn?'Heating':'Chauffage')+' :</span>'+
@@ -16734,6 +16739,12 @@ function renderRackGrid(){
       const rowEl = document.createElement('div');
       rowEl.className = 'rack-row';
       rowEl.innerHTML = '<span class="rack-row-label">'+t('rowLabelPrefix')+' '+row+'</span>';
+      // v3.75 — en mode entretien, toucher « Rangée N » sélectionne toute la rangée.
+      if(maintMode && maintMode!=='uvb' && maintMode!=='wq'){
+        const lbl = rowEl.querySelector('.rack-row-label');
+        lbl.style.cursor = 'pointer'; lbl.style.textDecoration = 'underline';
+        lbl.addEventListener('click', ()=>toggleMaintRow(rack.id, row));
+      }
       for(let t2=1;t2<=tubCount;t2++){
         const snake = snakeAt(rack.id,row,t2);
         const cell = document.createElement('div');
@@ -16757,6 +16768,7 @@ function renderRackGrid(){
           cell.addEventListener('click', ()=>assignToTub(rack.id,row,t2));
           makeKeyboardClickable(cell, t('tubEmptyAriaPrefix')+' '+row+', '+t('tubEmptyAriaNumber')+' '+t2+' '+t('tubEmptyAriaSuffix'));
         }
+        decorateMaintTarget(cell, 'tub|'+rack.id+'|'+row+'|'+t2); // v3.75
         rowEl.appendChild(cell);
       }
       const rowTools = document.createElement('div');
@@ -16927,183 +16939,179 @@ function logRackCleaning(rackId){
   showToast('🧹 '+(isEn?'Cleaning logged for ':'Nettoyage enregistré pour ')+checked.length+' '+(isEn?'tub(s).':'bac(s).'), 'success');
 }
 
-/* ---- v3.74 — Entretien en lot (demande d'un utilisateur, 18 pythons) : même principe que le
-   Mode Tournée — on choisit l'action en pastilles en haut (nettoyage partiel / complet / changement
-   d'eau), puis on sélectionne des terrariums, des bacs, une rangée ou un rack entier, et un seul
-   enregistrement s'applique à tout. Réutilise exactement les mêmes listes que les gestes individuels
-   (te.cleanings, te.waterChanges, rack.tubCleanings, rack.tubWaterChanges) : aucune nouvelle
-   colonne, historique et Journal d'entretien inchangés. Gratuit, comme l'entretien à l'unité. ---- */
-var bulkMaintAction = 'clean_partial';
-var bulkMaintSel = new Set();
+/* ---- v3.75 — Entretien en lot sur la page Racks & Terrariums (refait à la demande d'Alex, même
+   principe que le Mode Tournée) : pastilles d'action en haut ; quand une pastille est active, toucher
+   un bac ou un terrarium le sélectionne au lieu d'ouvrir sa fiche ; barre : nombre, date, Enregistrer,
+   Terminer. Hors mode, la page fonctionne exactement comme avant. Réutilise les mêmes listes que les
+   gestes à l'unité (te.cleanings, te.waterChanges, rack.tubCleanings, rack.tubWaterChanges,
+   te.uvbReplaceDate) — aucune nouvelle colonne. Pastilles UVB / test d'eau seulement si elles
+   s'appliquent (éclairage UVB, espèce aquatique). Gratuit, comme l'entretien à l'unité. ---- */
+var maintMode = null;          // null | 'water' | 'clean_partial' | 'clean_complete' | 'uvb' | 'wq'
+var maintSel = new Set();      // 'tub|<rackId>|<row>|<tub>' ou 'te|<terrariumId>'
+var maintUvbMonths = 12;
+var maintDate = '';
+var maintNote = '';
 var bulkMaintUndo = null;
-function openBulkMaintenance(){
-  const isEn = currentLang==='en';
-  bulkMaintSel = new Set();
-  if(!racks.length && !terrariums.length){
-    showToast(isEn?'Add a rack or an enclosure first.':'Ajoute d\'abord un rack ou un terrarium.', 'warning');
-    return;
+function maintTerrariumHasUvb(te){ return !!(te && te.lighting && te.lighting.indexOf('UVB')!==-1); }
+function maintTerrariumIsAquatic(te){ return terrariumOccupants(te.id).some(s=>AQUATIC_SPECIES_IDS.includes(s.species)); }
+function maintKeyApplies(key){
+  if(key.indexOf('te|')===0){
+    const te = getTerrarium(key.slice(3));
+    if(!te) return false;
+    if(maintMode==='uvb') return maintTerrariumHasUvb(te);
+    if(maintMode==='wq') return maintTerrariumIsAquatic(te);
+    return true;
   }
-  const body =
-    '<div id="bm-actions" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;"></div>'+
-    '<div id="bm-list"></div>'+
-    // Bouton collé en bas de la fenêtre : avec plusieurs racks, pas besoin de défiler jusqu'en bas pour enregistrer.
-    '<div style="margin-top:14px;padding:12px 0 4px;border-top:1px dashed var(--line);position:sticky;bottom:0;background:var(--bg-panel);z-index:2;">'+
-      maintenanceDateInputHtml('bm-date')+
-      '<input type="text" id="bm-note" placeholder="'+(isEn?'Note (optional)':'Note (optionnel)')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
-      '<button class="sc-btn accent" id="bm-apply-btn" style="width:100%;" onclick="applyBulkMaintenance()"></button>'+
-    '</div>';
-  showQuickModal('🧽 '+(isEn?'Bulk maintenance':'Entretien en lot'), body);
-  renderBulkMaintActions();
-  renderBulkMaintList();
+  return maintMode!=='uvb' && maintMode!=='wq'; // bacs de rack : eau et nettoyage seulement
 }
-function bulkMaintIsWater(){ return bulkMaintAction==='water'; }
-function renderBulkMaintActions(){
+function renderMaintBar(){
+  const bar = document.getElementById('maint-bar');
+  if(!bar) return;
   const isEn = currentLang==='en';
-  const wrap = document.getElementById('bm-actions');
-  if(!wrap) return;
   const pill = (key, label)=>{
-    const on = bulkMaintAction===key;
-    return '<button type="button" class="tour-action-btn" onclick="setBulkMaintAction(\''+key+'\')" style="'+(on?'background:var(--gold);color:#1a1409;border-color:var(--gold);font-weight:bold;':'')+'">'+(on?'✓ ':'')+label+'</button>';
+    const on = maintMode===key;
+    return '<button type="button" class="tour-action-btn" onclick="setMaintMode(\''+key+'\')" style="flex:0 1 auto;padding:7px 11px;'+(on?'background:var(--gold);color:#1a1409;border-color:var(--gold);font-weight:bold;':'')+'">'+(on?'✓ ':'')+label+'</button>';
   };
-  wrap.innerHTML = pill('clean_partial', '🧹 '+(isEn?'Partial cleaning':'Nettoyage partiel'))+
+  let html = '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">'+
+    '<span class="tour-count" style="opacity:.7;">🧽 '+(isEn?'Maintenance:':'Entretien :')+'</span>'+
+    pill('water', '💧 '+(isEn?'Water change':'Changement d\'eau'))+
+    pill('clean_partial', '🧽 '+(isEn?'Partial cleaning':'Nettoyage partiel'))+
     pill('clean_complete', '🧹 '+(isEn?'Full cleaning':'Nettoyage complet'))+
-    pill('water', '💧 '+(isEn?'Water change':'Changement d\'eau'));
-  const note = document.getElementById('bm-note');
-  if(note) note.style.display = bulkMaintIsWater() ? 'none' : '';
-}
-function setBulkMaintAction(key){
-  bulkMaintAction = key;
-  renderBulkMaintActions();
-  renderBulkMaintList();
-}
-function bulkMaintLastInfo(list){
-  const isEn = currentLang==='en';
-  const last = lastCleaningEntry(list);
-  if(!last) return isEn?'never':'jamais';
-  const d = daysSinceDate(last.date);
-  return d+(isEn?'d ago':' j');
-}
-function renderBulkMaintList(){
-  const isEn = currentLang==='en';
-  const wrap = document.getElementById('bm-list');
-  if(!wrap) return;
-  const water = bulkMaintIsWater();
-  let html = '';
-  racks.forEach((rack, ri)=>{
-    html += '<div style="margin-top:10px;padding:8px;border:1px solid var(--line);border-radius:10px;">'+
-      '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">'+
-        '<b style="font-size:13px;color:var(--gold);">'+escapeHtml(rack.name||(isEn?'Rack':'Rack'))+'</b>'+
-        '<button type="button" class="sc-btn" style="font-size:11px;padding:5px 9px;" onclick="toggleBulkMaintRack('+ri+')">'+(isEn?'Whole rack':'Tout le rack')+'</button>'+
-      '</div>';
-    rack.rows.forEach((tubCount, rowIdx)=>{
-      const row = rowIdx+1;
-      html += '<div style="margin-top:8px;">'+
-        '<div style="display:flex;justify-content:space-between;align-items:center;">'+
-          '<span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Row ':'Rangée ')+row+'</span>'+
-          '<button type="button" class="sc-btn" style="font-size:10px;padding:4px 8px;" onclick="toggleBulkMaintRow('+ri+','+row+')">'+(isEn?'Whole row':'Toute la rangée')+'</button>'+
-        '</div><div class="tub-select-grid">';
-      for(let tub=1; tub<=tubCount; tub++){
-        const key = 'r'+ri+'|'+row+'|'+tub;
-        const occ = snakeAt(rack.id, row, tub);
-        const k2 = row+'|'+tub;
-        const list = water ? ((rack.tubWaterChanges||{})[k2]) : ((rack.tubCleanings||{})[k2]);
-        html += '<div class="tub-select-chip'+(bulkMaintSel.has(key)?' checked':'')+'" data-bmkey="'+key+'" onclick="toggleBulkMaintKey(\''+key+'\')">'+
-          '<span>'+(isEn?'Tub ':'Bac ')+tub+'</span>'+
-          '<span style="color:var(--ink);">'+(occ?escapeHtml(occ.name):'—')+'</span>'+
-          '<span style="color:var(--ink-dim);">'+bulkMaintLastInfo(list)+'</span></div>';
+    (terrariums.some(maintTerrariumHasUvb) ? pill('uvb', '☀️ '+(isEn?'UVB replaced':'UVB remplacé')) : '')+
+    (terrariums.some(maintTerrariumIsAquatic) ? pill('wq', '🧪 '+(isEn?'Water test':'Test d\'eau')) : '')+
+    '</div>';
+  if(maintMode){
+    const today = localTodayStr();
+    if(!maintDate) maintDate = today;
+    const n = maintSel.size;
+    // Panneau fixé en bas de l'écran (au-dessus de la barre Fiscal/Valeur/…) : toujours visible
+    // pendant qu'on fait défiler les racks et terrariums.
+    html += '<div class="maint-action-panel">';
+    if(maintMode==='wq'){
+      html += '<span style="font-size:13px;color:var(--ink);flex:1;min-width:180px;">'+(isEn?'Tap an aquatic enclosure to enter its reading (values differ from tank to tank).':'Touche un terrarium aquatique pour entrer sa mesure (les valeurs changent d\'un bassin à l\'autre).')+'</span>';
+    } else {
+      html += '<span class="tour-count" style="color:var(--gold);">'+n+' '+(isEn?'selected':'sélectionné(s)')+'</span>'+
+        '<input type="date" id="maint-date" value="'+maintDate+'" min="'+addDays(today,-365)+'" max="'+today+'" onchange="maintDate=this.value" style="font-size:16px;padding:6px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>';
+      if(maintMode==='clean_partial' || maintMode==='clean_complete'){
+        html += '<input type="text" id="maint-note" value="'+escapeHtml(maintNote)+'" oninput="maintNote=this.value" placeholder="'+(isEn?'Note (optional)':'Note (optionnel)')+'" style="flex:1;min-width:120px;font-size:16px;padding:6px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>';
       }
-      html += '</div></div>';
-    });
-    html += '</div>';
-  });
-  if(terrariums.length){
-    html += '<div style="margin-top:10px;padding:8px;border:1px solid var(--line);border-radius:10px;">'+
-      '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">'+
-        '<b style="font-size:13px;color:var(--gold);">'+(isEn?'Enclosures':'Terrariums')+'</b>'+
-        '<button type="button" class="sc-btn" style="font-size:11px;padding:5px 9px;" onclick="toggleBulkMaintTerrariums()">'+(isEn?'All enclosures':'Tous les terrariums')+'</button>'+
-      '</div><div class="tub-select-grid" style="margin-top:8px;">';
-    terrariums.forEach((te, ti)=>{
-      const key = 't'+ti;
-      const occ = terrariumOccupants(te.id).map(x=>escapeHtml(x.name)).join(', ');
-      const list = water ? te.waterChanges : te.cleanings;
-      html += '<div class="tub-select-chip'+(bulkMaintSel.has(key)?' checked':'')+'" data-bmkey="'+key+'" onclick="toggleBulkMaintKey(\''+key+'\')">'+
-        '<span>'+escapeHtml(te.name||(isEn?'Enclosure':'Terrarium'))+'</span>'+
-        '<span style="color:var(--ink);">'+(occ||'—')+'</span>'+
-        '<span style="color:var(--ink-dim);">'+bulkMaintLastInfo(list)+'</span></div>';
-    });
-    html += '</div></div>';
+      if(maintMode==='uvb'){
+        html += '<span style="font-size:12px;color:var(--ink-dim);">'+(isEn?'Next replacement in':'Prochain remplacement dans')+'</span>';
+        [6,8,10,12].forEach(m=>{
+          const on = maintUvbMonths===m;
+          html += '<button type="button" class="tour-action-btn" onclick="maintUvbMonths='+m+';renderMaintBar();" style="padding:6px 10px;'+(on?'background:var(--gold);color:#1a1409;border-color:var(--gold);':'')+'">'+m+(isEn?' mo':' mois')+'</button>';
+        });
+      }
+      html += '<button type="button" class="save-btn" onclick="applyMaintSelection()"'+(n?'':' disabled style="opacity:.5;"')+'>'+(isEn?'Save':'Enregistrer')+'</button>';
+    }
+    html += '<button type="button" class="sc-btn" onclick="setMaintMode(null)">'+(isEn?'Done':'Terminer')+'</button>'+
+      '</div>';
   }
-  wrap.innerHTML = html;
-  updateBulkMaintApplyBtn();
+  bar.innerHTML = html;
+  const wrapEl = document.getElementById('racks-terrariums-wrap');
+  if(wrapEl) wrapEl.style.paddingBottom = maintMode ? '170px' : ''; // la fin de la page reste atteignable sous le panneau
 }
-function updateBulkMaintApplyBtn(){
+function setMaintMode(mode){
+  // Retoucher la pastille active = quitter le mode.
+  if(mode===maintMode) mode = null;
+  const keepDate = maintDate;
+  maintMode = mode;
+  maintSel = new Set();
+  maintNote = '';
+  maintDate = mode ? keepDate : '';
+  renderMaintBar();
+  try{ renderRackGrid(); }catch(e){}
+  try{ renderTerrariumList(); }catch(e){}
+}
+// Branché à la fin de chaque bac/carte pendant le rendu : en mode entretien, le toucher sélectionne
+// (écouteur en capture : la fiche, le ✕, 🧹 ou 💧 du bac ne s'ouvrent pas pendant ce temps).
+function decorateMaintTarget(el, key){
+  if(!maintMode || !el) return;
+  el.setAttribute('data-maintkey', key);
+  const applies = maintKeyApplies(key);
+  el.classList.add(applies ? 'maint-selectable' : 'maint-disabled');
+  if(maintSel.has(key)) el.classList.add('maint-selected');
+  el.addEventListener('click', (e)=>{
+    if(e.target.closest('input,select,textarea')) return;
+    e.stopPropagation(); e.preventDefault();
+    if(!applies) return;
+    if(maintMode==='wq'){ openTerrariumWaterQualityModal(key.slice(3)); return; }
+    toggleMaintKeys([key]);
+  }, true);
+}
+function toggleMaintKeys(keys){
+  const usable = keys.filter(maintKeyApplies);
+  if(!usable.length) return;
+  const allOn = usable.every(k=>maintSel.has(k));
+  usable.forEach(k=>{ if(allOn) maintSel.delete(k); else maintSel.add(k); });
+  document.querySelectorAll('[data-maintkey]').forEach(el=>{
+    const k = el.getAttribute('data-maintkey');
+    if(usable.indexOf(k)!==-1) el.classList.toggle('maint-selected', maintSel.has(k));
+  });
+  renderMaintBar();
+}
+function toggleMaintRack(rackId){
+  const rack = getRack(rackId); if(!rack) return;
+  const keys = []; rack.rows.forEach((tubCount, rowIdx)=>{ for(let tub=1; tub<=tubCount; tub++) keys.push('tub|'+rackId+'|'+(rowIdx+1)+'|'+tub); });
+  toggleMaintKeys(keys);
+}
+function toggleMaintRow(rackId, row){
+  const rack = getRack(rackId); if(!rack) return;
+  const keys = []; for(let tub=1; tub<=rack.rows[row-1]; tub++) keys.push('tub|'+rackId+'|'+row+'|'+tub);
+  toggleMaintKeys(keys);
+}
+function toggleMaintAllTerrariums(){ toggleMaintKeys(terrariums.map(te=>'te|'+te.id)); }
+function applyMaintSelection(){
   const isEn = currentLang==='en';
-  const btn = document.getElementById('bm-apply-btn');
-  if(!btn) return;
-  const n = bulkMaintSel.size;
-  btn.textContent = (bulkMaintIsWater()?'💧 ':'🧹 ')+(isEn?'Log for '+n+' selected':'Enregistrer pour '+n+' sélectionné(s)');
-  btn.disabled = n===0;
-  btn.style.opacity = n===0 ? '.5' : '';
-}
-function setBulkMaintKeys(keys){
-  // Si tout est déjà coché → on décoche le groupe ; sinon on coche tout le groupe.
-  const allOn = keys.length && keys.every(k=>bulkMaintSel.has(k));
-  keys.forEach(k=>{ if(allOn) bulkMaintSel.delete(k); else bulkMaintSel.add(k); });
-  keys.forEach(k=>{ const el=document.querySelector('[data-bmkey="'+k+'"]'); if(el) el.classList.toggle('checked', bulkMaintSel.has(k)); });
-  updateBulkMaintApplyBtn();
-}
-function toggleBulkMaintKey(key){ setBulkMaintKeys([key]); }
-function toggleBulkMaintRow(ri, row){
-  const rack = racks[ri]; if(!rack) return;
-  const keys = []; for(let tub=1; tub<=rack.rows[row-1]; tub++) keys.push('r'+ri+'|'+row+'|'+tub);
-  setBulkMaintKeys(keys);
-}
-function toggleBulkMaintRack(ri){
-  const rack = racks[ri]; if(!rack) return;
-  const keys = []; rack.rows.forEach((tubCount, rowIdx)=>{ for(let tub=1; tub<=tubCount; tub++) keys.push('r'+ri+'|'+(rowIdx+1)+'|'+tub); });
-  setBulkMaintKeys(keys);
-}
-function toggleBulkMaintTerrariums(){ setBulkMaintKeys(terrariums.map((te,ti)=>'t'+ti)); }
-function applyBulkMaintenance(){
-  const isEn = currentLang==='en';
-  if(!bulkMaintSel.size){ showToast(isEn?'Select at least one tub or enclosure.':'Sélectionne au moins un bac ou un terrarium.', 'warning'); return; }
-  const date = readMaintenanceDate('bm-date');
-  const noteEl = document.getElementById('bm-note');
-  const note = noteEl ? noteEl.value.trim() : '';
-  const water = bulkMaintIsWater();
-  const type = bulkMaintAction==='clean_complete' ? 'complete' : 'partial';
+  if(!maintMode || maintMode==='wq') return;
+  if(!maintSel.size){ showToast(isEn?'Select at least one tub or enclosure.':'Sélectionne au moins un bac ou un terrarium.', 'warning'); return; }
+  const today = localTodayStr();
+  const date = (maintDate && maintDate<=today) ? maintDate : today;
   const stamp = Date.now();
   const undo = [];
-  bulkMaintSel.forEach(k=>{
-    if(k[0]==='t'){
-      const te = terrariums[parseInt(k.slice(1),10)];
+  const water = maintMode==='water';
+  const type = maintMode==='clean_complete' ? 'complete' : 'partial';
+  maintSel.forEach(key=>{
+    if(key.indexOf('te|')===0){
+      const te = getTerrarium(key.slice(3));
       if(!te) return;
+      if(maintMode==='uvb'){
+        const d = new Date(date+'T00:00:00'); d.setMonth(d.getMonth()+maintUvbMonths);
+        undo.push({ te:te.id, uvbPrev: te.uvbReplaceDate||null });
+        te.uvbReplaceDate = localDateStr(d);
+        return;
+      }
       const field = water ? 'waterChanges' : 'cleanings';
       if(!te[field]) te[field] = [];
-      const id = (water?'twater_':'clean_')+stamp+'_'+k;
-      te[field].push(water ? { id, date } : { id, date, type, note });
+      const id = (water?'twater_':'clean_')+stamp+'_'+te.id;
+      te[field].push(water ? { id, date } : { id, date, type, note:maintNote.trim() });
       undo.push({ te:te.id, field, id });
     } else {
-      const parts = k.slice(1).split('|');
-      const rack = racks[parseInt(parts[0],10)];
+      const parts = key.split('|'); // tub|rackId|row|tub
+      const rack = getRack(parts[1]);
       if(!rack) return;
-      const key = parts[1]+'|'+parts[2];
+      const k2 = parts[2]+'|'+parts[3];
       const field = water ? 'tubWaterChanges' : 'tubCleanings';
       if(!rack[field]) rack[field] = {};
-      if(!rack[field][key]) rack[field][key] = [];
-      const id = (water?'twater_':'clean_')+stamp+'_'+key;
-      rack[field][key].push(water ? { id, date } : { id, date, type, note });
-      undo.push({ rack:rack.id, field, key, id });
+      if(!rack[field][k2]) rack[field][k2] = [];
+      const id = (water?'twater_':'clean_')+stamp+'_'+k2;
+      rack[field][k2].push(water ? { id, date } : { id, date, type, note:maintNote.trim() });
+      undo.push({ rack:rack.id, field, key:k2, id });
     }
   });
   bulkMaintUndo = undo;
   saveElevage();
-  closeQuickModal();
+  const n = undo.length;
+  const mode = maintMode;
+  maintSel = new Set(); maintNote = '';
+  renderMaintBar();
   try{ renderRackGrid(); }catch(e){}
   try{ renderTerrariumList(); }catch(e){}
-  const n = undo.length;
-  const dateNote = date!==localTodayStr() ? ' ('+date+')' : '';
-  showToast((water?'💧 ':'🧹 ')+(water ? (isEn?'Water change logged for '+n+'.':'Changement d\'eau noté pour '+n+'.') : (isEn?'Cleaning logged for '+n+'.':'Nettoyage noté pour '+n+'.'))+dateNote, 'success', 'undoBulkMaintenance()');
+  const dateNote = date!==today ? ' ('+date+')' : '';
+  const msg = mode==='water' ? (isEn?'💧 Water change logged for '+n+'.':'💧 Changement d\'eau noté pour '+n+'.')
+    : mode==='uvb' ? (isEn?'☀️ UVB replacement logged for '+n+'.':'☀️ Remplacement UVB noté pour '+n+'.')
+    : (isEn?'🧹 Cleaning logged for '+n+'.':'🧹 Nettoyage noté pour '+n+'.');
+  showToast(msg+dateNote, 'success', 'undoBulkMaintenance()');
 }
 function undoBulkMaintenance(){
   const isEn = currentLang==='en';
@@ -17111,7 +17119,9 @@ function undoBulkMaintenance(){
   bulkMaintUndo.forEach(u=>{
     if(u.te){
       const te = getTerrarium(u.te);
-      if(te && te[u.field]) te[u.field] = te[u.field].filter(e=>e.id!==u.id);
+      if(!te) return;
+      if('uvbPrev' in u){ te.uvbReplaceDate = u.uvbPrev; return; }
+      if(te[u.field]) te[u.field] = te[u.field].filter(e=>e.id!==u.id);
     } else {
       const rack = getRack(u.rack);
       if(rack && rack[u.field] && rack[u.field][u.key]) rack[u.field][u.key] = rack[u.field][u.key].filter(e=>e.id!==u.id);
@@ -17121,7 +17131,7 @@ function undoBulkMaintenance(){
   saveElevage();
   try{ renderRackGrid(); }catch(e){}
   try{ renderTerrariumList(); }catch(e){}
-  showToast('↩ '+(isEn?'Bulk maintenance undone.':'Entretien en lot annulé.'));
+  showToast('↩ '+(isEn?'Maintenance undone.':'Entretien annulé.'));
 }
 // Historique de nettoyage d'un bac précis (2 sept) — même parité que le terrarium (historique +
 // suppression), atteint en cliquant sur l'info "Xj / jamais" d'un bac dans la modale de nettoyage
@@ -18011,6 +18021,15 @@ function renderTerrariumList(){
     wrap.appendChild(empty);
   }
 
+  // v3.75 — en mode entretien : bouton « Tous les terrariums » en tête de liste.
+  if(maintMode && maintMode!=='wq' && terrariums.length){
+    const allBtn = document.createElement('button');
+    allBtn.className = 'sc-btn accent terra-card-wide';
+    allBtn.style.marginBottom = '8px';
+    allBtn.textContent = '✅ '+(isEn?'All enclosures':'Tous les terrariums');
+    allBtn.addEventListener('click', toggleMaintAllTerrariums);
+    wrap.appendChild(allBtn);
+  }
   terrariums.forEach(te=>{
     try{
       const occupants = terrariumOccupants(te.id).filter(s=>!elevageSearchTerm || matchesSearch(s, elevageSearchTerm));
@@ -18121,6 +18140,7 @@ function renderTerrariumList(){
           card.appendChild(addPartnerBtn);
         }
       }
+      decorateMaintTarget(card, 'te|'+te.id); // v3.75
       wrap.appendChild(card);
     }catch(erreur){
       // Filet de sécurité (30 août) — même principe que pour les racks/anciennes cartes terrarium :
