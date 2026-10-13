@@ -1342,7 +1342,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         </label>
       </div>
       <div class="pedigree-row" style="background:rgba(201,151,62,.08);border:1px solid var(--gold);border-radius:10px;padding:10px 12px;margin:12px 18px 0;">
-        <label style="flex:1;"><span data-i18n="preyLabel">Proie</span> <span style="font-weight:400;color:var(--ink-dim);" data-i18n="preyFormHint">(pour la liste de décongélation et le stock de proies — modifiable en tout temps sur la fiche)</span>
+        <label style="flex:1;flex-direction:column;align-items:stretch;min-width:0;"><span><span data-i18n="preyLabel">Proie</span> <span style="font-weight:400;color:var(--ink-dim);" data-i18n="preyFormHint">(pour la liste de décongélation et le stock de proies — modifiable en tout temps sur la fiche)</span></span>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
             <select id="draft-prey-species" class="pedigree-select" style="flex:1;min-width:100px;" onchange="updateDraftPreySizeOptions()">
               <option value="" data-i18n="preySpeciesEllipsis">Espèce…</option>
@@ -1354,17 +1354,17 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         </label>
       </div>
       <div class="pedigree-row">
-        <label>Date de naissance
+        <label><span data-i18n="birthDateLabel">Date de naissance</span>
           <select id="draft-birth-precision" class="pedigree-select" onchange="updateBirthInputVisibility()">
-            <option value="">Inconnue</option>
-            <option value="full">Jour/Mois/Année</option>
-            <option value="month">Mois/Année</option>
-            <option value="year">Année seule</option>
+            <option value="" data-i18n="birthPrecUnknown">Inconnue</option>
+            <option value="full" data-i18n="birthPrecFull">Jour/Mois/Année</option>
+            <option value="month" data-i18n="birthPrecMonth">Mois/Année</option>
+            <option value="year" data-i18n="birthPrecYear">Année seule</option>
           </select>
         </label>
         <input type="date" id="draft-birth-full" class="pedigree-select" style="display:none;"/>
         <input type="month" id="draft-birth-month" class="pedigree-select" style="display:none;"/>
-        <input type="number" id="draft-birth-year" class="pedigree-select" style="display:none;width:80px;" min="1990" max="2026" placeholder="AAAA"/>
+        <input type="number" id="draft-birth-year" class="pedigree-select" style="display:none;width:80px;" min="1990" max="2026" placeholder="AAAA" data-i18n-placeholder="birthYearPlaceholder"/>
       </div>
       <div class="combo-wrap">
         <input class="combo-input" id="input-draft" data-i18n-placeholder="searchGenePlaceholder" placeholder="Rechercher un gène (ex. Pastel, Mojave, Piebald)…" autocomplete="off"/>
@@ -2197,7 +2197,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.70';
+const APP_VERSION = '2026.09.01.3.71';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4405,10 +4405,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.69', date:'2026-10-12',
+  { version:'3.71', date:'2026-10-13',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        'Correctif : dans l\'app en anglais, le choix de la date de naissance d\'un nouveau reptile restait en français, et la case « Proie » débordait de l\'écran sur cellulaire.',
         'Correctif : le soir (dès 20 h l\'été, 19 h l\'hiver au Québec), l\'app pensait déjà être le lendemain — un repas, une mue ou une pesée notés en soirée tombaient au jour suivant, et les comptes à rebours décalaient d\'un jour. Toutes les dates suivent maintenant l\'heure de ton appareil.',
         '📅 Mode Tournée : nouvelle barre « Date de l\'action » (Aujourd\'hui / Hier / Autre date) pour noter un repas, un refus, une mue ou une pesée oubliés. Elle revient à Aujourd\'hui après chaque action. La date suit maintenant l\'heure locale (le soir, elle pouvait passer au lendemain).',
         '🧮 Calculateur : « Charger… » propose aussi tes bébés rêve du Simulateur (dans les deux panneaux), et le coefficient de consanguinité s\'affiche quand les deux parents ont été chargés. « Mes chances cette saison » passe avant la liste des résultats, et la liste se masque d\'un bouton (choix retenu) pour aller direct à la ponte simulée.',
@@ -4447,6 +4448,7 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        'Fix: in the English app, the birth date choice for a new reptile stayed in French, and the « Prey » box overflowed the screen on phones.',
         'Fix: in the evening (in North America), the app already thought it was the next day — a meal, shed or weigh-in logged at night landed on the following day, and countdowns were off by one. All dates now follow your device\'s local time.',
         '📅 Tour Mode: new « Date of the action » bar (Today / Yesterday / Other date) to log a forgotten meal, refusal, shed or weigh-in. It goes back to Today after each action. The date now follows local time (in the evening it could jump to the next day).',
         '🧮 Calculator: "Load…" also offers your dream babies from the Dream Simulator (in both panels), and the inbreeding coefficient shows when both parents were loaded. "My odds this season" now comes before the results list, and the list can be hidden with one button (choice remembered) to go straight to the clutch simulator.',
@@ -5153,6 +5155,7 @@ const I18N = {
     provenanceHint: '(éleveur d\'origine — laisse vide si né chez toi)',
     purchasePriceLabel: 'Prix d\'achat',
     purchasePriceHint: '(optionnel — laisse vide si né chez toi ; sert au calcul de profit par ponte/animal)',
+    birthDateLabel: 'Date de naissance', birthPrecUnknown: 'Inconnue', birthPrecFull: 'Jour/Mois/Année', birthPrecMonth: 'Mois/Année', birthPrecYear: 'Année seule', birthYearPlaceholder: 'AAAA',
     saveNewBtn: 'Enregistrer ce reptile',
     cancelEditBtn: 'Annuler la modification',
     searchMinePlaceholder: '🔍 Rechercher un reptile par nom ou par gène…',
@@ -5720,6 +5723,7 @@ const I18N = {
     provenanceHint: '(original breeder — leave blank if born here)',
     purchasePriceLabel: 'Purchase price',
     purchasePriceHint: '(optional — leave blank if born here; used for clutch/animal profit calculations)',
+    birthDateLabel: 'Birth date', birthPrecUnknown: 'Unknown', birthPrecFull: 'Day/Month/Year', birthPrecMonth: 'Month/Year', birthPrecYear: 'Year only', birthYearPlaceholder: 'YYYY',
     saveNewBtn: 'Save This Reptile',
     cancelEditBtn: 'Cancel Editing',
     searchMinePlaceholder: '🔍 Search a reptile by name or gene…',
