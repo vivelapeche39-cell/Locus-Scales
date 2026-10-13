@@ -1232,7 +1232,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       </div>
       <div class="actual-col-hdr"><span data-i18n="colResult">Résultat</span><span data-i18n="colPrice">Prix (manuel — non fourni par LOCUS)</span><span data-i18n="colQty">Quantité</span></div>
       <div id="actual-list" class="actual-list"></div>
-      <div class="actual-total" id="actual-total">Total enregistré : 0</div>
+      <div class="actual-total" id="actual-total" data-i18n="actualTotalInit">Total enregistré : 0</div>
 
       <div class="value-bar">
         <div class="value-box">
@@ -1292,7 +1292,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         </select>
         <select id="mine-tag-filter" class="egg-select"></select>
         <select id="mine-saved-filter-select" class="egg-select" onchange="if(this.value!=='') applySavedMineFilter(parseInt(this.value));"></select>
-        <button class="sc-btn" onclick="const sel=document.getElementById('mine-saved-filter-select'); if(sel.value!=='') deleteSavedMineFilter(parseInt(sel.value)); else alert(currentLang==='en'?'Pick a saved filter first.':'Choisis d\'abord un filtre sauvegardé.');" title="Supprimer le filtre sélectionné">🗑</button>
+        <button class="sc-btn" onclick="const sel=document.getElementById('mine-saved-filter-select'); if(sel.value!=='') deleteSavedMineFilter(parseInt(sel.value)); else alert(currentLang==='en'?'Pick a saved filter first.':'Choisis d\'abord un filtre sauvegardé.');" title="Supprimer le filtre sélectionné" data-i18n-title="deleteSavedFilterTitle">🗑</button>
         <button class="sc-btn" onclick="saveCurrentMineFilterAsPreset()">⭐ <span data-i18n="saveFilterBtn">Sauvegarder ce filtre</span></button>
         <button class="sc-btn" id="batch-mode-toggle-btn" onclick="toggleBatchMode()">☑️ <span data-i18n="batchSelectBtn">Sélection multiple</span></button>
       </div>
@@ -1331,7 +1331,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       </div>
       <div class="pedigree-row">
         <label style="flex:1;"><span data-i18n="provenanceLabel">Provenance</span> <span style="font-weight:400;color:var(--ink-dim);" data-i18n="provenanceHint">(éleveur d'origine — laisse vide si né chez toi)</span>
-          <input type="text" id="draft-provenance" class="pedigree-select" list="provenance-suggestions" style="width:100%;margin-top:4px;" placeholder="Ex. Python of the North, éleveur particulier, animalerie…"/>
+          <input type="text" id="draft-provenance" class="pedigree-select" list="provenance-suggestions" style="width:100%;margin-top:4px;" placeholder="Ex. Python of the North, éleveur particulier, animalerie…" data-i18n-placeholder="provenancePh"/>
           <datalist id="provenance-suggestions"></datalist>
           <datalist id="room-suggestions"></datalist>
         </label>
@@ -1591,7 +1591,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
     </div>
 
     <div id="vsub-waitlist" style="display:none;">
-      <p class="footnote" style="margin-top:0;">Toutes les listes d'attente de tous les accouplements, regroupées en une seule vue pour trier/contacter d'un coup d'œil.</p>
+      <p class="footnote" style="margin-top:0;" data-i18n="waitlistAllHint">Toutes les listes d'attente de tous les accouplements, regroupées en une seule vue pour trier/contacter d'un coup d'œil.</p>
       <div id="waitlist-consolidated-list" class="sale-list"></div>
     </div>
   </div>
@@ -1609,7 +1609,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <select id="clutch-sire" onchange="updateClutchReproductionFields()"></select>
       <span style="color:var(--ink-dim);font-family:'Courier New',monospace;font-size:11px;">×</span>
       <select id="clutch-dam" onchange="updateClutchReproductionFields()"></select>
-      <input type="number" id="clutch-eggcount" min="1" max="30" placeholder="Nb d'œufs" style="width:90px;"/>
+      <input type="number" id="clutch-eggcount" min="1" max="30" placeholder="Nb d'œufs" data-i18n-placeholder="clutchEggCountPh" style="width:90px;"/>
       <label id="clutch-date-wrap" style="display:flex;flex-direction:column;font-family:'Courier New',monospace;font-size:9px;color:var(--ink-dim);gap:2px;">
         <span id="clutch-date-label">Date de ponte</span>
         <input type="date" id="clutch-laydate"/>
@@ -1624,7 +1624,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <input type="number" id="clutch-incub-temp" step="0.1" min="20" max="40" oninput="updateClutchTsdHint()" style="width:64px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:4px;color:var(--ink);font-family:'Courier New',monospace;font-size:14px;padding:7px 6px;text-align:center;"/>
         °C
       </label>
-      <button class="save-btn" onclick="addClutch()">Enregistrer la portée</button>
+      <button class="save-btn" onclick="addClutch()" data-i18n="saveClutchBtn">Enregistrer la portée</button>
       <div id="clutch-tsd-hint" style="display:none;width:100%;font-size:13px;line-height:1.5;color:var(--ink);"></div>
     </div>
     <div id="next-hatch-banner"></div>
@@ -1889,14 +1889,14 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
      distincte, pour qu'un éleveur sache toujours "je suis en train de m'occuper de mes bêtes"
      vs "je suis en train de gérer la paperasse" — deux intentions différentes, deux endroits différents. -->
 <div class="legal-sidebar" id="legal-sidebar">
-  <div class="legal-sidebar-label">LÉGAL</div>
+  <div class="legal-sidebar-label" data-i18n="legalSidebarLabel">LÉGAL</div>
   <button class="legal-tab-btn" data-legal="fiscal" onclick="showTab('fiscal')" title="Rapport fiscal">
     <span class="legal-tab-icon">💰</span><span class="legal-tab-text">Fiscal</span>
   </button>
   <button class="legal-tab-btn" data-legal="valeur" onclick="showTab('valeur')" title="Valeur &amp; assurance">
     <span class="legal-tab-icon">🛡️</span><span class="legal-tab-text">Valeur</span>
   </button>
-  <button class="legal-tab-btn" data-legal="reglement" onclick="showTab('reglement')" title="Réglementation par province">
+  <button class="legal-tab-btn" data-legal="reglement" onclick="showTab('reglement')" title="Réglementation par province" data-i18n-title="legalRegTitle">
     <span class="legal-tab-icon">📜</span><span class="legal-tab-text">Permis</span>
   </button>
   <button class="legal-tab-btn" data-legal="export" onclick="showTab('export')" title="Export &amp; sauvegarde">
@@ -2063,7 +2063,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 
   <div class="reg-card">
     <div class="reg-card-head"><span class="reg-flag">📑</span><h3 data-i18n="exportCsvTitle">Import CSV (onboarding rapide)</h3></div>
-    <p><span data-i18n="exportCsvDescPrefix">Ajoute plusieurs reptiles d'un coup depuis un fichier CSV. Format attendu par ligne : </span><code style="color:var(--gold);">nom;sexe(M/F);gene1|gene2|gene3</code></p>
+    <p><span data-i18n="exportCsvDescPrefix">Ajoute plusieurs reptiles d'un coup depuis un fichier CSV. Format attendu par ligne : </span><code style="color:var(--gold);" data-i18n="csvFormatExample">nom;sexe(M/F);gene1|gene2|gene3</code></p>
     <div class="reg-links">
       <button class="sc-btn" onclick="if(requireAuthOrPrompt()) document.getElementById('csv-file-input').click()" data-i18n="exportCsvBtn">📑 Choisir un fichier CSV</button>
     </div>
@@ -2197,7 +2197,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.71';
+const APP_VERSION = '2026.09.01.3.73';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2569,7 +2569,7 @@ document.addEventListener('DOMContentLoaded', function(){
   wrap.innerHTML =
     '<div id="diag-panel" style="display:none;position:fixed;top:5%;left:8px;right:8px;bottom:5%;z-index:99998;background:#141008;border:1px solid #5a4a30;border-radius:14px;padding:12px;flex-direction:column;">'+
       '<div style="display:flex;gap:8px;margin-bottom:10px;flex-shrink:0;">'+
-        '<button onclick="diagCopy()" style="flex:1;padding:10px;border-radius:10px;border:1px solid #C9973E;background:rgba(201,151,62,.15);color:#C9973E;font-family:monospace;font-size:12px;">📋 Copier tout</button>'+
+        '<button onclick="diagCopy()" style="flex:1;padding:10px;border-radius:10px;border:1px solid #C9973E;background:rgba(201,151,62,.15);color:#C9973E;font-family:monospace;font-size:12px;">📋 '+(currentLang==='en'?'Copy all':'Copier tout')+'</button>'+
         '<button onclick="diagClear()" style="padding:10px 14px;border-radius:10px;border:1px solid #5a4a30;background:transparent;color:#a89878;font-family:monospace;font-size:12px;">🗑️</button>'+
         '<button onclick="diagToggle()" style="padding:10px 14px;border-radius:10px;border:1px solid #5a4a30;background:transparent;color:#a89878;font-family:monospace;font-size:12px;">✕</button>'+
       '</div>'+
@@ -2644,7 +2644,7 @@ var sb = null;
 var sbInitError = null;
 try{
   if(!window.supabase || typeof window.supabase.createClient !== 'function'){
-    throw new Error('SDK Supabase non chargé (bloqueur de pub, hors-ligne, ou accès CDN bloqué).');
+    throw new Error(currentLang==='en' ? 'Supabase SDK not loaded (ad blocker, offline, or CDN access blocked).' : 'SDK Supabase non chargé (bloqueur de pub, hors-ligne, ou accès CDN bloqué).');
   }
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }catch(e){
@@ -4170,6 +4170,7 @@ function openProfileModal(){
   const p = loadProfile();
   showQuickModal(isEn?'👤 My profile':'👤 Mon profil',
     '<p style="font-size:11.5px;color:var(--ink-dim);margin:0 0 14px;">'+(isEn?'Synced to your account — available on every device you sign in from.':'Synchronisé avec ton compte — disponible sur chaque appareil où tu te connectes.')+'</p>'+
+    profileTierLineHtml(isEn)+
     '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Breeder/collection name':'Nom de l\'élevage')+'</label>'+
     '<input type="text" id="profile-name-input" class="draft-name" style="width:100%;margin:0 0 12px;" value="'+escapeHtml(p.breederName||'')+'" placeholder="Ex. Python of the North"/>'+
     '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Email':'Courriel')+'</label>'+
@@ -4405,10 +4406,12 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.71', date:'2026-10-13',
+  { version:'3.73', date:'2026-10-13',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        'Traduction : une dizaine de textes restaient en français dans l\'app en anglais (formulaire de ponte, listes d\'attente, menu Légal, exemple de format CSV, provenance, bulles d\'aide).',
+        'Mon profil affiche maintenant ton palier (ex. « Palier : Gratuit »), avec la mention « À vie (offert) » pour les comptes à qui il a été offert.',
         'Correctif : dans l\'app en anglais, le choix de la date de naissance d\'un nouveau reptile restait en français, et la case « Proie » débordait de l\'écran sur cellulaire.',
         'Correctif : le soir (dès 20 h l\'été, 19 h l\'hiver au Québec), l\'app pensait déjà être le lendemain — un repas, une mue ou une pesée notés en soirée tombaient au jour suivant, et les comptes à rebours décalaient d\'un jour. Toutes les dates suivent maintenant l\'heure de ton appareil.',
         '📅 Mode Tournée : nouvelle barre « Date de l\'action » (Aujourd\'hui / Hier / Autre date) pour noter un repas, un refus, une mue ou une pesée oubliés. Elle revient à Aujourd\'hui après chaque action. La date suit maintenant l\'heure locale (le soir, elle pouvait passer au lendemain).',
@@ -4448,6 +4451,8 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        'Translation: about ten texts stayed in French in the English app (clutch form, waitlists, Legal menu, CSV format example, provenance, tooltips).',
+        'My Profile now shows your plan (e.g. « Plan: Free »), with « Lifetime (complimentary) » for accounts it was offered to.',
         'Fix: in the English app, the birth date choice for a new reptile stayed in French, and the « Prey » box overflowed the screen on phones.',
         'Fix: in the evening (in North America), the app already thought it was the next day — a meal, shed or weigh-in logged at night landed on the following day, and countdowns were off by one. All dates now follow your device\'s local time.',
         '📅 Tour Mode: new « Date of the action » bar (Today / Yesterday / Other date) to log a forgotten meal, refusal, shed or weigh-in. It goes back to Today after each action. The date now follows local time (in the evening it could jump to the next day).',
@@ -5155,6 +5160,7 @@ const I18N = {
     provenanceHint: '(éleveur d\'origine — laisse vide si né chez toi)',
     purchasePriceLabel: 'Prix d\'achat',
     purchasePriceHint: '(optionnel — laisse vide si né chez toi ; sert au calcul de profit par ponte/animal)',
+    actualTotalInit: 'Total enregistré : 0', waitlistAllHint: 'Toutes les listes d\'attente de tous les accouplements, regroupées en une seule vue pour trier/contacter d\'un coup d\'œil.', clutchEggCountPh: 'Nb d\'œufs', saveClutchBtn: 'Enregistrer la portée', legalSidebarLabel: 'LÉGAL', csvFormatExample: 'nom;sexe(M/F);gene1|gene2|gene3', provenancePh: 'Ex. Python of the North, éleveur particulier, animalerie…', legalRegTitle: 'Réglementation par province', deleteSavedFilterTitle: 'Supprimer le filtre sélectionné',
     birthDateLabel: 'Date de naissance', birthPrecUnknown: 'Inconnue', birthPrecFull: 'Jour/Mois/Année', birthPrecMonth: 'Mois/Année', birthPrecYear: 'Année seule', birthYearPlaceholder: 'AAAA',
     saveNewBtn: 'Enregistrer ce reptile',
     cancelEditBtn: 'Annuler la modification',
@@ -5723,6 +5729,7 @@ const I18N = {
     provenanceHint: '(original breeder — leave blank if born here)',
     purchasePriceLabel: 'Purchase price',
     purchasePriceHint: '(optional — leave blank if born here; used for clutch/animal profit calculations)',
+    actualTotalInit: 'Recorded total: 0', waitlistAllHint: 'Every waitlist from every pairing, grouped in one view to sort and contact at a glance.', clutchEggCountPh: 'No. of eggs', saveClutchBtn: 'Save clutch', legalSidebarLabel: 'LEGAL', csvFormatExample: 'name;sex(M/F);gene1|gene2|gene3', provenancePh: 'E.g. Python of the North, private breeder, pet store…', legalRegTitle: 'Regulations by province', deleteSavedFilterTitle: 'Delete the selected filter',
     birthDateLabel: 'Birth date', birthPrecUnknown: 'Unknown', birthPrecFull: 'Day/Month/Year', birthPrecMonth: 'Month/Year', birthPrecYear: 'Year only', birthYearPlaceholder: 'YYYY',
     saveNewBtn: 'Save This Reptile',
     cancelEditBtn: 'Cancel Editing',
@@ -5924,6 +5931,8 @@ function applyTranslations(){
     el.title = t(el.dataset.i18nTitle);
   });
   try{ updateAuthUI(); }catch(e){}
+  try{ relabelClutchFields(); }catch(e){} // v3.73
+  try{ updateActualTotal(); }catch(e){} // v3.73
   // Sections générées dynamiquement en JS (pas via data-i18n) : doivent être redessinées
   // explicitement ici, sinon elles restent figées dans l'ancienne langue au changement.
   try{ renderPreyChart(); }catch(e){}
@@ -13275,7 +13284,7 @@ document.getElementById('csv-file-input').addEventListener('change', (e)=>{
     let added = 0;
     const skipped = [];
     lines.forEach((line, idx)=>{
-      if(idx===0 && /^nom\s*;/i.test(line)) return; // ligne d'en-tête optionnelle
+      if(idx===0 && /^(nom|name)\s*;/i.test(line)) return; // ligne d'en-tête optionnelle (v3.73 : aussi en anglais)
       const parts = line.split(';');
       const name = (parts[0]||'').trim();
       const sexRaw = (parts[1]||'').trim();
@@ -19396,19 +19405,19 @@ function renderSuppliers(){
 // Glossaire rapide du jargon d'éleveur — format scannable (terme → définition courte), distinct
 // de la FAQ husbandry qui répond déjà à certaines de ces questions en format conversationnel plus long.
 var GLOSSARY_TERMS = [
-  { term:'Het / Hétérozygote', fr:'Porteur invisible d\'un gène récessif — ne montre pas le trait, mais peut le transmettre à ~50% de sa progéniture.', en:'Invisible carrier of a recessive gene — doesn\'t show the trait, but can pass it to ~50% of offspring.' },
+  { term:'Het / Hétérozygote', termEn:'Het / Heterozygous', fr:'Porteur invisible d\'un gène récessif — ne montre pas le trait, mais peut le transmettre à ~50% de sa progéniture.', en:'Invisible carrier of a recessive gene — doesn\'t show the trait, but can pass it to ~50% of offspring.' },
   { term:'Possible het (poss het)', fr:'Porteur probable mais non confirmé, basé sur la lignée parentale plutôt que sur une preuve directe.', en:'Likely carrier that\'s unconfirmed, based on parental lineage rather than direct proof.' },
-  { term:'Visuel (visual)', fr:'L\'animal montre physiquement le trait génétique — pas besoin de test ou de lignée pour le confirmer.', en:'The animal physically shows the genetic trait — no test or lineage needed to confirm it.' },
+  { term:'Visuel (visual)', termEn:'Visual', fr:'L\'animal montre physiquement le trait génétique — pas besoin de test ou de lignée pour le confirmer.', en:'The animal physically shows the genetic trait — no test or lineage needed to confirm it.' },
   { term:'Combo', fr:'Un animal portant plusieurs gènes différents en même temps (ex. Pastel + Clown + Het Albino).', en:'An animal carrying several different genes at once (e.g. Pastel + Clown + Het Albino).' },
   { term:'Proven pair', fr:'Un couple dont on sait qu\'il peut produire une ponte fertile, parce que ça a déjà fonctionné au moins une fois.', en:'A pair known to be able to produce a fertile clutch, because it has already worked at least once.' },
-  { term:'Ponte / Clutch', fr:'L\'ensemble des œufs pondus par une femelle lors d\'un même événement de reproduction.', en:'The full set of eggs laid by a female in a single breeding event.' },
+  { term:'Ponte / Clutch', termEn:'Clutch', fr:'L\'ensemble des œufs pondus par une femelle lors d\'un même événement de reproduction.', en:'The full set of eggs laid by a female in a single breeding event.' },
   { term:'Ovulation', fr:'Signe physique (renflement au tiers du corps) indiquant que la femelle va bientôt pondre — généralement suivi d\'une mue puis de la ponte.', en:'Physical sign (a bulge about a third down the body) indicating the female will lay soon — usually followed by a shed then the clutch.' },
-  { term:'Œuf infertile (slug)', fr:'Un œuf non fécondé ou qui ne s\'est pas développé — normal d\'en avoir occasionnellement dans une ponte.', en:'An unfertilized or undeveloped egg — normal to have one occasionally in a clutch.' },
+  { term:'Œuf infertile (slug)', termEn:'Slug (infertile egg)', fr:'Un œuf non fécondé ou qui ne s\'est pas développé — normal d\'en avoir occasionnellement dans une ponte.', en:'An unfertilized or undeveloped egg — normal to have one occasionally in a clutch.' },
   { term:'Wobble', fr:'Syndrome neurologique (tremblement de tête, désorientation) associé à certains gènes comme Spider — enjeu de bien-être animal débattu dans la communauté.', en:'Neurological syndrome (head tremor, disorientation) linked to certain genes like Spider — a debated animal-welfare issue in the community.' },
-  { term:'Line-bred (lignée fixée)', fr:'Une lignée reproduite de façon répétée pour renforcer un trait ou une qualité particulière au fil des générations.', en:'A line bred repeatedly to reinforce a particular trait or quality across generations.' },
+  { term:'Line-bred (lignée fixée)', termEn:'Line-bred', fr:'Une lignée reproduite de façon répétée pour renforcer un trait ou une qualité particulière au fil des générations.', en:'A line bred repeatedly to reinforce a particular trait or quality across generations.' },
   { term:'Codominant', fr:'Un gène qui donne un look distinct avec une seule copie, et un look encore différent (forme « super ») avec deux copies.', en:'A gene that gives a distinct look with one copy, and a further-different look (the "super" form) with two copies.' },
   { term:'Freeway', fr:'Un gène dont l\'identité exacte n\'est pas confirmée sur son locus — visuellement présent mais pas encore identifié avec certitude.', en:'A gene whose exact identity isn\'t confirmed at its locus — visually present but not yet identified with certainty.' },
-  { term:'Sondage / Probing / Popping', fr:'Méthodes utilisées par un professionnel pour déterminer le sexe d\'un python royal avec certitude.', en:'Methods used by a professional to determine a ball python\'s sex with certainty.' },
+  { term:'Sondage / Probing / Popping', termEn:'Probing / Popping', fr:'Méthodes utilisées par un professionnel pour déterminer le sexe d\'un python royal avec certitude.', en:'Methods used by a professional to determine a ball python\'s sex with certainty.' },
   { term:'Brumation', fr:'Une période de température/lumière réduite parfois utilisée pour stimuler la reproduction — débattue et généralement moins nécessaire chez le python royal que chez d\'autres espèces.', en:'A period of reduced temperature/light sometimes used to stimulate breeding — debated and generally less necessary for ball pythons than other species.' },
 ];
 function renderGlossary(){
@@ -19428,7 +19437,7 @@ function renderGlossary(){
     const qid = 'qa-gloss-'+i;
     const qaOpen = !!qaOpenState[qid];
     return '<div class="husbandry-qa'+(qaOpen?'':' collapsed')+'" id="'+qid+'">'+
-      '<div class="q" onclick="toggleHusbandryQa(\''+qid+'\')"><span class="qa-arrow">▾</span>'+g.term+'</div>'+
+      '<div class="q" onclick="toggleHusbandryQa(\''+qid+'\')"><span class="qa-arrow">▾</span>'+((isEn && g.termEn) ? g.termEn : g.term)+'</div>'+
       '<div class="a">'+(isEn?g.en:g.fr)+'</div>'+
     '</div>';
   }).join('');
@@ -19781,6 +19790,15 @@ function updateClutchReproductionFields(){
 }
 // Alias de compatibilité — plusieurs endroits du code appellent encore l'ancien nom.
 function updateClutchIncubationDefault(){ updateClutchReproductionFields(); }
+// v3.73 — au changement de langue : seulement les libellés (ne remet pas les jours d'incubation à zéro).
+function relabelClutchFields(){
+  const isEn = currentLang==='en';
+  const sireEl = document.getElementById('clutch-sire'), damEl = document.getElementById('clutch-dam');
+  const dateLabel = document.getElementById('clutch-date-label');
+  if(!dateLabel || !sireEl || !damEl) return;
+  const isOvo = reproductionModeForSnakes(sireEl.value, damEl.value).mode==='ovovivipare';
+  dateLabel.textContent = isOvo ? (isEn?'Post-ov. shed':'Mue post-ov.') : (isEn?'Lay date':'Date de ponte');
+}
 function renderClutchForm(){
   const isEn = currentLang==='en';
   const sireSel = document.getElementById('clutch-sire');
@@ -23605,14 +23623,33 @@ var userTier = 'gratuit'; // palier tarifaire du compte connecté — voir hasAc
 // (session restaurée) était sauté → ni menu Admin ni palier. Maintenant lu à part, une fois par
 // compte, et relu à l'ouverture du menu ☰ si la lecture précédente a échoué (réseau).
 var accountStatusUserId = null; // compte dont le statut admin/palier a été lu avec succès
+var userTierLifetime = false;
+// v3.72 — ligne « Palier » dans Mon profil (preuve visible d'un palier offert à vie).
+function tierDisplayName(tier, isEn){
+  const names = {
+    gratuit:{fr:'Gratuit', en:'Free'},
+    passionne:{fr:'Passionné', en:'Enthusiast'},
+    premiere_ponte:{fr:'Première Ponte', en:'First Clutch'},
+    illimite:{fr:'Illimité', en:'Unlimited'}
+  };
+  const n = names[tier] || names.gratuit;
+  return isEn ? n.en : n.fr;
+}
+function profileTierLineHtml(isEn){
+  if(!currentUser || accountStatusUserId!==currentUser.id) return '';
+  let txt = (isEn?'Plan: ':'Palier : ')+tierDisplayName(userTier||'gratuit', isEn);
+  if(userTierLifetime) txt += isEn ? ' · Lifetime (complimentary)' : ' · À vie (offert)';
+  return '<p style="font-size:13px;margin:0 0 14px;padding:8px 12px;border:1px solid var(--gold);border-radius:8px;color:var(--ink);"><b>'+txt+'</b></p>';
+}
 async function checkAdminStatus(){
-  if(!currentUser || !sb){ isAdminUser = false; userTier = 'gratuit'; accountStatusUserId = null; syncAdminMenuItem(); return false; }
-  if(accountStatusUserId && accountStatusUserId!==currentUser.id){ isAdminUser = false; userTier = 'gratuit'; accountStatusUserId = null; }
+  if(!currentUser || !sb){ isAdminUser = false; userTier = 'gratuit'; userTierLifetime = false; accountStatusUserId = null; syncAdminMenuItem(); return false; }
+  if(accountStatusUserId && accountStatusUserId!==currentUser.id){ isAdminUser = false; userTier = 'gratuit'; userTierLifetime = false; accountStatusUserId = null; }
   try{
-    const { data, error } = await sb.from('profiles').select('is_admin, tier').eq('user_id', currentUser.id).single();
+    const { data, error } = await sb.from('profiles').select('is_admin, tier, tier_lifetime').eq('user_id', currentUser.id).single();
     if(!error && data){
       isAdminUser = data.is_admin === true;
       userTier = data.tier || 'gratuit';
+      userTierLifetime = data.tier_lifetime === true; // v3.72 — palier offert à vie (réglé seulement par MCP/tableau de bord)
       accountStatusUserId = currentUser.id;
     }
   }catch(e){}
