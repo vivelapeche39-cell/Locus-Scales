@@ -2204,7 +2204,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.75';
+const APP_VERSION = '2026.09.01.3.76';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4413,7 +4413,7 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.75', date:'2026-10-13',
+  { version:'3.76', date:'2026-10-14',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
@@ -23809,6 +23809,7 @@ async function openAdminOverview(){
     return;
   }
   const tt = data.totals || {};
+  adminUsersCache = data.users || []; // v3.76
   const tile = (n, label, sub)=>'<div style="flex:1 1 30%;min-width:96px;padding:10px;border:1px solid var(--line);border-radius:12px;text-align:center;">'+
     '<div style="font-size:26px;font-weight:800;color:var(--gold);">'+(n==null?'—':n)+'</div>'+
     '<div style="font-size:12.5px;color:var(--ink);">'+label+'</div>'+(sub?'<div style="font-size:11px;color:var(--ink-dim);">'+sub+'</div>':'')+'</div>';
@@ -23820,6 +23821,10 @@ async function openAdminOverview(){
       '<div style="font-size:13px;color:var(--ink-dim);margin-top:3px;">'+
         (isEn?'Signed up ':'Inscrit ')+escapeHtml(String(u.created_at||'').slice(0,10))+' · '+(isEn?'last sign-in ':'dernière connexion ')+adminAgo(u.last_sign_in_at)+'</div>'+
       '<div style="font-size:13px;margin-top:3px;">🐍 '+u.reptiles+' · 🤝 '+u.pairings+' · 🥚 '+u.clutches+(u.last_data_change?' · '+(isEn?'data changed ':'données modifiées ')+adminAgo(u.last_data_change):'')+'</div>'+
+      // v3.76 — désabonnement des courriels (loi anti-pourriel) : coché = exclu de « Copier les courriels ».
+      '<label style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:13px;color:'+(u.email_opt_out?'var(--rust)':'var(--ink-dim)')+';">'+
+        '<input type="checkbox" '+(u.email_opt_out?'checked':'')+' onchange="adminSetEmailOptOut(\''+encodeURIComponent(u.email||'')+'\', this.checked)" style="width:20px;height:20px;"/>'+
+        (isEn?'Unsubscribed from emails':'Désabonné des courriels')+'</label>'+
     '</div>';
   }).join('');
   document.getElementById('quick-modal-body').innerHTML =
@@ -23831,12 +23836,43 @@ async function openAdminOverview(){
       tile(tt.reptiles_7d, isEn?'reptiles added (7 d)':'reptiles ajoutés (7 j)', '')+
       tile(tt.bug_reports_open, isEn?'open bug reports':'bugs ouverts', (tt.bug_reports||0)+(isEn?' total':' au total'))+
     '</div>'+
+    '<button class="sc-btn accent" style="width:100%;margin-bottom:6px;font-size:15px;" onclick="adminCopyEmails()">📋 '+(isEn?'Copy emails':'Copier les courriels')+' ('+adminMailableEmails().length+')</button>'+
+    '<p style="font-size:12px;color:var(--ink-dim);margin:0 0 12px;">'+(isEn?'Confirmed accounts only, without unsubscribed ones or yours. Paste them in BCC.':'Comptes confirmés seulement, sans les désabonnés ni le tien. Colle-les en Cci.')+'</p>'+
     '<div style="font-size:12px;color:var(--ink-dim);margin-bottom:6px;">🟢 '+(isEn?'has animals':'a des animaux')+' · 🟡 '+(isEn?'signed in, nothing entered':'connecté, rien entré')+' · ⚪ '+(isEn?'never signed in':'jamais connecté')+'</div>'+
     rows+
     '<p class="husbandry-health-note" style="margin-top:12px;">'+(isEn
       ? 'Counts only — no prices, buyers or locations. Page visits are not measured (no analytics tool installed).'
       : 'Compteurs seulement — aucun prix, acheteur ni emplacement. Les visites de pages ne sont pas mesurées (aucun outil d\'analyse installé).')+'</p>'+
     '<p style="font-size:11px;color:var(--ink-dim);text-align:right;">'+(isEn?'Updated ':'Mis à jour ')+escapeHtml(String(data.generated_at||'').slice(0,16).replace('T',' '))+' UTC</p>';
+}
+// v3.76 — courriels pour un envoi groupé (Cci) : confirmés, non désabonnés, sans le compte admin lui-même.
+var adminUsersCache = [];
+function adminMailableEmails(){
+  const mine = (currentUser && currentUser.email || '').toLowerCase();
+  return adminUsersCache.filter(u=>u.confirmed && !u.email_opt_out && u.email && u.email.toLowerCase()!==mine).map(u=>u.email);
+}
+async function adminCopyEmails(){
+  const isEn = currentLang==='en';
+  const list = adminMailableEmails();
+  if(!list.length){ showToast(isEn?'No email to copy.':'Aucun courriel à copier.', 'warning'); return; }
+  const text = list.join(', ');
+  let copied = false;
+  try{ await navigator.clipboard.writeText(text); copied = true; }catch(e){}
+  // Toujours affiché en gros aussi : le presse-papiers peut être refusé sur certains appareils.
+  showQuickModal('📋 '+(isEn?'Emails':'Courriels')+' ('+list.length+')',
+    '<p style="font-size:14px;color:'+(copied?'var(--sage)':'var(--ink-dim)')+';margin:0 0 10px;">'+(copied
+      ? (isEn?'Copied! Paste them in the BCC field of your email.':'Copiés! Colle-les dans le champ Cci de ton courriel.')
+      : (isEn?'Select the text below and copy it, then paste it in BCC.':'Sélectionne le texte ci-dessous et copie-le, puis colle-le en Cci.'))+'</p>'+
+    '<textarea readonly style="width:100%;min-height:160px;font-size:16px;line-height:1.5;padding:10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" onfocus="this.select()">'+escapeHtml(text)+'</textarea>'+
+    '<button class="sc-btn" style="width:100%;margin-top:10px;" onclick="openAdminOverview()">← '+(isEn?'Back to Admin':'Retour à Admin')+'</button>');
+}
+async function adminSetEmailOptOut(encEmail, optOut){
+  const isEn = currentLang==='en';
+  if(!isAdminUser || !sb) return;
+  const { error } = await sb.rpc('admin_set_email_opt_out', { p_email: decodeURIComponent(encEmail), p_opt_out: !!optOut });
+  if(error){ showToast((isEn?'Not saved: ':'Non enregistré : ')+error.message, 'error'); return; }
+  showToast(optOut ? (isEn?'📭 Unsubscribed.':'📭 Désabonné.') : (isEn?'📬 Subscribed again.':'📬 Réabonné.'), 'success');
+  openAdminOverview();
 }
 var isAdminUser = false;
 var userTier = 'gratuit'; // palier tarifaire du compte connecté — voir hasAccess() tout en haut du fichier
