@@ -2204,7 +2204,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.76';
+const APP_VERSION = '2026.09.01.3.78';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4417,6 +4417,8 @@ const CHANGELOG = [
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '🤚 Délai de manipulation après un repas : la fiche et le Mode Tournée affichent « encore X h » pendant la digestion (48 h par défaut, réglable à 24, 72 h ou désactivé dans Configuration). L\'heure exacte du repas est maintenant enregistrée.',
+        '💩 Selles : nouvelle pastille dans l\'entretien de Racks & Terrariums (plusieurs bacs ou terrariums d\'un coup, notée sur l\'animal qui y vit), et bouton en un toucher sur la fiche avec « Dernières selles : il y a X j ». Le journal de défécation suit aussi maintenant entre tes appareils.',
         '🧽 Entretien en lot, directement sur la page Racks & Terrariums : touche une pastille en haut (changement d\'eau, nettoyage partiel ou complet, et UVB remplacé ou test d\'eau quand ça s\'applique), puis touche tes bacs et terrariums un par un, une rangée, un rack entier ou tous tes terrariums, et enregistre d\'un coup. Date modifiable, bouton Annuler. Retouche la pastille ou « Terminer » pour revenir à la page normale. Merci pour la suggestion!',
         'Traduction : une dizaine de textes restaient en français dans l\'app en anglais (formulaire de ponte, listes d\'attente, menu Légal, exemple de format CSV, provenance, bulles d\'aide).',
         'Mon profil affiche maintenant ton palier (ex. « Palier : Gratuit »), avec la mention « À vie (offert) » pour les comptes à qui il a été offert.',
@@ -4459,6 +4461,8 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '🤚 Handling wait after a meal: the record and Tour Mode show « X h left » while digesting (48 h by default, set it to 24, 72 h or off in Settings). The exact time of the meal is now saved.',
+        '💩 Poop: new pill in Racks & Enclosures maintenance (several tubs or enclosures at once, logged on the animal living there), and a one-tap button on the record with « Last poop: X d ago ». The defecation log now also syncs between your devices.',
         '🧽 Bulk maintenance, right on the Racks & Enclosures page: tap a pill at the top (water change, partial or full cleaning, plus UVB replaced or water test when they apply), then tap your tubs and enclosures one by one, a row, a whole rack or all enclosures, and save at once. Editable date, Undo button. Tap the pill again or « Done » to return to the normal page. Thanks for the suggestion!',
         'Translation: about ten texts stayed in French in the English app (clutch form, waitlists, Legal menu, CSV format example, provenance, tooltips).',
         'My Profile now shows your plan (e.g. « Plan: Free »), with « Lifetime (complimentary) » for accounts it was offered to.',
@@ -6167,6 +6171,12 @@ function openConfigModal(){
       '<button class="sc-btn'+(cfg.lang==='en'?' accent':'')+'" style="flex:1;" onclick="setAppLanguage(\'en\')">🇬🇧 English</button>'+
     '</div>'+
     '<p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 18px;">'+(isEn?'✅ Fully bilingual interface — every tab, menu, Help, FAQ, and legal document switches live.':'✅ Interface entièrement bilingue — tous les onglets, menus, l\'Aide, la FAQ et les documents légaux basculent en direct.')+'</p>'+
+    // v3.77 — délai sans manipulation après un repas
+    '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:8px;">🤚 '+(isEn?'No handling after a meal':'Pas de manipulation après un repas')+'</label>'+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">'+
+      [24,48,72,0].map(h=>'<button class="sc-btn'+(handlingWaitHours()===h?' accent':'')+'" style="flex:1;min-width:70px;" onclick="setHandlingWaitHours('+h+')">'+(h? h+' h' : (isEn?'Off':'Désactivé'))+'</button>').join('')+
+    '</div>'+
+    '<p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 18px;">'+(isEn?'Shows a countdown on the record and in Tour Mode after each meal. 48 h is the usual advice; your vet may recommend otherwise.':'Affiche un compte à rebours sur la fiche et dans le Mode Tournée après chaque repas. 48 h est le conseil habituel ; ton vétérinaire peut recommander autre chose.')+'</p>'+
     '<div style="border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:8px;">'+
       '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); openNotifSettings();">🔔 '+(isEn?'Notifications':'Notifications')+'</button>'+
       '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); openStorageDetails();">💾 '+(isEn?'Storage space':'Espace de stockage')+'</button>'+
@@ -8407,6 +8417,7 @@ function batchMarkFed(){
     ensureSnakeMeta(s);
     s.health.consecutiveRefusals = 0;
     const ev = {date:today, type:'fed', preyType: s.preyType||'frozen'};
+    if(today===localTodayStr()) ev.at = new Date().toISOString(); // v3.77 — heure du repas (délai de manipulation)
     s.health.events.push(ev);
     count++;
     if(s.preySpecies && s.preySize){
@@ -10572,7 +10583,17 @@ function openLogbook(id){
       (needsSupplements(s) ? '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'supplement\')">💊 '+(isEn?'Supplement':'Supplément')+'</button>' : '')+
       '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'weigh\')">'+t('eventWeigh')+'</button>'+
       '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'length\')">'+t('eventLength')+'</button>'+
+      '<button class="tour-action-btn" onclick="quickLogDefecation(\''+id+'\')">💩 '+(isEn?'Poop':'Selles')+'</button>'+ // v3.77
     '</div>'+
+    // v3.77 — délai de manipulation + dernière défécation, juste sous les actions rapides.
+    (function(){
+      const hl = handlingHoursLeft(s);
+      const dd = lastDefecationDays(s);
+      let out = '';
+      if(hl>0) out += '<div style="margin-top:8px;font-size:14px;color:var(--gold);">🤚 '+(isEn?'Avoid handling: '+hl+' h left (digesting)':'Évite de manipuler : encore '+hl+' h (digestion)')+'</div>';
+      out += '<div style="margin-top:6px;font-size:13px;color:var(--ink-dim);">💩 '+(dd===null ? (isEn?'No poop logged yet':'Aucune défécation notée') : (dd===0 ? (isEn?'Last poop: today':'Dernières selles : aujourd\'hui') : (isEn?'Last poop: '+dd+' d ago':'Dernières selles : il y a '+dd+' j')))+'</div>';
+      return out;
+    })()+
     (hasAccess('lockMode') ? pairings.filter(pp=>!pp.ovulationConfirmed && (pp.maleId===id||pp.femaleId===id)).map(pp=>{
       const stL = pairCurrentState(pp); const tog = stL && stL.state==='in';
       return '<div class="modal-row" style="margin-top:8px;"><span style="font-size:12.5px;">🐍 '+(isEn?'Pairing with ':'Accouplement avec ')+'<b>'+escapeHtml(spSnakeName(pp.maleId===id?pp.femaleId:pp.maleId))+'</b> · 🔒 '+(pp.lockDates||[]).length+'</span>'+
@@ -11247,6 +11268,7 @@ function confirmPlate(id, appetite){
   } else {
     s.health.consecutiveRefusals = 0;
     event = {date:day, type:'fed', quantity:appetite, plate:true};
+    if(day===localTodayStr()) event.at = new Date().toISOString(); // v3.77
     msg = '🥗 '+escapeHtml(s.name)+(appetite==='partial' ? (isEn?' ate some of the plate.':' a mangé un peu.') : (isEn?' ate the whole plate.':' a tout mangé.'));
   }
   s.health.events.push(event);
@@ -11322,6 +11344,7 @@ function confirmFed(id, quantity){
   const preyCount = countInput ? Math.max(1, parseInt(countInput.value)||1) : 1;
   s.health.consecutiveRefusals = 0;
   const event = {date:today, type:'fed', quantity, preyType: s.preyType||'frozen', preyCount};
+  if(today===localTodayStr()) event.at = new Date().toISOString(); // v3.77 — heure du repas (délai de manipulation)
   let stockMsg = '';
   if(s.preySpecies && s.preySize){
     const rec = consumePreyForEvent(s, s.preyType||'frozen', preyCount);
@@ -11735,6 +11758,69 @@ function renderDefecationsHtml(s){
     '</div>'
   ).join('');
 }
+// v3.77 — délai sans manipulation après un repas (demande vue chez les utilisateurs de Snekup) :
+// réglable dans Configuration (24/48/72 h ou désactivé), 48 h par défaut. Les repas notés « aujourd'hui »
+// gardent leur heure exacte (event.at) ; un repas noté à une date passée compte à partir de midi ce jour-là.
+function handlingWaitHours(){
+  const cfg = loadAppConfig();
+  const h = cfg.handlingWaitHours;
+  return (h===0 || h) ? Number(h) : 48;
+}
+function setHandlingWaitHours(h){
+  const cfg = loadAppConfig();
+  cfg.handlingWaitHours = Number(h);
+  try{ localStorage.setItem(APP_CONFIG_KEY, JSON.stringify(cfg)); }catch(e){}
+  try{ renderTourGrid(); }catch(e){}
+  openConfigModal();
+}
+function lastFedTimestamp(s){
+  const fed = ((s.health && s.health.events)||[]).filter(e=>e.type==='fed');
+  let best = null;
+  fed.forEach(e=>{
+    const ts = e.at ? Date.parse(e.at) : Date.parse(e.date+'T12:00:00');
+    if(!isNaN(ts) && (best===null || ts>best)) best = ts;
+  });
+  return best;
+}
+function handlingHoursLeft(s){
+  const wait = handlingWaitHours();
+  if(!wait) return 0;
+  const ts = lastFedTimestamp(s);
+  if(ts===null) return 0;
+  const left = (ts + wait*3600000 - Date.now()) / 3600000;
+  return left>0 ? Math.ceil(left) : 0;
+}
+function lastDefecationDays(s){
+  const list = (s.health && s.health.defecations) || [];
+  if(!list.length) return null;
+  const last = [...list].sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];
+  return daysSinceDate(last.date);
+}
+// Bouton rapide 💩 (fiche) : note la défécation d'aujourd'hui en un toucher, avec Annuler.
+function quickLogDefecation(id){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const entry = { id:'def_'+Date.now(), date:localTodayStr(), note:'' };
+  s.health.defecations.push(entry);
+  storage.save(savedSnakes);
+  showToast('💩 '+(isEn?'Logged for ':'Noté pour ')+escapeHtml(s.name)+'.', 'success', "undoDefecations(['"+id+"|"+entry.id+"'])");
+  if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
+}
+function undoDefecations(pairs){
+  const isEn = currentLang==='en';
+  (pairs||[]).forEach(p=>{
+    const parts = String(p).split('|');
+    const s = savedSnakes.find(x=>x.id===parts[0]);
+    if(!s || !s.health || !s.health.defecations) return;
+    s.health.defecations = s.health.defecations.filter(d=>d.id!==parts[1]);
+    addHealthTombstone(s, 'd|'+parts[1]);
+  });
+  storage.save(savedSnakes);
+  try{ renderTourGrid(); }catch(e){}
+  showToast('↩ '+(isEn?'Undone.':'Annulé.'));
+}
 function addDefecation(id){
   const isEn = currentLang==='en';
   const s = savedSnakes.find(x=>x.id===id);
@@ -11757,6 +11843,7 @@ function deleteDefecation(id, defecationId){
   if(!s) return;
   ensureSnakeMeta(s);
   s.health.defecations = s.health.defecations.filter(d=>d.id!==defecationId);
+  addHealthTombstone(s, 'd|'+defecationId); // v3.77 — la suppression suit entre appareils
   storage.save(savedSnakes);
   const listEl = document.getElementById('defecations-list-'+id);
   if(listEl) listEl.innerHTML = renderDefecationsHtml(s);
@@ -12565,9 +12652,11 @@ function mergeSnakeRecords(winner, other){
     events: mergeCountedLists(wh.events, oh.events, healthEventKey, removed),
     weights: mergeCountedLists(wh.weights, oh.weights, m=>measureKey('w', m), removed),
     lengths: mergeCountedLists(wh.lengths, oh.lengths, m=>measureKey('l', m), removed),
+    defecations: mergeCountedLists(wh.defecations, oh.defecations, d=>'d|'+(d&&d.id), removed), // v3.77
     removed: [...removed].slice(-300)
   });
   if(!wh.lengths && !oh.lengths) delete merged.health.lengths;
+  if(!wh.defecations && !oh.defecations) delete merged.health.defecations;
   const photos = new Map();
   (winner.photos||[]).concat(other.photos||[]).forEach(ph=>{ if(ph && ph.id && !removed.has('p|'+ph.id) && !photos.has(ph.id)) photos.set(ph.id, ph); });
   merged.photos = [...photos.values()];
@@ -16960,8 +17049,10 @@ function maintKeyApplies(key){
     if(!te) return false;
     if(maintMode==='uvb') return maintTerrariumHasUvb(te);
     if(maintMode==='wq') return maintTerrariumIsAquatic(te);
+    if(maintMode==='poop') return terrariumOccupants(te.id).length>0; // v3.78 — seulement s'il y a un animal
     return true;
   }
+  if(maintMode==='poop'){ const p = key.split('|'); return !!snakeAt(p[1], Number(p[2]), Number(p[3])); }
   return maintMode!=='uvb' && maintMode!=='wq'; // bacs de rack : eau et nettoyage seulement
 }
 function renderMaintBar(){
@@ -16977,6 +17068,7 @@ function renderMaintBar(){
     pill('water', '💧 '+(isEn?'Water change':'Changement d\'eau'))+
     pill('clean_partial', '🧽 '+(isEn?'Partial cleaning':'Nettoyage partiel'))+
     pill('clean_complete', '🧹 '+(isEn?'Full cleaning':'Nettoyage complet'))+
+    pill('poop', '💩 '+(isEn?'Poop':'Selles'))+ // v3.78 — selles notées sur l'animal du bac/terrarium
     (terrariums.some(maintTerrariumHasUvb) ? pill('uvb', '☀️ '+(isEn?'UVB replaced':'UVB remplacé')) : '')+
     (terrariums.some(maintTerrariumIsAquatic) ? pill('wq', '🧪 '+(isEn?'Water test':'Test d\'eau')) : '')+
     '</div>';
@@ -17071,7 +17163,22 @@ function applyMaintSelection(){
   const undo = [];
   const water = maintMode==='water';
   const type = maintMode==='clean_complete' ? 'complete' : 'partial';
+  let poopTouched = false;
   maintSel.forEach(key=>{
+    if(maintMode==='poop'){ // v3.78 — la défécation reste sur la fiche de l'animal (journal de défécation)
+      let animals = [];
+      if(key.indexOf('te|')===0) animals = terrariumOccupants(key.slice(3));
+      else { const p = key.split('|'); const sn = snakeAt(p[1], Number(p[2]), Number(p[3])); if(sn) animals = [sn]; }
+      animals.forEach(sn=>{
+        ensureSnakeMeta(sn);
+        if(!sn.health.defecations) sn.health.defecations = [];
+        const dId = 'def_'+stamp+'_'+sn.id;
+        sn.health.defecations.push({ id:dId, date, note:'' });
+        undo.push({ snake:sn.id, defId:dId });
+        poopTouched = true;
+      });
+      return;
+    }
     if(key.indexOf('te|')===0){
       const te = getTerrarium(key.slice(3));
       if(!te) return;
@@ -17100,7 +17207,7 @@ function applyMaintSelection(){
     }
   });
   bulkMaintUndo = undo;
-  saveElevage();
+  if(poopTouched) storage.save(savedSnakes); else saveElevage();
   const n = undo.length;
   const mode = maintMode;
   maintSel = new Set(); maintNote = '';
@@ -17108,7 +17215,8 @@ function applyMaintSelection(){
   try{ renderRackGrid(); }catch(e){}
   try{ renderTerrariumList(); }catch(e){}
   const dateNote = date!==today ? ' ('+date+')' : '';
-  const msg = mode==='water' ? (isEn?'💧 Water change logged for '+n+'.':'💧 Changement d\'eau noté pour '+n+'.')
+  const msg = mode==='poop' ? (isEn?'💩 Poop logged for '+n+' animal(s).':'💩 Selles notées pour '+n+' animal(aux).')
+    : mode==='water' ? (isEn?'💧 Water change logged for '+n+'.':'💧 Changement d\'eau noté pour '+n+'.')
     : mode==='uvb' ? (isEn?'☀️ UVB replacement logged for '+n+'.':'☀️ Remplacement UVB noté pour '+n+'.')
     : (isEn?'🧹 Cleaning logged for '+n+'.':'🧹 Nettoyage noté pour '+n+'.');
   showToast(msg+dateNote, 'success', 'undoBulkMaintenance()');
@@ -17116,7 +17224,13 @@ function applyMaintSelection(){
 function undoBulkMaintenance(){
   const isEn = currentLang==='en';
   if(!bulkMaintUndo) return;
+  let poopUndone = false;
   bulkMaintUndo.forEach(u=>{
+    if(u.defId){ // v3.78
+      const sn = savedSnakes.find(x=>x.id===u.snake);
+      if(sn && sn.health && sn.health.defecations){ sn.health.defecations = sn.health.defecations.filter(d=>d.id!==u.defId); addHealthTombstone(sn, 'd|'+u.defId); poopUndone = true; }
+      return;
+    }
     if(u.te){
       const te = getTerrarium(u.te);
       if(!te) return;
@@ -17128,7 +17242,7 @@ function undoBulkMaintenance(){
     }
   });
   bulkMaintUndo = null;
-  saveElevage();
+  if(poopUndone) storage.save(savedSnakes); else saveElevage();
   try{ renderRackGrid(); }catch(e){}
   try{ renderTerrariumList(); }catch(e){}
   showToast('↩ '+(isEn?'Maintenance undone.':'Entretien annulé.'));
@@ -18310,6 +18424,8 @@ function renderTourGrid(){
               var dsf = daysSinceLastFed(snake);
               tag = dsf!==null ? (dsf+(isEn?'d':'j')) : (isEn?'never fed':'jamais nourri');
             }
+            var hlT = handlingHoursLeft(snake); // v3.77
+            if(hlT>0) tag = (tag ? tag+' · ' : '')+'🤚'+hlT+'h';
             cell.setAttribute('data-tooltip', snakeTooltip(snake));
           }
           cell.innerHTML = (snake ? '<div class="tub-name">'+escapeHtml(snake.name)+'</div><div class="tub-tag">'+tag+'</div>' : (isEn?'Tub ':'Bac ')+tubIdx+(isEn?' — empty':' — vide')) + alertIcon
@@ -18398,6 +18514,7 @@ function renderTourTerrariums(){
       chip.setAttribute('data-tooltip', snakeTooltip(s));
       var chipDsf = daysSinceLastFed(s);
       var chipTag = feedingStatus(s)!=='green' ? (chipDsf!==null ? (isEn?' — '+chipDsf+'d':' — '+chipDsf+'j') : (isEn?' — never fed':' — jamais nourri')) : '';
+      var chipHl = handlingHoursLeft(s); if(chipHl>0) chipTag += ' · 🤚'+chipHl+'h'; // v3.77
       chip.innerHTML = '<span>'+escapeHtml(s.name)+' ('+(s.sex==='male'?'♂':'♀')+')'+chipTag+alertIcon+'</span>'+
         '<span class="tc-prey" data-preytoggle="'+s.id+'" title="'+(isEn?'Tap to switch live/frozen':'Toucher pour changer vivant/décongelé')+'">'+(s.preyType==='live'?'🐭':'❄️')+'</span>';
       chip.querySelector('.tc-prey').addEventListener('click', (ev)=>{ ev.stopPropagation(); toggleTourPreyType(s.id); });
@@ -18472,6 +18589,7 @@ function applyTourAction(action){
   }
 
   let fedCount = 0;
+  const defecationUndo = []; // v3.77
   let stockTouched = false;
   let lowStockMsgs = [];
   const undoPairs = [];
@@ -18485,6 +18603,7 @@ function applyTourAction(action){
       // bon (sans avertir), ce qui faussait ensuite la liste de décongélation.
       snake.health.consecutiveRefusals = 0;
       const event = {date:today, type:'fed', preyType};
+      if(today===localTodayStr()) event.at = new Date().toISOString(); // v3.77
       if(snake.preySpecies && snake.preySize){
         const rec = consumePreyForEvent(snake, preyType, 1);
         if(rec){
@@ -18515,6 +18634,7 @@ function applyTourAction(action){
       if(!isPlateFeeder(snake)) return; // seulement les espèces à l'assiette
       snake.health.consecutiveRefusals = 0;
       const event = {date:today, type:'fed', quantity:'complete', plate:true};
+      if(today===localTodayStr()) event.at = new Date().toISOString(); // v3.77
       snake.health.events.push(event);
       undoPairs.push({snakeId:snake.id, event});
     }
@@ -18522,6 +18642,12 @@ function applyTourAction(action){
       const event = {date:today, type:'shed'};
       snake.health.events.push(event);
       undoPairs.push({snakeId:snake.id, event});
+    }
+    else if(action==='defecation'){ // v3.77
+      if(!snake.health.defecations) snake.health.defecations = [];
+      const dId = 'def_'+Date.now()+'_'+snake.id;
+      snake.health.defecations.push({ id:dId, date:today, note:'' });
+      defecationUndo.push(snake.id+'|'+dId);
     }
     else if(action==='water'){
       const event = {date:today, type:'water'};
@@ -18531,6 +18657,9 @@ function applyTourAction(action){
   });
   storage.save(savedSnakes);
   if(stockTouched) saveElevage();
+  if(defecationUndo.length){ // v3.77
+    showToast('💩 '+(isEn?defecationUndo.length+' poop(s) logged.':defecationUndo.length+' selles notée(s).')+pastDateNote, 'success', "undoDefecations("+JSON.stringify(defecationUndo).replace(/"/g,"'")+")");
+  }
   if(lowStockMsgs.length){
     showToast('⚠ '+(isEn?'Low stock: ':'Stock bas : ')+[...new Set(lowStockMsgs)].join(', '), 'warning');
   }
