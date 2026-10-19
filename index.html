@@ -2214,7 +2214,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.01';
+const APP_VERSION = '2026.09.01.4.02';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -22862,7 +22862,7 @@ function computeTrophyGroups(){
       clAll.forEach(c=>{ if(coi(c.sireId, c.damId)>0) breaches.push({ date:c.layDate, name:c.ref||'' }); });
       all.forEach(s=>{ if(coi(s.sireId, s.damId)>0) breaches.push({ date:(/^\d{4}-\d{2}-\d{2}$/.test(String(s.birthDate||''))?s.birthDate:null), name:s.name }); });
       breaches.sort((a,b)=>String(a.date||'9999').localeCompare(String(b.date||'9999')));
-      const st = tStep('h_newblood','Sang neuf','New blood','Aucune consanguinité dans tes pontes et tes animaux — le défi, c\'est de le garder','No inbreeding in your clutches and animals — the challenge is keeping it', !breaches.length, clAll[0].layDate, null);
+      const st = tStep('h_newblood','Sang neuf','New blood','Facile à gagner, difficile à garder : affiche-le fièrement tant que tu peux! Aucune consanguinité dans tes pontes et tes animaux.','Easy to earn, hard to keep: show it off proudly while you can! No inbreeding in your clutches and animals.', !breaches.length, clAll[0].layDate, null);
       if(breaches.length){ st.lost = true; st.lostDate = breaches[0].date; st.lostDetail = breaches[0].name; }
       hidden.push(st);
     }
