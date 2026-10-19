@@ -1432,6 +1432,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <button class="tour-action-btn fed" data-i18n="actionFedLive" onclick="applyTourAction('fed_live')">🐭 A mangé</button>
         <button class="tour-action-btn fed" id="tour-plate-btn" style="display:none;" onclick="applyTourAction('plate')">🥗 Assiette</button>
         <button class="tour-action-btn" data-i18n="actionInShed" onclick="applyTourAction('inshed')">🔵 En mue</button>
+        <button class="tour-action-btn" data-i18n="actionSkipped" onclick="applyTourAction('skipped')">⏭ Sauté</button>
         <button class="tour-action-btn shed" data-i18n="actionShed" onclick="applyTourAction('shed')">A mué</button>
         <button class="tour-action-btn refused" data-i18n="actionRefused" onclick="applyTourAction('refused')">Refus</button>
         <button class="tour-action-btn" data-i18n="actionWeigh" onclick="applyTourAction('weigh')">Peser</button>
@@ -2212,7 +2213,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.91';
+const APP_VERSION = '2026.09.01.3.92';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4971,6 +4972,9 @@ const CHANGELOG = [
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '✏️ Modifier le passé : dans le journal d\'une fiche, le crayon ✏️ permet de changer la date d\'une entrée et ce qui s\'est passé (A mangé, Refus, Repas sauté, En mue, A mué), ou de la supprimer. Le bouton « ＋ Entrée passée » ajoute un repas, un refus, une mue ou une pesée à n\'importe quelle date passée, directement depuis la fiche.',
+        '⏭ Nouveau « Repas sauté (volontaire) » (fiche et Mode Tournée) : quand tu ne nourris simplement pas, ce n\'est pas un refus. Il remet le compte du prochain repas à zéro, sans alerte, sans fausser le % de refus ni la série de repas réussis.',
+        'Les refus pendant une mue sont maintenant ignorés aussi pour le rappel de pesée des bébés et pour le trophée caché « Fin de la grève ».',
         '🏆 Trophées renommés et beaucoup plus nombreux : chaque étape a maintenant un nom (de « Bon appétit! » au 1er repas jusqu\'au « Roi du dégel » au 1000e) avec ce qu\'il faut faire. Nouveaux groupes : Pesées (« La Grande Pesée »), Mues (« Une Nouvelle Peau » : 10 mues complètes d\'affilée), Entretien, Photos, Santé et installation, et plus d\'étapes en génétique (« Chasseur de récessifs », « Alchimiste génétique »). Les trophées liés à une fonction payante (locks, rongeurs) apparaissent seulement si tu y as accès.',
         '🤫 16 trophées cachés à découvrir — ils restent secrets jusqu\'à ce que tu tombes dessus. Pas d\'indice!',
         '🎉 Un message festif quand tu débloques un trophée (un seul, jamais de rappel).',
@@ -5036,6 +5040,9 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '✏️ Edit the past: in a record\'s journal, the ✏️ pencil lets you change an entry\'s date and what happened (Ate, Refused, Meal skipped, In shed, Shed), or delete it. The « ＋ Past entry » button adds a meal, refusal, shed or weigh-in on any past date, right from the record.',
+        '⏭ New « Meal skipped (on purpose) » (record and Tour Mode): when you simply don\'t feed, it\'s not a refusal. It resets the next-meal count, with no alert, without skewing the refusal % or the run of successful meals.',
+        'Refusals during a shed are now also ignored for the babies\' weigh-in reminder and for the hidden trophy « Strike\'s over ».',
         '🏆 Trophies renamed and many more of them: each step now has a name (from « Bon appétit! » at the 1st meal to « King of the Thaw » at the 1000th) with what it takes. New groups: Weigh-ins (« The Great Weigh-in »), Sheds (« A Brand New Skin »: 10 complete sheds in a row), Maintenance, Photos, Health and setup, and more genetics steps (« Recessive hunter », « Genetic alchemist »). Trophies tied to a paid feature (locks, rodents) only appear if you have access to it.',
         '🤫 16 hidden trophies to discover — they stay secret until you stumble on them. No hints!',
         '🎉 A festive message when you unlock a trophy (just one, never a reminder).',
@@ -5843,6 +5850,7 @@ const I18N = {
     actionFedLive: '🐭 A mangé',
     actionShed: 'A mué',
     actionInShed: '🔵 En mue',
+    actionSkipped: '⏭ Sauté',
     actionRefused: 'Refus',
     actionWeigh: 'Peser',
     deselectBtn: 'Désélectionner',
@@ -6416,6 +6424,7 @@ const I18N = {
     actionFedLive: '🐭 Fed',
     actionShed: 'Shed',
     actionInShed: '🔵 In shed',
+    actionSkipped: '⏭ Skipped',
     actionRefused: 'Refused',
     actionWeigh: 'Weigh',
     deselectBtn: 'Deselect',
@@ -11050,7 +11059,8 @@ function openLogbook(id){
         const idx = s.health.events.indexOf(e);
         const label = eventLabel(e.type)+(e.type==='weigh'?' ('+e.value+'g)':'')+(e.type==='length'?' ('+e.value+'cm)':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(currentLang==='en'?'partial':'partiel'):'')+feedPreyTag(e)+(e.partner?' — '+escapeHtml(e.partner):'');
         const swapBtn = (e.type==='shed' || e.type==='inshed') ? '<button class="sc-btn" style="padding:2px 8px;font-size:12px;line-height:1.2;" onclick="toggleShedEventType(\''+id+'\','+idx+')" title="'+(currentLang==='en'?(e.type==='shed'?'Change to « In shed »':'Change to « Shed »'):(e.type==='shed'?'Changer en « En mue »':'Changer en « A mué »'))+'">⇄ '+(e.type==='shed'?(currentLang==='en'?'In shed':'En mue'):(currentLang==='en'?'Shed':'A mué'))+'</button>' : ''; // v3.90
-        return '<div class="modal-row"><span>'+e.date+'</span><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">'+label+swapBtn+'<button class="sc-btn danger" style="padding:2px 8px;font-size:11px;line-height:1;" onclick="deleteHealthEvent(\''+id+'\','+idx+')">×</button></span></div>';
+        const editBtn = '<button class="sc-btn" style="padding:2px 8px;font-size:12px;line-height:1.2;" onclick="openEditEventModal(\''+id+'\','+idx+')" aria-label="'+(currentLang==='en'?'Edit':'Modifier')+'">✏️</button>'; // v3.92
+        return '<div class="modal-row"><span>'+e.date+'</span><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">'+label+editBtn+swapBtn+'<button class="sc-btn danger" style="padding:2px 8px;font-size:11px;line-height:1;" onclick="deleteHealthEvent(\''+id+'\','+idx+')">×</button></span></div>';
       }).join('')
     : '<div class="modal-row"><span>'+t('noEventRecorded')+'</span></div>';
 
@@ -11190,6 +11200,7 @@ function openLogbook(id){
         ? '<button class="tour-action-btn fed" onclick="logAction(\''+id+'\',\'plate\')">🥗 '+(isEn?'Plate':'Assiette')+'</button>'
         : '<button class="tour-action-btn fed" onclick="logAction(\''+id+'\',\'fed\')">'+t('eventFed')+'</button>')+
       '<button class="tour-action-btn" onclick="logInShed(\''+id+'\')">🔵 '+(isEn?'In shed':'En mue')+'</button>'+ // v3.90
+      '<button class="tour-action-btn" onclick="logSkippedMeal(\''+id+'\')">⏭ '+(isEn?'Skipped':'Sauté')+'</button>'+ // v3.92
       '<button class="tour-action-btn shed" onclick="logAction(\''+id+'\',\'shed\')">'+t('eventShed')+'</button>'+
       (isPlateFeeder(s) ? '' : '<button class="tour-action-btn refused" onclick="logAction(\''+id+'\',\'refused\')">'+t('eventRefused')+'</button>')+
       (needsSupplements(s) ? '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'supplement\')">💊 '+(isEn?'Supplement':'Supplément')+'</button>' : '')+
@@ -11252,7 +11263,9 @@ function openLogbook(id){
           : (isEn?'No unit price for this prey yet — add it in Breeding › Food.':'Pas encore de prix unitaire pour cette proie — ajoute-le dans Élevage › Nourriture.'))+'</div>';
     })()+
     (feedCount(s)>0 && cumulativeFeedCost(s)>0 ? '<div class="modal-row"><span>'+(isEn?'Cumulative feeding cost (estimate)':'Coût de nourriture cumulé (estimé)')+'</span><span style="color:var(--gold);font-weight:600;">'+cumulativeFeedCost(s).toFixed(2)+' $</span></div>' : '')+
-    '<div class="modal-section"><h3>'+t('careJournalTourTitle')+'</h3>'+eventsHtml+'</div>'+
+    '<div class="modal-section"><h3>'+t('careJournalTourTitle')+'</h3>'+
+      '<button class="sc-btn accent" style="font-size:14px;padding:9px 12px;margin-bottom:8px;" onclick="openAddPastEventModal(\''+id+'\')">＋ '+(isEn?'Past entry':'Entrée passée')+'</button>'+ // v3.92
+      eventsHtml+'</div>'+
     '<div class="modal-section">'+
       '<div class="community-folder'+(helpFolderWasOpen?'':' collapsed')+'" id="'+helpFolderId+'">'+
         '<button class="community-folder-header" onclick="toggleCommunityFolder(\''+helpFolderId+'\')">'+
@@ -12262,6 +12275,147 @@ function toggleShedEventType(id, idx){
   openLogbook(id);
   try{ renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderSavedList(); }catch(err){}
 }
+// ==================== Modifier / ajouter une entrée dans le temps (v3.92) ====================
+// Types qu'on peut interchanger : repas, refus, repas sauté, en mue, a mué. Les autres entrées
+// (pesée, mesure, eau, lock…) se modifient en date seulement. Une pierre tombale sur l'ancienne
+// version empêche la synchro de la ramener; le compteur de refus est recalculé.
+var EDITABLE_EVENT_TYPES = ['fed','refused','skipped','inshed','shed'];
+function consecutiveRefusalsOutsideShed(s){
+  const ev = ((s && s.health && s.health.events)||[]).filter(e=>e && e.date && (e.type==='fed' || e.type==='refused')).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const w = inShedWindows(s);
+  let n = 0;
+  for(let i=ev.length-1;i>=0;i--){
+    if(ev[i].type==='fed') break;
+    if(!w.some(x=>ev[i].date>=x.start && ev[i].date<=x.end)) n++;
+  }
+  return n;
+}
+function recomputeConsecutiveRefusals(s){
+  const ev = ((s.health&&s.health.events)||[]).filter(e=>e && e.date && (e.type==='fed' || e.type==='refused')).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  let n = 0;
+  for(let i=ev.length-1;i>=0;i--){ if(ev[i].type==='fed') break; n++; }
+  s.health.consecutiveRefusals = n;
+}
+function eventTypeOptionsHtml(current){
+  return EDITABLE_EVENT_TYPES.map(tp=>'<option value="'+tp+'"'+(tp===current?' selected':'')+'>'+eventLabel(tp)+'</option>').join('');
+}
+function pastEventFieldsHtml(type, isEn){
+  // champs supplémentaires selon le type (qualité de mue / type de proie / poids)
+  const sel = 'width:100%;font-size:16px;padding:10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);margin-bottom:12px;';
+  if(type==='shed') return '<label style="display:block;font-size:13px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Quality':'Qualité')+'</label><select id="pe-quality" style="'+sel+'">'+SHED_QUALITIES.map(q=>'<option value="'+q+'">'+shedQualityLabel(q)+'</option>').join('')+'</select>';
+  if(type==='fed') return '<label style="display:block;font-size:13px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Prey':'Proie')+'</label><select id="pe-preytype" style="'+sel+'"><option value="frozen">❄️ '+t('preyTypeFrozen')+'</option><option value="live">🐭 '+t('preyTypeLive')+'</option></select>';
+  if(type==='weigh') return '<label style="display:block;font-size:13px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Weight (g)':'Poids (g)')+'</label><input type="number" id="pe-weight" min="0" style="'+sel+'"/>';
+  return '';
+}
+function logSkippedMeal(id){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const isEn = currentLang==='en';
+  const event = { date: localTodayStr(), type:'skipped' };
+  s.health.events.push(event);
+  storage.save(savedSnakes);
+  registerEventUndo([{snakeId:id, event}]);
+  showToast('⏭ '+escapeHtml(s.name)+(isEn?' — meal skipped on purpose (not a refusal).':' — repas sauté volontairement (pas un refus).'), 'success', 'undoLastLoggedEvent()');
+  if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
+  try{ renderRackGrid(); renderTerrariumList(); renderTourGrid(); }catch(e){}
+}
+function openEditEventModal(id, idx){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s || !s.health || !s.health.events[idx]) return;
+  const e = s.health.events[idx];
+  const canType = EDITABLE_EVENT_TYPES.includes(e.type);
+  const inp = 'width:100%;font-size:16px;padding:10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);margin-bottom:12px;';
+  showQuickModal('✏️ '+(isEn?'Edit entry — ':'Modifier l\'entrée — ')+escapeHtml(s.name),
+    '<p style="font-size:14px;color:var(--ink);margin:0 0 12px;">'+eventLabel(e.type)+' — '+escapeHtml(e.date)+'</p>'+
+    '<label style="display:block;font-size:13px;color:var(--ink-dim);margin-bottom:5px;">Date</label>'+
+    '<input type="date" id="ee-date" max="'+localTodayStr()+'" value="'+escapeHtml(e.date)+'" style="'+inp+'"/>'+
+    (canType ? '<label style="display:block;font-size:13px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'What happened':'Ce qui s\'est passé')+'</label><select id="ee-type" style="'+inp+'">'+eventTypeOptionsHtml(e.type)+'</select>'
+      : '<p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 12px;">'+(isEn?'For this kind of entry, only the date can be changed.':'Pour ce genre d\'entrée, seule la date peut être changée.')+'</p>')+
+    '<button class="save-btn" style="width:100%;font-size:16px;padding:12px;" onclick="saveEditedEvent(\''+id+'\','+idx+')">'+(isEn?'Save':'Enregistrer')+'</button>'+
+    '<button class="sc-btn danger" style="width:100%;font-size:15px;padding:10px;margin-top:10px;" onclick="closeQuickModal(); deleteHealthEvent(\''+id+'\','+idx+')">🗑 '+(isEn?'Delete this entry':'Supprimer cette entrée')+'</button>'
+  );
+}
+function saveEditedEvent(id, idx){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s || !s.health || !s.health.events[idx]) return;
+  const e = s.health.events[idx];
+  const newDate = (document.getElementById('ee-date')||{}).value || e.date;
+  if(newDate > localTodayStr()){ showToast(isEn?'The date can\'t be in the future.':'La date ne peut pas être dans le futur.', 'error'); return; }
+  const typeEl = document.getElementById('ee-type');
+  const newType = typeEl ? typeEl.value : e.type;
+  if(newDate===e.date && newType===e.type){ closeQuickModal(); return; }
+  try{ addHealthTombstone(s, healthEventKey(e)); }catch(err){}
+  // pesée/mesure : garder weights/lengths en accord avec la nouvelle date
+  if(e.type==='weigh' || e.type==='length'){
+    const arr = e.type==='weigh' ? s.health.weights : s.health.lengths;
+    const m = (arr||[]).slice().reverse().find(x=>x && x.date===e.date && Number(x.value)===Number(e.value));
+    if(m){ try{ addHealthTombstone(s, measureKey(e.type==='weigh'?'w':'l', m)); }catch(err){} m.date = newDate; arr.sort((a,b)=>String(a.date).localeCompare(String(b.date))); }
+  }
+  if(newType!==e.type){
+    if(e.type==='fed' && restorePreyFromEvent(e)){ saveElevage(); try{ renderDefrostList(); renderFeederStockList(); renderFeederStockLiveList(); }catch(err){} }
+    if(e.type==='shed'){ delete e.quality; delete e.note; }
+    if(newType==='shed' && !e.quality) e.quality = 'complete';
+    if(newType!=='fed'){ delete e.preyType; delete e.preyCount; delete e.quantity; delete e.at; }
+    if(newType!=='refused') delete e.reason;
+    e.type = newType;
+  }
+  e.date = newDate;
+  recomputeConsecutiveRefusals(s);
+  storage.save(savedSnakes);
+  closeQuickModal();
+  showToast('✏️ '+(isEn?'Entry updated.':'Entrée modifiée.'), 'success');
+  openLogbook(id);
+  try{ renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderSavedList(); }catch(err){}
+}
+function openAddPastEventModal(id){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  const inp = 'width:100%;font-size:16px;padding:10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);margin-bottom:12px;';
+  const yesterday = (function(){ const d = new Date(); d.setDate(d.getDate()-1); return ymdLocal(d); })();
+  showQuickModal('＋ '+(isEn?'Past entry — ':'Entrée passée — ')+escapeHtml(s.name),
+    '<label style="display:block;font-size:13px;color:var(--ink-dim);margin-bottom:5px;">Date</label>'+
+    '<input type="date" id="pe-date" max="'+localTodayStr()+'" value="'+yesterday+'" style="'+inp+'"/>'+
+    '<label style="display:block;font-size:13px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'What happened':'Ce qui s\'est passé')+'</label>'+
+    '<select id="pe-type" onchange="document.getElementById(\'pe-extra\').innerHTML = pastEventFieldsHtml(this.value, currentLang===\'en\');" style="'+inp+'">'+
+      eventTypeOptionsHtml('fed')+'<option value="weigh">⚖ '+(isEn?'Weigh-in':'Pesée')+'</option>'+
+    '</select>'+
+    '<div id="pe-extra">'+pastEventFieldsHtml('fed', isEn)+'</div>'+
+    '<p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 12px;">'+(isEn?'A past meal doesn\'t take prey from your stock.':'Un repas passé ne retire pas de proie de ton stock.')+'</p>'+
+    '<button class="save-btn" style="width:100%;font-size:16px;padding:12px;" onclick="saveAddPastEvent(\''+id+'\')">'+(isEn?'Add':'Ajouter')+'</button>'
+  );
+}
+function saveAddPastEvent(id){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const date = (document.getElementById('pe-date')||{}).value;
+  const type = (document.getElementById('pe-type')||{}).value;
+  if(!date || date > localTodayStr()){ showToast(isEn?'Choose a date (not in the future).':'Choisis une date (pas dans le futur).', 'error'); return; }
+  if(type==='weigh'){
+    const v = parseFloat((document.getElementById('pe-weight')||{}).value);
+    if(isNaN(v) || v<=0){ showToast(isEn?'Enter a valid weight in grams.':'Entre un poids valide en grammes.', 'error'); return; }
+    s.health.weights.push({ date, value:v });
+    s.health.weights.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+    s.health.events.push({ date, type:'weigh', value:v });
+  } else if(EDITABLE_EVENT_TYPES.includes(type)){
+    const ev = { date, type };
+    if(type==='shed') ev.quality = (document.getElementById('pe-quality')||{}).value || 'complete';
+    if(type==='fed') ev.preyType = (document.getElementById('pe-preytype')||{}).value || s.preyType || 'frozen';
+    s.health.events.push(ev);
+  } else return;
+  recomputeConsecutiveRefusals(s);
+  storage.save(savedSnakes);
+  closeQuickModal();
+  showToast('＋ '+eventLabel(type==='weigh'?'weigh':type)+' — '+escapeHtml(date), 'success');
+  openLogbook(id);
+  try{ renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderSavedList(); }catch(err){}
+}
+
 // Mode Tournée : qualité de la mue pour tous les animaux sélectionnés (gros boutons)
 var tourShedQualityPending = null;
 function openTourShedQualityModal(){
@@ -14989,7 +15143,10 @@ function lastFedInfo(s){
 const HEALTH_FLAG_DAYS_SINCE_FED = 21; // jours sans repas réussi avant de signaler "à surveiller" — ajustable ici seulement
 function isFeedingFlagged(s){
   if(s.brumation && s.brumation.active) return false; // hivernage volontaire — pas une vraie alerte
-  const d = daysSinceLastFed(s);
+  let d = daysSinceLastFed(s);
+  // v3.92 — un repas sauté volontairement repart le compte (pas « à surveiller » pour un saut voulu)
+  const skips = (s.health.events||[]).filter(e=>e.type==='skipped').map(e=>e.date).sort();
+  if(skips.length){ const ds = Math.floor((Date.now() - new Date(skips[skips.length-1]+'T00:00:00').getTime()) / 86400000); if(d===null || ds<d) d = ds; }
   // v3.52 — un adulte nourri aux 14-21 j (boa) n'est pas « à surveiller » après un seul repas sauté.
   const limit = (s.species && s.species!=='ball_python') ? Math.max(HEALTH_FLAG_DAYS_SINCE_FED, feedingIntervalOf(s)*2) : HEALTH_FLAG_DAYS_SINCE_FED;
   return d!==null && d>=limit;
@@ -15076,7 +15233,8 @@ function feedingStatus(s){
     etape = 'brumation';
     if(s.brumation && s.brumation.active) return 'brumation'; // hivernage volontaire — pas un vrai retard, aucune alerte tant que c'est actif
     etape = 'filter/sort';
-    const relevant = s.health.events.filter(e=>e.type==='fed'||e.type==='refused').sort((a,b)=>a.date.localeCompare(b.date));
+    // v3.92 — un « repas sauté (volontaire) » remet le compte à zéro comme un repas, sans être un refus
+    const relevant = s.health.events.filter(e=>e.type==='fed'||e.type==='refused'||e.type==='skipped').sort((a,b)=>a.date.localeCompare(b.date));
     if(relevant.length===0) return 'red'; // jamais nourri depuis l'enregistrement = à surveiller
     etape = 'plate';
     // v3.52 — assiette quotidienne : une assiette pas touchée n'est pas une alarme ; on regarde
@@ -15392,7 +15550,7 @@ function isPlateFeeder(s){ return !!(s && PLATE_SPECIES.includes(s.species)); }
 // Prochaine date de repas prévue = dernier repas/refus + intervalle (personnalisé ou générique).
 // Si jamais nourri, on projette à partir d'aujourd'hui (pas de date passée fictive).
 function nextFeedingDate(s){
-  const relevant = s.health.events.filter(e=>e.type==='fed'||e.type==='refused').sort((a,b)=>a.date.localeCompare(b.date));
+  const relevant = s.health.events.filter(e=>e.type==='fed'||e.type==='refused'||e.type==='skipped').sort((a,b)=>a.date.localeCompare(b.date)); // v3.92 — sauté inclus
   const base = relevant.length ? relevant[relevant.length-1].date : localTodayStr();
   return addDays(base, feedingIntervalOf(s));
 }
@@ -19608,6 +19766,11 @@ function applyTourAction(action){
       snake.health.events.push(event);
       undoPairs.push({snakeId:snake.id, event});
     }
+    else if(action==='skipped'){ // v3.92 — repas sauté volontairement (pas un refus)
+      const event = {date:today, type:'skipped'};
+      snake.health.events.push(event);
+      undoPairs.push({snakeId:snake.id, event});
+    }
     else if(action==='inshed'){ // v3.90 — en mue (yeux bleus)
       const event = {date:today, type:'inshed'};
       snake.health.events.push(event);
@@ -19644,10 +19807,11 @@ function applyTourAction(action){
       refused: isEn ? n+' refusal(s) noted.' : n+' refus noté(s).',
       shed: isEn ? n+' shed(s) noted.' : n+' mue(s) notée(s).',
       inshed: isEn ? n+' animal(s) in shed — refusals won\'t be flagged.' : n+' animal(aux) en mue — les refus ne seront pas signalés.', // v3.90
+      skipped: isEn ? n+' meal(s) skipped on purpose — not counted as refusals.' : n+' repas sauté(s) volontairement — pas comptés comme refus.', // v3.92
       plate: isEn ? n+' plate(s) eaten.' : n+' assiette(s) mangée(s).',
       water: isEn ? n+' water change(s) logged.' : n+' changement(s) d\'eau noté(s).',
     };
-    const icons = { fed_frozen:'🍽', fed_live:'🍽', refused:'⚠', shed:'✨', inshed:'🔵', water:'💧', plate:'🥗' };
+    const icons = { fed_frozen:'🍽', fed_live:'🍽', refused:'⚠', shed:'✨', inshed:'🔵', skipped:'⏭', water:'💧', plate:'🥗' };
     // Mue d'un seul serpent : même indice de prédiction que dans la fiche (v3.50). En lot, on
     // garde le message court (une phrase par serpent serait illisible dans un toast).
     let shedHintTour = null;
@@ -19699,7 +19863,7 @@ function weighReminderReason(s){
   const ageM = ageInMonths(s.birthDate);
   const isBaby = ageM!=null && ageM<12;
   const fedDays = daysSinceLastFed(s);
-  const refusals = s.health.consecutiveRefusals||0;
+  const refusals = consecutiveRefusalsOutsideShed(s); // v3.92 — les refus pendant la mue ne comptent pas
   const ws = s.health.weights||[];
   const lastW = ws.length ? [...ws].sort((a,b)=>b.date.localeCompare(a.date))[0] : null;
   const daysSinceWeigh = lastW ? Math.floor((Date.now()-new Date(lastW.date+'T00:00:00').getTime())/86400000) : null;
@@ -22436,7 +22600,8 @@ function computeTrophyGroups(){
   all.forEach(s=>{
     const ev = ((s.health&&s.health.events)||[]).filter(e=>e && e.date && (e.type==='fed'||e.type==='refused')).slice().sort((a,b)=>a.date.localeCompare(b.date));
     let refusals = 0;
-    ev.forEach(e=>{ if(e.type==='refused') refusals++; else { if(refusals>=5 && (!strike || e.date<strike.date)) strike = { date:e.date, name:s.name }; refusals = 0; } });
+    const shedW = inShedWindows(s); // v3.92 — une mue n'est pas une grève : refus pendant la mue ignorés
+    ev.forEach(e=>{ if(e.type==='refused'){ if(!shedW.some(w=>e.date>=w.start && e.date<=w.end)) refusals++; } else { if(refusals>=5 && (!strike || e.date<strike.date)) strike = { date:e.date, name:s.name }; refusals = 0; } });
     const fd = [...new Set(ev.filter(e=>e.type==='fed').map(e=>e.date))];
     for(let i=4;i<fd.length;i++){
       const gaps = [1,2,3,4].map(k=>statsDaysBetween(fd[i-k], fd[i-k+1]));
@@ -25791,6 +25956,7 @@ function renderTimeline(){
 function eventLabel(type){
   if(type==='supplement') return '💊 '+(currentLang==='en'?'Supplement':'Supplément'); // v3.53
   if(type==='inshed') return '🔵 '+(currentLang==='en'?'In shed (blue)':'En mue'); // v3.90
+  if(type==='skipped') return '⏭ '+(currentLang==='en'?'Meal skipped (on purpose)':'Repas sauté (volontaire)'); // v3.92
   const map = { fed:'eventFed', shed:'eventShed', refused:'eventRefused', weigh:'eventWeigh', length:'eventLength', water:'eventWater', pair_in:'eventPairIn', pair_out:'eventPairOut', lock:'eventLock' };
   return map[type] ? t(map[type]) : type;
 }
