@@ -2214,7 +2214,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.94';
+const APP_VERSION = '2026.09.01.3.99';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2879,6 +2879,10 @@ function setPageMeta(title, description, noindex){
     }
     const r = data[0];
     window._lastTransfer = { token: token, r: r }; // v3.83 — pour « Importer dans mon LOCUS »
+    // v3.98 — consanguinité calculée chez le vendeur (ses ancêtres ne viennent pas avec le transfert)
+    try{ sb.rpc('get_transfer_coi', { p_token: token }).then(res=>{
+      if(res && !res.error && res.data){ window._lastTransfer.coi = res.data; const el = document.getElementById('transfer-coi'); if(el) el.innerHTML = coiDisplayHtml(res.data, isEn, false); }
+    }).catch(()=>{}); }catch(e){}
     const photosHtml = (r.photos && r.photos.length)
       ? '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:16px 0;">'+
           r.photos.slice(0,6).map(p=>'<img src="'+escapeHtml(p.dataUrl)+'" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--line);" alt="'+escapeHtml(r.name)+'"/>').join('')+
@@ -2921,6 +2925,7 @@ function setPageMeta(title, description, noindex){
           (r.birth_date ? '<div class="modal-row"><span>'+(isEn?'Birth':'Naissance')+'</span><span>'+escapeHtml(r.birth_date)+'</span></div>' : '')+
           (r.sire_name || r.dam_name ? '<div class="modal-row"><span>'+(isEn?'Parents':'Parents')+'</span><span>'+escapeHtml(r.sire_name||'?')+' × '+escapeHtml(r.dam_name||'?')+'</span></div>' : '')+
           (r.provenance ? '<div class="modal-row"><span>Provenance</span><span>'+escapeHtml(r.provenance)+'</span></div>' : '')+
+          '<div id="transfer-coi" style="margin-top:8px;"></div>'+ // v3.98
         '</div>'+
         '<div style="font-size:10px;color:var(--ink-dim);text-align:center;margin:-8px 0 14px;line-height:1.5;">'+(isEn
           ? 'LOCUS records what the breeder declared, and when — it confirms the integrity of the timestamped history, not the genetic accuracy itself.'
@@ -3027,7 +3032,9 @@ function vitrineAnimalCardHtml(a, isEn){
       '<div style="font-family:Georgia,serif;font-size:19px;color:var(--ink);">'+escapeHtml(a.name||'')+'</div>'+
       '<div style="font-size:13px;color:var(--ink-dim);margin-top:2px;">'+escapeHtml(species)+' — '+sexLabel+(a.birth_date ? ' — '+(isEn?'born ':'né ')+escapeHtml(String(a.birth_date)) : '')+'</div>'+
       '<div style="font-size:14px;color:var(--ink);margin-top:8px;line-height:1.4;">'+escapeHtml(genes)+'</div>'+
-      provenLine+price+
+      provenLine+
+      (a.coi ? '<div style="margin-top:6px;line-height:1.4;">'+coiDisplayHtml(a.coi, isEn, false)+'</div>' : '')+ // v3.98
+      price+
       (listing ? '<a href="'+escapeHtml(listing)+'" target="_blank" rel="noopener noreferrer nofollow" style="display:inline-block;margin-top:10px;font-size:14px;color:var(--gold);">'+(isEn?'See the listing →':'Voir l\'annonce →')+'</a>' : '')+
     '</div>'+
   '</div>';
@@ -3059,6 +3066,7 @@ function vitrineAnimalCardHtml(a, isEn){
       '<div style="text-align:center;margin-bottom:22px;">'+
         '<div style="font-family:Georgia,serif;font-size:30px;color:var(--ink);">'+escapeHtml(title)+'</div>'+
         (data.region ? '<div style="font-size:15px;color:var(--ink-dim);margin-top:6px;">📍 '+escapeHtml(String(data.region))+'</div>' : '')+
+        newbloodBadgeHtml(data.newblood, isEn)+ // v3.98
         (contacts ? '<div style="margin-top:14px;">'+contacts+'</div>' : '')+
       '</div>'+
       (animals.length
@@ -3084,13 +3092,14 @@ function showFieldDefs(){
     { k:'genetics', fr:'Génétique', en:'Genetics' },
     { k:'pedigree', fr:'Pedigree (parents + grands-parents)', en:'Pedigree (parents + grandparents)' },
     { k:'meals', fr:'Résumé des repas et dernier poids', en:'Feeding summary and last weight' },
-    { k:'price', fr:'Prix demandé (seulement si « À vendre »)', en:'Asking price (only if « For sale »)' }
+    { k:'price', fr:'Prix demandé (seulement si « À vendre »)', en:'Asking price (only if « For sale »)' },
+    { k:'coi', fr:'Consanguinité (coefficient + générations connues)', en:'Inbreeding (coefficient + known generations)', off:true } // v3.98 — décoché par défaut
   ];
 }
 function getShowFields(s){
   const f = (s && s.showFields && typeof s.showFields==='object') ? s.showFields : {};
   const out = {};
-  showFieldDefs().forEach(d=>{ out[d.k] = f[d.k]!==false; });
+  showFieldDefs().forEach(d=>{ out[d.k] = d.off ? f[d.k]===true : f[d.k]!==false; });
   return out;
 }
 function showUrlFor(token){ return location.origin + location.pathname + '?show=' + encodeURIComponent(token); }
@@ -3172,6 +3181,8 @@ function showAncestorHtml(a, roleLabel, isEn, small){
         (pd.provenance ? '<div style="font-size:13px;color:var(--ink-dim);margin-top:10px;">'+(isEn?'Origin: ':'Provenance : ')+escapeHtml(String(pd.provenance))+'</div>' : '')+
       '</div>';
     }
+    if(a.coi) html += '<div style="'+card+'">'+h2('🧬 '+(isEn?'Inbreeding':'Consanguinité'))+'<div style="line-height:1.6;">'+coiDisplayHtml(a.coi, isEn, true)+'</div>'+
+      '<div style="font-size:12.5px;color:var(--ink-dim);margin-top:8px;line-height:1.5;">'+(isEn?'Calculated from the pedigree recorded by the owner. More known generations = more reliable.':'Calculé à partir du pedigree noté par le propriétaire. Plus il y a de générations connues, plus c\'est fiable.')+'</div></div>'; // v3.98
     if(a.meals){
       const m = a.meals;
       const prey = showPreyLabel(m, isEn);
@@ -3190,6 +3201,7 @@ function showAncestorHtml(a, roleLabel, isEn, small){
       html += '<div style="'+card+'text-align:center;">'+
         (a.seller ? '<div style="font-size:16px;color:var(--ink);">'+(isEn?'Offered by ':'Offert par ')+'<b>'+escapeHtml(String(a.seller))+'</b></div>' : '')+
         (a.region ? '<div style="font-size:14px;color:var(--ink-dim);margin-top:4px;">📍 '+escapeHtml(String(a.region))+'</div>' : '')+
+        newbloodBadgeHtml(a.newblood, isEn)+ // v3.98
         (contacts ? '<div style="margin-top:10px;">'+contacts+'</div>' : '')+
         (a.vitrine_token ? '<a href="'+escapeHtml(vitrineUrlFor(a.vitrine_token))+'" style="display:inline-block;margin-top:10px;font-size:15px;color:var(--gold);">'+(isEn?'See all their available animals →':'Voir tous ses animaux disponibles →')+'</a>' : '')+
       '</div>';
@@ -3213,6 +3225,7 @@ function showQrSectionHtml(s, id){
       ? 'A QR code for the display box at a show: visitors scan it and see what you check below. Separate from the public link.'
       : 'Un code QR pour la boîte d\'exposition à un show : les visiteurs le scannent et voient ce que tu coches ici. Distinct du lien public.')+'</p>'+
     showFieldDefs().map(d=>'<label style="display:flex;gap:10px;align-items:center;font-size:15px;padding:6px 0;cursor:pointer;"><input type="checkbox" style="width:22px;height:22px;accent-color:var(--sage);" '+(f[d.k]?'checked ':'')+'onchange="setShowField(\''+id+'\',\''+d.k+'\',this.checked)"/>'+(isEn?d.en:d.fr)+'</label>').join('')+
+    '<div style="background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:4px 0 8px;">'+coiDisplayHtml(snakeCoiInfo(s), isEn, false)+'</div>'+ // v3.98
     '<div style="font-size:12px;color:var(--ink-dim);margin:4px 0 10px;">'+(isEn?'Always shown: name, sex, species, birth, photo, Proven. Never shown: buyer, purchase price, location in your racks, notes.':'Toujours affichés : nom, sexe, espèce, naissance, photo, Proven. Jamais affichés : acheteur, prix d\'achat, emplacement dans tes racks, notes.')+'</div>'+
     '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+
       '<button class="sc-btn accent" style="font-size:14px;padding:10px 12px;" onclick="toggleShowQr(\''+id+'\')">🔳 '+(isEn?'Show the QR':'Afficher le QR')+'</button>'+
@@ -3305,6 +3318,28 @@ function printShowLabels(ids){
   win.document.close();
 }
 
+// v3.98 — état du trophée « Sang neuf » pour la vitrine (calculé ici, comme le reste des données que le
+// vendeur note lui-même) ; mis à jour automatiquement quand il change (scheduleMilestoneCheck).
+function newbloodState(){
+  try{
+    const st = computeTrophyGroups().find(g=>g.id==='hidden').steps.find(x=>x.id==='h_newblood');
+    if(!st) return { status:null };
+    return st.lost ? { status:'lost', since:st.date||null, lostDate:st.lostDate||null } : { status:'held', since:st.date||null, lostDate:null };
+  }catch(e){ return { status:null }; }
+}
+function newbloodRowFields(){ const nb = newbloodState(); return { newblood_status: nb.status, newblood_since: nb.since||null, newblood_lost_date: nb.lostDate||null }; }
+var NEWBLOOD_SYNC_KEY = 'locus_newblood_synced_v1';
+async function syncNewbloodToVitrine(){
+  if(!currentUser || !sb || offlineIdentity) return;
+  const f = newbloodRowFields();
+  const sig = currentUser.id+'|'+f.newblood_status+'|'+f.newblood_since+'|'+f.newblood_lost_date;
+  let last = null; try{ last = localStorage.getItem(NEWBLOOD_SYNC_KEY); }catch(e){}
+  if(last===sig) return;
+  try{
+    const { error } = await sb.from('vitrines').update(f).eq('user_id', currentUser.id);
+    if(!error){ try{ localStorage.setItem(NEWBLOOD_SYNC_KEY, sig); }catch(e){} }
+  }catch(e){}
+}
 // Réglages de la vitrine (depuis Mon profil). Lecture/écriture directe dans `vitrines` (RLS : propriétaire seulement).
 var _vitrineRow = null;
 async function openVitrineSettings(){
@@ -3353,6 +3388,10 @@ function renderVitrineSettings(){
     '<input type="text" id="vit-region" maxlength="80" style="'+inputStyle+'" value="'+escapeHtml(v.region||'')+'" placeholder="'+(isEn?'E.g. Laval, QC — local pickup':'Ex. Laval, QC — ramassage sur place')+'"/>'+
     '<p style="font-size:14px;color:var(--sage);margin:6px 0 8px;font-weight:600;">'+(isEn?'How buyers reach you (leave blank to hide)':'Comment les acheteurs te joignent (laisse vide pour cacher)')+'</p>'+
     vitrineLinkFields().map(f=> lbl(f.icon+' '+(isEn?f.en:f.fr)) + '<input type="'+(f.k==='email'?'email':'url')+'" id="vit-link-'+f.k+'" style="'+inputStyle+'" value="'+escapeHtml(links[f.k]||'')+'" placeholder="'+escapeHtml(f.ph)+'" autocapitalize="off" autocorrect="off"/>').join('')+
+    '<p style="font-size:14px;color:var(--sage);margin:6px 0 8px;font-weight:600;">'+(isEn?'Transparency (optional)':'Transparence (facultatif)')+'</p>'+
+    '<label style="display:flex;gap:10px;align-items:flex-start;font-size:15px;margin-bottom:10px;cursor:pointer;"><input type="checkbox" id="vit-coi" style="width:22px;height:22px;flex-shrink:0;accent-color:var(--sage);" '+(v.show_coi?'checked':'')+'/><span>🧬 '+(isEn?'Show each animal\'s inbreeding coefficient (with the number of known generations)':'Afficher le coefficient de consanguinité de chaque animal (avec le nombre de générations connues)')+'</span></label>'+
+    (function(){ const nb = newbloodState(); return '<label style="display:flex;gap:10px;align-items:flex-start;font-size:15px;margin-bottom:6px;cursor:pointer;"><input type="checkbox" id="vit-newblood" style="width:22px;height:22px;flex-shrink:0;accent-color:var(--sage);" '+(v.show_newblood?'checked':'')+(nb.status==='held'?'':' disabled')+'/><span>🩸 '+(isEn?'Show my « New blood » trophy':'Afficher mon trophée « Sang neuf »')+'</span></label>'+
+      '<div style="font-size:12.5px;color:var(--ink-dim);margin:0 0 14px 32px;">'+(nb.status==='held' ? (isEn?'You have it — it disappears from the showcase by itself if you lose it.':'Tu l\'as — il disparaît tout seul de la vitrine si tu le perds.') : nb.status==='lost' ? (isEn?'Lost — it can\'t be shown.':'Perdu — il ne peut pas être affiché.') : (isEn?'Not earned yet (comes with your 1st clutch).':'Pas encore gagné (vient avec ta 1re ponte).'))+'</div>'; })()+
     '<button class="save-btn" style="width:100%;font-size:16px;padding:12px;" onclick="saveVitrineSettings()">'+(isEn?'Save':'Enregistrer')+'</button>'+
     '<hr style="border:none;border-top:1px dashed var(--line);margin:18px 0;"/>'+
     '<p style="font-size:14px;color:var(--sage);margin:0 0 8px;font-weight:600;">'+(isEn?'Your showcase link':'Le lien de ta vitrine')+'</p>'+
@@ -3385,6 +3424,9 @@ async function saveVitrineSettings(){
     title: val('vit-title').slice(0,80) || null,
     region: val('vit-region').slice(0,80) || null,
     links: links,
+    show_coi: !!(document.getElementById('vit-coi')||{}).checked, // v3.98
+    show_newblood: !!(document.getElementById('vit-newblood')||{}).checked,
+    ...newbloodRowFields(),
     updated_at: new Date().toISOString()
   };
   try{
@@ -3471,7 +3513,8 @@ async function importTransferredSnake(){
     geneticsHistory: Array.isArray(r.genetics_history) ? r.genetics_history : [],
     preyType: 'frozen',
     createdAt: now,
-    importedTransferToken: token
+    importedTransferToken: token,
+    importedCoi: (t.coi && t.coi.value!=null) ? { value:Number(t.coi.value), generations:Number(t.coi.generations)||0, date:localTodayStr() } : null // v3.98
   };
   savedSnakes.push(snake);
   ensureSnakeMeta(snake);
@@ -4973,6 +5016,12 @@ const CHANGELOG = [
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '📈 Statistiques › Chiffres : nouvelle section « Tendances » avec des flèches ▲▼ (vert = mieux, rouge = moins bien) — repas, taux de refus, coût de nourriture (30 derniers jours vs les 30 d\'avant), œufs en incubation et ventes (cette année vs l\'an passé). Locks (réservé au palier Première ponte et Illimité après la bêta), rongeurs nés et % d\'auto-suffisance alimentaire (réservés au palier Illimité après la bêta).',
+        '🧬 Consanguinité publique (au choix du vendeur) : ta vitrine peut afficher le coefficient de chaque animal, avec le nombre de générations complètes connues — « inconnue » si un parent n\'est pas enregistré, jamais un faux 0 %. Aussi sur le QR de show (case à cocher, décochée par défaut) et dans le lien de transfert. Un animal importé garde le coefficient calculé chez l\'ancien propriétaire.',
+        '🩸 Ta vitrine peut afficher ton trophée « Sang neuf » tant que tu l\'as — il disparaît tout seul si tu le perds.',
+        '🤫 Encore un trophée caché… celui-là, tu l\'as dès le départ. Le défi, c\'est de le garder.',
+        '🤫 Un nouveau trophée caché à découvrir… indice : 1 + 1 = 3.',
+        '📈 Trophées « Suivi de croissance » : un adulte (18 mois et +) peut maintenant passer jusqu\'à 120 jours entre deux pesées sans briser son suivi. Les juvéniles gardent 45 jours.',
         '🔵 « Refus (mue) » est aussi offert dans « ＋ Entrée passée » et quand tu modifies une entrée (✏️) du journal.',
         '🔵 Nouveau bouton « Refus (mue) » dans la fiche et le Mode Tournée : un seul toucher note le refus avec la raison « En mue » et met l\'animal en mue s\'il ne l\'était pas déjà. Pas d\'alerte, la série de repas réussis est conservée. « En mue » est aussi ajouté aux raisons de refus.',
         '✏️ Modifier le passé : dans le journal d\'une fiche, le crayon ✏️ permet de changer la date d\'une entrée et ce qui s\'est passé (A mangé, Refus, Repas sauté, En mue, A mué), ou de la supprimer. Le bouton « ＋ Entrée passée » ajoute un repas, un refus, une mue ou une pesée à n\'importe quelle date passée, directement depuis la fiche.',
@@ -5043,6 +5092,12 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '📈 Statistics › Numbers: new « Trends » section with ▲▼ arrows (green = better, red = worse) — meals, refusal rate, feeding cost (last 30 days vs the 30 before), eggs incubated and sales (this year vs last year). Locks (reserved for the First Clutch and Unlimited tiers after the beta), rodents born and food self-sufficiency % (reserved for the Unlimited tier after the beta).',
+        '🧬 Public inbreeding (seller\'s choice): your showcase can show each animal\'s coefficient, with the number of complete known generations — « unknown » if a parent isn\'t recorded, never a fake 0 %. Also on the show QR (checkbox, unchecked by default) and in the transfer link. An imported animal keeps the coefficient calculated at the previous owner\'s.',
+        '🩸 Your showcase can show your « New blood » trophy as long as you have it — it disappears by itself if you lose it.',
+        '🤫 One more hidden trophy… this one you get from the start. The challenge is keeping it.',
+        '🤫 A new hidden trophy to discover… hint: 1 + 1 = 3.',
+        '📈 « Growth tracking » trophies: an adult (18 months +) can now go up to 120 days between weigh-ins without breaking its tracking. Juveniles keep 45 days.',
         '🔵 « Refused (shed) » is also offered in « ＋ Past entry » and when you edit a journal entry (✏️).',
         '🔵 New « Refused (shed) » button on the record and in Tour Mode: one tap logs the refusal with the reason « In shed » and puts the animal in shed if it wasn\'t already. No alert, the run of successful meals is kept. « In shed » is also added to the refusal reasons.',
         '✏️ Edit the past: in a record\'s journal, the ✏️ pencil lets you change an entry\'s date and what happened (Ate, Refused, Meal skipped, In shed, Shed), or delete it. The « ＋ Past entry » button adds a meal, refusal, shed or weigh-in on any past date, right from the record.',
@@ -13708,7 +13763,9 @@ function snakeToRow(s){
     reservation: s.reservation||null,
     proven: !!s.proven, proven_seasons: Array.isArray(s.provenSeasons) ? s.provenSeasons : [], // v3.82
     deceased_date: s.deceasedDate||null, deceased_note: s.deceasedNote||null, // v3.84
-    show_token: s.showToken||null, show_fields: s.showFields||null // v3.85
+    show_token: s.showToken||null, show_fields: s.showFields||null, // v3.85
+    imported_coi: s.importedCoi||null, // v3.98
+    ...(function(){ try{ const c = snakeCoiInfo(s); return { coi: c.value, coi_generations: c.generations||0 }; }catch(e){ return { coi:null, coi_generations:0 }; } })() // v3.98 — calculé, lu par la vitrine/QR
   };
 }
 function rowToSnake(r){
@@ -13723,7 +13780,7 @@ function rowToSnake(r){
     paidViaStripe: !!r.paid_via_stripe, careParams: r.care_params || {}, publicToken: r.public_token || null, feedCost: r.feed_cost!=null ? r.feed_cost : null, transferToken: r.transfer_token || null,
     shippingCarrier: r.shipping_carrier || null, shippingTracking: r.shipping_tracking || null, shippingDate: r.shipping_date || null, shippingDelivered: !!r.shipping_delivered,
     purchasePrice: r.purchase_price!=null ? r.purchase_price : null,
-    geneticsHistory: r.genetics_history||[], clutchRef: r.clutch_ref||null, loans: r.loans||[], reservation: r.reservation||null, proven: !!r.proven, provenSeasons: Array.isArray(r.proven_seasons) ? r.proven_seasons : [], deceasedDate: r.deceased_date||null, deceasedNote: r.deceased_note||null, showToken: r.show_token||null, showFields: r.show_fields||null, updatedAt: r.updated_at ? Date.parse(r.updated_at) : 0
+    geneticsHistory: r.genetics_history||[], clutchRef: r.clutch_ref||null, loans: r.loans||[], reservation: r.reservation||null, proven: !!r.proven, provenSeasons: Array.isArray(r.proven_seasons) ? r.proven_seasons : [], deceasedDate: r.deceased_date||null, deceasedNote: r.deceased_note||null, showToken: r.show_token||null, showFields: r.show_fields||null, importedCoi: r.imported_coi||null, updatedAt: r.updated_at ? Date.parse(r.updated_at) : 0
   };
 }
 
@@ -14775,6 +14832,37 @@ function kinshipCoefficient(idA, idB, memo, depth){
   memo.set(key, result);
   return result;
 }
+// v3.98 — Consanguinité d'UN animal (pour la vitrine, le QR de show, le transfert).
+// value = null si un parent n'est pas enregistré (inconnu, pas 0 %). generations = générations
+// COMPLÈTES connues (1 = les 2 parents, 2 = les 4 grands-parents, etc.) — sans ça, un faux 0 % serait
+// trop facile à obtenir en n'entrant simplement pas les ancêtres. Un animal importé par transfert garde
+// la valeur calculée chez l'ancien propriétaire (importedCoi), puisque ses ancêtres ne sont pas ici.
+function snakeCoiInfo(s){
+  if(!s) return { value:null, generations:0 };
+  const has = id=>!!(id && findSnakeOrDream(id));
+  const complete = (id, d)=>{ if(d>6) return 0; const x = findSnakeOrDream(id); if(!x || !has(x.sireId) || !has(x.damId)) return 0; return 1+Math.min(complete(x.sireId, d+1), complete(x.damId, d+1)); };
+  if(has(s.sireId) && has(s.damId)){
+    let v = 0; try{ v = kinshipCoefficient(s.sireId, s.damId, new Map()); }catch(e){ v = 0; }
+    return { value: Math.round(v*10000)/10000, generations: complete(s.id, 0), source:'local' };
+  }
+  const ic = s.importedCoi;
+  if(ic && typeof ic==='object' && ic.value!=null && isFinite(Number(ic.value))) return { value:Number(ic.value), generations:Number(ic.generations)||0, source:'transfer' };
+  return { value:null, generations:0 };
+}
+function coiDisplayHtml(c, isEn, big){
+  const fs = big ? '17px' : '13.5px';
+  if(!c || c.value==null) return '<span style="font-size:'+fs+';color:var(--ink-dim);">🧬 '+(isEn?'Inbreeding: unknown — parents not recorded':'Consanguinité : inconnue — parents non enregistrés')+'</span>';
+  const pct = Math.round(Number(c.value)*10000)/100;
+  const txt = isEn ? String(pct) : String(pct).replace('.',',');
+  const g = Number(c.generations)||0;
+  const color = Number(c.value)===0 ? 'var(--sage)' : (Number(c.value)<0.125 ? 'var(--gold)' : 'var(--rust)');
+  return '<span style="font-size:'+fs+';color:'+color+';">🧬 '+(isEn?'Inbreeding: ':'Consanguinité : ')+'<b>'+txt+' %</b></span>'+
+    '<span style="font-size:'+(big?'14px':'12px')+';color:var(--ink-dim);"> — '+(isEn ? g+' complete generation'+(g>1?'s':'')+' known' : g+' génération'+(g>1?'s':'')+' complète'+(g>1?'s':'')+' connue'+(g>1?'s':''))+'</span>';
+}
+function newbloodBadgeHtml(nb, isEn){
+  if(!nb || nb.status!=='held') return '';
+  return '<div style="display:inline-block;font-size:14px;color:var(--sage);border:1px solid var(--sage);border-radius:20px;padding:5px 12px;margin-top:10px;">🩸 '+(isEn?'« New blood » trophy — no inbreeding recorded':'Trophée « Sang neuf » — aucune consanguinité notée')+(nb.since?' '+(isEn?'since ':'depuis ')+escapeHtml(String(nb.since).slice(0,4)):'')+'</div>';
+}
 // Coefficient de consanguinité d'un individu à naître = coefficient de parenté entre ses deux parents.
 function inbreedingCoefficient(sireId, damId){
   if(!sireId || !damId) return 0;
@@ -14889,6 +14977,7 @@ function ensureSnakeMeta(s){
   if(s.deceasedDate===undefined) s.deceasedDate = null; // v3.84 — Mémorial
   if(s.deceasedNote===undefined) s.deceasedNote = null;
   if(s.showToken===undefined) s.showToken = null; // v3.85 — jeton du QR visiteurs (distinct de publicToken)
+  if(s.importedCoi===undefined) s.importedCoi = null; // v3.98
   if(s.showFields===undefined) s.showFields = null; // v3.85 — null = valeurs par défaut (tout coché)
   if(s.askingPrice===undefined) s.askingPrice = null;
   if(s.brumation===undefined) s.brumation = { active:false, startDate:null }; // hivernage/brumation (15 sept) — suspend les alertes de repas en retard pendant une période de repos hivernal volontaire
@@ -22423,6 +22512,61 @@ function statsReproByYear(){
   });
   return Object.keys(by).sort().map(y=>Object.assign({ year:y }, by[y]));
 }
+// v3.99 — Tendances : chiffre actuel vs période précédente (30 derniers jours vs les 30 d'avant ;
+// cette année vs l'an passé). Flèche = sens du chiffre ; couleur = amélioration (vert) ou recul (rouge).
+function statsYmdOffset(days){ const d = new Date(); d.setDate(d.getDate()-days); return ymdLocal(d); }
+function statsTrendArrowHtml(cur, prev, goodWhenUp, isEn, points){
+  if(cur==null || prev==null) return '';
+  if(cur===prev) return '<span style="color:var(--ink-dim);font-size:14px;">＝ '+(isEn?'same':'pareil')+'</span>';
+  const up = cur>prev;
+  const good = up===goodWhenUp;
+  const col = good ? 'var(--sage)' : 'var(--rust)';
+  let diff;
+  if(points){ const v = String(Math.abs(Math.round((cur-prev)*10)/10)); diff = (up?'+':'−')+(isEn?v:v.replace('.',','))+' pts'; }
+  else if(prev===0) diff = isEn?'new':'nouveau';
+  else diff = (up?'+':'−')+Math.abs(Math.round((cur-prev)/prev*100))+' %';
+  return '<span style="color:'+col+';font-size:14px;font-weight:700;">'+(up?'▲':'▼')+' '+diff+'</span>';
+}
+function statsTrends(){
+  const today = localTodayStr();
+  const d30 = statsYmdOffset(30), d60 = statsYmdOffset(60);
+  const inCur = d=>d>d30 && d<=today, inPrev = d=>d>d60 && d<=d30;
+  const y = today.slice(0,4), py = String(Number(y)-1);
+  const fed = statsEvents('fed', true), ref = statsEvents('refused', true);
+  const cnt = (arr, f)=>arr.filter(x=>f(x.e.date)).length;
+  const rate = (f)=>{ const a = cnt(fed, f), b = cnt(ref, f); return (a+b) ? Math.round(b/(a+b)*1000)/10 : null; };
+  const cost = f=>{ let c = 0, any = false; fed.forEach(x=>{ if(!f(x.e.date)) return; const v = mealCost(x.s, x.e); if(v!=null){ c += v; any = true; } }); return any ? Math.round(c*100)/100 : 0; };
+  const repro = statsReproByYear(); const ry = yy=>repro.find(r=>r.year===yy) || { clutches:0, eggs:0, live:0 };
+  const sales = yy=>statsAllSnakes().filter(s=>s.status==='sold' && String(s.soldDate||'').slice(0,4)===yy);
+  const out = {
+    meals: { cur: cnt(fed, inCur), prev: cnt(fed, inPrev) },
+    refusal: { cur: rate(inCur), prev: rate(inPrev) },
+    cost: { cur: cost(inCur), prev: cost(inPrev) },
+    eggs: { cur: ry(y).eggs, prev: ry(py).eggs, clutches: ry(y).clutches, prevClutches: ry(py).clutches },
+    sales: { cur: sales(y).reduce((a,s)=>a+(Number(s.soldPrice)||0),0), prev: sales(py).reduce((a,s)=>a+(Number(s.soldPrice)||0),0), n: sales(y).length },
+    year: y, prevYear: py
+  };
+  if(hasAccess('lockMode')){
+    const locks = statsEvents('lock', true);
+    out.locks = { cur: locks.filter(x=>x.e.date.slice(0,4)===y).length, prev: locks.filter(x=>x.e.date.slice(0,4)===py).length };
+  }
+  if(hasAccess('rodentManagement')){
+    const bins = (typeof rodentBins!=='undefined' && Array.isArray(rodentBins)) ? rodentBins : [];
+    let bc = 0, bp = 0;
+    bins.forEach(b=>(b.litters||[]).forEach(l=>{ if(!l || !l.date) return; if(inCur(l.date)) bc += Number(l.count)||0; else if(inPrev(l.date)) bp += Number(l.count)||0; }));
+    out.rodentsBorn = { cur: bc, prev: bp };
+    // Auto-suffisance : part des proies tirées de TES bacs (colonie) parmi les proies tirées d'un stock connu
+    const self = f=>{ let own = 0, tot = 0;
+      statsAllSnakes().forEach(s=>((s.health&&s.health.events)||[]).forEach(e=>{
+        if(!e || !e.date || !e.stockDraw || !f(e.date)) return;
+        const o = (e.stockDraw.binTakes||[]).reduce((a,t)=>a+(Number(t.take)||0),0);
+        own += o; tot += o + (Number(e.stockDraw.storeQty)||0);
+      }));
+      return tot ? Math.round(own/tot*1000)/10 : null; };
+    out.selfSuff = { cur: self(inCur), prev: self(inPrev) };
+  }
+  return out;
+}
 function statsPerAnimal(){
   const today = localTodayStr();
   return statsAllSnakes().filter(isActiveSnake).map(s=>{
@@ -22524,13 +22668,30 @@ function computeTrophyGroups(){
   groups.push({ id:'weighs', icon:'⚖', title: L('Pesées','Weigh-ins'), value: wAll.length,
     steps: weighs.map(([n,fr,en])=>tStep('weigh_'+n, fr, en, n===1?'1re pesée':n+' pesées', n===1?'1st weigh-in':n+' weigh-ins', wAll.length>=n, wAll.length>=n?wAll[n-1].w.date:null, null, n)) });
   // 📈 Suivi de croissance
+  // v3.95 — trou maximum selon l'âge À LA DATE de la pesée : juvénile 45 j, adulte 120 j.
+  // Adulte = 18 mois et + (même coupure que maturityFromBirthDate) ; sans date de naissance
+  // utilisable, on se fie au poids (1000 g et +).
+  const ageMonthsAt = (bd, dateStr)=>{
+    const prec = birthPrecision(bd); if(!prec) return null;
+    const [y,m,d] = String(bd).split('-').map(Number);
+    const [y2,m2,d2] = String(dateStr).split('-').map(Number);
+    let mo = (y2-y)*12 + (m2-(prec==='year'?1:m));
+    if(prec==='full' && d2<d) mo--;
+    return mo;
+  };
+  const maxGapAt = (s, ws, i)=>{
+    const am = ageMonthsAt(s.birthDate, ws[i].date);
+    const adult = am!=null ? am>=18 : Number(ws[i].value)>=1000;
+    return adult ? 120 : 45;
+  };
   const trackedFor = days=>{
     let found = null;
     all.forEach(s=>{
-      const ds = ((s.health&&s.health.weights)||[]).map(w=>w.date).filter(Boolean).sort();
+      const ws = ((s.health&&s.health.weights)||[]).filter(w=>w && w.date).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+      const ds = ws.map(w=>w.date);
       let start = ds[0];
       for(let i=1;i<ds.length;i++){
-        if(statsDaysBetween(ds[i-1], ds[i])>45) start = ds[i];
+        if(statsDaysBetween(ds[i-1], ds[i])>maxGapAt(s, ws, i-1)) start = ds[i];
         if(start && statsDaysBetween(start, ds[i])>=days){ if(!found || ds[i]<found.date) found = { date:ds[i], name:s.name }; break; }
       }
     });
@@ -22538,7 +22699,7 @@ function computeTrophyGroups(){
   };
   const growth = [[90,'Œil de lynx','Eagle eye','3 mois','3 months'],[180,'Suivi de pro','Pro tracking','6 mois','6 months'],[365,'Courbe parfaite','Perfect curve','1 an','1 year']];
   groups.push({ id:'growth', icon:'📈', title: L('Suivi de croissance','Growth tracking'),
-    steps: growth.map(([d,fr,en,pf,pe])=>{ const g = trackedFor(d); return tStep('growth_'+d, fr, en, 'Pesées sur '+pf+' sans trou de plus de 45 jours', 'Weigh-ins over '+pe+' with no gap over 45 days', !!g, g&&g.date, g&&g.name); }) });
+    steps: growth.map(([d,fr,en,pf,pe])=>{ const g = trackedFor(d); return tStep('growth_'+d, fr, en, 'Pesées régulières sur '+pf+' (un animal) — au moins une pesée aux 45 jours pour un juvénile, aux 120 jours pour un adulte (18 mois et +)', 'Regular weigh-ins over '+pe+' (one animal) — at least one weigh-in every 45 days for a juvenile, every 120 days for an adult (18 months +)', !!g, g&&g.date, g&&g.name); }) });
   // ✨ Mues
   const sheds = evAll.filter(x=>x.e.type==='shed');
   let completeRun = null;
@@ -22680,6 +22841,32 @@ function computeTrophyGroups(){
     const a = born[i], b = born[j];
     if(sameClutch(a,b) && stableStringify(a.genes||{})===stableStringify(b.genes||{})) twins = { date:a.birthDate||null, name:a.name+' & '+b.name };
   }
+  // v3.96 — Des jumeaux! : plus de bébés que d'œufs dans une ponte (un œuf a donné 2 bébés)
+  let gemini = null;
+  (clutches||[]).forEach(c=>{
+    if(!c || !c.ref || !(Number(c.eggCount)>0)) return;
+    const babies = all.filter(s=>s.clutchRef===c.ref && (!s.damId || !c.damId || s.damId===c.damId)).length;
+    const n = Math.max(babies, Number(c.liveCount)||0);
+    if(n > Number(c.eggCount)){ const d = c.hatchedAt||c.hatchDate||c.layDate||null; if(!gemini || (d && (!gemini.date || d<gemini.date))) gemini = { date:d ? String(d).slice(0,10) : null, name:c.ref }; }
+  });
+  H('h_gemini','Des jumeaux!','Twins!','Plus de bébés que d\'œufs dans une ponte','More babies than eggs in a clutch', gemini, gemini&&gemini.date, gemini&&gemini.name);
+  // v3.97 — Sang neuf : gagné à la 1re ponte, gardé tant qu'aucune ponte ni aucun animal enregistré
+  // (né ici ou non, vendu ou décédé inclus) n'a un coefficient de consanguinité au-dessus de 0 %.
+  // Le défi, c'est de le garder : une fois perdu, il reste affiché comme perdu.
+  {
+    const clAll = (clutches||[]).filter(c=>c && c.layDate).slice().sort((a,b)=>a.layDate.localeCompare(b.layDate));
+    if(clAll.length){
+      const memo = new Map();
+      const coi = (sid, did)=>{ try{ return (sid && did) ? kinshipCoefficient(sid, did, memo) : 0; }catch(e){ return 0; } };
+      const breaches = [];
+      clAll.forEach(c=>{ if(coi(c.sireId, c.damId)>0) breaches.push({ date:c.layDate, name:c.ref||'' }); });
+      all.forEach(s=>{ if(coi(s.sireId, s.damId)>0) breaches.push({ date:(/^\d{4}-\d{2}-\d{2}$/.test(String(s.birthDate||''))?s.birthDate:null), name:s.name }); });
+      breaches.sort((a,b)=>String(a.date||'9999').localeCompare(String(b.date||'9999')));
+      const st = tStep('h_newblood','Sang neuf','New blood','Aucune consanguinité dans tes pontes et tes animaux — le défi, c\'est de le garder','No inbreeding in your clutches and animals — the challenge is keeping it', !breaches.length, clAll[0].layDate, null);
+      if(breaches.length){ st.lost = true; st.lostDate = breaches[0].date; st.lostDetail = breaches[0].name; }
+      hidden.push(st);
+    }
+  }
   H('h_twins','Copie conforme','Carbon copy','2 bébés de la même ponte avec exactement la même génétique','2 babies from the same clutch with exactly the same genetics', twins, twins&&twins.date, twins&&twins.name);
   // Tournée parfaite : tous les animaux actifs (au moins 3) nourris le même jour
   let perfect = null;
@@ -22739,6 +22926,18 @@ function scheduleMilestoneCheck(){
       try{ seen = JSON.parse(localStorage.getItem(MILESTONES_SEEN_KEY)||'null'); }catch(e){ seen = null; }
       const ids = done.map(m=>m.id);
       if(!Array.isArray(seen)){ try{ localStorage.setItem(MILESTONES_SEEN_KEY, JSON.stringify(ids)); }catch(e){} return; }
+      // v3.97 — trophée perdu (Sang neuf) : un seul message discret
+      try{
+        const lostNow = computeTrophyGroups().reduce((a,g)=>a.concat(g.steps.filter(s=>s.lost && seen.includes(s.id))),[]);
+        let lostSeen = []; try{ lostSeen = JSON.parse(localStorage.getItem('locus_trophies_lost_v1')||'[]'); }catch(e){}
+        const newLost = lostNow.filter(s=>!lostSeen.includes(s.id));
+        if(newLost.length){
+          localStorage.setItem('locus_trophies_lost_v1', JSON.stringify(lostSeen.concat(newLost.map(s=>s.id))));
+          const en2 = currentLang==='en';
+          showToast('💔 '+(en2?'Trophy lost: ':'Trophée perdu : ')+newLost.map(s=>'« '+escapeHtml(s.title)+' »').join(', ')+(newLost[0].lostDetail?' — '+escapeHtml(newLost[0].lostDetail):''));
+        }
+      }catch(e){}
+      try{ syncNewbloodToVitrine(); }catch(e){} // v3.98
       const fresh = done.filter(m=>!seen.includes(m.id));
       if(fresh.length){
         try{ localStorage.setItem(MILESTONES_SEEN_KEY, JSON.stringify([...new Set(seen.concat(ids))])); }catch(e){}
@@ -22852,6 +23051,32 @@ function renderStatsView(){
         tile('🥚', isEn?'Clutches':'Pontes', reproTot.clutches, reproTot.clutches ? (reproTot.eggs+(isEn?' eggs · ':' œufs · ')+reproTot.live+(isEn?' hatched':' éclos')) : '')+
         tile('💰', isEn?'Sales':'Ventes', statsFmtMoney(salesTotal), sold.length+(isEn?' animal(s) sold':' animal(aux) vendu(s)'))+
       '</div>';
+    // v3.99 — Tendances
+    const tr = statsTrends();
+    const fmtPct = v=>v==null ? '—' : (isEn?String(v):String(v).replace('.',','))+' %';
+    const tTile = (icon, label, value, arrow, sub)=>'<div style="background:var(--bg-panel);border:1px solid var(--line);border-radius:12px;padding:12px;">'+
+      '<div style="font-size:13px;color:var(--ink-dim);">'+icon+' '+escapeHtml(label)+'</div>'+
+      '<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:2px;"><span style="font-size:24px;font-weight:700;color:var(--ink);">'+escapeHtml(String(value))+'</span>'+arrow+'</div>'+
+      (sub ? '<div style="font-size:12.5px;color:var(--ink-dim);margin-top:2px;">'+escapeHtml(sub)+'</div>' : '')+'</div>';
+    const vs30 = p=>(isEn?'30 days · before: ':'30 jours · avant : ')+p;
+    const vsY = p=>(isEn?'in '+tr.year+' · '+tr.prevYear+': ':'en '+tr.year+' · '+tr.prevYear+' : ')+p;
+    html += h2('📈 '+(isEn?'Trends':'Tendances'))+
+      '<p style="font-size:13.5px;color:var(--ink-dim);margin:-4px 0 10px;line-height:1.5;">'+(isEn
+        ? 'Last 30 days vs the 30 before, and this year vs last year (full). ▲▼ = the number goes up or down; green = better, red = worse.'
+        : '30 derniers jours vs les 30 d\'avant, et cette année vs l\'an passé (au complet). ▲▼ = le chiffre monte ou descend; vert = mieux, rouge = moins bien.')+'</p>'+
+      '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;">'+
+        tTile('🍽', isEn?'Meals':'Repas', tr.meals.cur, statsTrendArrowHtml(tr.meals.cur, tr.meals.prev, true, isEn), vs30(tr.meals.prev))+
+        tTile('🚫', isEn?'Refusal rate':'Taux de refus', fmtPct(tr.refusal.cur), statsTrendArrowHtml(tr.refusal.cur, tr.refusal.prev, false, isEn, true), vs30(fmtPct(tr.refusal.prev)))+
+        tTile('💲', isEn?'Feeding cost':'Coût de nourriture', statsFmtMoney(tr.cost.cur), statsTrendArrowHtml(tr.cost.cur, tr.cost.prev, false, isEn), vs30(statsFmtMoney(tr.cost.prev)))+
+        tTile('🥚', isEn?'Eggs incubated':'Œufs en incubation', tr.eggs.cur, statsTrendArrowHtml(tr.eggs.cur, tr.eggs.prev, true, isEn), vsY(tr.eggs.prev)+(isEn?' · clutches: ':' · pontes : ')+tr.eggs.clutches)+
+        tTile('💰', isEn?'Sales':'Ventes', statsFmtMoney(tr.sales.cur), statsTrendArrowHtml(tr.sales.cur, tr.sales.prev, true, isEn), vsY(statsFmtMoney(tr.sales.prev)))+
+        (tr.locks ? tTile('🔒', isEn?'Locks':'Locks', tr.locks.cur, statsTrendArrowHtml(tr.locks.cur, tr.locks.prev, true, isEn), vsY(tr.locks.prev)) : '')+
+        (tr.rodentsBorn ? tTile('🐭', isEn?'Rodents born':'Rongeurs nés', tr.rodentsBorn.cur, statsTrendArrowHtml(tr.rodentsBorn.cur, tr.rodentsBorn.prev, true, isEn), vs30(tr.rodentsBorn.prev)) : '')+
+        (tr.selfSuff ? tTile('🌱', isEn?'Food self-sufficiency':'Auto-suffisance alimentaire', fmtPct(tr.selfSuff.cur), statsTrendArrowHtml(tr.selfSuff.cur, tr.selfSuff.prev, true, isEn, true), vs30(fmtPct(tr.selfSuff.prev))) : '')+
+      '</div>'+
+      (tr.selfSuff ? '<div style="font-size:12.5px;color:var(--ink-dim);margin-top:6px;line-height:1.5;">🌱 '+(isEn
+        ? 'Share of prey taken from your own colony bins among prey taken from a stock (bins + freezer bought). Meals without a stock draw aren\'t counted.'
+        : 'Part des proies tirées de tes propres bacs parmi les proies tirées d\'un stock (bacs + congélateur acheté). Les repas sans retrait de stock ne comptent pas.')+'</div>' : '');
     // Coût de nourriture par sorte de proie
     const byPrey = statsCostByPrey(null), byPrey30 = statsCostByPrey(since30);
     html += h2('💲 '+(isEn?'Feeding cost':'Coût de nourriture'))+
@@ -22882,7 +23107,8 @@ function renderStatsView(){
         return '<div style="background:var(--bg-panel);border:1px dashed '+(done.length?'var(--gold)':'var(--line)')+';border-radius:14px;padding:12px 14px;margin-bottom:10px;">'+
           '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><div style="font-size:17px;font-weight:600;color:var(--ink);">'+g.icon+' '+escapeHtml(g.title)+'</div>'+
           '<div style="font-size:14px;color:var(--ink-dim);white-space:nowrap;">'+done.length+' / '+g.steps.length+' '+(isEn?'found':'découverts')+'</div></div>'+
-          (done.length ? done.map(s=>'<div style="padding:7px 0;font-size:15px;color:var(--ink);border-top:1px solid var(--line);margin-top:6px;">✅ '+stepLine(s, true)+'</div>').join('')
+          (done.length || g.steps.some(s=>s.lost) ? done.map(s=>'<div style="padding:7px 0;font-size:15px;color:var(--ink);border-top:1px solid var(--line);margin-top:6px;">✅ '+stepLine(s, true)+'</div>').join('')+
+              g.steps.filter(s=>s.lost).map(s=>'<div style="padding:7px 0;font-size:15px;color:var(--ink-dim);border-top:1px solid var(--line);margin-top:6px;">💔 <s>'+escapeHtml(s.title)+'</s> <span style="font-size:13px;">— '+(isEn?'lost':'perdu')+'</span><div style="font-size:12.5px;margin-top:1px;">'+escapeHtml([s.lostDate, s.lostDetail].filter(Boolean).join(' — '))+'</div></div>').join('')
             : '<div style="font-size:14px;color:var(--ink-dim);margin-top:6px;">'+(isEn?'Surprises appear here when you stumble on them. No hints!':'Des surprises apparaissent ici quand tu tombes dessus. Pas d\'indice!')+'</div>')+
         '</div>';
       }
