@@ -2204,7 +2204,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.82';
+const APP_VERSION = '2026.09.01.3.83';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2868,6 +2868,7 @@ function setPageMeta(title, description, noindex){
       return;
     }
     const r = data[0];
+    window._lastTransfer = { token: token, r: r }; // v3.83 — pour « Importer dans mon LOCUS »
     const photosHtml = (r.photos && r.photos.length)
       ? '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:16px 0;">'+
           r.photos.slice(0,6).map(p=>'<img src="'+escapeHtml(p.dataUrl)+'" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--line);" alt="'+escapeHtml(r.name)+'"/>').join('')+
@@ -2934,6 +2935,13 @@ function setPageMeta(title, description, noindex){
           '<div style="font-weight:600;color:var(--gold);margin-bottom:4px;">'+(isEn?'Vet visits':'Visites vétérinaires')+'</div>'+
           historyBlock(vetVisits, v=>escapeHtml(v.date)+(v.note?' — '+escapeHtml(v.note):''))+
         '</div>'+
+        // v3.83 — import en un toucher dans le compte de l'acheteur
+        '<div style="background:var(--bg-panel);border:1px solid var(--gold);border-radius:12px;padding:16px 18px;margin-top:18px;text-align:center;">'+
+          '<button class="save-btn" style="width:100%;font-size:16px;padding:12px;" onclick="importTransferredSnake()">📥 '+(isEn?'Import into my LOCUS':'Importer dans mon LOCUS')+'</button>'+
+          '<div style="font-size:12px;color:var(--ink-dim);margin-top:10px;line-height:1.5;">'+(isEn
+            ? 'Adds this reptile with its full history (genetics, weights, sheds, vet visits, photos) to your collection — nothing to retype. No account yet? The import still works on this device; create your free account afterwards to keep it on all your devices.'
+            : 'Ajoute ce reptile avec tout son historique (génétique, poids, mues, visites véto, photos) à ta collection — rien à ressaisir. Pas encore de compte? L\'import marche quand même sur cet appareil; crée ton compte gratuit ensuite pour le garder sur tous tes appareils.')+'</div>'+
+        '</div>'+
         '<div style="text-align:center;margin-top:24px;font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Shared by the previous owner via LOCUS Scales at the moment of sale. Price, buyer, and location are never included here.':'Partagé par l\'ancien propriétaire via LOCUS Scales au moment de la vente. Le prix, l\'acheteur et l\'emplacement ne sont jamais inclus ici.')+'</div>'+
       '</div>';
   }).catch(()=>{
@@ -2941,6 +2949,307 @@ function setPageMeta(title, description, noindex){
   });
 })();
 
+
+// ==================== Vitrine publique (v3.83) ====================
+// Page ?vitrine=<jeton> : les animaux « À vendre » / « Réservé » d'un utilisateur, à mettre dans une bio
+// Instagram ou sur Facebook. Décisions du 19 oct : prix + région affichés (exception approuvée à la règle
+// « jamais prix/emplacement en public » — limitée au prix demandé et à une région en texte libre), liens de
+// contact choisis par le vendeur, gratuit. Aucun paiement ni messagerie : la vente se fait directement
+// avec le vendeur. Les données viennent de get_vitrine (SECURITY DEFINER) qui n'expose jamais acheteur,
+// prix d'achat/vendu, emplacement, santé ni jetons. Réglages : table `vitrines`, lue/écrite directement
+// (pas dans la synchro du profil).
+function safeExternalUrl(u){
+  u = String(u||'').trim();
+  if(!u) return '';
+  if(!/^https?:\/\//i.test(u)) u = 'https://'+u;
+  try{ const x = new URL(u); return (x.protocol==='https:' || x.protocol==='http:') && x.hostname.indexOf('.')>0 ? x.href : ''; }catch(e){ return ''; }
+}
+function safeContactEmail(e){
+  e = String(e||'').trim();
+  return /^[^\s@<>"'()]+@[^\s@<>"'()]+\.[^\s@<>"'()]+$/.test(e) ? e : '';
+}
+function safeImageSrc(src){
+  src = String(src||'');
+  if(/^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(src)) return src;
+  return /^https:\/\//i.test(src) ? safeExternalUrl(src) : '';
+}
+function vitrineLinkFields(){
+  return [
+    { k:'facebook', icon:'📘', fr:'Facebook', en:'Facebook', ph:'facebook.com/…' },
+    { k:'instagram', icon:'📸', fr:'Instagram', en:'Instagram', ph:'instagram.com/…' },
+    { k:'morphmarket', icon:'🛒', fr:'MorphMarket', en:'MorphMarket', ph:'morphmarket.com/stores/…' },
+    { k:'website', icon:'🌐', fr:'Site web', en:'Website', ph:'monsite.com' },
+    { k:'email', icon:'✉️', fr:'Courriel de contact', en:'Contact email', ph:'contact@exemple.com' }
+  ];
+}
+function vitrineUrlFor(token){ return location.origin + location.pathname + '?vitrine=' + encodeURIComponent(token); }
+function vitrineContactButtonsHtml(links, isEn){
+  links = links || {};
+  return vitrineLinkFields().map(f=>{
+    if(f.k==='email'){
+      const em = safeContactEmail(links.email);
+      return em ? '<a href="mailto:'+escapeHtml(em)+'" style="display:inline-block;margin:4px;padding:10px 14px;border:1px solid var(--line);border-radius:10px;color:var(--ink);text-decoration:none;font-size:15px;background:var(--bg-panel);">'+f.icon+' '+escapeHtml(em)+'</a>' : '';
+    }
+    const u = safeExternalUrl(links[f.k]);
+    return u ? '<a href="'+escapeHtml(u)+'" target="_blank" rel="noopener noreferrer nofollow" style="display:inline-block;margin:4px;padding:10px 14px;border:1px solid var(--line);border-radius:10px;color:var(--ink);text-decoration:none;font-size:15px;background:var(--bg-panel);">'+f.icon+' '+(isEn?f.en:f.fr)+'</a>' : '';
+  }).join('');
+}
+function vitrineAnimalCardHtml(a, isEn){
+  const img = safeImageSrc(a.photo);
+  const sexLabel = a.sex==='male' ? (isEn?'Male':'Mâle') : a.sex==='female' ? (isEn?'Female':'Femelle') : (isEn?'Unsexed':'Non sexé');
+  let species = '';
+  try{ species = speciesDisplayLabel(a.species, isEn); }catch(e){ species = a.species||''; }
+  let genes = '';
+  try{ genes = (a.genes && Object.keys(a.genes).length) ? summarizeGenes(a.genes) : ''; }catch(e){ genes = ''; }
+  if(!genes) genes = isEn ? 'Normal / no gene listed' : 'Normal / aucun gène indiqué';
+  const seasons = Array.isArray(a.proven_seasons) ? a.proven_seasons.slice().sort((x,y)=>(y.year||0)-(x.year||0)) : [];
+  const live = speciesIsLiveBearer({ species:a.species });
+  const provenLine = (a.proven || seasons.length)
+    ? '<div style="font-size:13px;color:var(--sage);margin-top:6px;">✅ Proven'+(seasons.length ? ' — '+escapeHtml(seasons.map(p=>provenSeasonLabel(Object.assign({live:live}, p), isEn)).join(' / ')) : '')+'</div>' : '';
+  const price = a.status==='reserved'
+    ? '<div style="font-size:16px;color:var(--gold);font-weight:600;margin-top:8px;">'+(isEn?'Reserved':'Réservé')+'</div>'
+    : (a.asking_price!=null && a.asking_price!=='' ? '<div style="font-size:18px;color:var(--gold);font-weight:600;margin-top:8px;">'+escapeHtml(String(a.asking_price))+' $</div>'
+      : '<div style="font-size:14px;color:var(--ink-dim);margin-top:8px;">'+(isEn?'Price on request':'Prix sur demande')+'</div>');
+  const listing = safeExternalUrl(a.listing_url);
+  return '<div style="background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;">'+
+    (img ? '<img src="'+escapeHtml(img)+'" alt="'+escapeHtml(a.name||'')+'" loading="lazy" style="width:100%;aspect-ratio:1;object-fit:cover;display:block;"/>' : '<div style="width:100%;height:90px;display:flex;align-items:center;justify-content:center;font-size:40px;background:var(--bg-panel-2);">🐍</div>')+
+    '<div style="padding:12px 14px 14px;">'+
+      '<div style="font-family:Georgia,serif;font-size:19px;color:var(--ink);">'+escapeHtml(a.name||'')+'</div>'+
+      '<div style="font-size:13px;color:var(--ink-dim);margin-top:2px;">'+escapeHtml(species)+' — '+sexLabel+(a.birth_date ? ' — '+(isEn?'born ':'né ')+escapeHtml(String(a.birth_date)) : '')+'</div>'+
+      '<div style="font-size:14px;color:var(--ink);margin-top:8px;line-height:1.4;">'+escapeHtml(genes)+'</div>'+
+      provenLine+price+
+      (listing ? '<a href="'+escapeHtml(listing)+'" target="_blank" rel="noopener noreferrer nofollow" style="display:inline-block;margin-top:10px;font-size:14px;color:var(--gold);">'+(isEn?'See the listing →':'Voir l\'annonce →')+'</a>' : '')+
+    '</div>'+
+  '</div>';
+}
+(function initVitrineView(){
+  const token = new URLSearchParams(location.search).get('vitrine');
+  if(!token) return;
+  const overlay = document.getElementById('public-view-overlay');
+  if(!overlay) return;
+  const isEn = detectPublicPageLang();
+  const wrapStart = '<div style="max-width:880px;margin:0 auto;padding:32px 16px 60px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Verdana,sans-serif;">';
+  overlay.style.display = 'block';
+  overlay.innerHTML = wrapStart+'<div style="text-align:center;color:var(--ink-dim);padding-top:30px;">'+(isEn?'Loading…':'Chargement…')+'</div></div>';
+  if(!sb){ overlay.innerHTML = wrapStart+'<div style="text-align:center;color:var(--ink-dim);">'+(isEn?'Connection error.':'Erreur de connexion.')+'</div></div>'; return; }
+  sb.rpc('get_vitrine', { p_token: token }).then(({data, error})=>{
+    if(error || !data){
+      overlay.innerHTML = wrapStart+'<div style="text-align:center;padding-top:30px;"><div style="font-size:40px;margin-bottom:10px;">🔒</div>'+
+        '<div style="color:var(--ink);font-size:16px;margin-bottom:6px;">'+(isEn?'This showcase isn\'t active.':'Cette vitrine n\'est pas active.')+'</div>'+
+        '<div style="color:var(--ink-dim);font-size:13px;">'+(isEn?'The seller may have turned it off or changed the link.':'Le vendeur l\'a peut-être désactivée ou a changé le lien.')+'</div></div></div>';
+      return;
+    }
+    const title = data.title ? String(data.title) : (isEn?'Showcase':'Vitrine');
+    const animals = Array.isArray(data.animals) ? data.animals : [];
+    const contacts = vitrineContactButtonsHtml(data.links, isEn);
+    setPageMeta(title+(isEn?' — Available animals':' — Animaux disponibles')+' | LOCUS Scales',
+      isEn ? (animals.length+' animal(s) available from '+title+'.') : (animals.length+' animal(s) disponible(s) chez '+title+'.'), false);
+    overlay.innerHTML = wrapStart+
+      publicPageLangToggleHtml(isEn)+
+      '<div style="text-align:center;margin-bottom:22px;">'+
+        '<div style="font-family:Georgia,serif;font-size:30px;color:var(--ink);">'+escapeHtml(title)+'</div>'+
+        (data.region ? '<div style="font-size:15px;color:var(--ink-dim);margin-top:6px;">📍 '+escapeHtml(String(data.region))+'</div>' : '')+
+        (contacts ? '<div style="margin-top:14px;">'+contacts+'</div>' : '')+
+      '</div>'+
+      (animals.length
+        ? '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;">'+animals.map(a=>vitrineAnimalCardHtml(a, isEn)).join('')+'</div>'
+        : '<div style="text-align:center;color:var(--ink-dim);font-size:15px;padding:30px 0;">'+(isEn?'No animals available right now — check back soon.':'Aucun animal disponible pour le moment — reviens bientôt.')+'</div>')+
+      '<div style="text-align:center;margin-top:28px;font-size:12px;color:var(--ink-dim);line-height:1.6;">'+(isEn
+        ? 'Sales are made directly with the seller — LOCUS Scales handles no payment or shipping.'
+        : 'Les ventes se font directement avec le vendeur — LOCUS Scales ne gère ni paiement ni livraison.')+'<br/>'+
+        (isEn?'Showcase made with ':'Vitrine faite avec ')+'<a href="'+escapeHtml(location.origin+location.pathname)+'" style="color:var(--gold);">LOCUS Scales</a></div>'+
+    '</div>';
+  }).catch(()=>{
+    overlay.innerHTML = wrapStart+'<div style="text-align:center;color:var(--ink-dim);">'+(isEn?'Connection error.':'Erreur de connexion.')+'</div></div>';
+  });
+})();
+
+// Réglages de la vitrine (depuis Mon profil). Lecture/écriture directe dans `vitrines` (RLS : propriétaire seulement).
+var _vitrineRow = null;
+async function openVitrineSettings(){
+  const isEn = currentLang==='en';
+  if(!currentUser || !sb || offlineIdentity){
+    showToast(isEn?'Sign in (with a connection) to set up your showcase.':'Connecte-toi (avec une connexion internet) pour configurer ta vitrine.', 'error');
+    return;
+  }
+  showQuickModal(isEn?'🛒 My showcase':'🛒 Ma vitrine', '<p style="font-size:14px;color:var(--ink-dim);">'+(isEn?'Loading…':'Chargement…')+'</p>');
+  try{
+    let { data, error } = await sb.from('vitrines').select('*').maybeSingle();
+    if(error) throw error;
+    if(!data){
+      const ins = await sb.from('vitrines').insert({ user_id: currentUser.id }).select('*').single();
+      if(ins.error) throw ins.error;
+      data = ins.data;
+    }
+    _vitrineRow = data;
+    renderVitrineSettings();
+  }catch(e){
+    console.warn('LOCUS: vitrine', e);
+    showQuickModal(isEn?'🛒 My showcase':'🛒 Ma vitrine', '<p style="font-size:14px;color:var(--ink-dim);">'+(isEn?'Could not load your showcase right now — try again shortly.':'Impossible de charger ta vitrine pour l\'instant — réessaie sous peu.')+'</p>');
+  }
+}
+function renderVitrineSettings(){
+  const isEn = currentLang==='en';
+  const v = _vitrineRow || {};
+  const links = v.links || {};
+  const forSale = savedSnakes.filter(s=>s.status==='forsale').length;
+  const reserved = savedSnakes.filter(s=>s.status==='reserved').length;
+  const url = vitrineUrlFor(v.token||'');
+  const inputStyle = 'width:100%;font-size:16px;padding:10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);margin:0 0 12px;';
+  const lbl = txt=>'<label style="display:block;font-size:13px;color:var(--ink-dim);margin-bottom:5px;">'+txt+'</label>';
+  showQuickModal(isEn?'🛒 My showcase':'🛒 Ma vitrine',
+    '<p style="font-size:13px;color:var(--ink-dim);margin:0 0 14px;line-height:1.5;">'+(isEn
+      ? 'A public page listing your animals marked « For sale » or « Reserved » (photo, genetics, Proven, asking price) — to put in your Instagram bio or on Facebook. Never shown: buyer, purchase price, location in your racks, health.'
+      : 'Une page publique avec tes animaux marqués « À vendre » ou « Réservé » (photo, génétique, Proven, prix demandé) — à mettre dans ta bio Instagram ou sur Facebook. Jamais affichés : acheteur, prix d\'achat, emplacement dans tes racks, santé.')+'</p>'+
+    '<label style="display:flex;gap:10px;align-items:center;font-size:16px;margin-bottom:14px;cursor:pointer;"><input type="checkbox" id="vit-enabled" style="width:22px;height:22px;accent-color:var(--sage);" '+(v.enabled?'checked':'')+'/>'+(isEn?'Showcase active (public)':'Vitrine active (publique)')+'</label>'+
+    '<div style="font-size:14px;color:var(--ink);background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:14px;">'+
+      (isEn ? forSale+' for sale, '+reserved+' reserved in your collection.' : forSale+' à vendre, '+reserved+' réservé(s) dans ta collection.')+
+      '<div style="font-size:12px;color:var(--ink-dim);margin-top:4px;">'+(isEn?'Set an animal\'s status to « For sale » (with its asking price) in its record to show it. Changes appear after the sync (a few seconds).':'Mets le statut d\'un animal à « À vendre » (avec son prix demandé) dans sa fiche pour qu\'il apparaisse. Les changements paraissent après la synchro (quelques secondes).')+'</div>'+
+    '</div>'+
+    lbl(isEn?'Showcase title (blank = your breeder name)':'Titre de la vitrine (vide = ton nom d\'élevage)')+
+    '<input type="text" id="vit-title" maxlength="80" style="'+inputStyle+'" value="'+escapeHtml(v.title||'')+'" placeholder="'+escapeHtml(loadProfile().breederName||'Ex. Python of the North')+'"/>'+
+    lbl(isEn?'Region (shown publicly — never your address)':'Région (affichée publiquement — jamais ton adresse)')+
+    '<input type="text" id="vit-region" maxlength="80" style="'+inputStyle+'" value="'+escapeHtml(v.region||'')+'" placeholder="'+(isEn?'E.g. Laval, QC — local pickup':'Ex. Laval, QC — ramassage sur place')+'"/>'+
+    '<p style="font-size:14px;color:var(--sage);margin:6px 0 8px;font-weight:600;">'+(isEn?'How buyers reach you (leave blank to hide)':'Comment les acheteurs te joignent (laisse vide pour cacher)')+'</p>'+
+    vitrineLinkFields().map(f=> lbl(f.icon+' '+(isEn?f.en:f.fr)) + '<input type="'+(f.k==='email'?'email':'url')+'" id="vit-link-'+f.k+'" style="'+inputStyle+'" value="'+escapeHtml(links[f.k]||'')+'" placeholder="'+escapeHtml(f.ph)+'" autocapitalize="off" autocorrect="off"/>').join('')+
+    '<button class="save-btn" style="width:100%;font-size:16px;padding:12px;" onclick="saveVitrineSettings()">'+(isEn?'Save':'Enregistrer')+'</button>'+
+    '<hr style="border:none;border-top:1px dashed var(--line);margin:18px 0;"/>'+
+    '<p style="font-size:14px;color:var(--sage);margin:0 0 8px;font-weight:600;">'+(isEn?'Your showcase link':'Le lien de ta vitrine')+'</p>'+
+    '<div style="font-size:16px;color:var(--ink);word-break:break-all;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:10px;user-select:all;">'+escapeHtml(url)+'</div>'+
+    (v.enabled ? '' : '<div style="font-size:13px;color:var(--gold);margin-bottom:10px;">'+(isEn?'⚠ Not active yet — check « Showcase active » and save.':'⚠ Pas encore active — coche « Vitrine active » et enregistre.')+'</div>')+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+
+      '<button class="sc-btn accent" style="font-size:14px;padding:10px 14px;" onclick="copyVitrineLink()">📋 '+(isEn?'Copy':'Copier')+'</button>'+
+      '<a class="sc-btn" style="font-size:14px;padding:10px 14px;text-decoration:none;" href="'+escapeHtml(url)+'" target="_blank" rel="noopener">👁 '+(isEn?'Open':'Ouvrir')+'</a>'+
+      '<button class="sc-btn" style="font-size:14px;padding:10px 14px;" onclick="regenerateVitrineToken()">🔄 '+(isEn?'New link':'Nouveau lien')+'</button>'+
+    '</div>'+
+    '<div style="font-size:12px;color:var(--ink-dim);margin-top:8px;">'+(isEn?'« New link » makes the old link stop working.':'« Nouveau lien » rend l\'ancien lien inutilisable.')+'</div>'
+  );
+}
+async function saveVitrineSettings(){
+  const isEn = currentLang==='en';
+  if(!_vitrineRow || !currentUser || !sb) return;
+  const val = id=>{ const el = document.getElementById(id); return el ? String(el.value||'').trim() : ''; };
+  const links = {};
+  const bad = [];
+  vitrineLinkFields().forEach(f=>{
+    const raw = val('vit-link-'+f.k);
+    if(!raw) return;
+    const ok = f.k==='email' ? safeContactEmail(raw) : safeExternalUrl(raw);
+    if(ok) links[f.k] = ok; else bad.push(isEn?f.en:f.fr);
+  });
+  if(bad.length){ showToast((isEn?'Check these fields: ':'Vérifie ces champs : ')+bad.join(', '), 'error'); return; }
+  const row = {
+    user_id: currentUser.id,
+    enabled: !!(document.getElementById('vit-enabled')||{}).checked,
+    title: val('vit-title').slice(0,80) || null,
+    region: val('vit-region').slice(0,80) || null,
+    links: links,
+    updated_at: new Date().toISOString()
+  };
+  try{
+    const { data, error } = await sb.from('vitrines').update(row).eq('user_id', currentUser.id).select('*').single();
+    if(error) throw error;
+    _vitrineRow = data;
+    renderVitrineSettings();
+    showToast('✓ '+(isEn?(data.enabled?'Showcase saved — it\'s public.':'Showcase saved (not active).'):(data.enabled?'Vitrine enregistrée — elle est publique.':'Vitrine enregistrée (pas active).')), 'success');
+  }catch(e){
+    console.warn('LOCUS: vitrine save', e);
+    showToast(isEn?'Could not save right now — try again.':'Enregistrement impossible pour l\'instant — réessaie.', 'error');
+  }
+}
+async function regenerateVitrineToken(){
+  const isEn = currentLang==='en';
+  if(!_vitrineRow || !currentUser || !sb) return;
+  if(!confirm(isEn?'Create a new link? The current link will stop working.':'Créer un nouveau lien? Le lien actuel ne marchera plus.')) return;
+  let tok = '';
+  try{ const b = new Uint8Array(16); crypto.getRandomValues(b); tok = Array.from(b, x=>x.toString(16).padStart(2,'0')).join(''); }catch(e){ tok = (Date.now().toString(16)+Math.random().toString(16).slice(2)+Math.random().toString(16).slice(2)).slice(0,32); }
+  try{
+    const { data, error } = await sb.from('vitrines').update({ token: tok, updated_at: new Date().toISOString() }).eq('user_id', currentUser.id).select('*').single();
+    if(error) throw error;
+    _vitrineRow = data;
+    renderVitrineSettings();
+    showToast('✓ '+(isEn?'New link created.':'Nouveau lien créé.'), 'success');
+  }catch(e){
+    showToast(isEn?'Could not change the link right now.':'Impossible de changer le lien pour l\'instant.', 'error');
+  }
+}
+function copyVitrineLink(){
+  const isEn = currentLang==='en';
+  if(!_vitrineRow) return;
+  const url = vitrineUrlFor(_vitrineRow.token);
+  const done = ()=>showToast('📋 '+(isEn?'Link copied.':'Lien copié.'), 'success');
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(done).catch(()=>{ prompt(isEn?'Copy this link:':'Copie ce lien :', url); }); }
+    else prompt(isEn?'Copy this link:':'Copie ce lien :', url);
+  }catch(e){ prompt(isEn?'Copy this link:':'Copie ce lien :', url); }
+}
+
+// Import d'un lien de transfert dans la collection de l'acheteur (v3.83). Copie la fiche publique du
+// transfert (jamais prix/acheteur/emplacement — get_transfer_snake ne les retourne pas) en NOUVELLE fiche
+// avec un nouvel id. Le nom d'élevage du vendeur devient la provenance.
+async function importTransferredSnake(){
+  const t = window._lastTransfer;
+  const isEn = detectPublicPageLang();
+  if(!t || !t.r || !t.token) return;
+  const r = t.r, token = t.token;
+  if(savedSnakes.some(s=>s.transferToken===token)){
+    showToast(isEn?'This is your own animal — nothing to import.':'C\'est ton propre animal — rien à importer.', 'error');
+    return;
+  }
+  const already = savedSnakes.find(s=>s.importedTransferToken===token);
+  if(already){
+    showToast(isEn?'Already imported — opening it.':'Déjà importé — je l\'ouvre.', 'success');
+    finishTransferImport(already.id);
+    return;
+  }
+  let seller = null;
+  try{ if(sb){ const res = await sb.rpc('get_transfer_seller_name', { p_token: token }); if(!res.error && res.data) seller = String(res.data); } }catch(e){}
+  let provenance = seller || (isEn?'Transfer':'Transfert');
+  if(r.sire_name || r.dam_name) provenance += (isEn?' — parents: ':' — parents : ')+(r.sire_name||'?')+' × '+(r.dam_name||'?');
+  let health = {};
+  try{ health = JSON.parse(JSON.stringify(r.health||{})); }catch(e){ health = {}; }
+  health.removed = [];
+  if(!Array.isArray(health.weights)) health.weights = [];
+  if(!Array.isArray(health.events)) health.events = [];
+  if(health.consecutiveRefusals==null) health.consecutiveRefusals = 0;
+  const now = Date.now();
+  const snake = {
+    id: 'snk_'+now,
+    name: String(r.name||'').slice(0,80) || (isEn?'Imported reptile':'Reptile importé'),
+    sex: r.sex || null,
+    genes: (r.genes && typeof r.genes==='object') ? r.genes : {},
+    genesVerified: true,
+    sireId: null, damId: null,
+    birthDate: r.birth_date || null,
+    provenance: provenance.slice(0,200),
+    species: r.species || 'ball_python',
+    status: 'kept',
+    health: health,
+    photos: (Array.isArray(r.photos)?r.photos:[]).map((p,i)=>({ id: (p&&p.id) || ('ph_'+now+'_'+i), date: p&&p.date, dataUrl: p&&p.dataUrl, publicUrl: p&&p.publicUrl })).filter(p=>p.dataUrl||p.publicUrl),
+    careParams: (r.care_params && typeof r.care_params==='object') ? r.care_params : undefined,
+    geneticsHistory: Array.isArray(r.genetics_history) ? r.genetics_history : [],
+    preyType: 'frozen',
+    createdAt: now,
+    importedTransferToken: token
+  };
+  savedSnakes.push(snake);
+  ensureSnakeMeta(snake);
+  storage.save(savedSnakes);
+  showToast('📥 '+escapeHtml(snake.name)+(isEn?' added to your collection.':' ajouté à ta collection.')+(currentUser ? '' : (isEn?' It\'s on this device — sign in to keep it on all your devices.':' Il est sur cet appareil — connecte-toi pour le garder sur tous tes appareils.')), 'success');
+  finishTransferImport(snake.id);
+}
+function finishTransferImport(snakeId){
+  try{
+    const params = new URLSearchParams(location.search);
+    params.delete('transfer'); params.delete('lang');
+    const qs = params.toString();
+    history.replaceState({}, '', location.pathname + (qs ? '?'+qs : ''));
+  }catch(e){}
+  const overlay = document.getElementById('public-view-overlay');
+  if(overlay){ overlay.style.display = 'none'; overlay.innerHTML = ''; }
+  try{ renderSavedList(); renderRackGrid(); renderTerrariumList(); renderTourGrid(); }catch(e){}
+  try{ openLogbook(snakeId); }catch(e){}
+}
 
 var currentUser = null; // rempli par onAuthStateChange ; null = déconnecté (mode local uniquement)
 
@@ -4200,6 +4509,11 @@ function openProfileModal(){
     '<p style="font-size:11px;color:var(--ink-dim);margin:0 0 10px;line-height:1.5;">'+(isEn?'Choose what shows on your dashboard, in the order that matters to you.':'Choisis ce qui s\'affiche sur ton tableau de bord.')+'</p>'+
     '<div id="dash-card-settings"></div>'+
     '<hr style="border:none;border-top:1px dashed var(--line);margin:18px 0;"/>'+
+    // v3.83 — vitrine publique
+    '<p style="margin:0 0 6px;"><b style="color:var(--sage);font-size:13px;">🛒 '+(isEn?'My showcase':'Ma vitrine')+'</b></p>'+
+    '<p style="font-size:11px;color:var(--ink-dim);margin:0 0 10px;line-height:1.5;">'+(isEn?'A public page of your animals for sale, for your Instagram bio or Facebook.':'Une page publique de tes animaux à vendre, pour ta bio Instagram ou Facebook.')+'</p>'+
+    '<button class="sc-btn accent" style="width:100%;" onclick="openVitrineSettings()">🛒 '+(isEn?'Set up my showcase':'Configurer ma vitrine')+'</button>'+
+    '<hr style="border:none;border-top:1px dashed var(--line);margin:18px 0;"/>'+
     '<p style="margin:0 0 10px;"><b style="color:var(--sage);font-size:13px;">💳 '+(isEn?'Payments':'Paiements')+'</b></p>'+
     '<div id="stripe-connect-status">'+(isEn?'Checking status…':'Vérification du statut…')+'</div>'
   );
@@ -4417,6 +4731,8 @@ const CHANGELOG = [
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '🛒 Ma vitrine (dans Mon profil) : une page publique avec tes animaux « À vendre » et « Réservé » — photo, génétique, Proven, prix demandé, ta région et les liens de contact que tu choisis (Facebook, Instagram, MorphMarket, site, courriel). À mettre dans ta bio Instagram ou sur Facebook. Jamais affichés : acheteur, prix d\'achat, emplacement dans tes racks, santé. Les ventes se font directement entre vous; LOCUS ne gère ni paiement ni livraison.',
+        '📥 Lien de transfert : l\'acheteur a maintenant un bouton « Importer dans mon LOCUS » qui ajoute le reptile avec tout son historique (génétique, poids, mues, visites véto, photos) à sa collection, sans rien ressaisir. Le nom de ton élevage devient sa provenance.',
         '✅ Proven : nouvelle case « Reproducteur prouvé » dans la fiche, avec une ligne par saison (année · nombre d\'œufs) au lieu de l\'écrire à la main. Les pontes notées dans LOCUS s\'ajoutent toutes seules à la mère et au père. Badge « Proven » sur les cartes. Une étiquette comme « Proven 2024 9 oeufs » est convertie automatiquement.',
         'Correctif : sur iPhone, les paramètres d\'élevage de la fiche (côté chaud, côté froid, humidité, notes) pouvaient ne pas s\'enregistrer si tu fermais la fiche avec le clavier encore ouvert. Ils s\'enregistrent maintenant pendant que tu écris, avec un « ✓ Enregistré » pour confirmer.',
         'Correctif : pendant une pesée en lot dans le Mode Tournée, si l\'écran se barrait ou si tu sortais de l\'app en plein milieu, la pesée des reptiles suivants pouvait ne pas s\'enregistrer (même si le message « pesé » apparaissait). Chaque pesée est maintenant enregistrée sur la bonne fiche.',
@@ -4464,6 +4780,8 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '🛒 My showcase (in My profile): a public page with your « For sale » and « Reserved » animals — photo, genetics, Proven, asking price, your region and the contact links you choose (Facebook, Instagram, MorphMarket, website, email). Put it in your Instagram bio or on Facebook. Never shown: buyer, purchase price, location in your racks, health. Sales happen directly between you; LOCUS handles no payment or shipping.',
+        '📥 Transfer link: the buyer now has an « Import into my LOCUS » button that adds the reptile with its full history (genetics, weights, sheds, vet visits, photos) to their collection, nothing to retype. Your breeder name becomes its provenance.',
         '✅ Proven: new « Proven breeder » checkbox on the record, with one line per season (year · egg count) instead of typing it by hand. Clutches recorded in LOCUS are added automatically to the dam and sire. « Proven » badge on the cards. A tag like « Proven 2024 9 eggs » is converted automatically.',
         'Fix: on iPhone, the record\'s care parameters (warm side, cool side, humidity, notes) could fail to save if you closed the record with the keyboard still open. They now save as you type, with a « ✓ Saved » confirmation.',
         'Fix: during a batch weigh-in in Tour Mode, if the screen locked or you left the app midway, the next reptiles\' weights could fail to save (even though the « weighed » message appeared). Each weigh-in is now saved on the right record.',
