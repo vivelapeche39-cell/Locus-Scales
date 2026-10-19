@@ -2214,7 +2214,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.04';
+const APP_VERSION = '2026.09.01.4.05';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5057,6 +5057,7 @@ const CHANGELOG = [
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '🔵 Les refus à cause de la mue s\'affichent maintenant « 🔵 Refus (mue) » dans le journal, l\'historique et les exports, au lieu de simplement « Refus ».',
         '🛡️ Synchronisation plus sûre entre appareils : un appareil avec une copie périmée (ou l\'icône d\'accueil vs Safari, qui ont chacun leur propre stockage sur iPhone) ne peut plus effacer les paramètres d\'entretien et les autres champs d\'une fiche modifiés ailleurs. La fusion se fait maintenant champ par champ.',
         '📈 Les graphiques mensuels commencent maintenant environ 1 mois avant ta première donnée notée, au lieu d\'afficher des mois vides (maximum 12 mois, 24 pour la taille de la collection).',
         '📈 Statistiques › Chiffres : nouvelle section « Tendances » avec des flèches ▲▼ (vert = mieux, rouge = moins bien) — repas, taux de refus, coût de nourriture (30 derniers jours vs les 30 d\'avant), œufs en incubation et ventes (cette année vs l\'an passé). Locks (réservé au palier Première ponte et Illimité après la bêta), rongeurs nés et % d\'auto-suffisance alimentaire (réservés au palier Illimité après la bêta).',
@@ -5135,6 +5136,7 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '🔵 Refusals due to shed now show as « 🔵 Refused (shed) » in the journal, history and exports, instead of just « Refused ».',
         '🛡️ Safer sync between devices: a device with an outdated copy (or the home-screen icon vs Safari, which each have their own storage on iPhone) can no longer wipe care parameters and other record fields changed elsewhere. Merging now happens field by field.',
         '📈 Monthly charts now start about 1 month before your first recorded data, instead of showing empty months (12 months max, 24 for collection size).',
         '📈 Statistics › Numbers: new « Trends » section with ▲▼ arrows (green = better, red = worse) — meals, refusal rate, feeding cost (last 30 days vs the 30 before), eggs incubated and sales (this year vs last year). Locks (reserved for the First Clutch and Unlimited tiers after the beta), rodents born and food self-sufficiency % (reserved for the Unlimited tier after the beta).',
@@ -11164,7 +11166,7 @@ function openLogbook(id){
   const eventsHtml = eventsSorted.length
     ? eventsSorted.map(e=>{
         const idx = s.health.events.indexOf(e);
-        const label = eventLabel(e.type)+(e.type==='weigh'?' ('+e.value+'g)':'')+(e.type==='length'?' ('+e.value+'cm)':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(currentLang==='en'?'partial':'partiel'):'')+feedPreyTag(e)+(e.partner?' — '+escapeHtml(e.partner):'');
+        const label = eventLabelFor(e)+(e.type==='weigh'?' ('+e.value+'g)':'')+(e.type==='length'?' ('+e.value+'cm)':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(currentLang==='en'?'partial':'partiel'):'')+feedPreyTag(e)+(e.partner?' — '+escapeHtml(e.partner):'');
         const swapBtn = (e.type==='shed' || e.type==='inshed') ? '<button class="sc-btn" style="padding:2px 8px;font-size:12px;line-height:1.2;" onclick="toggleShedEventType(\''+id+'\','+idx+')" title="'+(currentLang==='en'?(e.type==='shed'?'Change to « In shed »':'Change to « Shed »'):(e.type==='shed'?'Changer en « En mue »':'Changer en « A mué »'))+'">⇄ '+(e.type==='shed'?(currentLang==='en'?'In shed':'En mue'):(currentLang==='en'?'Shed':'A mué'))+'</button>' : ''; // v3.90
         const editBtn = '<button class="sc-btn" style="padding:2px 8px;font-size:12px;line-height:1.2;" onclick="openEditEventModal(\''+id+'\','+idx+')" aria-label="'+(currentLang==='en'?'Edit':'Modifier')+'">✏️</button>'; // v3.92
         return '<div class="modal-row"><span>'+e.date+'</span><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">'+label+editBtn+swapBtn+'<button class="sc-btn danger" style="padding:2px 8px;font-size:11px;line-height:1;" onclick="deleteHealthEvent(\''+id+'\','+idx+')">×</button></span></div>';
@@ -11700,7 +11702,7 @@ function openRackLogbookModal(rackId){
   all.sort((a,b)=>b.date.localeCompare(a.date));
   const recent = all.slice(0,60);
   const body = recent.length ? recent.map(e=>
-    '<div class="modal-row"><span>'+e.date+' — '+escapeHtml(e.snakeName)+' <small style="color:var(--ink-dim);">(R'+e.row+'/B'+e.tub+')</small></span><span>'+eventLabel(e.type)+(e.type==='weigh'?' ('+e.value+'g)':'')+(e.type==='length'?' ('+e.value+'cm)':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(isEn?'partial':'partiel'):'')+feedPreyTag(e)+'</span></div>'
+    '<div class="modal-row"><span>'+e.date+' — '+escapeHtml(e.snakeName)+' <small style="color:var(--ink-dim);">(R'+e.row+'/B'+e.tub+')</small></span><span>'+eventLabelFor(e)+(e.type==='weigh'?' ('+e.value+'g)':'')+(e.type==='length'?' ('+e.value+'cm)':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(isEn?'partial':'partiel'):'')+feedPreyTag(e)+'</span></div>'
   ).join('') : '<div class="empty">'+(isEn?'No activity logged in this rack yet.':'Aucune activité enregistrée dans ce rack pour l\'instant.')+'</div>';
   showQuickModal('🗒️ '+(isEn?'Rack journal — ':'Journal du rack — ')+escapeHtml(rack.name), body);
 }
@@ -11806,7 +11808,7 @@ function exportSnakeSheet(id, vetMode){
     : '<tr><td colspan="2">'+t('noWeighInRecorded')+'</td></tr>';
 
   const eventsRows = [...s.health.events].sort((a,b)=>b.date.localeCompare(a.date)).map(e=>
-    '<tr><td>'+e.date+'</td><td>'+eventLabel(e.type)+(e.type==='weigh'?' ('+e.value+'g)':'')+feedPreyTag(e)+'</td></tr>'
+    '<tr><td>'+e.date+'</td><td>'+eventLabelFor(e)+(e.type==='weigh'?' ('+e.value+'g)':'')+feedPreyTag(e)+'</td></tr>'
   ).join('') || '<tr><td colspan="2">'+t('noEventRecorded')+'</td></tr>';
 
   // Mode vétérinaire : version allégée sans génétique/emplacement/QR — pensée pour être montrée
@@ -12467,7 +12469,7 @@ function openEditEventModal(id, idx){
   const canType = EDITABLE_EVENT_TYPES.includes(e.type);
   const inp = 'width:100%;font-size:16px;padding:10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);margin-bottom:12px;';
   showQuickModal('✏️ '+(isEn?'Edit entry — ':'Modifier l\'entrée — ')+escapeHtml(s.name),
-    '<p style="font-size:14px;color:var(--ink);margin:0 0 12px;">'+eventLabel(e.type)+' — '+escapeHtml(e.date)+'</p>'+
+    '<p style="font-size:14px;color:var(--ink);margin:0 0 12px;">'+eventLabelFor(e)+' — '+escapeHtml(e.date)+'</p>'+
     '<label style="display:block;font-size:13px;color:var(--ink-dim);margin-bottom:5px;">Date</label>'+
     '<input type="date" id="ee-date" max="'+localTodayStr()+'" value="'+escapeHtml(e.date)+'" style="'+inp+'"/>'+
     (canType ? '<label style="display:block;font-size:13px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'What happened':'Ce qui s\'est passé')+'</label><select id="ee-type" style="'+inp+'">'+eventTypeOptionsHtml(pseudoEventType(e))+'</select>'
@@ -26315,6 +26317,12 @@ function renderTimeline(){
   wrap.querySelectorAll('[data-act="delfoll"]').forEach(b=>b.addEventListener('click', ()=>deleteFollicleSize(b.dataset.id, b.dataset.fid)));
 }
 
+// v4.05 — libellé d'une entrée précise : un refus noté « En mue » s'affiche « 🔵 Refus (mue) » partout
+// (journal, historique, exports), pour ne pas le confondre avec un vrai refus.
+function eventLabelFor(e){
+  if(e && e.type==='refused' && e.reason==='in_shed') return '🔵 '+(currentLang==='en'?'Refused (shed)':'Refus (mue)');
+  return eventLabel(e ? e.type : '');
+}
 function eventLabel(type){
   if(type==='supplement') return '💊 '+(currentLang==='en'?'Supplement':'Supplément'); // v3.53
   if(type==='inshed') return '🔵 '+(currentLang==='en'?'In shed (blue)':'En mue'); // v3.90
@@ -26417,7 +26425,7 @@ function renderHealthLogTable(all){
     return '<tr>'+cols.map(c=>{
       if(c.key==='date') return '<td>'+e.date+'</td>';
       if(c.key==='snake') return '<td>'+escapeHtml(e.snake)+'</td>';
-      if(c.key==='type') return '<td>'+eventLabel(e.type)+'</td>';
+      if(c.key==='type') return '<td>'+eventLabelFor(e)+'</td>';
       if(c.key==='detail') return '<td>'+escapeHtml(healthLogEventDetail(e))+'</td>';
       if(c.key==='note') return '<td>'+escapeHtml(e.note||'')+'</td>';
       return '<td></td>';
@@ -26451,7 +26459,7 @@ function renderHealthLog(){
   }
   const recent = all.slice(0,40);
   wrap.innerHTML = recent.length ? recent.map(e=>
-    '<div class="timeline-card" style="padding:9px 14px;"><span class="timeline-title" style="font-size:12.5px;">'+e.date+' — '+escapeHtml(e.snake)+' : '+eventLabel(e.type)+(e.type==='weigh'?' ('+e.value+'g)':'')+(e.type==='length'?' ('+e.value+'cm)':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(currentLang==='en'?'partial':'partiel'):'')+feedPreyTag(e)+'</span></div>'
+    '<div class="timeline-card" style="padding:9px 14px;"><span class="timeline-title" style="font-size:12.5px;">'+e.date+' — '+escapeHtml(e.snake)+' : '+eventLabelFor(e)+(e.type==='weigh'?' ('+e.value+'g)':'')+(e.type==='length'?' ('+e.value+'cm)':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(currentLang==='en'?'partial':'partiel'):'')+feedPreyTag(e)+'</span></div>'
   ).join('') : '<div class="empty">'+t('noHealthLogEmpty')+'</div>';
 }
 
