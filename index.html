@@ -2204,7 +2204,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.81';
+const APP_VERSION = '2026.09.01.3.82';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4417,6 +4417,7 @@ const CHANGELOG = [
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '✅ Proven : nouvelle case « Reproducteur prouvé » dans la fiche, avec une ligne par saison (année · nombre d\'œufs) au lieu de l\'écrire à la main. Les pontes notées dans LOCUS s\'ajoutent toutes seules à la mère et au père. Badge « Proven » sur les cartes. Une étiquette comme « Proven 2024 9 oeufs » est convertie automatiquement.',
         'Correctif : sur iPhone, les paramètres d\'élevage de la fiche (côté chaud, côté froid, humidité, notes) pouvaient ne pas s\'enregistrer si tu fermais la fiche avec le clavier encore ouvert. Ils s\'enregistrent maintenant pendant que tu écris, avec un « ✓ Enregistré » pour confirmer.',
         'Correctif : pendant une pesée en lot dans le Mode Tournée, si l\'écran se barrait ou si tu sortais de l\'app en plein milieu, la pesée des reptiles suivants pouvait ne pas s\'enregistrer (même si le message « pesé » apparaissait). Chaque pesée est maintenant enregistrée sur la bonne fiche.',
         '🤚 Délai de manipulation après un repas : la fiche et le Mode Tournée affichent « encore X h » pendant la digestion (48 h par défaut, réglable à 24, 72 h ou désactivé dans Configuration). L\'heure exacte du repas est maintenant enregistrée.',
@@ -4463,6 +4464,7 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '✅ Proven: new « Proven breeder » checkbox on the record, with one line per season (year · egg count) instead of typing it by hand. Clutches recorded in LOCUS are added automatically to the dam and sire. « Proven » badge on the cards. A tag like « Proven 2024 9 eggs » is converted automatically.',
         'Fix: on iPhone, the record\'s care parameters (warm side, cool side, humidity, notes) could fail to save if you closed the record with the keyboard still open. They now save as you type, with a « ✓ Saved » confirmation.',
         'Fix: during a batch weigh-in in Tour Mode, if the screen locked or you left the app midway, the next reptiles\' weights could fail to save (even though the « weighed » message appeared). Each weigh-in is now saved on the right record.',
         '🤚 Handling wait after a meal: the record and Tour Mode show « X h left » while digesting (48 h by default, set it to 24, 72 h or off in Settings). The exact time of the meal is now saved.',
@@ -8533,7 +8535,7 @@ function renderSavedList(){
     const batchCheckbox = batchSelectMode ? '<input type="checkbox" class="batch-select-cb" data-batch-id="'+s.id+'" '+(batchSelectedIds.has(s.id)?'checked':'')+' style="width:20px;height:20px;margin-right:8px;accent-color:var(--gold);flex-shrink:0;"/>' : '';
     if(batchSelectMode) card.classList.toggle('batch-selected', batchSelectedIds.has(s.id));
     card.innerHTML =
-      '<div class="sc-head"><span class="sc-name" style="display:flex;align-items:center;">'+batchCheckbox+thumb+escapeHtml(s.name)+'</span><span>'+sexBadge+statusBadge+unverifiedBadge+quarantineBadge+speciesBadge+tagsBadges+'</span></div>'+
+      '<div class="sc-head"><span class="sc-name" style="display:flex;align-items:center;">'+batchCheckbox+thumb+escapeHtml(s.name)+'</span><span>'+sexBadge+provenBadgeHtml(s, isEn)+statusBadge+unverifiedBadge+quarantineBadge+speciesBadge+tagsBadges+'</span></div>'+
       '<div class="sc-genes">'+summarizeGenes(s.genes)+'</div>'+
       '<div class="sc-genes" style="color:var(--sage);">📍 '+placeLabel+'</div>'+
       '<div class="sc-genes">'+weightLine+'</div>'+
@@ -10695,6 +10697,7 @@ function openLogbook(id){
           '<div class="modal-row"><span></span><span>'+toggleBtn+'</span></div>';
       })()+
     '</div>'+
+    '<div class="modal-section"><h3>🥚 Proven</h3>'+provenSectionHtml(s, id)+'</div>'+
     '<div class="modal-section"><h3>'+t('customTagsTitle')+'</h3>'+
       '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">'+
         (s.customTags.length ? s.customTags.map(tag=>
@@ -12810,7 +12813,8 @@ function snakeToRow(s){
     genetics_history: s.geneticsHistory||[],
     clutch_ref: s.clutchRef||null,
     loans: s.loans||[],
-    reservation: s.reservation||null
+    reservation: s.reservation||null,
+    proven: !!s.proven, proven_seasons: Array.isArray(s.provenSeasons) ? s.provenSeasons : [] // v3.82
   };
 }
 function rowToSnake(r){
@@ -12825,7 +12829,7 @@ function rowToSnake(r){
     paidViaStripe: !!r.paid_via_stripe, careParams: r.care_params || {}, publicToken: r.public_token || null, feedCost: r.feed_cost!=null ? r.feed_cost : null, transferToken: r.transfer_token || null,
     shippingCarrier: r.shipping_carrier || null, shippingTracking: r.shipping_tracking || null, shippingDate: r.shipping_date || null, shippingDelivered: !!r.shipping_delivered,
     purchasePrice: r.purchase_price!=null ? r.purchase_price : null,
-    geneticsHistory: r.genetics_history||[], clutchRef: r.clutch_ref||null, loans: r.loans||[], reservation: r.reservation||null, updatedAt: r.updated_at ? Date.parse(r.updated_at) : 0
+    geneticsHistory: r.genetics_history||[], clutchRef: r.clutch_ref||null, loans: r.loans||[], reservation: r.reservation||null, proven: !!r.proven, provenSeasons: Array.isArray(r.proven_seasons) ? r.proven_seasons : [], updatedAt: r.updated_at ? Date.parse(r.updated_at) : 0
   };
 }
 
@@ -14012,6 +14016,9 @@ function ensureSnakeMeta(s){
   if(s.shippingTracking===undefined) s.shippingTracking = null;
   if(s.shippingDate===undefined) s.shippingDate = null;
   if(s.shippingDelivered===undefined) s.shippingDelivered = false;
+  if(s.proven===undefined) s.proven = false; // v3.82 — reproducteur prouvé (case à cocher)
+  if(!Array.isArray(s.provenSeasons)) s.provenSeasons = []; // v3.82 — saisons entrées à la main [{id, year, eggs}]
+  convertProvenTag(s);
 }
 // Calcule l'état de quarantaine d'un reptile : jours écoulés, jours restants, et si la période
 // recommandée est atteinte. Ne force jamais la sortie de quarantaine — l'éleveur décide.
@@ -14069,6 +14076,143 @@ function removeCustomTag(id, encodedTag){
   ensureSnakeMeta(s);
   const tag = decodeURIComponent(encodedTag);
   s.customTags = s.customTags.filter(x=>x!==tag);
+  storage.save(savedSnakes);
+  openLogbook(id);
+  renderSavedList();
+}
+
+// ==================== Proven — reproducteur prouvé (v3.82) ====================
+// Case à cocher + saisons (année · nombre d'œufs). Les pontes notées dans LOCUS comptent toutes
+// seules (calculées en direct depuis `clutches`, jamais copiées) ; les saisons entrées à la main
+// servent aux pontes d'avant LOCUS. Gratuit (décision du 19 oct).
+// Conversion unique : une étiquette libre « Proven 2024 9 oeufs » devient une vraie saison.
+var _provenSaveTimer = null;
+function convertProvenTag(s){
+  if(!s || !Array.isArray(s.customTags) || !s.customTags.length) return;
+  let changed = false;
+  const keep = [];
+  s.customTags.forEach(tag=>{
+    const m = /^\s*(proven|prouv\S*)(\s.*)?$/i.exec(String(tag||''));
+    if(!m){ keep.push(tag); return; }
+    const rest = m[2]||'';
+    const yM = rest.match(/\b(?:19|20)\d{2}\b/);
+    const year = yM ? parseInt(yM[0],10) : null;
+    const eM = (yM ? rest.replace(yM[0],' ') : rest).match(/\b(\d{1,3})\b/);
+    const eggs = eM ? parseInt(eM[1],10) : null;
+    s.proven = true;
+    if((year || eggs!=null) && !s.provenSeasons.some(x=>x.year===year && x.eggs===eggs)){
+      s.provenSeasons.push({ id:'pv_'+Date.now()+'_'+Math.random().toString(36).slice(2,6), year, eggs });
+    }
+    changed = true;
+  });
+  if(!changed) return;
+  s.customTags = keep;
+  clearTimeout(_provenSaveTimer);
+  _provenSaveTimer = setTimeout(function(){ try{ storage.save(savedSnakes); renderSavedList(); }catch(e){} }, 50);
+}
+// try/catch : renderSavedList() tourne au démarrage AVANT la déclaration de ces const/let plus bas
+// dans le script (piège « temporal dead zone » — typeof ne protège pas).
+function speciesIsLiveBearer(s){
+  try{ const r = REPRODUCTION_INFO_BY_SPECIES[(s&&s.species)||'ball_python']; return !!(r && r.mode==='ovovivipare'); }catch(e){ return false; }
+}
+function provenClutchList(){
+  try{ return Array.isArray(clutches) ? clutches : []; }catch(e){ return []; }
+}
+function provenSeasonsFor(s){
+  const out = [];
+  provenClutchList().forEach(c=>{
+    if(!c || !c.layDate || (c.damId!==s.id && c.sireId!==s.id)) return;
+    const live = c.mode==='ovovivipare';
+    const n = live ? c.liveCount : c.eggCount;
+    out.push({ year: parseInt(String(c.layDate).slice(0,4),10)||null, eggs: (n!=null && !isNaN(n)) ? Number(n) : null, live, auto:true, ref:c.ref||'' });
+  });
+  (s.provenSeasons||[]).forEach(p=>{
+    if(out.some(o=>o.auto && o.year===p.year && o.eggs===p.eggs)) return; // déjà couverte par une ponte notée
+    out.push({ year:p.year, eggs:p.eggs, live:speciesIsLiveBearer(s), auto:false, id:p.id });
+  });
+  return out.sort((a,b)=>(b.year||0)-(a.year||0));
+}
+function isProvenSnake(s){
+  return !!(s && (s.proven || provenSeasonsFor(s).some(x=>x.auto)));
+}
+function provenSeasonLabel(p, isEn){
+  const unit = p.live ? (isEn?'babies':'bébés') : (isEn?'eggs':'œufs');
+  return (p.year || '?') + (p.eggs!=null ? ' · '+p.eggs+' '+unit : '');
+}
+function provenBadgeHtml(s, isEn){
+  if(!isProvenSnake(s)) return '';
+  const seasons = provenSeasonsFor(s);
+  const txt = '✅ Proven' + (seasons.length ? ' '+provenSeasonLabel(seasons[0], isEn) : '') + (seasons.length>1 ? ' (+'+(seasons.length-1)+')' : '');
+  const title = seasons.map(p=>provenSeasonLabel(p, isEn)).join(' / ');
+  return '<span class="sc-status" style="background:rgba(124,131,99,.18);border:1px solid rgba(124,131,99,.45);color:var(--sage);"'+(title?' title="'+escapeHtml(title)+'"':'')+'>'+escapeHtml(txt)+'</span>';
+}
+function provenSectionHtml(s, id){
+  const isEn = currentLang==='en';
+  const seasons = provenSeasonsFor(s);
+  const autoProven = seasons.some(x=>x.auto);
+  const checked = !!s.proven || autoProven;
+  const live = speciesIsLiveBearer(s);
+  let html = '<label style="display:flex;gap:10px;align-items:center;font-size:15px;cursor:pointer;">'+
+    '<input type="checkbox" style="width:22px;height:22px;accent-color:var(--sage);" '+(checked?'checked ':'')+(autoProven?'disabled ':'')+'onchange="toggleProven(\''+id+'\', this.checked)"/>'+
+    (isEn?'Proven breeder':'Reproducteur prouvé (proven)')+'</label>';
+  if(autoProven) html += '<div style="font-size:12px;color:var(--ink-dim);margin-top:6px;">'+(isEn?'Checked automatically: a clutch from this animal is recorded in LOCUS.':'Coché automatiquement : une ponte de cet animal est notée dans LOCUS.')+'</div>';
+  if(!checked) return html;
+  html += '<div style="display:flex;flex-direction:column;gap:6px;margin:12px 0;">';
+  if(!seasons.length) html += '<span style="font-size:12px;color:var(--ink-dim);">'+(isEn?'No season added yet.':'Aucune saison ajoutée.')+'</span>';
+  seasons.forEach(p=>{
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;font-size:15px;">'+
+      '<span>'+escapeHtml(provenSeasonLabel(p, isEn))+'</span>'+
+      (p.auto
+        ? '<span style="font-size:11.5px;color:var(--ink-dim);">'+(isEn?'auto — clutch ':'auto — ponte ')+escapeHtml(p.ref)+'</span>'
+        : '<button onclick="removeProvenSeason(\''+id+'\', \''+escapeHtml(p.id)+'\')" style="background:none;border:none;color:var(--ink-dim);cursor:pointer;font-size:16px;padding:0 4px;" aria-label="'+(isEn?'Remove':'Retirer')+'">✕</button>')+
+      '</div>';
+  });
+  html += '</div>';
+  const inputStyle = 'font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);';
+  html += '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">'+
+    '<label style="flex:1;min-width:90px;"><span style="font-size:11.5px;color:var(--ink-dim);display:block;margin-bottom:4px;">'+(isEn?'Year':'Année')+'</span>'+
+      '<input type="number" id="proven-year-'+id+'" min="1980" max="'+(new Date().getFullYear()+1)+'" value="'+new Date().getFullYear()+'" style="width:100%;'+inputStyle+'"/></label>'+
+    '<label style="flex:1;min-width:90px;"><span style="font-size:11.5px;color:var(--ink-dim);display:block;margin-bottom:4px;">'+(live?(isEn?'Babies':'Bébés'):(isEn?'Eggs':'Œufs'))+'</span>'+
+      '<input type="number" id="proven-eggs-'+id+'" min="0" max="200" step="1" style="width:100%;'+inputStyle+'"/></label>'+
+    '<button class="sc-btn accent" style="font-size:14px;padding:9px 12px;" onclick="addProvenSeason(\''+id+'\')">'+(isEn?'+ Add season':'+ Ajouter la saison')+'</button>'+
+  '</div>'+
+  '<div style="font-size:11.5px;color:var(--ink-dim);margin-top:6px;">'+(isEn?'For clutches before LOCUS. Clutches recorded in LOCUS are added automatically.':'Pour les pontes d\'avant LOCUS. Les pontes notées dans LOCUS s\'ajoutent toutes seules.')+'</div>';
+  return html;
+}
+function toggleProven(id, checked){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  s.proven = !!checked;
+  storage.save(savedSnakes);
+  openLogbook(id);
+  renderSavedList();
+}
+function addProvenSeason(id){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const yEl = document.getElementById('proven-year-'+id), eEl = document.getElementById('proven-eggs-'+id);
+  const year = yEl ? parseInt(yEl.value, 10) : NaN;
+  const maxYear = new Date().getFullYear()+1;
+  if(isNaN(year) || year<1980 || year>maxYear){ showToast(isEn?'Enter a valid year.':'Entre une année valide.', 'error'); return; }
+  const rawEggs = eEl ? String(eEl.value).trim() : '';
+  const eggs = rawEggs==='' ? null : parseInt(rawEggs, 10);
+  if(eggs!==null && (isNaN(eggs) || eggs<0 || eggs>200)){ showToast(isEn?'Enter a valid count (or leave it blank).':'Entre un nombre valide (ou laisse vide).', 'error'); return; }
+  if(s.provenSeasons.some(x=>x.year===year && x.eggs===eggs)){ showToast(isEn?'This season is already there.':'Cette saison est déjà là.', 'error'); return; }
+  s.provenSeasons.push({ id:'pv_'+Date.now(), year, eggs });
+  s.proven = true;
+  storage.save(savedSnakes);
+  openLogbook(id);
+  renderSavedList();
+  showToast('✅ '+escapeHtml(s.name)+' — Proven '+provenSeasonLabel({year, eggs, live:speciesIsLiveBearer(s)}, isEn), 'success');
+}
+function removeProvenSeason(id, seasonId){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  s.provenSeasons = s.provenSeasons.filter(x=>x.id!==seasonId);
   storage.save(savedSnakes);
   openLogbook(id);
   renderSavedList();
