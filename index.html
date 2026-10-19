@@ -2210,7 +2210,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.87';
+const APP_VERSION = '2026.09.01.3.88';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4969,6 +4969,9 @@ const CHANGELOG = [
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '📊 Statistiques réorganisées en sous-onglets : Chiffres clés, Trophées, Graphiques, Par animal. Le coût de nourriture est maintenant détaillé par sorte de proie (rat, souris, gerbille, grillon, verdure…), au total et sur 30 jours.',
+        '🏆 Les jalons deviennent des Trophées, par étapes : chaque trophée montre ton niveau et la prochaine étape; touche-le pour voir toutes ses étapes. Repas notés : 1, 50, 75, 100, 150, 200, 250, 300, 400, 500 (puis 750 et 1000). Nouveau : 🔥 repas réussis d\'affilée sans refus (5 à 50), avec le record de ta collection et la série de chaque animal (en cours / record) dans Par animal. Suivi du poids sur 3 mois, 6 mois et 1 an; ancienneté 1, 2, 3 et 5 ans.',
+        '📈 Graphiques : ⭐ pour mettre un graphique en haut, 🙈 pour masquer ceux que tu ne veux pas voir (réaffichables en bas). Gardé sur cet appareil.',
         '🎉 Résumé de saison : dans Statistiques, « Mon résumé de saison » crée une image format Story (Instagram, Facebook) avec les chiffres de l\'année choisie — repas, mues, pesées, locks, pontes, œufs, éclosions, combos produits chez toi, nouveaux Proven, jalons, record de la saison. Coche ce que tu veux montrer (les ventes sont décochées par défaut); les cases à zéro sont cachées. En novembre et décembre, une petite carte sur le tableau de bord te le rappelle une fois — un toucher pour la fermer.',
         '📊 Statistiques (menu ☰) : tout ce qui se mesure dans ta collection au même endroit — chiffres clés (animaux, repas, refus, pesées, mues, coût de nourriture, pontes, ventes), graphiques (repas et refus par mois, coût de nourriture par mois, courbe de poids de chaque animal, mues par mois, taille de la collection, reproduction par année, ventes par mois) et un tableau par animal (intervalle moyen entre les repas et les mues, croissance en g/mois, coût). Touche une barre ou un point pour lire sa valeur; « Voir les données » affiche le tableau. Gratuit.',
         '🏆 Jalons : premier repas, 100e et 500e repas, première pesée, croissance suivie 6 mois, première ponte, première éclosion, premier visuel récessif produit chez toi, premier Proven, 3 générations nées chez toi, 1 an de suivi — calculés à partir de ce que tu as déjà noté, avec tes records (ponte la plus riche en gènes, meilleur taux d\'éclosion). Un petit message quand tu en atteins un nouveau, jamais de série à garder ni de rappel.',
@@ -5024,6 +5027,9 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '📊 Statistics reorganized into sub-tabs: Key numbers, Trophies, Charts, Per animal. Feeding cost is now broken down by prey kind (rat, mouse, gerbil, cricket, greens…), in total and over 30 days.',
+        '🏆 Milestones become Trophies, in steps: each trophy shows your level and the next step; tap it to see all its steps. Meals logged: 1, 50, 75, 100, 150, 200, 250, 300, 400, 500 (then 750 and 1000). New: 🔥 meals in a row without refusal (5 to 50), with your collection\'s record and each animal\'s run (current / record) in Per animal. Weight tracked for 3 months, 6 months and 1 year; 1, 2, 3 and 5 years of tracking.',
+        '📈 Charts: ⭐ to put a chart at the top, 🙈 to hide the ones you don\'t want to see (they can be shown again at the bottom). Kept on this device.',
         '🎉 Season recap: in Statistics, « My season recap » creates a Story-format image (Instagram, Facebook) with the chosen year\'s numbers — meals, sheds, weigh-ins, locks, clutches, eggs, hatches, combos produced at home, new Proven, milestones, record of the season. Check what you want to show (sales are unchecked by default); boxes at zero are hidden. In November and December, a small card on the dashboard reminds you once — one tap to close it.',
         '📊 Statistics (☰ menu): everything measurable in your collection in one place — key numbers (animals, meals, refusals, weigh-ins, sheds, feeding cost, clutches, sales), charts (meals and refusals per month, feeding cost per month, each animal\'s weight curve, sheds per month, collection size, reproduction per year, sales per month) and a per-animal table (average interval between meals and sheds, growth in g/month, cost). Tap a bar or a point to read its value; « See the data » shows the table. Free.',
         '🏆 Milestones: first meal, 100th and 500th meal, first weigh-in, growth tracked for 6 months, first clutch, first hatch, first visual recessive produced at home, first Proven, 3 generations born at home, 1 year of tracking — calculated from what you\'ve already recorded, with your records (gene-richest clutch, best hatch rate). A short message when you reach a new one, never a streak to keep or a reminder.',
@@ -22032,8 +22038,15 @@ function statsChartFrame(o, svgHtml, rows, header){
   const isEn = currentLang==='en';
   const legend = (o.series && o.series.length>1)
     ? '<div style="display:flex;gap:14px;flex-wrap:wrap;margin:0 0 8px;font-size:14px;color:var(--ink);">'+o.series.map(s=>'<span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:12px;height:12px;border-radius:3px;background:'+s.color+';display:inline-block;"></span>'+escapeHtml(s.name)+'</span>').join('')+'</div>' : '';
-  return '<div class="stats-chart" style="background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px;">'+
-    '<div style="font-size:16px;font-weight:600;color:var(--ink);margin-bottom:4px;">'+escapeHtml(o.title||'')+'</div>'+
+  const prefs = o.id ? loadStatsChartPrefs() : null;
+  const isFav = !!(prefs && prefs.fav.includes(o.id));
+  const tools = o.id ? '<div style="display:flex;gap:6px;flex-shrink:0;">'+
+      '<button class="sc-btn'+(isFav?' accent':'')+'" style="font-size:16px;padding:6px 10px;" onclick="toggleStatsFav(\''+o.id+'\')" aria-pressed="'+isFav+'" aria-label="'+(isEn?'Favorite':'Favori')+'" title="'+(isEn?'Put at the top':'Mettre en haut')+'">'+(isFav?'⭐':'☆')+'</button>'+
+      '<button class="sc-btn" style="font-size:16px;padding:6px 10px;" onclick="toggleStatsHidden(\''+o.id+'\')" aria-label="'+(isEn?'Hide':'Masquer')+'" title="'+(isEn?'Hide':'Masquer')+'">🙈</button>'+
+    '</div>' : '';
+  return '<div class="stats-chart" style="background:var(--bg-panel);border:1px solid '+(isFav?'var(--gold)':'var(--line)')+';border-radius:14px;padding:14px;margin-bottom:14px;">'+
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px;"><div style="font-size:16px;font-weight:600;color:var(--ink);">'+escapeHtml(o.title||'')+'</div>'+tools+'</div>'+
+    (o.pre || '')+
     (o.subtitle ? '<div style="font-size:13px;color:var(--ink-dim);margin-bottom:8px;">'+escapeHtml(o.subtitle)+'</div>' : '')+
     legend+
     '<div class="stats-readout" style="min-height:20px;font-size:14px;color:var(--ink);margin-bottom:4px;">'+(isEn?'Tap a bar or a point to read its value.':'Touche une barre ou un point pour lire sa valeur.')+'</div>'+
@@ -22110,10 +22123,10 @@ function statsPerAnimal(){
   }).sort((a,b)=>a.name.localeCompare(b.name));
 }
 
-// ---- Jalons ----
-// Liste de départ du 19 oct (à retravailler avec Alex). Rien ne récompense le volume de reproduction :
-// seulement le suivi et la qualité des soins. « Records » = meilleurs résultats de TA collection, jamais
-// une affirmation qu'on ne peut pas vérifier (pas de « world first »).
+// ---- Trophées (v3.88 — anciennement « Jalons ») ----
+// Groupés par type, avec des étapes. L'écran montre seulement le niveau atteint et la prochaine étape;
+// un toucher agrandit le groupe pour voir toutes les étapes. Rien ne récompense le volume de reproduction :
+// seulement le suivi et la qualité des soins. Les « records » sont les meilleurs résultats de TA collection.
 function isLocusBorn(s){
   if(!s) return false;
   if(s.clutchRef) return true;
@@ -22128,55 +22141,104 @@ function hasVisualRecessive(s){
     return n.status==='homo' && !n.possible;
   });
 }
-function computeMilestones(){
+// Série de repas réussis : repas consécutifs sans refus entre les deux (par animal). Retourne le record
+// (plus longue série, avec la date où elle a atteint chaque palier) et la série en cours.
+function mealStreakInfo(s){
+  const ev = ((s.health&&s.health.events)||[]).filter(e=>e && e.date && (e.type==='fed' || e.type==='refused'))
+    .slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)) || (a.type==='refused'?1:0)-(b.type==='refused'?1:0));
+  let cur = 0, best = 0, bestEnd = null;
+  const reachedAt = {}; // longueur -> première date où une série a atteint cette longueur
+  ev.forEach(e=>{
+    if(e.type==='fed'){ cur++; if(!reachedAt[cur]) reachedAt[cur] = e.date; if(cur>best){ best = cur; bestEnd = e.date; } }
+    else cur = 0;
+  });
+  return { best, bestEnd, current: cur, reachedAt };
+}
+function collectionStreakRecord(){
+  let rec = null;
+  statsAllSnakes().forEach(s=>{ const m = mealStreakInfo(s); if(m.best>0 && (!rec || m.best>rec.best)) rec = { best:m.best, name:s.name, s, info:m }; });
+  return rec;
+}
+function trophyStep(id, title, done, date, detail){ return { id, title, done:!!done, date: date||null, detail: detail||null }; }
+function computeTrophyGroups(){
   const isEn = currentLang==='en';
-  const out = [];
+  const groups = [];
+  const all = statsAllSnakes();
+  // 🍽 Repas notés (toute la collection)
   const fed = statsEvents('fed', true);
-  [1,100,500,1000].forEach(n=>{
-    out.push({ id:'meal_'+n, icon:'🍽', title: n===1 ? (isEn?'First meal logged':'Premier repas noté') : (isEn?n+'th meal logged':n+'e repas noté'),
-      done: fed.length>=n, date: fed.length>=n ? fed[n-1].e.date : null, progress: Math.min(fed.length, n), goal: n });
-  });
-  const weighs = statsEvents('weigh', true);
-  const firstWeigh = weighs.length ? weighs[0].e.date : (function(){ const all = statsAllSnakes().flatMap(s=>((s.health&&s.health.weights)||[]).map(w=>w.date)).filter(Boolean).sort(); return all[0]||null; })();
-  out.push({ id:'weigh_1', icon:'⚖', title: isEn?'First weigh-in':'Première pesée', done: !!firstWeigh, date: firstWeigh });
-  // Croissance suivie 6 mois sans trou de plus de 45 jours
-  let growthDate = null;
-  statsAllSnakes().forEach(s=>{
-    const ds = ((s.health&&s.health.weights)||[]).map(w=>w.date).filter(Boolean).sort();
-    let start = ds[0];
-    for(let i=1;i<ds.length;i++){
-      if(statsDaysBetween(ds[i-1], ds[i])>45) start = ds[i];
-      if(start && statsDaysBetween(start, ds[i])>=180){ if(!growthDate || ds[i]<growthDate) growthDate = ds[i]; break; }
-    }
-  });
-  out.push({ id:'growth_6m', icon:'📈', title: isEn?'Growth tracked for 6 months (no gap over 45 days)':'Croissance suivie 6 mois (sans trou de plus de 45 jours)', done: !!growthDate, date: growthDate });
+  const mealSteps = [1,50,75,100,150,200,250,300,400,500,750,1000];
+  groups.push({ id:'meals', icon:'🍽', title: isEn?'Meals logged':'Repas notés', value: fed.length, unit: isEn?'meals':'repas',
+    steps: mealSteps.map(n=>Object.assign(trophyStep('meal_'+n, n===1?(isEn?'First meal':'Premier repas'):(n+(isEn?' meals':' repas')), fed.length>=n, fed.length>=n ? fed[n-1].e.date : null), { goal:n })) });
+  // 🔥 Série de repas réussis (meilleur animal de la collection)
+  const streakSteps = [5,10,15,20,30,40,50];
+  const infos = all.map(s=>({ s, m: mealStreakInfo(s) }));
+  const bestStreak = infos.reduce((a,x)=>Math.max(a, x.m.best), 0);
+  groups.push({ id:'streak', icon:'🔥', title: isEn?'Meals in a row without refusal':'Repas réussis d\'affilée (sans refus)', value: bestStreak, unit: isEn?'in a row (best animal)':'d\'affilée (meilleur animal)',
+    steps: streakSteps.map(n=>{
+      const hit = infos.filter(x=>x.m.reachedAt[n]).sort((a,b)=>String(a.m.reachedAt[n]).localeCompare(String(b.m.reachedAt[n])))[0];
+      return Object.assign(trophyStep('streak_'+n, n+(isEn?' in a row':' d\'affilée'), !!hit, hit ? hit.m.reachedAt[n] : null, hit ? hit.s.name : null), { goal:n });
+    }) });
+  // ⚖ Suivi du poids
+  const weighDates = all.flatMap(s=>((s.health&&s.health.weights)||[]).map(w=>w.date)).filter(Boolean).sort();
+  const trackedFor = days=>{
+    let found = null;
+    all.forEach(s=>{
+      const ds = ((s.health&&s.health.weights)||[]).map(w=>w.date).filter(Boolean).sort();
+      let start = ds[0];
+      for(let i=1;i<ds.length;i++){
+        if(statsDaysBetween(ds[i-1], ds[i])>45) start = ds[i];
+        if(start && statsDaysBetween(start, ds[i])>=days){ if(!found || ds[i]<found.date) found = { date:ds[i], name:s.name }; break; }
+      }
+    });
+    return found;
+  };
+  const g3 = trackedFor(90), g6 = trackedFor(180), g12 = trackedFor(365);
+  groups.push({ id:'weight', icon:'⚖', title: isEn?'Weight tracking':'Suivi du poids', unit:'',
+    steps: [
+      trophyStep('weigh_1', isEn?'First weigh-in':'Première pesée', weighDates.length>0, weighDates[0]),
+      trophyStep('growth_3m', isEn?'Tracked 3 months (no gap over 45 days)':'Suivi 3 mois (sans trou de plus de 45 jours)', !!g3, g3&&g3.date, g3&&g3.name),
+      trophyStep('growth_6m', isEn?'Tracked 6 months (no gap over 45 days)':'Suivi 6 mois (sans trou de plus de 45 jours)', !!g6, g6&&g6.date, g6&&g6.name),
+      trophyStep('growth_12m', isEn?'Tracked 1 year (no gap over 45 days)':'Suivi 1 an (sans trou de plus de 45 jours)', !!g12, g12&&g12.date, g12&&g12.name)
+    ] });
+  // 🥚 Reproduction
   const cl = (clutches||[]).filter(c=>c && c.layDate).slice().sort((a,b)=>a.layDate.localeCompare(b.layDate));
-  out.push({ id:'clutch_1', icon:'🥚', title: isEn?'First clutch recorded':'Première ponte notée', done: cl.length>0, date: cl.length ? cl[0].layDate : null });
   const hatchedCl = cl.filter(c=>c.hatched);
-  out.push({ id:'hatch_1', icon:'🐣', title: isEn?'First hatch':'Première éclosion', done: hatchedCl.length>0, date: hatchedCl.length ? (hatchedCl[0].hatchedAt||hatchedCl[0].hatchDate) : null });
-  const born = statsAllSnakes().filter(isLocusBorn);
+  const proven = all.filter(isProvenSnake);
+  groups.push({ id:'repro', icon:'🥚', title: isEn?'Reproduction':'Reproduction', unit:'',
+    steps: [
+      trophyStep('clutch_1', isEn?'First clutch recorded':'Première ponte notée', cl.length>0, cl.length?cl[0].layDate:null),
+      trophyStep('hatch_1', isEn?'First hatch':'Première éclosion', hatchedCl.length>0, hatchedCl.length?(hatchedCl[0].hatchedAt||hatchedCl[0].hatchDate):null),
+      trophyStep('proven_1', isEn?'First Proven animal':'Premier animal Proven', proven.length>0, null, proven.length?proven[0].name:null)
+    ] });
+  // 🧬 Génétique et lignée
+  const born = all.filter(isLocusBorn);
   const visRec = born.filter(hasVisualRecessive).sort((a,b)=>String(a.birthDate||'').localeCompare(String(b.birthDate||'')));
-  out.push({ id:'visual_recessive', icon:'🧬', title: isEn?'First visual recessive produced at home':'Premier visuel récessif produit chez toi', done: visRec.length>0, date: visRec.length ? (visRec[0].birthDate||null) : null, detail: visRec.length ? visRec[0].name : null });
-  const proven = statsAllSnakes().filter(isProvenSnake);
-  out.push({ id:'proven_1', icon:'✅', title: isEn?'First Proven animal':'Premier animal Proven', done: proven.length>0, date: null, detail: proven.length ? proven[0].name : null });
-  // 3 générations nées chez toi : un animal né chez toi dont un parent est aussi né chez toi
-  const gen3 = born.filter(s=>{ const p = [s.sireId, s.damId].map(id=>savedSnakes.find(x=>x.id===id)); return p.some(isLocusBorn); }).sort((a,b)=>String(a.birthDate||'').localeCompare(String(b.birthDate||'')));
-  out.push({ id:'gen3', icon:'🌳', title: isEn?'3 generations born at home':'3 générations nées chez toi', done: gen3.length>0, date: gen3.length ? (gen3[0].birthDate||null) : null, detail: gen3.length ? gen3[0].name : null });
-  // 1 an de suivi dans LOCUS
-  const firstDates = statsAllSnakes().flatMap(s=>((s.health&&s.health.events)||[]).map(e=>e.date)).filter(Boolean).sort();
-  const created = statsAllSnakes().map(s=>s.createdAt).filter(Boolean).sort((a,b)=>a-b);
+  const gen3 = born.filter(s=>[s.sireId, s.damId].map(id=>savedSnakes.find(x=>x.id===id)).some(isLocusBorn)).sort((a,b)=>String(a.birthDate||'').localeCompare(String(b.birthDate||'')));
+  groups.push({ id:'genetics', icon:'🧬', title: isEn?'Genetics and lineage':'Génétique et lignée', unit:'',
+    steps: [
+      trophyStep('visual_recessive', isEn?'First visual recessive produced at home':'Premier visuel récessif produit chez toi', visRec.length>0, visRec.length?visRec[0].birthDate:null, visRec.length?visRec[0].name:null),
+      trophyStep('gen3', isEn?'3 generations born at home':'3 générations nées chez toi', gen3.length>0, gen3.length?gen3[0].birthDate:null, gen3.length?gen3[0].name:null)
+    ] });
+  // 📅 Ancienneté du suivi
+  const firstDates = all.flatMap(s=>((s.health&&s.health.events)||[]).map(e=>e.date)).filter(Boolean).sort();
+  const created = all.map(s=>s.createdAt).filter(Boolean).sort((a,b)=>a-b);
   let start = firstDates[0] || null;
   if(created.length){ const c = new Date(created[0]); const cs = c.getFullYear()+'-'+String(c.getMonth()+1).padStart(2,'0')+'-'+String(c.getDate()).padStart(2,'0'); if(!start || cs<start) start = cs; }
   const days = start ? statsDaysBetween(start, localTodayStr()) : 0;
-  let yearDate = null;
-  if(start && days>=365){ const d = new Date(start+'T00:00:00'); d.setFullYear(d.getFullYear()+1); yearDate = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-  out.push({ id:'year_1', icon:'📅', title: isEn?'1 year of tracking in LOCUS':'1 an de suivi dans LOCUS', done: days>=365, date: yearDate, progress: Math.min(days,365), goal: 365 });
-  return out;
+  const anniv = n=>{ if(!start) return null; const d = new Date(start+'T00:00:00'); d.setFullYear(d.getFullYear()+n); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+  groups.push({ id:'years', icon:'📅', title: isEn?'Tracking in LOCUS':'Suivi dans LOCUS', value: Math.floor(days/365), unit: isEn?'year(s)':'an(s)',
+    steps: [1,2,3,5].map(n=>Object.assign(trophyStep('year_'+n, n+(isEn?(n>1?' years':' year'):(n>1?' ans':' an'))+(isEn?' of tracking':' de suivi'), days>=365*n, days>=365*n ? anniv(n) : null), { goal:365*n, progressValue: days })) });
+  return groups;
+}
+// Liste à plat (annonce des nouveaux trophées, résumé de saison)
+function computeMilestones(){
+  return computeTrophyGroups().flatMap(g=>g.steps);
 }
 function computeRecords(){
   const isEn = currentLang==='en';
   const out = [];
-  // Ponte la plus riche en gènes de ta collection (gènes distincts réunis chez les 2 parents)
+  const st = collectionStreakRecord();
+  if(st) out.push({ icon:'🔥', title: isEn?'Longest run of meals without refusal':'Plus longue série de repas sans refus', value: st.best+(isEn?' in a row':' d\'affilée'), detail: st.name+(st.info.bestEnd?' — '+st.info.bestEnd:'') });
   let best = null;
   (clutches||[]).forEach(c=>{
     const sire = savedSnakes.find(x=>x.id===c.sireId), dam = savedSnakes.find(x=>x.id===c.damId);
@@ -22186,7 +22248,6 @@ function computeRecords(){
   });
   if(best && best.n>0) out.push({ icon:'🧬', title: isEn?'Gene-richest clutch in your collection':'Ponte la plus riche en gènes de ta collection',
     value: best.n+' '+(isEn?'genes':'gènes'), detail: (best.sire?best.sire.name:'?')+' × '+(best.dam?best.dam.name:'?')+(best.c.layDate?' ('+best.c.layDate+')':'') });
-  // Meilleur rendement : bébés vivants ÷ œufs, femelles avec au moins 2 pontes écloses
   const byDam = {};
   (clutches||[]).forEach(c=>{ if(!c.hatched || !c.damId || !c.eggCount) return; (byDam[c.damId] = byDam[c.damId] || []).push(c); });
   let bestDam = null;
@@ -22203,8 +22264,8 @@ function computeRecords(){
 }
 var MILESTONES_SEEN_KEY = 'locus_milestones_seen_v1';
 var _milestoneCheckTimer = null;
-// Annonce discrète d'un jalon nouvellement atteint (un seul message, jamais de rappel ni de série).
-// Au tout premier passage, les jalons déjà atteints sont marqués « vus » sans message (rétroactif).
+// Annonce discrète d'un trophée nouvellement débloqué (un seul message, jamais de rappel).
+// Au tout premier passage, les trophées déjà atteints sont marqués « vus » sans message (rétroactif).
 function scheduleMilestoneCheck(){
   clearTimeout(_milestoneCheckTimer);
   _milestoneCheckTimer = setTimeout(function(){
@@ -22217,14 +22278,37 @@ function scheduleMilestoneCheck(){
       const fresh = done.filter(m=>!seen.includes(m.id));
       if(fresh.length){
         try{ localStorage.setItem(MILESTONES_SEEN_KEY, JSON.stringify([...new Set(seen.concat(ids))])); }catch(e){}
-        showToast('🏆 '+(currentLang==='en'?'Milestone reached: ':'Jalon atteint : ')+fresh.map(m=>m.title).join(' · ')+(currentLang==='en'?' — see ☰ › Statistics.':' — voir ☰ › Statistiques.'), 'success');
+        showToast('🏆 '+(currentLang==='en'?'Trophy unlocked: ':'Trophée débloqué : ')+fresh.map(m=>m.title).join(' · ')+(currentLang==='en'?' — see ☰ › Statistics.':' — voir ☰ › Statistiques.'), 'success');
       }
     }catch(e){}
   }, 2500);
 }
 
 // ---- Écran ----
+// Sous-onglets (Chiffres clés / Trophées / Graphiques / Par animal), graphiques favoris (⭐ = en haut)
+// et masquables — préférences d'affichage gardées sur cet appareil.
 var statsWeightSnakeId = null;
+var statsTab = 'numbers';
+var statsOpenTrophies = {};
+var STATS_CHART_PREFS_KEY = 'locus_stats_charts_v1';
+function loadStatsChartPrefs(){
+  let p = null;
+  try{ p = JSON.parse(localStorage.getItem(STATS_CHART_PREFS_KEY)||'null'); }catch(e){ p = null; }
+  return { fav: (p && Array.isArray(p.fav)) ? p.fav : [], hidden: (p && Array.isArray(p.hidden)) ? p.hidden : [] };
+}
+function saveStatsChartPrefs(p){ try{ localStorage.setItem(STATS_CHART_PREFS_KEY, JSON.stringify(p)); }catch(e){} }
+function toggleStatsFav(id){
+  const p = loadStatsChartPrefs();
+  if(p.fav.includes(id)) p.fav = p.fav.filter(x=>x!==id); else p.fav.push(id);
+  saveStatsChartPrefs(p); renderStatsView();
+}
+function toggleStatsHidden(id){
+  const p = loadStatsChartPrefs();
+  if(p.hidden.includes(id)) p.hidden = p.hidden.filter(x=>x!==id); else { p.hidden.push(id); p.fav = p.fav.filter(x=>x!==id); }
+  saveStatsChartPrefs(p); renderStatsView();
+}
+function setStatsTab(tab){ statsTab = tab; renderStatsView(); const ov = document.getElementById('stats-overlay'); if(ov) ov.scrollTop = 0; }
+function toggleTrophyGroup(id){ statsOpenTrophies[id] = !statsOpenTrophies[id]; renderStatsView(); }
 function openStatsView(){
   const ov = document.getElementById('stats-overlay');
   if(!ov) return;
@@ -22234,128 +22318,201 @@ function openStatsView(){
   ov.scrollTop = 0;
 }
 function closeStatsView(){ const ov = document.getElementById('stats-overlay'); if(ov){ ov.style.display = 'none'; ov.innerHTML = ''; } }
+// Coût de nourriture par sorte de proie (rat, souris, gerbille, grillon, verdure…) — repas sans prix connu exclus.
+function statsCostByPrey(sinceStr){
+  const by = {};
+  statsAllSnakes().forEach(s=>((s.health&&s.health.events)||[]).forEach(e=>{
+    if(!e || e.type!=='fed' || (sinceStr && !(e.date>=sinceStr))) return;
+    const c = mealCost(s, e); if(c==null) return;
+    const k = mealPreyKey(s, e);
+    const sp = k ? k.split('|')[0] : 'other';
+    if(!by[sp]) by[sp] = { cost:0, n:0 };
+    by[sp].cost += c; by[sp].n += (e.preyCount||1);
+  }));
+  return Object.keys(by).map(sp=>({ sp, cost: Math.round(by[sp].cost*100)/100, n: by[sp].n })).sort((a,b)=>b.cost-a.cost);
+}
+function preyTypeLabel(sp, isEn){
+  const pt = (typeof PREY_TYPES!=='undefined') ? PREY_TYPES[sp] : null;
+  return pt ? (pt.icon+' '+(isEn?pt.labelEn:pt.labelFr)) : (isEn?'❓ Other / exception':'❓ Autre / exception');
+}
 function renderStatsView(){
   const ov = document.getElementById('stats-overlay');
   if(!ov) return;
   const isEn = currentLang==='en';
   const all = statsAllSnakes();
   const active = all.filter(isActiveSnake);
-  const months = statsLastMonths(12);
-  const mLabels = months.map(m=>({ label: statsMonthLabel(m, isEn) }));
-  const fm = statsFedByMonth(months);
   const fedAll = statsEvents('fed', true), refAll = statsEvents('refused', true), shedAll = statsEvents('shed', true);
-  const weighCount = all.reduce((a,s)=>a+(((s.health&&s.health.weights)||[]).length),0);
-  const totalCost = all.reduce((a,s)=>a+cumulativeFeedCost(s),0);
-  const cost30 = (function(){ const since = new Date(Date.now()-30*86400000); const ss = since.getFullYear()+'-'+String(since.getMonth()+1).padStart(2,'0')+'-'+String(since.getDate()).padStart(2,'0'); let t=0; all.forEach(s=>((s.health&&s.health.events)||[]).forEach(e=>{ if(e.type==='fed' && e.date>=ss){ const c = mealCost(s,e); if(c!=null) t+=c; } })); return t; })();
-  const mealsNoPrice = fedAll.filter(x=>mealCost(x.s, x.e)==null).length;
-  const repro = statsReproByYear();
-  const reproTot = repro.reduce((a,r)=>({ clutches:a.clutches+r.clutches, eggs:a.eggs+r.eggs, live:a.live+r.live }), { clutches:0, eggs:0, live:0 });
   const sold = all.filter(s=>s.status==='sold');
-  const salesTotal = sold.reduce((a,s)=>a+(Number(s.soldPrice)||0),0);
-  const refusalPct = (fedAll.length+refAll.length) ? Math.round(refAll.length/(fedAll.length+refAll.length)*100) : null;
-
+  const mealsNoPrice = fedAll.filter(x=>mealCost(x.s, x.e)==null).length;
   const tile = (icon, label, value, sub)=>'<div style="background:var(--bg-panel);border:1px solid var(--line);border-radius:12px;padding:12px;">'+
     '<div style="font-size:13px;color:var(--ink-dim);">'+icon+' '+escapeHtml(label)+'</div>'+
     '<div style="font-size:24px;font-weight:700;color:var(--ink);margin-top:2px;">'+escapeHtml(String(value))+'</div>'+
     (sub ? '<div style="font-size:12.5px;color:var(--ink-dim);margin-top:2px;">'+escapeHtml(sub)+'</div>' : '')+'</div>';
-  const h2 = txt=>'<h2 style="font-size:19px;color:var(--gold);margin:24px 0 10px;">'+txt+'</h2>';
+  const h2 = txt=>'<h2 style="font-size:19px;color:var(--gold);margin:20px 0 10px;">'+txt+'</h2>';
+  const tabs = [ ['numbers', '🔢 '+(isEn?'Numbers':'Chiffres')], ['trophies', '🏆 '+(isEn?'Trophies':'Trophées')], ['charts', '📈 '+(isEn?'Charts':'Graphiques')], ['animals', '🐍 '+(isEn?'Per animal':'Par animal')] ];
 
   let html = '<div style="max-width:880px;margin:0 auto;padding:16px 16px 70px;">'+
-    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:2;">'+
-      '<h1 style="font-size:24px;color:var(--ink);margin:0;">📊 '+(isEn?'Statistics':'Statistiques')+'</h1>'+
-      '<button class="sc-btn" style="font-size:16px;padding:10px 16px;" onclick="closeStatsView()">✕ '+(isEn?'Close':'Fermer')+'</button>'+
-    '</div>'+
-    '<button class="save-btn" style="width:100%;font-size:17px;padding:13px;margin:10px 0 4px;" onclick="openSeasonRecap()">🎉 '+(isEn?'My season recap (image to share)':'Mon résumé de saison (image à partager)')+'</button>'+
-    '<p style="font-size:13.5px;color:var(--ink-dim);margin:4px 0 0;line-height:1.5;">'+(isEn?'Everything measurable in your collection, calculated from what you\'ve recorded. Nothing to enter here.':'Tout ce qui se mesure dans ta collection, calculé à partir de ce que tu as noté. Rien à entrer ici.')+'</p>';
+    '<div style="position:sticky;top:0;background:var(--bg);padding:8px 0 10px;z-index:2;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">'+
+        '<h1 style="font-size:24px;color:var(--ink);margin:0;">📊 '+(isEn?'Statistics':'Statistiques')+'</h1>'+
+        '<button class="sc-btn" style="font-size:16px;padding:10px 16px;" onclick="closeStatsView()">✕ '+(isEn?'Close':'Fermer')+'</button>'+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;" role="tablist">'+
+        tabs.map(t=>'<button class="subtab-btn'+(statsTab===t[0]?' active':'')+'" role="tab" aria-selected="'+(statsTab===t[0])+'" style="font-size:14px;padding:9px 6px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" onclick="setStatsTab(\''+t[0]+'\')">'+t[1]+'</button>').join('')+
+      '</div>'+
+    '</div>';
 
-  // Chiffres clés
-  html += h2(isEn?'Key numbers':'Chiffres clés')+
-    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;">'+
-      tile('🐍', isEn?'Active animals':'Animaux actifs', active.length, (isEn?'Sold: ':'Vendus : ')+sold.length+' · '+(isEn?'Memorial: ':'Mémorial : ')+all.filter(s=>s.status==='deceased').length)+
-      tile('🍽', isEn?'Meals logged':'Repas notés', fedAll.length, (isEn?'Last 30 days: ':'30 derniers jours : ')+fedAll.filter(x=>statsDaysBetween(x.e.date, localTodayStr())<=30).length)+
-      tile('🚫', isEn?'Refusals':'Refus', refAll.length, refusalPct!=null ? (isEn?refusalPct+'% of feeding attempts':refusalPct+' % des tentatives') : '')+
-      tile('⚖', isEn?'Weigh-ins':'Pesées', weighCount, '')+
-      tile('✨', isEn?'Sheds':'Mues', shedAll.length, '')+
-      tile('💲', isEn?'Feeding cost':'Coût de nourriture', statsFmtMoney(totalCost), (isEn?'Last 30 days: ':'30 derniers jours : ')+statsFmtMoney(cost30))+
-      tile('🥚', isEn?'Clutches':'Pontes', reproTot.clutches, reproTot.clutches ? (reproTot.eggs+(isEn?' eggs · ':' œufs · ')+reproTot.live+(isEn?' hatched':' éclos')) : '')+
-      tile('💰', isEn?'Sales':'Ventes', statsFmtMoney(salesTotal), sold.length+(isEn?' animal(s) sold':' animal(aux) vendu(s)'))+
-    '</div>'+
-    (mealsNoPrice ? '<div style="font-size:13px;color:var(--gold);margin-top:8px;">⚠ '+(isEn
-      ? mealsNoPrice+' meal(s) have no known price and aren\'t counted in costs — add unit prices in Breeding › Food.'
-      : mealsNoPrice+' repas n\'ont pas de prix connu et ne sont pas comptés dans les coûts — ajoute les prix unitaires dans Élevage › Nourriture.')+'</div>' : '');
-
-  // Jalons + records
-  const ms = computeMilestones(), recs = computeRecords();
-  html += h2('🏆 '+(isEn?'Milestones':'Jalons')+' <span style="font-size:14px;color:var(--ink-dim);font-weight:400;">'+ms.filter(m=>m.done).length+'/'+ms.length+'</span>')+
-    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;">'+
-    ms.map(m=>'<div style="background:var(--bg-panel);border:1px solid '+(m.done?'var(--gold)':'var(--line)')+';border-radius:12px;padding:12px;'+(m.done?'':'opacity:.6;')+'">'+
-      '<div style="font-size:15px;color:var(--ink);font-weight:600;">'+(m.done?m.icon:'🔒')+' '+escapeHtml(m.title)+'</div>'+
-      '<div style="font-size:13px;color:var(--ink-dim);margin-top:4px;">'+(m.done
-        ? (isEn?'Reached':'Atteint')+(m.date?' — '+escapeHtml(m.date):'')+(m.detail?' — '+escapeHtml(m.detail):'')
-        : (m.goal ? escapeHtml(String(m.progress))+' / '+m.goal : (isEn?'Not yet':'Pas encore')))+'</div>'+
-      (!m.done && m.goal ? '<div style="height:6px;background:var(--bg-panel-2);border-radius:3px;margin-top:6px;overflow:hidden;"><div style="height:100%;width:'+Math.round(m.progress/m.goal*100)+'%;background:var(--gold);"></div></div>' : '')+
-    '</div>').join('')+'</div>'+
-    (recs.length ? '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:10px;">'+recs.map(r=>
-      '<div style="background:var(--bg-panel);border:1px solid var(--line);border-radius:12px;padding:12px;">'+
-        '<div style="font-size:13px;color:var(--ink-dim);">'+r.icon+' '+escapeHtml(r.title)+'</div>'+
-        '<div style="font-size:20px;font-weight:700;color:var(--ink);margin-top:2px;">'+escapeHtml(r.value)+'</div>'+
-        '<div style="font-size:13px;color:var(--ink-dim);">'+escapeHtml(r.detail)+'</div></div>').join('')+'</div>' : '');
-
-  // Graphiques
-  html += h2('📈 '+(isEn?'Charts':'Graphiques'));
-  html += statsBarChart({ title: isEn?'Meals and refusals per month':'Repas et refus par mois', subtitle: isEn?'Last 12 months, whole collection':'12 derniers mois, toute la collection',
-    categories: mLabels, series:[ { name: isEn?'Meals':'Repas', color: STATS_COLORS.blue, values: fm.fed }, { name: isEn?'Refusals':'Refus', color: STATS_COLORS.orange, values: fm.ref } ] });
-  html += statsBarChart({ title: isEn?'Feeding cost per month':'Coût de nourriture par mois', subtitle: mealsNoPrice ? (isEn?'Meals without a known price are not counted':'Les repas sans prix connu ne sont pas comptés') : (isEn?'Last 12 months':'12 derniers mois'),
-    categories: mLabels, series:[ { name: isEn?'Cost':'Coût', color: STATS_COLORS.blue, values: fm.cost } ], fmt:(v, axis)=> axis ? Math.round(v)+' $' : statsFmtMoney(v) });
-  // Poids par animal
-  const withW = all.filter(s=>((s.health&&s.health.weights)||[]).length>0).sort((a,b)=>(isActiveSnake(b)-isActiveSnake(a)) || a.name.localeCompare(b.name));
-  if(!statsWeightSnakeId || !withW.some(s=>s.id===statsWeightSnakeId)) statsWeightSnakeId = withW.length ? withW[0].id : null;
-  const ws = withW.find(s=>s.id===statsWeightSnakeId);
-  html += '<div style="margin-bottom:6px;"><label style="font-size:14px;color:var(--ink-dim);">⚖ '+(isEn?'Weight of: ':'Poids de : ')+
-    '<select onchange="statsWeightSnakeId=this.value; renderStatsView();" style="font-size:16px;padding:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
-    (withW.length ? withW.map(s=>'<option value="'+escapeHtml(s.id)+'"'+(s.id===statsWeightSnakeId?' selected':'')+'>'+escapeHtml(s.name)+(isActiveSnake(s)?'':' ('+saleStatusLabel(s.status)+')')+'</option>').join('') : '<option>—</option>')+
-    '</select></label></div>';
-  html += statsLineChart({ title: ws ? (isEn?'Weight — ':'Poids — ')+ws.name : (isEn?'Weight':'Poids'), color: STATS_COLORS.blue,
-    points: ws ? ws.health.weights.map(w=>({ date:w.date, value:Number(w.value) })) : [], fmt:v=>Math.round(v)+' g', xName: isEn?'Date':'Date', yName: isEn?'Weight':'Poids',
-    empty: isEn?'At least 2 weigh-ins are needed to draw a curve.':'Il faut au moins 2 pesées pour tracer une courbe.' });
-  html += statsBarChart({ title: isEn?'Sheds per month':'Mues par mois', subtitle: isEn?'Last 12 months':'12 derniers mois',
-    categories: mLabels, series:[ { name: isEn?'Sheds':'Mues', color: STATS_COLORS.aqua, values: fm.sheds } ] });
-  const months24 = statsLastMonths(24);
-  const coll = statsCollectionByMonth(months24);
-  html += statsLineChart({ title: isEn?'Collection size':'Taille de la collection', subtitle: isEn?'Active animals at the end of each month, last 24 months (based on when they were added to LOCUS)':'Animaux actifs à la fin de chaque mois, 24 derniers mois (selon leur date d\'ajout dans LOCUS)',
-    color: STATS_COLORS.blue, zero:true, points: months24.map((m,i)=>({ date: m+'-01', value: coll[i] })), fmt:v=>String(Math.round(v)), xName: isEn?'Month':'Mois', yName: isEn?'Animals':'Animaux' });
-  if(repro.length){
-    html += statsBarChart({ title: isEn?'Reproduction per year':'Reproduction par année', categories: repro.map(r=>({ label:r.year })),
-      series:[ { name: isEn?'Clutches':'Pontes', color: STATS_COLORS.blue, values: repro.map(r=>r.clutches) }, { name: isEn?'Eggs':'Œufs', color: STATS_COLORS.orange, values: repro.map(r=>r.eggs) }, { name: isEn?'Hatched':'Éclos', color: STATS_COLORS.aqua, values: repro.map(r=>r.live) } ] });
-  } else {
-    html += '<div style="background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px;font-size:15px;color:var(--ink-dim);">🥚 '+(isEn?'Reproduction per year — appears once a clutch is recorded in Incubation.':'Reproduction par année — apparaît dès qu\'une ponte est notée dans Incubation.')+'</div>';
+  if(statsTab==='numbers'){
+    html += '<button class="save-btn" style="width:100%;font-size:16px;padding:12px;margin:8px 0 0;" onclick="openSeasonRecap()">🎉 '+(isEn?'My season recap (image to share)':'Mon résumé de saison (image à partager)')+'</button>';
+    const weighCount = all.reduce((a,s)=>a+(((s.health&&s.health.weights)||[]).length),0);
+    const totalCost = all.reduce((a,s)=>a+cumulativeFeedCost(s),0);
+    const since30 = (function(){ const d = new Date(Date.now()-30*86400000); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
+    const cost30 = statsCostByPrey(since30).reduce((a,x)=>a+x.cost,0);
+    const repro = statsReproByYear();
+    const reproTot = repro.reduce((a,r)=>({ clutches:a.clutches+r.clutches, eggs:a.eggs+r.eggs, live:a.live+r.live }), { clutches:0, eggs:0, live:0 });
+    const salesTotal = sold.reduce((a,s)=>a+(Number(s.soldPrice)||0),0);
+    const refusalPct = (fedAll.length+refAll.length) ? Math.round(refAll.length/(fedAll.length+refAll.length)*100) : null;
+    const st = collectionStreakRecord();
+    html += h2(isEn?'Key numbers':'Chiffres clés')+
+      '<p style="font-size:13.5px;color:var(--ink-dim);margin:-4px 0 10px;line-height:1.5;">'+(isEn?'Calculated from what you\'ve recorded. Nothing to enter here.':'Calculé à partir de ce que tu as noté. Rien à entrer ici.')+'</p>'+
+      '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;">'+
+        tile('🐍', isEn?'Active animals':'Animaux actifs', active.length, (isEn?'Sold: ':'Vendus : ')+sold.length+' · '+(isEn?'Memorial: ':'Mémorial : ')+all.filter(s=>s.status==='deceased').length)+
+        tile('🍽', isEn?'Meals logged':'Repas notés', fedAll.length, (isEn?'Last 30 days: ':'30 derniers jours : ')+fedAll.filter(x=>statsDaysBetween(x.e.date, localTodayStr())<=30).length)+
+        tile('🚫', isEn?'Refusals':'Refus', refAll.length, refusalPct!=null ? (isEn?refusalPct+'% of feeding attempts':refusalPct+' % des tentatives') : '')+
+        tile('🔥', isEn?'Best run without refusal':'Meilleure série sans refus', st ? st.best : 0, st ? st.name : '')+
+        tile('⚖', isEn?'Weigh-ins':'Pesées', weighCount, '')+
+        tile('✨', isEn?'Sheds':'Mues', shedAll.length, '')+
+        tile('🥚', isEn?'Clutches':'Pontes', reproTot.clutches, reproTot.clutches ? (reproTot.eggs+(isEn?' eggs · ':' œufs · ')+reproTot.live+(isEn?' hatched':' éclos')) : '')+
+        tile('💰', isEn?'Sales':'Ventes', statsFmtMoney(salesTotal), sold.length+(isEn?' animal(s) sold':' animal(aux) vendu(s)'))+
+      '</div>';
+    // Coût de nourriture par sorte de proie
+    const byPrey = statsCostByPrey(null), byPrey30 = statsCostByPrey(since30);
+    html += h2('💲 '+(isEn?'Feeding cost':'Coût de nourriture'))+
+      '<div style="background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;padding:6px 14px;">'+
+        '<div style="display:flex;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);font-size:16px;font-weight:700;color:var(--ink);"><span>'+(isEn?'Total':'Total')+'</span><span>'+statsFmtMoney(totalCost)+' <span style="font-size:13px;color:var(--ink-dim);font-weight:400;">('+(isEn?'30 days: ':'30 jours : ')+statsFmtMoney(cost30)+')</span></span></div>'+
+        (byPrey.length ? byPrey.map(x=>{ const m30 = byPrey30.find(y=>y.sp===x.sp);
+          return '<div style="display:flex;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);font-size:15px;color:var(--ink);">'+
+            '<span>'+escapeHtml(preyTypeLabel(x.sp, isEn))+' <span style="font-size:12.5px;color:var(--ink-dim);">('+x.n+(isEn?' prey':' proies')+')</span></span>'+
+            '<span>'+statsFmtMoney(x.cost)+(m30 ? ' <span style="font-size:12.5px;color:var(--ink-dim);">('+(isEn?'30 d: ':'30 j : ')+statsFmtMoney(m30.cost)+')</span>' : '')+'</span></div>'; }).join('')
+          : '<div style="padding:10px 0;font-size:14px;color:var(--ink-dim);">'+(isEn?'No cost yet — add unit prices in Breeding › Food.':'Aucun coût pour l\'instant — ajoute les prix unitaires dans Élevage › Nourriture.')+'</div>')+
+      '</div>'+
+      (mealsNoPrice ? '<div style="font-size:13px;color:var(--gold);margin-top:8px;">⚠ '+(isEn
+        ? mealsNoPrice+' meal(s) have no known price and aren\'t counted — add unit prices in Breeding › Food.'
+        : mealsNoPrice+' repas n\'ont pas de prix connu et ne sont pas comptés — ajoute les prix unitaires dans Élevage › Nourriture.')+'</div>' : '');
   }
-  if(sold.length){
+
+  if(statsTab==='trophies'){
+    const groups = computeTrophyGroups(), recs = computeRecords();
+    const doneCount = groups.reduce((a,g)=>a+g.steps.filter(s=>s.done).length,0), totalCount = groups.reduce((a,g)=>a+g.steps.length,0);
+    html += h2('🏆 '+(isEn?'Trophies':'Trophées')+' <span style="font-size:14px;color:var(--ink-dim);font-weight:400;">'+doneCount+'/'+totalCount+'</span>')+
+      '<p style="font-size:13.5px;color:var(--ink-dim);margin:-4px 0 10px;">'+(isEn?'Tap a trophy to see all its steps.':'Touche un trophée pour voir toutes ses étapes.')+'</p>';
+    html += groups.map(g=>{
+      const done = g.steps.filter(s=>s.done);
+      const last = done[done.length-1] || null;
+      const next = g.steps.find(s=>!s.done) || null;
+      let progressPct = null, progressTxt = '';
+      if(next && next.goal){
+        const v = next.progressValue!=null ? next.progressValue : (g.value||0);
+        progressPct = Math.max(0, Math.min(100, Math.round(v/next.goal*100)));
+        progressTxt = next.progressValue!=null ? '' : (g.value||0)+' / '+next.goal;
+      }
+      const open = !!statsOpenTrophies[g.id];
+      return '<div style="background:var(--bg-panel);border:1px solid '+(done.length?'var(--gold)':'var(--line)')+';border-radius:14px;padding:12px 14px;margin-bottom:10px;">'+
+        '<button onclick="toggleTrophyGroup(\''+g.id+'\')" aria-expanded="'+open+'" style="all:unset;display:block;width:100%;cursor:pointer;">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'+
+            '<div style="font-size:17px;font-weight:600;color:var(--ink);">'+g.icon+' '+escapeHtml(g.title)+'</div>'+
+            '<div style="font-size:14px;color:var(--ink-dim);white-space:nowrap;">'+done.length+'/'+g.steps.length+' '+(open?'▴':'▾')+'</div>'+
+          '</div>'+
+          '<div style="font-size:14.5px;color:var(--ink);margin-top:4px;">'+(last
+            ? '✅ '+escapeHtml(last.title)+(last.date?' — '+escapeHtml(last.date):'')+(last.detail?' — '+escapeHtml(last.detail):'')
+            : '<span style="color:var(--ink-dim);">'+((g.value||0)>0 ? (isEn?'On the way to the first step':'En route vers la première étape') : (isEn?'Not started yet':'Pas encore commencé'))+'</span>')+'</div>'+
+          (next ? '<div style="font-size:13.5px;color:var(--ink-dim);margin-top:4px;">'+(isEn?'Next: ':'Prochaine étape : ')+escapeHtml(next.title)+(progressTxt?' ('+escapeHtml(progressTxt)+')':'')+'</div>' : '<div style="font-size:13.5px;color:var(--gold);margin-top:4px;">'+(isEn?'All steps reached!':'Toutes les étapes atteintes!')+'</div>')+
+          (progressPct!=null ? '<div style="height:7px;background:var(--bg-panel-2);border-radius:4px;margin-top:6px;overflow:hidden;"><div style="height:100%;width:'+progressPct+'%;background:var(--gold);"></div></div>' : '')+
+        '</button>'+
+        (open ? '<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:6px;">'+g.steps.map(s=>
+          '<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;font-size:14.5px;color:'+(s.done?'var(--ink)':'var(--ink-dim)')+';">'+
+            '<span>'+(s.done?'✅':'🔒')+' '+escapeHtml(s.title)+'</span>'+
+            '<span style="font-size:13px;color:var(--ink-dim);text-align:right;">'+(s.done?escapeHtml((s.date||'')+(s.detail?(s.date?' — ':'')+s.detail:'')):'')+'</span></div>').join('')+'</div>' : '')+
+      '</div>';
+    }).join('');
+    if(recs.length){
+      html += h2('🏅 '+(isEn?'Records of your collection':'Records de ta collection'))+
+        '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;">'+recs.map(r=>
+        '<div style="background:var(--bg-panel);border:1px solid var(--line);border-radius:12px;padding:12px;">'+
+          '<div style="font-size:13px;color:var(--ink-dim);">'+r.icon+' '+escapeHtml(r.title)+'</div>'+
+          '<div style="font-size:20px;font-weight:700;color:var(--ink);margin-top:2px;">'+escapeHtml(r.value)+'</div>'+
+          '<div style="font-size:13px;color:var(--ink-dim);">'+escapeHtml(r.detail)+'</div></div>').join('')+'</div>';
+    }
+  }
+
+  if(statsTab==='charts'){
+    const months = statsLastMonths(12);
+    const mLabels = months.map(m=>({ label: statsMonthLabel(m, isEn) }));
+    const fm = statsFedByMonth(months);
+    const charts = [];
+    charts.push({ id:'meals', html: statsBarChart({ id:'meals', title: isEn?'Meals and refusals per month':'Repas et refus par mois', subtitle: isEn?'Last 12 months, whole collection':'12 derniers mois, toute la collection',
+      categories: mLabels, series:[ { name: isEn?'Meals':'Repas', color: STATS_COLORS.blue, values: fm.fed }, { name: isEn?'Refusals':'Refus', color: STATS_COLORS.orange, values: fm.ref } ] }), title: isEn?'Meals and refusals per month':'Repas et refus par mois' });
+    charts.push({ id:'cost', html: statsBarChart({ id:'cost', title: isEn?'Feeding cost per month':'Coût de nourriture par mois', subtitle: mealsNoPrice ? (isEn?'Meals without a known price are not counted':'Les repas sans prix connu ne sont pas comptés') : (isEn?'Last 12 months':'12 derniers mois'),
+      categories: mLabels, series:[ { name: isEn?'Cost':'Coût', color: STATS_COLORS.blue, values: fm.cost } ], fmt:(v, axis)=> axis ? Math.round(v)+' $' : statsFmtMoney(v) }), title: isEn?'Feeding cost per month':'Coût de nourriture par mois' });
+    const withW = all.filter(s=>((s.health&&s.health.weights)||[]).length>0).sort((a,b)=>(isActiveSnake(b)-isActiveSnake(a)) || a.name.localeCompare(b.name));
+    if(!statsWeightSnakeId || !withW.some(s=>s.id===statsWeightSnakeId)) statsWeightSnakeId = withW.length ? withW[0].id : null;
+    const ws = withW.find(s=>s.id===statsWeightSnakeId);
+    const weightSel = '<div style="margin:0 0 8px;"><label style="font-size:14px;color:var(--ink-dim);">'+(isEn?'Animal: ':'Animal : ')+
+      '<select onchange="statsWeightSnakeId=this.value; renderStatsView();" style="font-size:16px;padding:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+      (withW.length ? withW.map(s=>'<option value="'+escapeHtml(s.id)+'"'+(s.id===statsWeightSnakeId?' selected':'')+'>'+escapeHtml(s.name)+(isActiveSnake(s)?'':' ('+saleStatusLabel(s.status)+')')+'</option>').join('') : '<option>—</option>')+
+      '</select></label></div>';
+    charts.push({ id:'weight', html: statsLineChart({ id:'weight', pre: weightSel, title: ws ? (isEn?'Weight — ':'Poids — ')+ws.name : (isEn?'Weight':'Poids'), color: STATS_COLORS.blue,
+      points: ws ? ws.health.weights.map(w=>({ date:w.date, value:Number(w.value) })) : [], fmt:v=>Math.round(v)+' g', xName: 'Date', yName: isEn?'Weight':'Poids',
+      empty: isEn?'At least 2 weigh-ins are needed to draw a curve.':'Il faut au moins 2 pesées pour tracer une courbe.' }), title: isEn?'Weight per animal':'Poids par animal' });
+    charts.push({ id:'sheds', html: statsBarChart({ id:'sheds', title: isEn?'Sheds per month':'Mues par mois', subtitle: isEn?'Last 12 months':'12 derniers mois',
+      categories: mLabels, series:[ { name: isEn?'Sheds':'Mues', color: STATS_COLORS.aqua, values: fm.sheds } ] }), title: isEn?'Sheds per month':'Mues par mois' });
+    const months24 = statsLastMonths(24), coll = statsCollectionByMonth(months24);
+    charts.push({ id:'collection', html: statsLineChart({ id:'collection', title: isEn?'Collection size':'Taille de la collection', subtitle: isEn?'Active animals at the end of each month, last 24 months (based on when they were added to LOCUS)':'Animaux actifs à la fin de chaque mois, 24 derniers mois (selon leur date d\'ajout dans LOCUS)',
+      color: STATS_COLORS.blue, zero:true, points: months24.map((m,i)=>({ date: m+'-01', value: coll[i] })), fmt:v=>String(Math.round(v)), xName: isEn?'Month':'Mois', yName: isEn?'Animals':'Animaux' }), title: isEn?'Collection size':'Taille de la collection' });
+    const repro = statsReproByYear();
+    charts.push({ id:'repro', title: isEn?'Reproduction per year':'Reproduction par année', html: repro.length
+      ? statsBarChart({ id:'repro', title: isEn?'Reproduction per year':'Reproduction par année', categories: repro.map(r=>({ label:r.year })),
+          series:[ { name: isEn?'Clutches':'Pontes', color: STATS_COLORS.blue, values: repro.map(r=>r.clutches) }, { name: isEn?'Eggs':'Œufs', color: STATS_COLORS.orange, values: repro.map(r=>r.eggs) }, { name: isEn?'Hatched':'Éclos', color: STATS_COLORS.aqua, values: repro.map(r=>r.live) } ] })
+      : statsChartFrame({ id:'repro', title: isEn?'Reproduction per year':'Reproduction par année' }, '<div style="font-size:15px;color:var(--ink-dim);padding:10px 0;">'+(isEn?'Appears once a clutch is recorded in Incubation.':'Apparaît dès qu\'une ponte est notée dans Incubation.')+'</div>', [], []) });
     const salesM = months.map(m=>sold.filter(s=>s.soldDate && s.soldDate.slice(0,7)===m).reduce((a,s)=>a+(Number(s.soldPrice)||0),0));
-    html += statsBarChart({ title: isEn?'Sales per month':'Ventes par mois', subtitle: isEn?'Last 12 months':'12 derniers mois', categories: mLabels,
-      series:[ { name: isEn?'Sales':'Ventes', color: STATS_COLORS.blue, values: salesM } ], fmt:(v, axis)=> axis ? Math.round(v)+' $' : statsFmtMoney(v) });
+    charts.push({ id:'sales', title: isEn?'Sales per month':'Ventes par mois', html: statsBarChart({ id:'sales', title: isEn?'Sales per month':'Ventes par mois', subtitle: isEn?'Last 12 months':'12 derniers mois', categories: mLabels,
+      series:[ { name: isEn?'Sales':'Ventes', color: STATS_COLORS.blue, values: salesM } ], fmt:(v, axis)=> axis ? Math.round(v)+' $' : statsFmtMoney(v) }) });
+    const prefs = loadStatsChartPrefs();
+    const visible = charts.filter(c=>!prefs.hidden.includes(c.id));
+    const ordered = prefs.fav.map(id=>visible.find(c=>c.id===id)).filter(Boolean).concat(visible.filter(c=>!prefs.fav.includes(c.id)));
+    html += h2('📈 '+(isEn?'Charts':'Graphiques'))+
+      '<p style="font-size:13.5px;color:var(--ink-dim);margin:-4px 0 10px;line-height:1.5;">'+(isEn?'⭐ puts a chart at the top, 🙈 hides it. Tap a bar or a point to read its value.':'⭐ met un graphique en haut, 🙈 le masque. Touche une barre ou un point pour lire sa valeur.')+'</p>'+
+      ordered.map(c=>c.html).join('');
+    const hiddenCharts = charts.filter(c=>prefs.hidden.includes(c.id));
+    if(hiddenCharts.length){
+      html += '<div style="background:var(--bg-panel);border:1px dashed var(--line);border-radius:14px;padding:12px 14px;">'+
+        '<div style="font-size:14px;color:var(--ink-dim);margin-bottom:8px;">🙈 '+(isEn?'Hidden charts':'Graphiques masqués')+'</div>'+
+        hiddenCharts.map(c=>'<button class="sc-btn" style="font-size:14px;padding:9px 12px;margin:0 6px 6px 0;" onclick="toggleStatsHidden(\''+c.id+'\')">👁 '+escapeHtml(c.title)+'</button>').join('')+
+      '</div>';
+    }
   }
 
-  // Tableau par animal
-  const rows = statsPerAnimal();
-  const th = t=>'<th style="text-align:left;padding:8px;color:var(--ink-dim);font-weight:600;border-bottom:1px solid var(--line);white-space:nowrap;">'+t+'</th>';
-  const td = t=>'<td style="padding:8px;border-bottom:1px solid var(--line);white-space:nowrap;">'+t+'</td>';
-  html += h2('🐍 '+(isEn?'Per animal':'Par animal'))+
-    '<div style="font-size:13px;color:var(--ink-dim);margin:-4px 0 8px;">'+(isEn?'Active animals. Average intervals use the last 10 meals or sheds; growth uses the last 120 days.':'Animaux actifs. Les intervalles moyens utilisent les 10 derniers repas ou mues; la croissance utilise les 120 derniers jours.')+'</div>'+
-    (rows.length ? '<div style="overflow-x:auto;background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;"><table style="width:100%;border-collapse:collapse;font-size:14.5px;color:var(--ink);">'+
-      '<tr>'+th(isEn?'Name':'Nom')+th(isEn?'Meals':'Repas')+th(isEn?'Refusals':'Refus')+th(isEn?'Every':'Aux')+th(isEn?'Sheds':'Mues')+th(isEn?'Shed every':'Mue aux')+th(isEn?'Weight':'Poids')+th(isEn?'Growth':'Croissance')+th(isEn?'Food cost':'Coût nourr.')+'</tr>'+
-      rows.map(r=>'<tr>'+
-        td('<a href="javascript:void(0)" onclick="closeStatsView(); openLogbook(\''+escapeHtml(r.s.id)+'\');" style="color:var(--gold);">'+escapeHtml(r.name)+'</a>')+
-        td(r.fed)+td(r.refused+(r.refusalPct!=null?' ('+r.refusalPct+' %)':''))+
-        td(r.mealGap!=null ? r.mealGap+(isEn?' d':' j') : '—')+td(r.sheds)+td(r.shedGap!=null ? r.shedGap+(isEn?' d':' j') : '—')+
-        td(r.weight!=null ? escapeHtml(String(r.weight))+' g' : '—')+
-        td(r.growth!=null ? (r.growth>=0?'+':'')+r.growth+(isEn?' g/mo':' g/mois') : '—')+
-        td(r.cost>0 ? statsFmtMoney(r.cost) : '—')+
-      '</tr>').join('')+'</table></div>'
-      : '<div class="empty">'+(isEn?'No active animal yet.':'Aucun animal actif pour l\'instant.')+'</div>');
+  if(statsTab==='animals'){
+    const rows = statsPerAnimal();
+    const th = t=>'<th style="text-align:left;padding:8px;color:var(--ink-dim);font-weight:600;border-bottom:1px solid var(--line);white-space:nowrap;">'+t+'</th>';
+    const td = t=>'<td style="padding:8px;border-bottom:1px solid var(--line);white-space:nowrap;">'+t+'</td>';
+    html += h2('🐍 '+(isEn?'Per animal':'Par animal'))+
+      '<div style="font-size:13px;color:var(--ink-dim);margin:-4px 0 8px;">'+(isEn?'Active animals. Run = meals in a row without refusal (current / record). Average intervals use the last 10 meals or sheds; growth uses the last 120 days. Slide sideways to see everything.':'Animaux actifs. Série = repas d\'affilée sans refus (en cours / record). Les intervalles moyens utilisent les 10 derniers repas ou mues; la croissance utilise les 120 derniers jours. Glisse de côté pour tout voir.')+'</div>'+
+      (rows.length ? '<div style="overflow-x:auto;background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;"><table style="width:100%;border-collapse:collapse;font-size:14.5px;color:var(--ink);">'+
+        '<tr>'+th(isEn?'Name':'Nom')+th(isEn?'Meals':'Repas')+th(isEn?'Refusals':'Refus')+th(isEn?'Run':'Série')+th(isEn?'Every':'Aux')+th(isEn?'Sheds':'Mues')+th(isEn?'Shed every':'Mue aux')+th(isEn?'Weight':'Poids')+th(isEn?'Growth':'Croissance')+th(isEn?'Food cost':'Coût nourr.')+'</tr>'+
+        rows.map(r=>{ const m = mealStreakInfo(r.s); return '<tr>'+
+          td('<a href="javascript:void(0)" onclick="closeStatsView(); openLogbook(\''+escapeHtml(r.s.id)+'\');" style="color:var(--gold);">'+escapeHtml(r.name)+'</a>')+
+          td(r.fed)+td(r.refused+(r.refusalPct!=null?' ('+r.refusalPct+' %)':''))+
+          td(m.current+' / '+m.best)+
+          td(r.mealGap!=null ? r.mealGap+(isEn?' d':' j') : '—')+td(r.sheds)+td(r.shedGap!=null ? r.shedGap+(isEn?' d':' j') : '—')+
+          td(r.weight!=null ? escapeHtml(String(r.weight))+' g' : '—')+
+          td(r.growth!=null ? (r.growth>=0?'+':'')+r.growth+(isEn?' g/mo':' g/mois') : '—')+
+          td(r.cost>0 ? statsFmtMoney(r.cost) : '—')+
+        '</tr>'; }).join('')+'</table></div>'
+        : '<div class="empty">'+(isEn?'No active animal yet.':'Aucun animal actif pour l\'instant.')+'</div>');
+  }
   html += '</div>';
   ov.innerHTML = html;
-  // Lecture au toucher / survol (une seule ligne par graphique, au-dessus du tracé)
   ov.querySelectorAll('.stats-chart').forEach(ch=>{
     const out = ch.querySelector('.stats-readout');
     const show = ev=>{ const t = ev.target.closest('[data-tip]'); if(t && out) out.textContent = t.getAttribute('data-tip'); };
@@ -22383,7 +22540,7 @@ function recapFieldDefs(){
     { k:'hatched', icon:'🐣', fr:'bébés éclos', en:'babies hatched', fr1:'bébé éclos', en1:'baby hatched', def:true },
     { k:'combos', icon:'🧬', fr:'combos produits chez moi', en:'combos produced at home', fr1:'combo produit chez moi', en1:'combo produced at home', def:true },
     { k:'proven', icon:'✅', fr:'nouveaux Proven', en:'new Proven', fr1:'nouveau Proven', en1:'new Proven', def:true },
-    { k:'milestones', icon:'🏆', fr:'jalons atteints', en:'milestones reached', fr1:'jalon atteint', en1:'milestone reached', def:true },
+    { k:'milestones', icon:'🏆', fr:'trophées débloqués', en:'trophies unlocked', fr1:'trophée débloqué', en1:'trophy unlocked', def:true },
     { k:'record', icon:'🏅', fr:'record de la saison', en:'record of the season', def:true },
     { k:'sales', icon:'💰', fr:'animaux vendus', en:'animals sold', fr1:'animal vendu', en1:'animal sold', def:false }
   ];
