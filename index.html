@@ -2214,7 +2214,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.03';
+const APP_VERSION = '2026.09.01.4.04';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4339,7 +4339,48 @@ function trackLocalChanges(kind, arr){
 }
 // Marque le contenu actuel comme "connu" sans le pousser — utilisé au chargement initial et juste
 // après un tirage cloud, pour qu'un simple rechargement de page ne déclenche pas un envoi inutile.
-function markSynced(kind, arr){
+// v4.04 — Fusion champ par champ des fiches (perte des paramètres d'entretien du 19 oct) : un 2e appareil
+// (ou l'icône d'accueil vs Safari, qui ont chacun leur propre stockage sur iPhone) avec une copie périmée
+// marquait toutes ses fiches « modifiées » à la mise à jour (nouveau champ par défaut) → horodatage neuf →
+// sa copie entière écrasait le serveur, valeurs vides comprises. On garde maintenant, par fiche, une
+// empreinte de chaque champ tel que le serveur le connaît (« base ») : un champ que cet appareil n'a PAS
+// touché depuis prend toujours la valeur du serveur, peu importe l'horodatage.
+var SNAKE_FIELD_BASE_KEY = 'locus_snake_field_base_v1';
+var SNAKE_MERGE_SKIP = { id:1, health:1, photos:1, updatedAt:1 };
+var snakeFieldBase = (function(){ try{ return JSON.parse(localStorage.getItem(SNAKE_FIELD_BASE_KEY)||'{}') || {}; }catch(e){ return {}; } })();
+function fieldHash(v){ const s = stableStringify(v===undefined ? null : v); let x = 5381; for(let i=0;i<s.length;i++){ x = ((x<<5)+x+s.charCodeAt(i))|0; } return (x>>>0).toString(36)+':'+s.length; }
+function snakeFieldMap(s){ const out = {}; Object.keys(s||{}).forEach(k=>{ if(!SNAKE_MERGE_SKIP[k]) out[k] = fieldHash(s[k]); }); return out; }
+function recordSnakeBase(arr, onlyMissing){
+  (arr||[]).forEach(s=>{ if(s && s.id!=null && (!onlyMissing || !snakeFieldBase[s.id])) snakeFieldBase[s.id] = snakeFieldMap(s); });
+  try{ localStorage.setItem(SNAKE_FIELD_BASE_KEY, JSON.stringify(snakeFieldBase)); }catch(e){}
+}
+function isBlankValue(v){
+  if(v==null || v==='') return true;
+  if(Array.isArray(v)) return v.length===0;
+  if(typeof v==='object') return Object.keys(v).every(k=>isBlankValue(v[k]));
+  return false;
+}
+function fieldMergeSnake(merged, local, cloud){
+  const base = snakeFieldBase[local.id];
+  const keys = new Set(Object.keys(local).concat(Object.keys(cloud)));
+  keys.forEach(k=>{
+    if(SNAKE_MERGE_SKIP[k]) return;
+    if(base){
+      const b = base[k] || fieldHash(undefined);
+      const lc = fieldHash(local[k])!==b, cc = fieldHash(cloud[k])!==b;
+      if(!lc && cc) merged[k] = cloud[k];
+      else if(lc && !cc) merged[k] = local[k];
+    } else {
+      // pas encore d'empreinte (1re synchro avec cette version) : une valeur vide ne remplace jamais une vraie
+      if(isBlankValue(merged[k]) && !isBlankValue(local[k])) merged[k] = local[k];
+      if(isBlankValue(merged[k]) && !isBlankValue(cloud[k])) merged[k] = cloud[k];
+    }
+  });
+  return merged;
+}
+function markSynced(kind, arr, fromLocalLoad){
+  // au chargement, la copie locale n'est pas forcément ce que le serveur a : on ne remplit que les fiches sans base
+  if(kind==='snakes') recordSnakeBase(arr, !!fromLocalLoad);
   const snap = lastSyncSnapshot[kind];
   (arr||[]).forEach(item=>{ if(item && item.id!=null) snap[item.id] = contentSignature(item); });
 }
@@ -5016,6 +5057,7 @@ const CHANGELOG = [
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '🛡️ Synchronisation plus sûre entre appareils : un appareil avec une copie périmée (ou l\'icône d\'accueil vs Safari, qui ont chacun leur propre stockage sur iPhone) ne peut plus effacer les paramètres d\'entretien et les autres champs d\'une fiche modifiés ailleurs. La fusion se fait maintenant champ par champ.',
         '📈 Les graphiques mensuels commencent maintenant environ 1 mois avant ta première donnée notée, au lieu d\'afficher des mois vides (maximum 12 mois, 24 pour la taille de la collection).',
         '📈 Statistiques › Chiffres : nouvelle section « Tendances » avec des flèches ▲▼ (vert = mieux, rouge = moins bien) — repas, taux de refus, coût de nourriture (30 derniers jours vs les 30 d\'avant), œufs en incubation et ventes (cette année vs l\'an passé). Locks (réservé au palier Première ponte et Illimité après la bêta), rongeurs nés et % d\'auto-suffisance alimentaire (réservés au palier Illimité après la bêta).',
         '🧬 Consanguinité publique (au choix du vendeur) : ta vitrine peut afficher le coefficient de chaque animal, avec le nombre de générations complètes connues — « inconnue » si un parent n\'est pas enregistré, jamais un faux 0 %. Aussi sur le QR de show (case à cocher, décochée par défaut) et dans le lien de transfert. Un animal importé garde le coefficient calculé chez l\'ancien propriétaire.',
@@ -5093,6 +5135,7 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '🛡️ Safer sync between devices: a device with an outdated copy (or the home-screen icon vs Safari, which each have their own storage on iPhone) can no longer wipe care parameters and other record fields changed elsewhere. Merging now happens field by field.',
         '📈 Monthly charts now start about 1 month before your first recorded data, instead of showing empty months (12 months max, 24 for collection size).',
         '📈 Statistics › Numbers: new « Trends » section with ▲▼ arrows (green = better, red = worse) — meals, refusal rate, feeding cost (last 30 days vs the 30 before), eggs incubated and sales (this year vs last year). Locks (reserved for the First Clutch and Unlimited tiers after the beta), rodents born and food self-sufficiency % (reserved for the Unlimited tier after the beta).',
         '🧬 Public inbreeding (seller\'s choice): your showcase can show each animal\'s coefficient, with the number of complete known generations — « unknown » if a parent isn\'t recorded, never a fake 0 %. Also on the show QR (checkbox, unchecked by default) and in the transfer link. An imported animal keeps the coefficient calculated at the previous owner\'s.',
@@ -6997,7 +7040,7 @@ function speciesCategoryOf(speciesId){
   const ref = SPECIES_REFERENCE.find(sp=>sp.id===speciesId);
   return ref ? ref.category : 'serpent';
 }
-markSynced('snakes', savedSnakes);
+markSynced('snakes', savedSnakes, true); // v4.04
 var editingId = null;
 // Lien ponte <-> accouplement (2 septembre) — pont temporaire entre createClutchFromPairing() et
 // addClutch() : on ne peut pas juste passer un paramètre puisque le formulaire de ponte est un
@@ -13650,7 +13693,7 @@ function mergeById(localArr, cloudArr, kind){
     const localWins = !cloudItem || stillPending || (item.updatedAt||0) >= (cloudItem.updatedAt||0);
     if(kind==='snakes' && cloudItem){
       // v3.49 — fusion fine du journal/pesées/photos au lieu d'écraser toute la fiche
-      byId[item.id] = localWins ? mergeSnakeRecords(item, cloudItem) : mergeSnakeRecords(cloudItem, item);
+      byId[item.id] = fieldMergeSnake(localWins ? mergeSnakeRecords(item, cloudItem) : mergeSnakeRecords(cloudItem, item), item, cloudItem); // v4.04
     } else if(localWins) byId[item.id] = item;
   });
   // Une suppression locale pas encore poussée (voir dirtyDeletedIds/trackLocalChanges) ne doit jamais
@@ -13878,9 +13921,14 @@ function schedulePushRetry(){
 function markPushed(kind, sent){
   // sent = [[id, signature au moment de l'envoi], ...] — on ne retire de la file que si la fiche n'a
   // pas encore été modifiée de nouveau pendant l'envoi.
+  const acked = [];
   sent.forEach(function(pair){
-    if(lastSyncSnapshot[kind][pair[0]] === pair[1]) dirtySyncIds[kind].delete(pair[0]);
+    if(lastSyncSnapshot[kind][pair[0]] === pair[1]){
+      dirtySyncIds[kind].delete(pair[0]);
+      if(kind==='snakes'){ const s = savedSnakes.find(x=>x.id===pair[0]); if(s) acked.push(s); }
+    }
   });
+  if(acked.length) recordSnakeBase(acked, false); // v4.04 — le serveur a maintenant ces valeurs
 }
 async function pushKindRows(kind, arr, forceAll, toRow){
   if(!arr || !arr.length) return true;
