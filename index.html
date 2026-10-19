@@ -1276,6 +1276,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
           <button class="filter-chip" data-status="forsale" data-i18n="filterForSale">À vendre</button>
           <button class="filter-chip" data-status="reserved" data-i18n="filterReserved">Réservé</button>
           <button class="filter-chip" data-status="sold" data-i18n="filterSold">Vendu</button>
+          <button class="filter-chip" data-status="deceased" data-i18n="filterMemorial">🕊 Mémorial</button>
         </div>
         <div class="mine-filter-group" id="mine-sex-filters">
           <button class="filter-chip active" data-sex="all" data-i18n="filterMaleFemale">Mâle+Femelle</button>
@@ -1572,6 +1573,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <div class="value-box actual"><div class="vb-label" data-i18n="statSoldTotal">Vendu (total)</div><div class="vb-amount" id="sales-stat-total">0 $</div></div>
     </div>
     <button class="sc-btn accent" style="margin-top:18px;width:100%;" onclick="openBatchSaleImagesModal()" data-i18n="batchSaleImagesBtn">🖼️ Images de vente en lot (Facebook, etc.)</button>
+    <button class="sc-btn accent" style="margin-top:10px;width:100%;" onclick="printShowLabelsForSale()" data-i18n="showLabelsBtn">🎪 Étiquettes de show avec QR (animaux à vendre)</button>
     <div id="mm-bulk-export" style="margin-top:18px;"></div>
     <div class="mine-filter-bar" style="margin-top:22px;">
       <div class="mine-filter-group" id="sales-status-filters">
@@ -2204,7 +2206,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.83';
+const APP_VERSION = '2026.09.01.3.85';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2635,7 +2637,7 @@ function canAddAnotherSnake(){
   if(!TIERS_ENABLED) return true;
   const limit = TIER_LIMITS[currentUserTier()];
   if(limit==null) return true;
-  const activeCount = savedSnakes.filter(s=>s.status!=='sold').length;
+  const activeCount = savedSnakes.filter(isActiveSnake).length;
   return activeCount < limit;
 }
 
@@ -3063,6 +3065,237 @@ function vitrineAnimalCardHtml(a, isEn){
     overlay.innerHTML = wrapStart+'<div style="text-align:center;color:var(--ink-dim);">'+(isEn?'Connection error.':'Erreur de connexion.')+'</div></div>';
   });
 })();
+
+// ==================== QR visiteurs pour les shows (v3.85) ====================
+// Page ?show=<jeton> : fiche d'un animal pour les visiteurs d'un show (étiquette sur la boîte d'exposition).
+// Décisions du 19 oct : choix des champs par animal (préréglé : tout coché), résumé des repas, parents +
+// grands-parents, gratuit. Jeton SÉPARÉ du lien public (?public=) pour qu'un vieux lien public ne donne
+// jamais accès aux repas ou au prix. Les champs décochés sont filtrés côté serveur (get_show_snake).
+function showFieldDefs(){
+  return [
+    { k:'genetics', fr:'Génétique', en:'Genetics' },
+    { k:'pedigree', fr:'Pedigree (parents + grands-parents)', en:'Pedigree (parents + grandparents)' },
+    { k:'meals', fr:'Résumé des repas et dernier poids', en:'Feeding summary and last weight' },
+    { k:'price', fr:'Prix demandé (seulement si « À vendre »)', en:'Asking price (only if « For sale »)' }
+  ];
+}
+function getShowFields(s){
+  const f = (s && s.showFields && typeof s.showFields==='object') ? s.showFields : {};
+  const out = {};
+  showFieldDefs().forEach(d=>{ out[d.k] = f[d.k]!==false; });
+  return out;
+}
+function showUrlFor(token){ return location.origin + location.pathname + '?show=' + encodeURIComponent(token); }
+function newShowToken(){
+  try{ const b = new Uint8Array(16); crypto.getRandomValues(b); return Array.from(b, x=>x.toString(16).padStart(2,'0')).join(''); }
+  catch(e){ return (Date.now().toString(16)+Math.random().toString(16).slice(2)+Math.random().toString(16).slice(2)).slice(0,32); }
+}
+function ensureShowToken(s){
+  if(s && !s.showToken){ s.showToken = newShowToken(); return true; }
+  return false;
+}
+function showPreyLabel(m, isEn){
+  const parts = [];
+  const sp = { mouse:isEn?'mouse':'souris', rat:'rat', gerbil:isEn?'gerbil':'gerbille', chick:isEn?'chick':'poussin', quail:isEn?'quail':'caille' };
+  if(m.prey_species) parts.push(sp[m.prey_species] || String(m.prey_species));
+  if(m.prey_size) parts.push(String(m.prey_size));
+  if(m.prey_type) parts.push(m.prey_type==='live' ? (isEn?'live':'vivante') : (isEn?'frozen-thawed':'décongelée'));
+  return parts.join(' · ');
+}
+function showGenesText(genes, isEn){
+  let g = '';
+  try{ g = (genes && Object.keys(genes).length) ? summarizeGenes(genes) : ''; }catch(e){ g = ''; }
+  return g || (isEn ? 'Normal / no gene listed' : 'Normal / aucun gène indiqué');
+}
+function showAncestorHtml(a, roleLabel, isEn, small){
+  const box = 'background:var(--bg-panel-2);border:1px solid var(--line);border-radius:10px;padding:'+(small?'8px 10px':'10px 12px')+';';
+  if(!a) return '<div style="'+box+'"><div style="font-size:12px;color:var(--ink-dim);">'+roleLabel+'</div><div style="font-size:'+(small?'13px':'15px')+';color:var(--ink-dim);">'+(isEn?'Unknown':'Inconnu')+'</div></div>';
+  return '<div style="'+box+'"><div style="font-size:12px;color:var(--ink-dim);">'+roleLabel+'</div>'+
+    '<div style="font-size:'+(small?'14px':'16px')+';color:var(--ink);font-weight:600;">'+escapeHtml(a.name||'')+'</div>'+
+    '<div style="font-size:'+(small?'12px':'13.5px')+';color:var(--ink);margin-top:2px;line-height:1.4;">'+escapeHtml(showGenesText(a.genes, isEn))+'</div></div>';
+}
+(function initShowView(){
+  const token = new URLSearchParams(location.search).get('show');
+  if(!token) return;
+  const overlay = document.getElementById('public-view-overlay');
+  if(!overlay) return;
+  const isEn = detectPublicPageLang();
+  const wrapStart = '<div style="max-width:620px;margin:0 auto;padding:28px 16px 60px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Verdana,sans-serif;">';
+  const card = 'background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;';
+  const h2 = txt=>'<div style="font-size:16px;font-weight:600;color:var(--gold);margin-bottom:10px;">'+txt+'</div>';
+  overlay.style.display = 'block';
+  overlay.innerHTML = wrapStart+'<div style="text-align:center;color:var(--ink-dim);padding-top:30px;">'+(isEn?'Loading…':'Chargement…')+'</div></div>';
+  if(!sb){ overlay.innerHTML = wrapStart+'<div style="text-align:center;color:var(--ink-dim);">'+(isEn?'Connection error.':'Erreur de connexion.')+'</div></div>'; return; }
+  sb.rpc('get_show_snake', { p_token: token }).then(({data, error})=>{
+    if(error || !data){
+      overlay.innerHTML = wrapStart+'<div style="text-align:center;padding-top:30px;"><div style="font-size:40px;margin-bottom:10px;">🔒</div>'+
+        '<div style="color:var(--ink);font-size:16px;">'+(isEn?'This QR code is no longer active.':'Ce code QR n\'est plus actif.')+'</div></div></div>';
+      return;
+    }
+    const a = data;
+    const img = safeImageSrc(a.photo);
+    const sexLabel = a.sex==='male' ? (isEn?'♂ Male':'♂ Mâle') : a.sex==='female' ? (isEn?'♀ Female':'♀ Femelle') : (isEn?'Unsexed':'Non sexé');
+    const sexColor = a.sex==='male' ? '#5b8fd6' : a.sex==='female' ? '#d46a9a' : 'var(--ink-dim)';
+    let species = ''; try{ species = speciesDisplayLabel(a.species, isEn); }catch(e){ species = a.species||''; }
+    const seasons = Array.isArray(a.proven_seasons) ? a.proven_seasons.slice().sort((x,y)=>(y.year||0)-(x.year||0)) : [];
+    const live = speciesIsLiveBearer({ species:a.species });
+    const priceHtml = a.status==='reserved' ? '<div style="font-size:18px;color:var(--gold);font-weight:600;">'+(isEn?'Reserved':'Réservé')+'</div>'
+      : a.status==='sold' ? '<div style="font-size:18px;color:var(--ink-dim);font-weight:600;">'+(isEn?'Sold':'Vendu')+'</div>'
+      : (a.asking_price!=null ? '<div style="font-size:24px;color:var(--gold);font-weight:700;">'+escapeHtml(String(a.asking_price))+' $</div>' : '');
+    let html = wrapStart + publicPageLangToggleHtml(isEn) +
+      (img ? '<img src="'+escapeHtml(img)+'" alt="'+escapeHtml(a.name||'')+'" style="width:100%;max-height:420px;object-fit:cover;border-radius:14px;border:1px solid var(--line);margin-bottom:14px;"/>' : '')+
+      '<div style="text-align:center;margin-bottom:16px;">'+
+        '<h1 style="font-family:Georgia,serif;font-size:30px;color:var(--ink);margin:0 0 6px;">'+escapeHtml(a.name||'')+'</h1>'+
+        '<div style="font-size:16px;"><span style="color:'+sexColor+';font-weight:700;">'+sexLabel+'</span> <span style="color:var(--ink-dim);">— '+escapeHtml(species)+(a.birth_date ? ' — '+(isEn?'born ':'né ')+escapeHtml(String(a.birth_date)) : '')+'</span></div>'+
+        ((a.proven || seasons.length) ? '<div style="font-size:15px;color:var(--sage);margin-top:6px;">✅ Proven'+(seasons.length ? ' — '+escapeHtml(seasons.map(p=>provenSeasonLabel(Object.assign({live:live}, p), isEn)).join(' / ')) : '')+'</div>' : '')+
+        (priceHtml ? '<div style="margin-top:10px;">'+priceHtml+'</div>' : '')+
+      '</div>';
+    if(a.genes) html += '<div style="'+card+'">'+h2('🧬 '+(isEn?'Genetics':'Génétique'))+'<div style="font-size:17px;color:var(--ink);line-height:1.5;">'+escapeHtml(showGenesText(a.genes, isEn))+'</div></div>';
+    if(a.pedigree){
+      const pd = a.pedigree;
+      const half = (par, label)=>'<div style="flex:1;min-width:220px;display:flex;flex-direction:column;gap:6px;">'+
+        showAncestorHtml(par, label, isEn, false)+
+        '<div style="display:flex;gap:6px;">'+
+          '<div style="flex:1;">'+showAncestorHtml(par&&par.sire, isEn?'Grandsire':'Grand-père', isEn, true)+'</div>'+
+          '<div style="flex:1;">'+showAncestorHtml(par&&par.dam, isEn?'Granddam':'Grand-mère', isEn, true)+'</div>'+
+        '</div></div>';
+      html += '<div style="'+card+'">'+h2('🌳 Pedigree')+
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;">'+half(pd.sire, isEn?'Sire':'Père')+half(pd.dam, isEn?'Dam':'Mère')+'</div>'+
+        (pd.provenance ? '<div style="font-size:13px;color:var(--ink-dim);margin-top:10px;">'+(isEn?'Origin: ':'Provenance : ')+escapeHtml(String(pd.provenance))+'</div>' : '')+
+      '</div>';
+    }
+    if(a.meals){
+      const m = a.meals;
+      const prey = showPreyLabel(m, isEn);
+      const w = m.weight && m.weight.value!=null ? escapeHtml(String(m.weight.value))+' g'+(m.weight.date ? ' ('+escapeHtml(String(m.weight.date))+')' : '') : '';
+      html += '<div style="'+card+'">'+h2('🍽 '+(isEn?'Feeding':'Alimentation'))+
+        '<div style="font-size:16px;color:var(--ink);line-height:1.7;">'+
+          (isEn ? 'Last 90 days: <b>'+Number(m.fed_90||0)+'</b> meal(s), <b>'+Number(m.refused_90||0)+'</b> refusal(s)'
+                : '90 derniers jours : <b>'+Number(m.fed_90||0)+'</b> repas, <b>'+Number(m.refused_90||0)+'</b> refus')+'<br/>'+
+          (m.last_fed ? (isEn?'Last meal: ':'Dernier repas : ')+escapeHtml(String(m.last_fed))+'<br/>' : '')+
+          (prey ? (isEn?'Prey: ':'Proie : ')+escapeHtml(prey)+'<br/>' : '')+
+          (w ? '⚖ '+(isEn?'Last weight: ':'Dernier poids : ')+w : '')+
+        '</div></div>';
+    }
+    const contacts = vitrineContactButtonsHtml(a.links, isEn);
+    if(a.seller || a.region || contacts || a.vitrine_token){
+      html += '<div style="'+card+'text-align:center;">'+
+        (a.seller ? '<div style="font-size:16px;color:var(--ink);">'+(isEn?'Offered by ':'Offert par ')+'<b>'+escapeHtml(String(a.seller))+'</b></div>' : '')+
+        (a.region ? '<div style="font-size:14px;color:var(--ink-dim);margin-top:4px;">📍 '+escapeHtml(String(a.region))+'</div>' : '')+
+        (contacts ? '<div style="margin-top:10px;">'+contacts+'</div>' : '')+
+        (a.vitrine_token ? '<a href="'+escapeHtml(vitrineUrlFor(a.vitrine_token))+'" style="display:inline-block;margin-top:10px;font-size:15px;color:var(--gold);">'+(isEn?'See all their available animals →':'Voir tous ses animaux disponibles →')+'</a>' : '')+
+      '</div>';
+    }
+    html += '<div style="text-align:center;font-size:12px;color:var(--ink-dim);line-height:1.6;margin-top:6px;">'+(isEn
+      ? 'Information recorded by the owner in LOCUS Scales. Sales are made directly with the seller.'
+      : 'Informations notées par le propriétaire dans LOCUS Scales. Les ventes se font directement avec le vendeur.')+'<br/>'+
+      '<a href="'+escapeHtml(location.origin+location.pathname)+'" style="color:var(--gold);">LOCUS Scales</a></div></div>';
+    setPageMeta((a.name||'')+' — '+species+' | LOCUS Scales', isEn ? ('Genetics, pedigree and feeding of '+(a.name||'')+'.') : ('Génétique, pedigree et alimentation de '+(a.name||'')+'.'), true);
+    overlay.innerHTML = html;
+  }).catch(()=>{
+    overlay.innerHTML = wrapStart+'<div style="text-align:center;color:var(--ink-dim);">'+(isEn?'Connection error.':'Erreur de connexion.')+'</div></div>';
+  });
+})();
+
+// Section de la fiche (côté propriétaire)
+function showQrSectionHtml(s, id){
+  const isEn = currentLang==='en';
+  const f = getShowFields(s);
+  return '<p style="font-size:13px;color:var(--ink-dim);margin:0 0 10px;line-height:1.5;">'+(isEn
+      ? 'A QR code for the display box at a show: visitors scan it and see what you check below. Separate from the public link.'
+      : 'Un code QR pour la boîte d\'exposition à un show : les visiteurs le scannent et voient ce que tu coches ici. Distinct du lien public.')+'</p>'+
+    showFieldDefs().map(d=>'<label style="display:flex;gap:10px;align-items:center;font-size:15px;padding:6px 0;cursor:pointer;"><input type="checkbox" style="width:22px;height:22px;accent-color:var(--sage);" '+(f[d.k]?'checked ':'')+'onchange="setShowField(\''+id+'\',\''+d.k+'\',this.checked)"/>'+(isEn?d.en:d.fr)+'</label>').join('')+
+    '<div style="font-size:12px;color:var(--ink-dim);margin:4px 0 10px;">'+(isEn?'Always shown: name, sex, species, birth, photo, Proven. Never shown: buyer, purchase price, location in your racks, notes.':'Toujours affichés : nom, sexe, espèce, naissance, photo, Proven. Jamais affichés : acheteur, prix d\'achat, emplacement dans tes racks, notes.')+'</div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+
+      '<button class="sc-btn accent" style="font-size:14px;padding:10px 12px;" onclick="toggleShowQr(\''+id+'\')">🔳 '+(isEn?'Show the QR':'Afficher le QR')+'</button>'+
+      '<button class="sc-btn" style="font-size:14px;padding:10px 12px;" onclick="printShowLabels([\''+id+'\'])">🏷️ '+(isEn?'Print show label':'Imprimer l\'étiquette de show')+'</button>'+
+    '</div>'+
+    '<div id="show-qr-'+id+'" style="display:none;margin-top:12px;"></div>';
+}
+function setShowField(id, key, checked){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const f = getShowFields(s);
+  f[key] = !!checked;
+  s.showFields = f;
+  storage.save(savedSnakes);
+}
+function toggleShowQr(id){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const box = document.getElementById('show-qr-'+id);
+  if(!box) return;
+  if(box.style.display==='block'){ box.style.display = 'none'; return; }
+  if(ensureShowToken(s)) storage.save(savedSnakes);
+  const url = showUrlFor(s.showToken);
+  box.innerHTML = '<div class="qr-box"><img src="'+qrImageUrl(url, 220)+'" width="220" height="220" alt="QR '+escapeHtml(s.name)+'"/>'+
+      '<div class="qr-caption">'+(isEn?'Visitors scan this — ':'Les visiteurs scannent ceci — ')+escapeHtml(s.name)+'</div></div>'+
+    '<div style="font-size:13px;color:var(--ink-dim);margin-top:8px;line-height:1.5;">'+(isEn?'Works once synced to your account (a few seconds, with a connection).':'Fonctionne une fois synchronisé à ton compte (quelques secondes, avec une connexion).')+'</div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">'+
+      '<a class="sc-btn" style="font-size:14px;padding:10px 12px;text-decoration:none;" href="'+escapeHtml(url)+'" target="_blank" rel="noopener">👁 '+(isEn?'Preview':'Aperçu')+'</a>'+
+      '<button class="sc-btn" style="font-size:14px;padding:10px 12px;" onclick="resetShowToken(\''+id+'\')">🔄 '+(isEn?'New QR (old one stops working)':'Nouveau QR (l\'ancien ne marche plus)')+'</button>'+
+    '</div>';
+  box.style.display = 'block';
+}
+function resetShowToken(id){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  if(!confirm(isEn?'Create a new QR code? Labels already printed will stop working.':'Créer un nouveau code QR? Les étiquettes déjà imprimées ne marcheront plus.')) return;
+  s.showToken = newShowToken();
+  storage.save(savedSnakes);
+  const box = document.getElementById('show-qr-'+id);
+  if(box) box.style.display = 'none';
+  toggleShowQr(id);
+}
+function printShowLabelsForSale(){
+  const isEn = currentLang==='en';
+  const ids = savedSnakes.filter(s=>s.status==='forsale').map(s=>s.id);
+  if(!ids.length){ showToast(isEn?'No animal marked « For sale ».':'Aucun animal marqué « À vendre ».', 'error'); return; }
+  printShowLabels(ids);
+}
+function printShowLabels(ids){
+  const isEn = currentLang==='en';
+  const list = (ids||[]).map(id=>savedSnakes.find(x=>x.id===id)).filter(Boolean);
+  if(!list.length) return;
+  let changed = false;
+  list.forEach(s=>{ ensureSnakeMeta(s); if(ensureShowToken(s)) changed = true; });
+  if(changed) storage.save(savedSnakes);
+  const labels = list.map(s=>{
+    const f = getShowFields(s);
+    const sexTxt = s.sex==='male' ? '♂' : s.sex==='female' ? '♀' : '?';
+    const sexColor = s.sex==='male' ? '#2f6fc4' : s.sex==='female' ? '#c4447f' : '#777';
+    const genes = f.genetics ? showGenesText(s.genes, isEn) : '';
+    const price = (f.price && s.status==='forsale' && s.askingPrice!=null) ? s.askingPrice+' $' : '';
+    return '<div class="lbl">'+
+      '<img src="'+qrImageUrl(showUrlFor(s.showToken), 220)+'" alt=""/>'+
+      '<div class="txt"><div class="nm">'+escapeHtml(s.name)+' <span style="color:'+sexColor+';">'+sexTxt+'</span></div>'+
+      (genes ? '<div class="gn">'+escapeHtml(genes)+'</div>' : '')+
+      (price ? '<div class="pr">'+escapeHtml(price)+'</div>' : '')+
+      '<div class="sc">'+(isEn?'Scan for genetics, pedigree & feeding':'Scanne pour la génétique, le pedigree et les repas')+'</div></div></div>';
+  }).join('');
+  const win = window.open('', '_blank');
+  if(!win){ showToast(isEn?'Allow pop-ups to print.':'Autorise les fenêtres surgissantes pour imprimer.', 'error'); return; }
+  win.document.write(
+    '<html><head><meta charset="utf-8"><title>'+(isEn?'Show labels':'Étiquettes de show')+'</title><style>'+
+    'body{font-family:Arial,sans-serif;margin:16px;color:#111;}'+
+    '.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}'+
+    '.lbl{display:flex;gap:10px;align-items:center;border:1.5px dashed #999;border-radius:10px;padding:10px;break-inside:avoid;page-break-inside:avoid;}'+
+    '.lbl img{width:110px;height:110px;flex-shrink:0;}'+
+    '.nm{font-size:20px;font-weight:700;}.nm span{font-size:24px;}'+
+    '.gn{font-size:13px;margin-top:4px;line-height:1.3;}'+
+    '.pr{font-size:22px;font-weight:700;margin-top:6px;}'+
+    '.sc{font-size:10px;color:#555;margin-top:6px;}'+
+    '@media print{ body{margin:8mm;} }'+
+    '</style></head><body><div class="grid">'+labels+'</div>'+
+    '<script>(function(){var imgs=[].slice.call(document.images),n=imgs.length,d=0;function go(){d++;if(d>=n)setTimeout(function(){window.print();},200);}if(!n){window.print();return;}imgs.forEach(function(i){if(i.complete)go();else{i.onload=go;i.onerror=go;}});})();<\/script>'+
+    '</body></html>'
+  );
+  win.document.close();
+}
 
 // Réglages de la vitrine (depuis Mon profil). Lecture/écriture directe dans `vitrines` (RLS : propriétaire seulement).
 var _vitrineRow = null;
@@ -3930,11 +4163,11 @@ function wobUrl(geneId){
   return WOB_SLUGS[geneId] ? 'https://worldofballpythons.com/en/morphs/'+WOB_SLUGS[geneId] : null;
 }
 
-const STATUS_LABELS = { kept:'Conservé', forsale:'À vendre', reserved:'Réservé', sold:'Vendu' };
+const STATUS_LABELS = { kept:'Conservé', forsale:'À vendre', reserved:'Réservé', sold:'Vendu', deceased:'Décédé' };
 // Version traduite de STATUS_LABELS — réutilise les clés déjà créées pour les puces de filtre,
 // pour ne pas dupliquer la même traduction à deux endroits.
 function saleStatusLabel(status){
-  const map = { kept:'filterKept', forsale:'filterForSale', reserved:'filterReserved', sold:'filterSold' };
+  const map = { kept:'filterKept', forsale:'filterForSale', reserved:'filterReserved', sold:'filterSold', deceased:'filterDeceased' };
   return map[status] ? t(map[status]) : (STATUS_LABELS[status]||status);
 }
 
@@ -4731,6 +4964,8 @@ const CHANGELOG = [
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '🎪 QR visiteurs pour les shows : dans la fiche, choisis ce que les visiteurs voient (génétique, pedigree parents + grands-parents, résumé des repas et dernier poids, prix demandé si « À vendre ») et imprime une étiquette avec le code QR pour la boîte d\'exposition. Dans Ventes, « Étiquettes de show » imprime une planche pour tous tes animaux à vendre. Ce QR a son propre lien, distinct du lien public; jamais d\'acheteur, de prix d\'achat, d\'emplacement ni de notes. Si ta vitrine est active, la fiche mène aussi à tous tes animaux disponibles.',
+        '🕊 Mémorial : nouveau statut « Décédé » dans la fiche (date et note optionnelle). Avant, il fallait supprimer la fiche, ce qui retirait le parent de l\'arbre généalogique de ses bébés. Maintenant rien n\'est supprimé : photos, historique et génétique restent, l\'animal reste dans le pedigree et la consanguinité, son bac ou terrarium est libéré, et il sort des alertes, du Mode Tournée et des accouplements. Retrouve-le avec le filtre « 🕊 Mémorial » dans Mes reptiles.',
         '🛒 Ma vitrine (dans Mon profil) : une page publique avec tes animaux « À vendre » et « Réservé » — photo, génétique, Proven, prix demandé, ta région et les liens de contact que tu choisis (Facebook, Instagram, MorphMarket, site, courriel). À mettre dans ta bio Instagram ou sur Facebook. Jamais affichés : acheteur, prix d\'achat, emplacement dans tes racks, santé. Les ventes se font directement entre vous; LOCUS ne gère ni paiement ni livraison.',
         '📥 Lien de transfert : l\'acheteur a maintenant un bouton « Importer dans mon LOCUS » qui ajoute le reptile avec tout son historique (génétique, poids, mues, visites véto, photos) à sa collection, sans rien ressaisir. Le nom de ton élevage devient sa provenance.',
         '✅ Proven : nouvelle case « Reproducteur prouvé » dans la fiche, avec une ligne par saison (année · nombre d\'œufs) au lieu de l\'écrire à la main. Les pontes notées dans LOCUS s\'ajoutent toutes seules à la mère et au père. Badge « Proven » sur les cartes. Une étiquette comme « Proven 2024 9 oeufs » est convertie automatiquement.',
@@ -4780,6 +5015,8 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '🎪 Visitor QR for reptile shows: on the record, choose what visitors see (genetics, pedigree with parents + grandparents, feeding summary and last weight, asking price if « For sale ») and print a label with the QR code for the display box. In Sales, « Show labels » prints a sheet for all your animals for sale. This QR has its own link, separate from the public link; never a buyer, purchase price, location or notes. If your showcase is active, the page also leads to all your available animals.',
+        '🕊 Memorial: new « Deceased » status on the record (date and optional note). Before, you had to delete the record, which removed the parent from its babies\' family tree. Now nothing is deleted: photos, history and genetics stay, the animal stays in the pedigree and inbreeding calculation, its tub or enclosure is freed, and it leaves alerts, Tour Mode and pairings. Find it with the « 🕊 Memorial » filter in My reptiles.',
         '🛒 My showcase (in My profile): a public page with your « For sale » and « Reserved » animals — photo, genetics, Proven, asking price, your region and the contact links you choose (Facebook, Instagram, MorphMarket, website, email). Put it in your Instagram bio or on Facebook. Never shown: buyer, purchase price, location in your racks, health. Sales happen directly between you; LOCUS handles no payment or shipping.',
         '📥 Transfer link: the buyer now has an « Import into my LOCUS » button that adds the reptile with its full history (genetics, weights, sheds, vet visits, photos) to their collection, nothing to retype. Your breeder name becomes its provenance.',
         '✅ Proven: new « Proven breeder » checkbox on the record, with one line per season (year · egg count) instead of typing it by hand. Clutches recorded in LOCUS are added automatically to the dam and sire. « Proven » badge on the cards. A tag like « Proven 2024 9 eggs » is converted automatically.',
@@ -5507,6 +5744,7 @@ const I18N = {
     filterForSale: 'À vendre',
     filterReserved: 'Réservé',
     filterSold: 'Vendu',
+    filterDeceased: '🕊 Décédé', filterMemorial: '🕊 Mémorial',
     filterMaleFemale: 'Mâle+Femelle',
     filterUnknownSex: 'Non sexé',
     filterGeneticsAll: 'Génétique : Tous',
@@ -5635,6 +5873,7 @@ const I18N = {
     subWaitlist: '📋 Liste d\'attente',
     statForSale: 'À vendre (stock)',
     batchSaleImagesBtn: '🖼️ Images de vente en lot (Facebook, etc.)',
+    showLabelsBtn: '🎪 Étiquettes de show avec QR (animaux à vendre)',
     statReserved: 'Réservé',
     statSoldMonth: 'Vendu ce mois-ci',
     statSoldTotal: 'Vendu (total)',
@@ -6076,6 +6315,7 @@ const I18N = {
     filterForSale: 'For Sale',
     filterReserved: 'Reserved',
     filterSold: 'Sold',
+    filterDeceased: '🕊 Deceased', filterMemorial: '🕊 Memorial',
     filterMaleFemale: 'Male+Female',
     filterUnknownSex: 'Unsexed',
     filterGeneticsAll: 'Genetics: All',
@@ -6204,6 +6444,7 @@ const I18N = {
     subWaitlist: '📋 Waitlist',
     statForSale: 'For Sale (stock)',
     batchSaleImagesBtn: '🖼️ Batch sale images (Facebook, etc.)',
+    showLabelsBtn: '🎪 Show labels with QR (animals for sale)',
     statReserved: 'Reserved',
     statSoldMonth: 'Sold This Month',
     statSoldTotal: 'Sold (total)',
@@ -8805,6 +9046,7 @@ function renderSavedList(){
   const grid = document.getElementById('saved-grid');
   let visible = savedSnakes.filter(s=>matchesSearch(s, mineSearchTerm));
   if(mineStatusFilter!=='all') visible = visible.filter(s=>s.status===mineStatusFilter);
+  else visible = visible.filter(s=>s.status!=='deceased'); // v3.84 — les décédés sont dans « Mémorial »
   if(mineSexFilter!=='all') visible = visible.filter(s=> mineSexFilter==='unknown' ? !s.sex : s.sex===mineSexFilter);
   if(mineVerifiedFilter!=='all') visible = visible.filter(s=> mineVerifiedFilter==='unverified' ? !s.genesVerified : s.genesVerified);
   if(mineTagFilter!=='all') visible = visible.filter(s=> (s.customTags||[]).includes(mineTagFilter));
@@ -9131,8 +9373,8 @@ function pairGoalProbability(sireGenes, damGenes, targetGeneIds){
   return combinedProb;
 }
 function findBestPairings(targetGeneIds){
-  const males = savedSnakes.filter(s=>s.sex==='male' && s.status!=='sold');
-  const females = savedSnakes.filter(s=>s.sex==='female' && s.status!=='sold');
+  const males = savedSnakes.filter(s=>s.sex==='male' && isActiveSnake(s));
+  const females = savedSnakes.filter(s=>s.sex==='female' && isActiveSnake(s));
   const results = [];
   males.forEach(m=>{
     females.forEach(f=>{
@@ -10576,7 +10818,7 @@ function openBatchSaleImagesModal(){
   const isEn = currentLang==='en';
   if(!hasAccess('batchSaleImages')){ showQuickModal('🖼️', lockedFeatureHtml()); return; }
   savedSnakes.forEach(ensureSnakeMeta);
-  const pool = savedSnakes.filter(s=>s.status!=='sold');
+  const pool = savedSnakes.filter(isActiveSnake);
   batchSale.ids = pool.filter(s=>s.status==='forsale' && s.photos && s.photos.length).map(s=>s.id);
   batchSale.files = [];
   const o = batchSale.opts;
@@ -10708,7 +10950,8 @@ function openLogbook(id){
     : '<div style="font-size:11.5px;color:var(--ink-dim);">'+t('noPhotoAdded')+'</div>';
   const statusButtonsHtml = ['kept','forsale','reserved'].map(v=>
     '<button class="sc-btn'+(s.status===v?' accent':'')+'" onclick="setListingStatus(\''+id+'\',\''+v+'\')">'+saleStatusLabel(v)+'</button>'
-  ).join('') + '<button class="sc-btn danger" onclick="setListingStatus(\''+id+'\',\'sold\')">'+t('markSoldBtn')+'</button>';
+  ).join('') + '<button class="sc-btn danger" onclick="setListingStatus(\''+id+'\',\'sold\')">'+t('markSoldBtn')+'</button>'
+    + '<button class="sc-btn'+(s.status==='deceased'?' accent':'')+'" onclick="openDeceasedModal(\''+id+'\')">🕊 '+(isEn?'Deceased':'Décédé')+'</button>'; // v3.84
   const purchasePriceRow = '<div class="modal-row"><span>'+t('purchasePriceLabel')+'</span><span><input type="number" class="price-input" style="width:90px;" value="'+(s.purchasePrice!=null?s.purchasePrice:'')+'" placeholder="0" onchange="setPurchasePrice(\''+id+'\', this.value)"/> $</span></div>';
   const realizedMarginRow = (s.status==='sold' && s.soldPrice!=null && s.purchasePrice!=null)
     ? (function(){
@@ -10716,7 +10959,11 @@ function openLogbook(id){
         return '<div class="modal-row"><span>'+(isEn?'Realized margin':'Marge réalisée')+'</span><span style="font-weight:700;color:'+(margin>=0?'var(--sage)':'var(--rust)')+';">'+(margin>=0?'+':'')+margin.toFixed(2)+' $</span></div>';
       })()
     : '';
-  const statusDetailHtml = s.status==='sold'
+  const statusDetailHtml = s.status==='deceased' // v3.84 — Mémorial
+    ? mrow(isEn?'Date of death':'Date du décès', escapeHtml(s.deceasedDate||'—'))
+      + (s.deceasedNote ? mrow(isEn?'Note':'Note', escapeHtml(s.deceasedNote)) : '')
+      + '<div style="font-size:12px;color:var(--ink-dim);margin-top:6px;line-height:1.5;">'+(isEn?'Kept in Memorial: its record, photos and genetics stay in your offspring\'s pedigree. Tap another status to bring it back to the active collection.':'Gardé dans le Mémorial : sa fiche, ses photos et sa génétique restent dans le pedigree de ses descendants. Touche un autre statut pour le remettre dans la collection active.')+'</div>'
+    : s.status==='sold'
     ? mrow(t('buyerLabel'), escapeHtml(s.buyer||'—')) + mrow(t('saleDateLabel'), s.soldDate||'—')
       + (hasAccess('shipping') ? (
         '<div class="modal-row"><span>'+(isEn?'Carrier':'Transporteur')+'</span><span><input type="text" class="price-input" style="width:120px;" value="'+escapeHtml(s.shippingCarrier||'')+'" placeholder="'+(isEn?'e.g. Canada Post':'ex. Postes Canada')+'" onchange="setShippingInfo(\''+id+'\',\'carrier\',this.value)"/></span></div>'
@@ -11016,6 +11263,7 @@ function openLogbook(id){
       })()+
     '</div>'+
     '<div class="modal-section"><h3>🥚 Proven</h3>'+provenSectionHtml(s, id)+'</div>'+
+    '<div class="modal-section"><h3>🎪 '+(isEn?'Visitor QR (reptile shows)':'QR visiteurs (shows de reptiles)')+'</h3>'+showQrSectionHtml(s, id)+'</div>'+ // v3.85
     '<div class="modal-section"><h3>'+t('customTagsTitle')+'</h3>'+
       '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">'+
         (s.customTags.length ? s.customTags.map(tag=>
@@ -11620,7 +11868,7 @@ function lastSupplementEvent(s){
   return ev.length ? ev[0] : null;
 }
 function supplementDue(s){
-  if(!needsSupplements(s) || s.status==='sold') return null;
+  if(!needsSupplements(s) || !isActiveSnake(s)) return null;
   const every = s.careParams && s.careParams.supplementDays;
   if(!every || every<1) return null;
   const last = lastSupplementEvent(s);
@@ -12645,7 +12893,7 @@ function openSeasonPlanModal(planId){
   const isEn = currentLang==='en';
   if(!hasAccess('seasonPlan')){ showQuickModal('🗓️', lockedFeatureHtml()); return; }
   const plan = planId ? seasonPlans.find(p=>p.id===planId) : null;
-  const males = savedSnakes.filter(s=>s.sex==='male' && s.status!=='sold');
+  const males = savedSnakes.filter(s=>s.sex==='male' && isActiveSnake(s));
   if(!males.length){ showToast(isEn?'Add a male first.':'Ajoute d\'abord un mâle.', 'error'); return; }
   const yr = new Date().getFullYear();
   const lab = (txt, inner)=>'<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+txt+'</span>'+inner+'</label>';
@@ -12691,7 +12939,7 @@ function openSeasonFemaleModal(planId, femaleId){
   if(!plan) return;
   const fe = femaleId ? (plan.females||[]).find(x=>x.femaleId===femaleId) : null;
   const used = (plan.females||[]).map(x=>x.femaleId);
-  const females = savedSnakes.filter(s=>s.sex==='female' && s.status!=='sold' && (!used.includes(s.id) || (fe && s.id===fe.femaleId)));
+  const females = savedSnakes.filter(s=>s.sex==='female' && isActiveSnake(s) && (!used.includes(s.id) || (fe && s.id===fe.femaleId)));
   if(!females.length){ showToast(isEn?'No other female available.':'Aucune autre femelle disponible.', 'error'); return; }
   const lab = (txt, inner)=>'<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+txt+'</span>'+inner+'</label>';
   const body =
@@ -13132,7 +13380,9 @@ function snakeToRow(s){
     clutch_ref: s.clutchRef||null,
     loans: s.loans||[],
     reservation: s.reservation||null,
-    proven: !!s.proven, proven_seasons: Array.isArray(s.provenSeasons) ? s.provenSeasons : [] // v3.82
+    proven: !!s.proven, proven_seasons: Array.isArray(s.provenSeasons) ? s.provenSeasons : [], // v3.82
+    deceased_date: s.deceasedDate||null, deceased_note: s.deceasedNote||null, // v3.84
+    show_token: s.showToken||null, show_fields: s.showFields||null // v3.85
   };
 }
 function rowToSnake(r){
@@ -13147,7 +13397,7 @@ function rowToSnake(r){
     paidViaStripe: !!r.paid_via_stripe, careParams: r.care_params || {}, publicToken: r.public_token || null, feedCost: r.feed_cost!=null ? r.feed_cost : null, transferToken: r.transfer_token || null,
     shippingCarrier: r.shipping_carrier || null, shippingTracking: r.shipping_tracking || null, shippingDate: r.shipping_date || null, shippingDelivered: !!r.shipping_delivered,
     purchasePrice: r.purchase_price!=null ? r.purchase_price : null,
-    geneticsHistory: r.genetics_history||[], clutchRef: r.clutch_ref||null, loans: r.loans||[], reservation: r.reservation||null, proven: !!r.proven, provenSeasons: Array.isArray(r.proven_seasons) ? r.proven_seasons : [], updatedAt: r.updated_at ? Date.parse(r.updated_at) : 0
+    geneticsHistory: r.genetics_history||[], clutchRef: r.clutch_ref||null, loans: r.loans||[], reservation: r.reservation||null, proven: !!r.proven, provenSeasons: Array.isArray(r.proven_seasons) ? r.proven_seasons : [], deceasedDate: r.deceased_date||null, deceasedNote: r.deceased_note||null, showToken: r.show_token||null, showFields: r.show_fields||null, updatedAt: r.updated_at ? Date.parse(r.updated_at) : 0
   };
 }
 
@@ -14307,7 +14557,11 @@ function ensureSnakeMeta(s){
   if(!s.photos) s.photos = []; // photos ajoutées manuellement par l'éleveur — LOCUS n'en génère aucune
   if(!s.geneticNotes) s.geneticNotes = []; // [FEATURE_NAME] — notes de divergence génétique datées, distinctes du journal de santé
   if(!s.geneticsHistory) s.geneticsHistory = []; // Carnet de bord — historique des corrections de génétique déclarée, jamais effacé
-  if(s.status===undefined) s.status = 'kept'; // 'kept' | 'forsale' | 'reserved' | 'sold'
+  if(s.status===undefined) s.status = 'kept'; // 'kept' | 'forsale' | 'reserved' | 'sold' | 'deceased' (v3.84)
+  if(s.deceasedDate===undefined) s.deceasedDate = null; // v3.84 — Mémorial
+  if(s.deceasedNote===undefined) s.deceasedNote = null;
+  if(s.showToken===undefined) s.showToken = null; // v3.85 — jeton du QR visiteurs (distinct de publicToken)
+  if(s.showFields===undefined) s.showFields = null; // v3.85 — null = valeurs par défaut (tout coché)
   if(s.askingPrice===undefined) s.askingPrice = null;
   if(s.brumation===undefined) s.brumation = { active:false, startDate:null }; // hivernage/brumation (15 sept) — suspend les alertes de repas en retard pendant une période de repos hivernal volontaire
   if(s.buyer===undefined) s.buyer = null;
@@ -14342,6 +14596,7 @@ function ensureSnakeMeta(s){
 // recommandée est atteinte. Ne force jamais la sortie de quarantaine — l'éleveur décide.
 function quarantineStatus(s){
   ensureSnakeMeta(s);
+  if(s.status==='deceased') return null; // v3.84
   const q = s.quarantine;
   if(!q.active || !q.startDate) return null;
   const daysElapsed = Math.floor((Date.now() - new Date(q.startDate+'T00:00:00').getTime()) / 86400000);
@@ -14689,6 +14944,7 @@ function feedingStatusExplanation(s){
 }
 
 function feedingStatus(s){
+  if(s && s.status==='deceased') return 'green'; // v3.84 — aucune alerte pour un animal décédé
   let etape = 'debut';
   try{
     etape = 'brumation';
@@ -14955,7 +15211,7 @@ function exportICS(){
 
   savedSnakes.forEach(s=>{
     ensureSnakeMeta(s);
-    if(s.status==='sold') return; // pas de rappel de repas pour un reptile déjà vendu
+    if(!isActiveSnake(s)) return; // pas de rappel de repas pour un reptile vendu ou décédé
     const due = nextFeedingDate(s);
     if(!due) return;
     const interval = feedingIntervalOf(s);
@@ -19223,7 +19479,7 @@ function healthRiskAssessment(s){
 // saison de reproduction est souvent normal.
 function weighReminderReason(s){
   const isEn = currentLang==='en';
-  if(!s || s.status==='sold' || (s.brumation && s.brumation.active)) return null;
+  if(!s || !isActiveSnake(s) || (s.brumation && s.brumation.active)) return null;
   ensureSnakeMeta(s);
   const ageM = ageInMonths(s.birthDate);
   const isBaby = ageM!=null && ageM<12;
@@ -20722,7 +20978,7 @@ function computeMaleFertility(maleId){
 function computePairingROI(p){
   const offspring = savedSnakes.filter(s=>s.sireId===p.maleId && s.damId===p.femaleId);
   const realizedRevenue = offspring.filter(s=>s.status==='sold').reduce((a,s)=>a+(s.soldPrice||0),0);
-  const potentialRevenue = offspring.filter(s=>s.status!=='sold').reduce((a,s)=>a+(s.askingPrice||0),0);
+  const potentialRevenue = offspring.filter(isActiveSnake).reduce((a,s)=>a+(s.askingPrice||0),0);
   const cost = p.estimatedCost || 0;
   return { offspringCount: offspring.length, realizedRevenue, potentialRevenue, totalRevenue: realizedRevenue+potentialRevenue, cost, roi: realizedRevenue+potentialRevenue-cost };
 }
@@ -21556,7 +21812,7 @@ function setListingStatus(id, status){
     openReservationModal(id);
     return;
   }
-  s.status = status; s.buyer = null; s.soldDate = null; s.soldPrice = null; s.reservation = null;
+  s.status = status; s.buyer = null; s.soldDate = null; s.soldPrice = null; s.reservation = null; s.deceasedDate = null; s.deceasedNote = null;
   if(status==='forsale' && !s.listedDate) s.listedDate = localTodayStr();
   storage.save(savedSnakes);
   renderSavedList();
@@ -21564,6 +21820,51 @@ function setListingStatus(id, status){
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
   showToast(saleStatusLabel(status)+' — '+s.name+' — '+(currentLang==='en'?'updated.':'mis à jour.'), 'success');
 }
+// ==================== Mémorial — animal décédé (v3.84) ====================
+// Avant : aucun statut « Décédé » — la seule option était de supprimer la fiche, ce qui cassait le
+// pedigree des descendants (parent disparu de l'arbre, consanguinité calculée sur moins de générations).
+// Maintenant la fiche reste (Mémorial), libère son bac/terrarium et sort des alertes, du Mode Tournée,
+// des compteurs et des listes d'accouplement — mais reste dans l'arbre, la génétique et l'historique.
+function isActiveSnake(s){ return !!s && s.status!=='sold' && s.status!=='deceased'; }
+function openDeceasedModal(id){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  const isEn = currentLang==='en';
+  showQuickModal('🕊 '+escapeHtml(s.name),
+    '<p style="font-size:14px;color:var(--ink-dim);margin:0 0 14px;line-height:1.5;">'+(isEn
+      ? 'Its record moves to Memorial. Nothing is deleted: photos, history and genetics stay, and it stays in its offspring\'s pedigree. Its tub or terrarium is freed.'
+      : 'Sa fiche passe dans le Mémorial. Rien n\'est supprimé : photos, historique et génétique restent, et il reste dans le pedigree de ses descendants. Son bac ou terrarium est libéré.')+'</p>'+
+    '<label style="display:block;font-size:13px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Date':'Date')+'</label>'+
+    '<input type="date" id="deceased-date-input" class="price-input" style="width:100%;padding:10px;font-size:16px;margin-bottom:14px;" value="'+escapeHtml(s.deceasedDate||localTodayStr())+'" max="'+localTodayStr()+'"/>'+
+    '<label style="display:block;font-size:13px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Note (optional)':'Note (optionnelle)')+'</label>'+
+    '<input type="text" id="deceased-note-input" class="price-input" maxlength="200" style="width:100%;padding:10px;font-size:16px;" value="'+escapeHtml(s.deceasedNote||'')+'" placeholder="'+(isEn?'e.g. old age':'ex. vieillesse')+'"/>'+
+    '<button class="save-btn" style="margin-top:16px;width:100%;font-size:16px;" onclick="confirmDeceased(\''+id+'\')">🕊 '+(isEn?'Move to Memorial':'Placer dans le Mémorial')+'</button>'
+  );
+}
+function confirmDeceased(id){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  const isEn = currentLang==='en';
+  ensureSnakeMeta(s);
+  const d = (document.getElementById('deceased-date-input')||{}).value || localTodayStr();
+  const note = String((document.getElementById('deceased-note-input')||{}).value||'').trim().slice(0,200);
+  const prevTerra = (s.placement && s.placement.mode==='terrarium') ? s.placement.terrariumId : null;
+  s.status = 'deceased';
+  s.deceasedDate = d;
+  s.deceasedNote = note || null;
+  s.reservation = null;
+  s.placement = { mode:'terrarium', terrariumId:null, row:null, tub:null }; // libère le bac/terrarium
+  if(s.quarantine) s.quarantine.active = false;
+  storage.save(savedSnakes);
+  try{ if(prevTerra){ const te = getTerrarium(prevTerra); if(te){ refreshTerrariumStatus(te); saveElevage(); } } }catch(e){}
+  closeQuickModal();
+  renderSavedList();
+  try{ renderRackGrid(); renderTerrariumList(); renderTourGrid(); }catch(e){}
+  try{ if(document.getElementById('view-dash').style.display!=='none') renderDashboard(); }catch(e){}
+  if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
+  showToast('🕊 '+escapeHtml(s.name)+' — '+(isEn?'moved to Memorial.':'placé dans le Mémorial.'), 'success');
+}
+
 // Réservation avec acompte — vrai trou trouvé (4 sept) : le statut "réservé" existait déjà mais ne
 // capturait aucune info (acheteur, acompte). Husbandry Pro vend ça comme argument central
 // ("holds, deposits"). Distinct du waitlist par accouplement qui existait déjà séparément.
@@ -22666,7 +22967,7 @@ function renderDashboard(){
     filterWrap.style.display = 'none';
     filterWrap.innerHTML = '';
   }
-  const dashSnakes = dashSpeciesFilter==='all' ? savedSnakes : savedSnakes.filter(s=>(s.species||'ball_python')===dashSpeciesFilter);
+  const dashSnakes = (dashSpeciesFilter==='all' ? savedSnakes : savedSnakes.filter(s=>(s.species||'ball_python')===dashSpeciesFilter)).filter(s=>s.status!=='deceased'); // v3.84
 
   // Repas en retard/dus (réutilise feedingStatus déjà utilisé en Mode Tournée)
   const feedingDue = dashSnakes.filter(s=>{ const st = feedingStatus(s); return st==='red' || st==='orange'; });
@@ -23048,8 +23349,8 @@ function checkDailyNotifDigest(){
   if(log.lastSentDate===today) return; // déjà envoyé aujourd'hui
 
   savedSnakes.forEach(ensureSnakeMeta);
-  const feedingOverdue = savedSnakes.filter(s=>feedingStatus(s)==='red').length;
-  const feedingDueToday = savedSnakes.filter(s=>nextFeedingDate(s)===today).length;
+  const feedingOverdue = savedSnakes.filter(s=>s.status!=='deceased' && feedingStatus(s)==='red').length;
+  const feedingDueToday = savedSnakes.filter(s=>s.status!=='deceased' && nextFeedingDate(s)===today).length;
   const upcoming = clutches.filter(c=>!c.hatched).sort((a,b)=>a.hatchDate.localeCompare(b.hatchDate))[0];
   const hatchingToday = upcoming && upcoming.hatchDate===today;
   const hatchingSoon = upcoming ? Math.floor((new Date(upcoming.hatchDate+'T00:00:00').getTime()-Date.now())/86400000) : null;
@@ -23366,7 +23667,7 @@ function exportInventoryExcel(){
   const headerRow = isEn
     ? ['Name','Sex','Species','Genetics','Birth date','Status','Last weight (g)','Provenance','Purchase price ($)','Asking/Sold price ($)','Location']
     : ['Nom','Sexe','Espèce','Génétique','Date de naissance','Statut','Dernier poids (g)','Provenance','Prix d\'achat ($)','Prix demandé/vendu ($)','Emplacement'];
-  const statusLabel = s => s.status==='sold' ? (isEn?'Sold':'Vendu') : s.status==='reserved' ? (isEn?'Reserved':'Réservé') : s.status==='forsale' ? (isEn?'Available':'Disponible') : (isEn?'Not for sale':'Pas à vendre');
+  const statusLabel = s => s.status==='deceased' ? (isEn?'Deceased':'Décédé') : s.status==='sold' ? (isEn?'Sold':'Vendu') : s.status==='reserved' ? (isEn?'Reserved':'Réservé') : s.status==='forsale' ? (isEn?'Available':'Disponible') : (isEn?'Not for sale':'Pas à vendre');
   const locationLabel = s => {
     if(s.placement.mode==='rack'){
       const rack = getRack(s.placement.rackId);
@@ -23399,7 +23700,7 @@ function exportInventoryPdf(){
   if(!requireAuthOrPrompt()) return;
   const isEn = currentLang==='en';
   savedSnakes.forEach(ensureSnakeMeta);
-  const statusLabel = s => s.status==='sold' ? (isEn?'Sold':'Vendu') : s.status==='reserved' ? (isEn?'Reserved':'Réservé') : s.status==='forsale' ? (isEn?'Available':'Disponible') : (isEn?'Not for sale':'Pas à vendre');
+  const statusLabel = s => s.status==='deceased' ? (isEn?'Deceased':'Décédé') : s.status==='sold' ? (isEn?'Sold':'Vendu') : s.status==='reserved' ? (isEn?'Reserved':'Réservé') : s.status==='forsale' ? (isEn?'Available':'Disponible') : (isEn?'Not for sale':'Pas à vendre');
   const locationLabel = s => {
     if(s.placement.mode==='rack'){
       const rack = getRack(s.placement.rackId);
@@ -23464,7 +23765,7 @@ function showKpiDashboard(){
   const totalClutches = clutches.length;
   const globalFertility = totalPairings ? Math.round((totalClutches/totalPairings)*100) : null;
 
-  const activeSnakes = savedSnakes.filter(s=>s.status!=='sold');
+  const activeSnakes = savedSnakes.filter(isActiveSnake);
   const onTrackCount = activeSnakes.filter(s=>feedingStatus(s)==='green').length;
   const feedingCompliance = activeSnakes.length ? Math.round((onTrackCount/activeSnakes.length)*100) : null;
 
@@ -23511,7 +23812,7 @@ function exportKpiPdf(){
   const totalPairings = pairings.length;
   const totalClutches = clutches.length;
   const globalFertility = totalPairings ? Math.round((totalClutches/totalPairings)*100) : null;
-  const activeSnakes = savedSnakes.filter(s=>s.status!=='sold');
+  const activeSnakes = savedSnakes.filter(isActiveSnake);
   const onTrackCount = activeSnakes.filter(s=>feedingStatus(s)==='green').length;
   const feedingCompliance = activeSnakes.length ? Math.round((onTrackCount/activeSnakes.length)*100) : null;
   const thisYear = new Date().getFullYear().toString();
