@@ -2214,7 +2214,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.05';
+const APP_VERSION = '2026.09.01.4.08';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3944,7 +3944,7 @@ const GENES = [
     warningEn:"Sex-linked gene (carried on X, sometimes Y): some males carrying this gene are \"Male Maker\" or \"Female Maker\" and produce a heavily sex-skewed clutch. This engine calculates visual trait probabilities, not sex ratios — see the note displayed if the male is flagged as Male/Female Maker."},
   {id:'yellowbelly', name:'Yellowbelly', type:'incdom', locus:'yellowbellyComplex', cat:'Codominant / Incomplet dominant', superLabel:'Ivory'},
   {id:'asphalt', name:'Asphalt', type:'incdom', locus:'yellowbellyComplex', cat:'Codominant / Incomplet dominant'},
-  {id:'specter', name:'Specter', type:'incdom', locus:'yellowbellyComplex', cat:'Codominant / Incomplet dominant'},
+  {id:'specter', name:'Specter', type:'incdom', locus:'yellowbellyComplex', cat:'Codominant / Incomplet dominant', superLabel:'Super Stripe'}, // v4.08 — forme homozygote du Specter (World of Ball Pythons : « Het Super Stripe » = Specter)
   {id:'gravel', name:'Gravel', type:'incdom', locus:'yellowbellyComplex', cat:'Codominant / Incomplet dominant'},
   {id:'spark', name:'Spark', type:'incdom', locus:'yellowbellyComplex', cat:'Codominant / Incomplet dominant'},
   {id:'mahogany', name:'Mahogany', type:'incdom', locus:'mahoganyComplex', cat:'Codominant / Incomplet dominant'},
@@ -5057,6 +5057,9 @@ const CHANGELOG = [
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '🤫 5 nouveaux trophées cachés à découvrir… indice : un bac propre ne le reste jamais longtemps.',
+        '🏆 6 nouveaux trophées : Super Héros, L\'Incubateur d\'Or, Le Briseur de Glace (génétique et reproduction), et un nouveau groupe « 🎯 Défis de nourrissage » : Converti au congelé, Fin du jeûne, Zéro Gâchis.',
+        '🧬 Les formes Super s\'affichent maintenant sous leur nom du milieu partout, aussi dans les résumés de génétique : Specter homozygote = Super Stripe, Yellowbelly homozygote = Ivory, etc.',
         '🔵 Les refus à cause de la mue s\'affichent maintenant « 🔵 Refus (mue) » dans le journal, l\'historique et les exports, au lieu de simplement « Refus ».',
         '🛡️ Synchronisation plus sûre entre appareils : un appareil avec une copie périmée (ou l\'icône d\'accueil vs Safari, qui ont chacun leur propre stockage sur iPhone) ne peut plus effacer les paramètres d\'entretien et les autres champs d\'une fiche modifiés ailleurs. La fusion se fait maintenant champ par champ.',
         '📈 Les graphiques mensuels commencent maintenant environ 1 mois avant ta première donnée notée, au lieu d\'afficher des mois vides (maximum 12 mois, 24 pour la taille de la collection).',
@@ -5136,6 +5139,9 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '🤫 5 new hidden trophies to discover… hint: a clean tub never stays clean for long.',
+        '🏆 6 new trophies: Super Hero, The Golden Incubator, The Icebreaker (genetics and reproduction), and a new « 🎯 Feeding challenges » group: Frozen convert, Breaking the fast, Zero Waste.',
+        '🧬 Super forms now show under their hobby name everywhere, including genetics summaries: homozygous Specter = Super Stripe, homozygous Yellowbelly = Ivory, etc.',
         '🔵 Refusals due to shed now show as « 🔵 Refused (shed) » in the journal, history and exports, instead of just « Refused ».',
         '🛡️ Safer sync between devices: a device with an outdated copy (or the home-screen icon vs Safari, which each have their own storage on iPhone) can no longer wipe care parameters and other record fields changed elsewhere. Merging now happens field by field.',
         '📈 Monthly charts now start about 1 month before your first recorded data, instead of showing empty months (12 months max, 24 for collection size).',
@@ -8510,7 +8516,7 @@ function summarizeGenes(genes){
     const pre = norm.possible ? (norm.percent ? norm.percent+'% ' : possWord()+' ') : '';
     if(g.type==='recessive' && norm.status==='het'){ groups.het.push(pre+'het '+g.name); return; }
     if(g.type!=='recessive' && g.type!=='unknown' && norm.status==='homo'){
-      (norm.possible ? groups.pos : groups.sup).push(pre+'Super '+g.name); return;
+      (norm.possible ? groups.pos : groups.sup).push(pre+superName(g)); return;
     }
     (norm.possible ? groups.pos : groups.vis).push(pre+g.name);
   });
@@ -22803,11 +22809,19 @@ function computeTrophyGroups(){
   const cl = (clutches||[]).filter(c=>c && c.layDate).slice().sort((a,b)=>a.layDate.localeCompare(b.layDate));
   const hatchedCl = cl.filter(c=>c.hatched);
   const proven = all.filter(isProvenSnake);
+  // v4.06 — Incubateur d'Or : œufs > 0 et autant de bébés vivants que d'œufs
+  let gold = null;
+  hatchedCl.forEach(c=>{ const eggs = Number(c.eggCount)||0, live = Number(c.liveCount)||0; if(eggs>0 && live>=eggs){ const d = String(c.hatchedAt||c.hatchDate||c.layDate||'').slice(0,10)||null; if(!gold || (d && (!gold.date || d<gold.date))) gold = { date:d, ref:c.ref||'' }; } });
+  // v4.06 — Briseur de Glace : premier repas d'un bébé né chez toi
+  let ice = null;
+  all.filter(isLocusBorn).forEach(s=>{ const f = ((s.health&&s.health.events)||[]).filter(e=>e && e.type==='fed' && e.date).map(e=>e.date).sort()[0]; if(f && (!ice || f<ice.date)) ice = { date:f, name:s.name }; });
   groups.push({ id:'repro', icon:'🥚', title: L('Reproduction','Reproduction'),
     steps: [
       tStep('clutch_1','Ça pond!','It\'s laying!','1re ponte notée','1st clutch recorded', cl.length>0, cl.length?cl[0].layDate:null),
       tStep('hatch_1','Le Grand Perçage (Pip Day!)','Pip Day!','1re éclosion','1st hatch', hatchedCl.length>0, hatchedCl.length?(hatchedCl[0].hatchedAt||hatchedCl[0].hatchDate):null),
-      tStep('proven_1','Preuve à l\'appui','Proof in hand','1er animal Proven','1st Proven animal', proven.length>0, null, proven.length?proven[0].name:null)
+      tStep('proven_1','Preuve à l\'appui','Proof in hand','1er animal Proven','1st Proven animal', proven.length>0, null, proven.length?proven[0].name:null),
+      tStep('hatch_100','L\'Incubateur d\'Or','The Golden Incubator','Une ponte avec 100 % d\'éclosion (tous les œufs ont donné un bébé vivant)','A clutch with 100% hatch rate (every egg gave a live baby)', !!gold, gold&&gold.date, gold&&gold.ref), // v4.06
+      tStep('first_meal_born','Le Briseur de Glace','The Icebreaker','1er repas d\'un bébé né chez toi','1st meal of a baby born at home', !!ice, ice&&ice.date, ice&&ice.name) // v4.06
     ] });
   // 🧬 Génétique et lignée
   const born = all.filter(isLocusBorn);
@@ -22817,12 +22831,26 @@ function computeTrophyGroups(){
   const visibleGeneCount = s=>Object.keys(s.genes||{}).filter(gid=>{ if(isFreewayKey(gid)) return false; const g = GENES.find(x=>x.id===gid); if(!g) return false; const n = normalizeGeneEntry(s.genes[gid]); if(n.possible) return false; return !(g.type==='recessive' && n.status==='het'); }).length;
   const alch = byBirth(born.filter(s=>visibleGeneCount(s)>=3));
   const gen3 = byBirth(born.filter(s=>[s.sireId, s.damId].map(id=>savedSnakes.find(x=>x.id===id)).some(isLocusBorn)));
+  // v4.06 — forme Super : homozygote d'un gène non récessif, ou deux gènes non récessifs différents au même locus (ex. Mojave/Lesser)
+  const hasSuperForm = s=>{
+    const loci = {};
+    return Object.keys(s.genes||{}).some(gid=>{
+      if(isFreewayKey(gid)) return false;
+      const g = GENES.find(x=>x.id===gid); if(!g || g.type==='recessive' || g.type==='unknown') return false;
+      const n = normalizeGeneEntry(s.genes[gid]); if(n.possible) return false;
+      if(n.status==='homo') return true;
+      if(g.locus){ if(loci[g.locus] && loci[g.locus]!==gid) return true; loci[g.locus] = gid; }
+      return false;
+    });
+  };
+  const superBorn = byBirth(born.filter(hasSuperForm));
   groups.push({ id:'genetics', icon:'🧬', title: L('Génétique et lignée','Genetics and lineage'),
     steps: [
       tStep('own_visual_recessive','Chasseur de récessifs','Recessive hunter','1er visuel récessif dans ta collection','1st visual recessive in your collection', ownVisRec.length>0, null, ownVisRec.length?ownVisRec[0].name:null),
       tStep('visual_recessive','Recette secrète','Secret recipe','1er visuel récessif produit chez toi','1st visual recessive produced at home', visRec.length>0, visRec.length?visRec[0].birthDate:null, visRec.length?visRec[0].name:null),
       tStep('alchemist','Alchimiste génétique','Genetic alchemist','Bébé né chez toi avec 3 gènes visuels ou plus','Baby born at home with 3+ visual genes', alch.length>0, alch.length?alch[0].birthDate:null, alch.length?alch[0].name:null),
-      tStep('gen3','Dynastie','Dynasty','3 générations nées chez toi','3 generations born at home', gen3.length>0, gen3.length?gen3[0].birthDate:null, gen3.length?gen3[0].name:null)
+      tStep('gen3','Dynastie','Dynasty','3 générations nées chez toi','3 generations born at home', gen3.length>0, gen3.length?gen3[0].birthDate:null, gen3.length?gen3[0].name:null),
+      tStep('super_form','Super Héros','Super Hero','1er bébé né chez toi avec la forme Super d\'un gène (homozygote d\'un gène incomplet dominant, ou combo de deux gènes du même locus)','1st baby born at home with the Super form of a gene (homozygous for an incomplete dominant gene, or a combo of two genes at the same locus)', superBorn.length>0, superBorn.length?superBorn[0].birthDate:null, superBorn.length?superBorn[0].name:null) // v4.06
     ] });
   // 🧽 Entretien (reptiles : bacs, terrariums, fiches)
   const maint = [];
@@ -22850,6 +22878,43 @@ function computeTrophyGroups(){
       tStep('vet_1','Bilan de santé','Check-up','1re visite véto notée','1st vet visit logged', vets.length>0, vets[0]||null),
       tStep('care_params','Climat contrôlé','Climate controlled','Paramètres d\'élevage remplis pour tous tes animaux actifs','Care parameters filled in for all your active animals', careOk, null),
       tStep('rack_1','Le Roi du Rack','King of the Rack','1er animal placé dans un bac de rack','1st animal placed in a rack tub', !!inRack, null, inRack?inRack.name:null)
+    ] });
+  // 🎯 Défis de nourrissage (v4.06)
+  let sniper = null, crisis = null;
+  all.forEach(s=>{
+    const ev = ((s.health&&s.health.events)||[]).filter(e=>e && e.date && (e.type==='fed'||e.type==='refused')).slice().sort((a,b)=>a.date.localeCompare(b.date));
+    let afterLive = false, frozenRun = 0, lastFed = null, refusedSince = 0;
+    ev.forEach(e=>{
+      const pt = e.preyType || s.preyType || 'frozen';
+      if(e.type==='fed'){
+        if(pt==='live'){ afterLive = true; frozenRun = 0; }
+        else if(afterLive){ frozenRun++; if(frozenRun===3 && (!sniper || e.date<sniper.date)) sniper = { date:e.date, name:s.name }; }
+        if(lastFed && refusedSince>0 && statsDaysBetween(lastFed, e.date)>90 && (!crisis || e.date<crisis.date)) crisis = { date:e.date, name:s.name };
+        lastFed = e.date; refusedSince = 0;
+      } else {
+        refusedSince++;
+        if(afterLive && pt!=='live') frozenRun = 0;
+      }
+    });
+  });
+  // Zéro gâchis : un mois complet (terminé) avec au moins 4 repas notés dans la collection, sans aucun refus ni repas sauté
+  let zeroWaste = null;
+  {
+    const byMonth = {};
+    all.forEach(s=>((s.health&&s.health.events)||[]).forEach(e=>{
+      if(!e || !e.date) return; const m = e.date.slice(0,7);
+      if(!byMonth[m]) byMonth[m] = { fed:0, bad:0 };
+      if(e.type==='fed') byMonth[m].fed++;
+      else if(e.type==='refused' || e.type==='skipped') byMonth[m].bad++;
+    }));
+    const cur = localTodayStr().slice(0,7);
+    Object.keys(byMonth).sort().some(m=>{ if(m<cur && byMonth[m].fed>=4 && byMonth[m].bad===0){ zeroWaste = m; return true; } return false; });
+  }
+  groups.push({ id:'feedchallenges', icon:'🎯', title: L('Défis de nourrissage','Feeding challenges'),
+    steps: [
+      tStep('frozen_switch','Converti au congelé','Frozen convert','Un animal passe du vivant au décongelé : 3 repas décongelés acceptés d\'affilée après un repas vivant','An animal switches from live to frozen-thawed: 3 frozen-thawed meals in a row after a live one', !!sniper, sniper&&sniper.date, sniper&&sniper.name),
+      tStep('strike_90','Fin du jeûne','Breaking the fast','Un repas après une grève de plus de 90 jours','A meal after a strike of more than 90 days', !!crisis, crisis&&crisis.date, crisis&&crisis.name),
+      tStep('zero_waste_month','Zéro Gâchis','Zero Waste','Un mois complet sans aucun refus ni repas sauté (au moins 4 repas notés dans la collection)','A full month without a single refusal or skipped meal (at least 4 meals logged in the collection)', !!zeroWaste, zeroWaste?zeroWaste+'-01':null, zeroWaste ? statsMonthLabel(zeroWaste, currentLang==='en') : null)
     ] });
   // 📅 Ancienneté
   const firstDates = evAll.map(x=>x.e.date);
@@ -22949,6 +23014,76 @@ function computeTrophyGroups(){
       hidden.push(st);
     }
   }
+  // v4.07 — Le classique : changement d'eau ou excrément noté le jour même ou le lendemain d'un nettoyage complet du même bac/terrarium
+  let classic = null;
+  {
+    const isFull = c=>c && c.date && (c.type==='complete' || c.type==='full');
+    const near = (a,b)=>{ const d = statsDaysBetween(a, b); return d>=0 && d<=1; };
+    const check = (cleanDates, otherDates, label)=>{ cleanDates.forEach(cd=>otherDates.forEach(od=>{ if(near(cd, od) && (!classic || od<classic.date)) classic = { date:od, name:label }; })); };
+    const snakeOther = s=>{ const out = []; ((s.health&&s.health.defecations)||[]).forEach(d=>d && d.date && out.push(d.date)); ((s.health&&s.health.events)||[]).forEach(e=>e && e.type==='water' && e.date && out.push(e.date)); return out; };
+    (racks||[]).forEach(r=>{
+      Object.keys(r.tubCleanings||{}).forEach(key=>{
+        const cl = (r.tubCleanings[key]||[]).filter(isFull).map(c=>c.date); if(!cl.length) return;
+        let other = ((r.tubWaterChanges||{})[key]||[]).filter(x=>x && x.date).map(x=>x.date);
+        const inTub = all.filter(s=>s.placement && s.placement.mode==='rack' && s.placement.rackId===r.id && (s.placement.row+'|'+s.placement.tub)===key);
+        inTub.forEach(s=>{ other = other.concat(snakeOther(s)); });
+        check(cl, other, inTub.length ? inTub.map(s=>s.name).join(', ') : (r.name||''));
+      });
+    });
+    (terrariums||[]).forEach(te=>{
+      const cl = (te.cleanings||[]).filter(isFull).map(c=>c.date); if(!cl.length) return;
+      let other = (te.waterChanges||[]).filter(x=>x && x.date).map(x=>x.date);
+      const inTe = all.filter(s=>s.placement && s.placement.terrariumId===te.id);
+      inTe.forEach(s=>{ other = other.concat(snakeOther(s)); });
+      check(cl, other, inTe.length ? inTe.map(s=>s.name).join(', ') : (te.name||''));
+    });
+  }
+  H('h_classic','Le classique','The classic','Un changement d\'eau ou un excrément noté moins de 24 h après un nettoyage complet du même bac','A water change or poop logged less than 24 h after a full cleaning of the same enclosure', classic, classic&&classic.date, classic&&classic.name);
+  // v4.07 — De l'amour et de l'eau fraîche : un mâle refuse 5 repas d'affilée entre décembre et avril
+  let love = null;
+  all.filter(s=>s.sex==='male').forEach(s=>{
+    const ev = ((s.health&&s.health.events)||[]).filter(e=>e && e.date && (e.type==='fed'||e.type==='refused')).slice().sort((a,b)=>a.date.localeCompare(b.date));
+    let run = 0;
+    ev.forEach(e=>{
+      const m = Number(e.date.slice(5,7));
+      const season = m===12 || m<=4;
+      if(e.type==='refused' && season && e.reason!=='in_shed'){ run++; if(run===5 && (!love || e.date<love.date)) love = { date:e.date, name:s.name }; }
+      else if(e.type==='fed' || !season) run = 0;
+    });
+  });
+  H('h_love','De l\'amour et de l\'eau fraîche','Love and fresh water','Un mâle refuse 5 repas d\'affilée entre décembre et avril','A male refuses 5 meals in a row between December and April', love, love&&love.date, love&&love.name);
+  // v4.07 — L'Odd Breaker, Festival de la saucisse, Pari gagné (pontes)
+  let oddBreak = null, sausage = null, betWon = null;
+  (clutches||[]).forEach(c=>{
+    if(!c || !c.ref) return;
+    const babies = all.filter(s=>s.clutchRef===c.ref && (!s.damId || !c.damId || s.damId===c.damId));
+    const d = String(c.hatchedAt||c.hatchDate||c.layDate||'').slice(0,10) || null;
+    const sire = savedSnakes.find(x=>x.id===c.sireId), dam = savedSnakes.find(x=>x.id===c.damId);
+    const st = (s, gid)=>{ const n = normalizeGeneEntry(s && s.genes ? s.genes[gid] : null); return n; };
+    if(babies.length>=4 && sire && dam){
+      GENES.filter(g=>g.type==='recessive').forEach(g=>{
+        const a = st(sire, g.id), b = st(dam, g.id);
+        if(a.status==='het' && !a.possible && b.status==='het' && !b.possible){
+          const vis = babies.filter(x=>{ const n = st(x, g.id); return n.status==='visual' && !n.possible; }).length;
+          if(vis/babies.length>0.25 && (!oddBreak || (d && (!oddBreak.date || d<oddBreak.date)))) oddBreak = { date:d, name:c.ref+' — '+g.name+' '+vis+'/'+babies.length };
+        }
+      });
+    }
+    if(babies.length>=3 && babies.every(x=>x.sex==='male') && (!sausage || (d && (!sausage.date || d<sausage.date)))) sausage = { date:d, name:c.ref+' — '+babies.length+' ♂' };
+    [sire, dam].forEach(par=>{
+      if(!par || !par.genes) return;
+      Object.keys(par.genes).forEach(gid=>{
+        const g = GENES.find(x=>x.id===gid); if(!g || g.type!=='recessive') return;
+        const n = st(par, gid);
+        const wasPossible = n.possible || (Array.isArray(par.geneticsHistory) && par.geneticsHistory.some(hh=>hh && String(hh.from||'').indexOf(g.name)>=0 && /\d+\s*%|poss|pos\b/i.test(String(hh.from||''))));
+        if(!wasPossible) return;
+        if(babies.some(x=>{ const m = st(x, gid); return m.status==='visual' && !m.possible; }) && (!betWon || (d && (!betWon.date || d<betWon.date)))) betWon = { date:d, name:par.name+' — het '+g.name };
+      });
+    });
+  });
+  H('h_oddbreak','L\'Odd Breaker','The Odds Breaker','Plus de 25 % de bébés visuels récessifs dans une ponte het × het (au moins 4 bébés)','More than 25% visual recessive babies in a het × het clutch (at least 4 babies)', oddBreak, oddBreak&&oddBreak.date, oddBreak&&oddBreak.name);
+  H('h_sausage','Le festival de la saucisse','Sausage fest','Une ponte avec seulement des mâles (au moins 3 bébés)','A clutch with only males (at least 3 babies)', sausage, sausage&&sausage.date, sausage&&sausage.name);
+  H('h_betwon','Pari gagné','Bet won','Un « possible het » (50 %, 66 %…) confirmé par un bébé visuel dans une ponte','A « possible het » (50%, 66%…) confirmed by a visual baby in a clutch', betWon, betWon&&betWon.date, betWon&&betWon.name);
   H('h_twins','Copie conforme','Carbon copy','2 bébés de la même ponte avec exactement la même génétique','2 babies from the same clutch with exactly the same genetics', twins, twins&&twins.date, twins&&twins.name);
   // Tournée parfaite : tous les animaux actifs (au moins 3) nourris le même jour
   let perfect = null;
