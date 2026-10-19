@@ -2214,7 +2214,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.93';
+const APP_VERSION = '2026.09.01.3.94';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4973,6 +4973,7 @@ const CHANGELOG = [
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '🔵 « Refus (mue) » est aussi offert dans « ＋ Entrée passée » et quand tu modifies une entrée (✏️) du journal.',
         '🔵 Nouveau bouton « Refus (mue) » dans la fiche et le Mode Tournée : un seul toucher note le refus avec la raison « En mue » et met l\'animal en mue s\'il ne l\'était pas déjà. Pas d\'alerte, la série de repas réussis est conservée. « En mue » est aussi ajouté aux raisons de refus.',
         '✏️ Modifier le passé : dans le journal d\'une fiche, le crayon ✏️ permet de changer la date d\'une entrée et ce qui s\'est passé (A mangé, Refus, Repas sauté, En mue, A mué), ou de la supprimer. Le bouton « ＋ Entrée passée » ajoute un repas, un refus, une mue ou une pesée à n\'importe quelle date passée, directement depuis la fiche.',
         '⏭ Nouveau « Repas sauté (volontaire) » (fiche et Mode Tournée) : quand tu ne nourris simplement pas, ce n\'est pas un refus. Il remet le compte du prochain repas à zéro, sans alerte, sans fausser le % de refus ni la série de repas réussis.',
@@ -5042,6 +5043,7 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '🔵 « Refused (shed) » is also offered in « ＋ Past entry » and when you edit a journal entry (✏️).',
         '🔵 New « Refused (shed) » button on the record and in Tour Mode: one tap logs the refusal with the reason « In shed » and puts the animal in shed if it wasn\'t already. No alert, the run of successful meals is kept. « In shed » is also added to the refusal reasons.',
         '✏️ Edit the past: in a record\'s journal, the ✏️ pencil lets you change an entry\'s date and what happened (Ate, Refused, Meal skipped, In shed, Shed), or delete it. The « ＋ Past entry » button adds a meal, refusal, shed or weigh-in on any past date, right from the record.',
         '⏭ New « Meal skipped (on purpose) » (record and Tour Mode): when you simply don\'t feed, it\'s not a refusal. It resets the next-meal count, with no alert, without skewing the refusal % or the run of successful meals.',
@@ -12303,8 +12305,12 @@ function recomputeConsecutiveRefusals(s){
   s.health.consecutiveRefusals = n;
 }
 function eventTypeOptionsHtml(current){
-  return EDITABLE_EVENT_TYPES.map(tp=>'<option value="'+tp+'"'+(tp===current?' selected':'')+'>'+eventLabel(tp)+'</option>').join('');
+  // v3.93 — « Refus (mue) » proposé juste après « Refus » (refus + raison « En mue » + en mue)
+  const isEn = currentLang==='en';
+  return EDITABLE_EVENT_TYPES.map(tp=>'<option value="'+tp+'"'+(tp===current?' selected':'')+'>'+eventLabel(tp)+'</option>'+
+    (tp==='refused' ? '<option value="refused_shed"'+(current==='refused_shed'?' selected':'')+'>🔵 '+(isEn?'Refused (shed)':'Refus (mue)')+'</option>' : '')).join('');
 }
+function pseudoEventType(e){ return (e && e.type==='refused' && e.reason==='in_shed') ? 'refused_shed' : (e ? e.type : ''); }
 function pastEventFieldsHtml(type, isEn){
   // champs supplémentaires selon le type (qualité de mue / type de proie / poids)
   const sel = 'width:100%;font-size:16px;padding:10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);margin-bottom:12px;';
@@ -12364,7 +12370,7 @@ function openEditEventModal(id, idx){
     '<p style="font-size:14px;color:var(--ink);margin:0 0 12px;">'+eventLabel(e.type)+' — '+escapeHtml(e.date)+'</p>'+
     '<label style="display:block;font-size:13px;color:var(--ink-dim);margin-bottom:5px;">Date</label>'+
     '<input type="date" id="ee-date" max="'+localTodayStr()+'" value="'+escapeHtml(e.date)+'" style="'+inp+'"/>'+
-    (canType ? '<label style="display:block;font-size:13px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'What happened':'Ce qui s\'est passé')+'</label><select id="ee-type" style="'+inp+'">'+eventTypeOptionsHtml(e.type)+'</select>'
+    (canType ? '<label style="display:block;font-size:13px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'What happened':'Ce qui s\'est passé')+'</label><select id="ee-type" style="'+inp+'">'+eventTypeOptionsHtml(pseudoEventType(e))+'</select>'
       : '<p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 12px;">'+(isEn?'For this kind of entry, only the date can be changed.':'Pour ce genre d\'entrée, seule la date peut être changée.')+'</p>')+
     '<button class="save-btn" style="width:100%;font-size:16px;padding:12px;" onclick="saveEditedEvent(\''+id+'\','+idx+')">'+(isEn?'Save':'Enregistrer')+'</button>'+
     '<button class="sc-btn danger" style="width:100%;font-size:15px;padding:10px;margin-top:10px;" onclick="closeQuickModal(); deleteHealthEvent(\''+id+'\','+idx+')">🗑 '+(isEn?'Delete this entry':'Supprimer cette entrée')+'</button>'
@@ -12378,8 +12384,10 @@ function saveEditedEvent(id, idx){
   const newDate = (document.getElementById('ee-date')||{}).value || e.date;
   if(newDate > localTodayStr()){ showToast(isEn?'The date can\'t be in the future.':'La date ne peut pas être dans le futur.', 'error'); return; }
   const typeEl = document.getElementById('ee-type');
-  const newType = typeEl ? typeEl.value : e.type;
-  if(newDate===e.date && newType===e.type){ closeQuickModal(); return; }
+  const picked = typeEl ? typeEl.value : pseudoEventType(e);
+  if(newDate===e.date && picked===pseudoEventType(e)){ closeQuickModal(); return; }
+  const wantShed = picked==='refused_shed'; // v3.93
+  const newType = wantShed ? 'refused' : picked;
   try{ addHealthTombstone(s, healthEventKey(e)); }catch(err){}
   // pesée/mesure : garder weights/lengths en accord avec la nouvelle date
   if(e.type==='weigh' || e.type==='length'){
@@ -12395,7 +12403,12 @@ function saveEditedEvent(id, idx){
     if(newType!=='refused') delete e.reason;
     e.type = newType;
   }
+  if(newType==='refused'){
+    if(wantShed) e.reason = 'in_shed';
+    else if(e.reason==='in_shed') e.reason = 'unknown';
+  }
   e.date = newDate;
+  if(wantShed && !inShedOnDate(s, newDate)) s.health.events.push({ date:newDate, type:'inshed' });
   recomputeConsecutiveRefusals(s);
   storage.save(savedSnakes);
   closeQuickModal();
@@ -12435,6 +12448,9 @@ function saveAddPastEvent(id){
     s.health.weights.push({ date, value:v });
     s.health.weights.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
     s.health.events.push({ date, type:'weigh', value:v });
+  } else if(type==='refused_shed'){ // v3.93 — refus + en mue (pas de retrait de stock pour une entrée passée)
+    if(!inShedOnDate(s, date)) s.health.events.push({ date, type:'inshed' });
+    s.health.events.push({ date, type:'refused', reason:'in_shed' });
   } else if(EDITABLE_EVENT_TYPES.includes(type)){
     const ev = { date, type };
     if(type==='shed') ev.quality = (document.getElementById('pe-quality')||{}).value || 'complete';
@@ -12444,7 +12460,7 @@ function saveAddPastEvent(id){
   recomputeConsecutiveRefusals(s);
   storage.save(savedSnakes);
   closeQuickModal();
-  showToast('＋ '+eventLabel(type==='weigh'?'weigh':type)+' — '+escapeHtml(date), 'success');
+  showToast('＋ '+(type==='refused_shed' ? '🔵 '+(isEn?'Refused (shed)':'Refus (mue)') : eventLabel(type))+' — '+escapeHtml(date), 'success');
   openLogbook(id);
   try{ renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderSavedList(); }catch(err){}
 }
