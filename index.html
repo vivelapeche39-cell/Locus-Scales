@@ -774,7 +774,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 /* Journal de bord (modale) */
 .sc-btn.accent{border-color:var(--gold);color:var(--gold);}
 .sc-btn.accent:hover{background:var(--gold);color:#1a1409;}
-.modal-overlay{position:fixed;inset:0;background:rgba(10,8,6,.75);z-index:100;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;}
+.modal-overlay{position:fixed;inset:0;background:rgba(10,8,6,.75);z-index:100;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
+#stats-overlay{overscroll-behavior:contain;}
 /* v3.35 — la fenêtre rapide s'ouvre souvent PAR-DESSUS une fiche (compatibilité, image à partager) : elle doit passer devant. */
 #quick-modal-overlay{z-index:110;}
 .modal-panel{background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;max-width:640px;width:100%;padding:24px 26px;box-shadow:var(--shadow);}
@@ -2210,7 +2211,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.88';
+const APP_VERSION = '2026.09.01.3.89';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4969,6 +4970,7 @@ const CHANGELOG = [
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        'Correctif (iPhone) : faire défiler une fenêtre (Configuration, fiche d\'un animal, Statistiques, etc.) faisait aussi défiler la page derrière, et on ne pouvait pas atteindre le bas. La page de fond reste maintenant immobile tant qu\'une fenêtre est ouverte, puis revient exactement où elle était.',
         '📊 Statistiques réorganisées en sous-onglets : Chiffres clés, Trophées, Graphiques, Par animal. Le coût de nourriture est maintenant détaillé par sorte de proie (rat, souris, gerbille, grillon, verdure…), au total et sur 30 jours.',
         '🏆 Les jalons deviennent des Trophées, par étapes : chaque trophée montre ton niveau et la prochaine étape; touche-le pour voir toutes ses étapes. Repas notés : 1, 50, 75, 100, 150, 200, 250, 300, 400, 500 (puis 750 et 1000). Nouveau : 🔥 repas réussis d\'affilée sans refus (5 à 50), avec le record de ta collection et la série de chaque animal (en cours / record) dans Par animal. Suivi du poids sur 3 mois, 6 mois et 1 an; ancienneté 1, 2, 3 et 5 ans.',
         '📈 Graphiques : ⭐ pour mettre un graphique en haut, 🙈 pour masquer ceux que tu ne veux pas voir (réaffichables en bas). Gardé sur cet appareil.',
@@ -5027,6 +5029,7 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        'Fix (iPhone): scrolling a window (Settings, an animal\'s record, Statistics, etc.) also scrolled the page behind it, and you couldn\'t reach the bottom. The page behind now stays still while a window is open, then returns exactly where it was.',
         '📊 Statistics reorganized into sub-tabs: Key numbers, Trophies, Charts, Per animal. Feeding cost is now broken down by prey kind (rat, mouse, gerbil, cricket, greens…), in total and over 30 days.',
         '🏆 Milestones become Trophies, in steps: each trophy shows your level and the next step; tap it to see all its steps. Meals logged: 1, 50, 75, 100, 150, 200, 250, 300, 400, 500 (then 750 and 1000). New: 🔥 meals in a row without refusal (5 to 50), with your collection\'s record and each animal\'s run (current / record) in Per animal. Weight tracked for 3 months, 6 months and 1 year; 1, 2, 3 and 5 years of tracking.',
         '📈 Charts: ⭐ to put a chart at the top, 🙈 to hide the ones you don\'t want to see (they can be shown again at the bottom). Kept on this device.',
@@ -23540,6 +23543,39 @@ function closeQuickModal(){
   document.getElementById('quick-modal-overlay').style.display = 'none';
 }
 document.getElementById('quick-modal-overlay').addEventListener('click', (e)=>{ if(e.target.id==='quick-modal-overlay') closeQuickModal(); });
+
+// v3.89 — Sur iPhone, faire défiler une fenêtre (Configuration, fiche, Statistiques…) faisait aussi
+// défiler la page derrière, et on ne pouvait pas atteindre le bas de la fenêtre. On fige la page de
+// fond tant qu'au moins une fenêtre est ouverte (technique position:fixed, la seule fiable sur Safari
+// iOS), puis on la remet exactement où elle était. Un seul observateur pour toutes les fenêtres.
+var _pageScrollLockY = null;
+function anyOverlayOpen(){
+  const els = document.querySelectorAll('.modal-overlay, #stats-overlay, #app-menu-overlay');
+  for(const el of els){
+    if(el.id==='app-menu-overlay'){ if(el.classList.contains('open')) return true; continue; }
+    if(el.style.display && el.style.display!=='none') return true;
+  }
+  return false;
+}
+function updatePageScrollLock(){
+  const open = anyOverlayOpen();
+  const b = document.body;
+  if(open && _pageScrollLockY===null){
+    _pageScrollLockY = window.scrollY || window.pageYOffset || 0;
+    b.style.position = 'fixed'; b.style.top = (-_pageScrollLockY)+'px'; b.style.left = '0'; b.style.right = '0'; b.style.width = '100%';
+  } else if(!open && _pageScrollLockY!==null){
+    const y = _pageScrollLockY;
+    _pageScrollLockY = null;
+    b.style.position = ''; b.style.top = ''; b.style.left = ''; b.style.right = ''; b.style.width = '';
+    window.scrollTo(0, y);
+  }
+}
+(function initPageScrollLock(){
+  try{
+    const obs = new MutationObserver(function(){ updatePageScrollLock(); });
+    document.querySelectorAll('.modal-overlay, #stats-overlay, #app-menu-overlay').forEach(el=>obs.observe(el, { attributes:true, attributeFilter:['style','class'] }));
+  }catch(e){}
+})();
 
 /* ==================== Notifications discrètes (toast) ==================== */
 // Remplace progressivement les alert() de confirmation par un feedback visuel non-bloquant.
