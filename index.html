@@ -2204,7 +2204,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.80';
+const APP_VERSION = '2026.09.01.3.81';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4417,6 +4417,7 @@ const CHANGELOG = [
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        'Correctif : sur iPhone, les paramètres d\'élevage de la fiche (côté chaud, côté froid, humidité, notes) pouvaient ne pas s\'enregistrer si tu fermais la fiche avec le clavier encore ouvert. Ils s\'enregistrent maintenant pendant que tu écris, avec un « ✓ Enregistré » pour confirmer.',
         'Correctif : pendant une pesée en lot dans le Mode Tournée, si l\'écran se barrait ou si tu sortais de l\'app en plein milieu, la pesée des reptiles suivants pouvait ne pas s\'enregistrer (même si le message « pesé » apparaissait). Chaque pesée est maintenant enregistrée sur la bonne fiche.',
         '🤚 Délai de manipulation après un repas : la fiche et le Mode Tournée affichent « encore X h » pendant la digestion (48 h par défaut, réglable à 24, 72 h ou désactivé dans Configuration). L\'heure exacte du repas est maintenant enregistrée.',
         '💩 Selles : nouvelle pastille dans l\'entretien de Racks & Terrariums (plusieurs bacs ou terrariums d\'un coup, notée sur l\'animal qui y vit), et bouton en un toucher sur la fiche avec « Dernières selles : il y a X j ». Le journal de défécation suit aussi maintenant entre tes appareils.',
@@ -4462,6 +4463,7 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        'Fix: on iPhone, the record\'s care parameters (warm side, cool side, humidity, notes) could fail to save if you closed the record with the keyboard still open. They now save as you type, with a « ✓ Saved » confirmation.',
         'Fix: during a batch weigh-in in Tour Mode, if the screen locked or you left the app midway, the next reptiles\' weights could fail to save (even though the « weighed » message appeared). Each weigh-in is now saved on the right record.',
         '🤚 Handling wait after a meal: the record and Tour Mode show « X h left » while digesting (48 h by default, set it to 24, 72 h or off in Settings). The exact time of the meal is now saved.',
         '💩 Poop: new pill in Racks & Enclosures maintenance (several tubs or enclosures at once, logged on the animal living there), and a one-tap button on the record with « Last poop: X d ago ». The defecation log now also syncs between your devices.',
@@ -10667,14 +10669,15 @@ function openLogbook(id){
       ) : '')+
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">'+
         '<label style="flex:1;min-width:110px;"><span style="font-size:10.5px;color:var(--ink-dim);display:block;margin-bottom:4px;">'+(currentLang==='en'?'Warm side (°C)':'Côté chaud (°C)')+'</span>'+
-          '<input type="number" step="0.5" style="width:100%;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" value="'+(s.careParams.tempWarm??'')+'" onchange="setCareParam(\''+id+'\',\'tempWarm\',this.value)"/></label>'+
+          '<input type="number" step="0.5" style="width:100%;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" value="'+(s.careParams.tempWarm??'')+'" oninput="setCareParamSoon(\''+id+'\',\'tempWarm\',this.value)" onchange="setCareParam(\''+id+'\',\'tempWarm\',this.value)"/></label>'+
         '<label style="flex:1;min-width:110px;"><span style="font-size:10.5px;color:var(--ink-dim);display:block;margin-bottom:4px;">'+(currentLang==='en'?'Cool side (°C)':'Côté froid (°C)')+'</span>'+
-          '<input type="number" step="0.5" style="width:100%;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" value="'+(s.careParams.tempCool??'')+'" onchange="setCareParam(\''+id+'\',\'tempCool\',this.value)"/></label>'+
+          '<input type="number" step="0.5" style="width:100%;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" value="'+(s.careParams.tempCool??'')+'" oninput="setCareParamSoon(\''+id+'\',\'tempCool\',this.value)" onchange="setCareParam(\''+id+'\',\'tempCool\',this.value)"/></label>'+
         '<label style="flex:1;min-width:110px;"><span style="font-size:10.5px;color:var(--ink-dim);display:block;margin-bottom:4px;">'+(currentLang==='en'?'Humidity (%)':'Humidité (%)')+'</span>'+
-          '<input type="number" step="1" style="width:100%;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" value="'+(s.careParams.humidity??'')+'" onchange="setCareParam(\''+id+'\',\'humidity\',this.value)"/></label>'+
+          '<input type="number" step="1" style="width:100%;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" value="'+(s.careParams.humidity??'')+'" oninput="setCareParamSoon(\''+id+'\',\'humidity\',this.value)" onchange="setCareParam(\''+id+'\',\'humidity\',this.value)"/></label>'+
       '</div>'+
       '<label><span style="font-size:10.5px;color:var(--ink-dim);display:block;margin-bottom:4px;">'+(currentLang==='en'?'Cycle / notes (photoperiod, seasonal changes...)':'Cycle / notes (photopériode, variations saisonnières...)')+'</span>'+
-        '<textarea rows="2" style="width:100%;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:\'Courier New\',monospace;resize:vertical;" onchange="setCareParam(\''+id+'\',\'cycleNotes\',this.value)">'+escapeHtml(s.careParams.cycleNotes||'')+'</textarea></label>'+
+        '<textarea rows="2" style="width:100%;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:\'Courier New\',monospace;resize:vertical;" oninput="setCareParamSoon(\''+id+'\',\'cycleNotes\',this.value)" onchange="setCareParam(\''+id+'\',\'cycleNotes\',this.value)">'+escapeHtml(s.careParams.cycleNotes||'')+'</textarea></label>'+
+      '<div id="care-saved-'+id+'" style="font-size:11.5px;color:var(--ink-dim);margin-top:6px;">'+(currentLang==='en'?'Saved automatically as you type — no button needed.':'Enregistré automatiquement pendant que tu écris — pas besoin de bouton.')+'</div>'+
     '</div>'+
     '<div class="modal-section"><h3>'+t('quarantineTitle')+'</h3>'+
       (function(){
@@ -16756,6 +16759,28 @@ function setCareParam(id, field, value){
     s.careParams[field] = (value==='' || isNaN(n)) ? null : n;
   }
   storage.save(savedSnakes);
+  flashCareSaved(id);
+}
+// v3.80 — Safari iOS ne déclenche pas toujours « change » si on ferme la fiche avec le clavier encore
+// ouvert sur la case → valeurs jamais enregistrées. On enregistre aussi pendant la frappe (après 500 ms).
+var _careParamTimers = {};
+function setCareParamSoon(id, field, value){
+  const k = id+'|'+field;
+  clearTimeout(_careParamTimers[k]);
+  _careParamTimers[k] = setTimeout(function(){ delete _careParamTimers[k]; setCareParam(id, field, value); }, 500);
+}
+var _careSavedTimers = {};
+function flashCareSaved(id){
+  const el = document.getElementById('care-saved-'+id);
+  if(!el) return;
+  const isEn = currentLang==='en';
+  el.textContent = '✓ '+(isEn?'Saved':'Enregistré');
+  el.style.color = 'var(--sage)';
+  clearTimeout(_careSavedTimers[id]);
+  _careSavedTimers[id] = setTimeout(function(){
+    el.textContent = isEn?'Saved automatically as you type — no button needed.':'Enregistré automatiquement pendant que tu écris — pas besoin de bouton.';
+    el.style.color = 'var(--ink-dim)';
+  }, 2000);
 }
 
 function showSubtab(sub){
