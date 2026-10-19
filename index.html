@@ -1502,6 +1502,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <input type="number" id="feeder-stock-live-qty" min="0" placeholder="0" class="price-input" style="width:70px;"/>
         <button class="sc-btn accent" onclick="setFeederStockLive()" data-i18n="feederStockLiveSetBtn">Régler le stock vivant</button>
       </div>
+      <div id="feeder-price-section" style="margin-top:26px;"></div>
     </div>
 
     <div id="sub-rongeurs" style="display:none;">
@@ -2120,6 +2121,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <button class="modal-close" onclick="closeAppMenu()" aria-label="Fermer le menu">×</button>
     </div>
     <button class="app-menu-item" onclick="closeAppMenu(); openProfileModal();"><span>👤</span> <span data-i18n="menuProfile">Mon profil</span></button>
+    <button class="app-menu-item" onclick="closeAppMenu(); openStatsView();"><span>📊</span> <span data-i18n="menuStats">Statistiques</span></button>
     <button class="app-menu-item" onclick="closeAppMenu(); openHelpSearchModal();"><span>🔍</span> <span data-i18n="menuHelpSearch">Recherche dans l'aide</span></button>
     <button class="app-menu-item" onclick="closeAppMenu(); openAnnouncementsModal();"><span>📢</span> <span data-i18n="menuAnnouncements">Annonces</span><span id="badge-announcements" class="menu-badge" style="display:none;">●</span></button>
     <button class="app-menu-item" onclick="closeAppMenu(); openChangelogModal();"><span>📋</span> <span data-i18n="menuChangelog">Notes de mise à jour</span><span id="badge-changelog" class="menu-badge" style="display:none;">●</span></button>
@@ -2148,6 +2150,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
     <button class="save-btn" style="margin-top:16px;width:100%;" onclick="submitBugReport()" data-i18n="bugReportSubmitBtn">Envoyer</button>
   </div>
 </div>
+
+<div id="stats-overlay" role="dialog" aria-modal="true" aria-label="Statistiques" style="display:none;position:fixed;inset:0;z-index:120;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
 
 <div id="toast-stack" class="toast-stack"></div>
 
@@ -2206,7 +2210,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.85';
+const APP_VERSION = '2026.09.01.3.86';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4314,6 +4318,7 @@ const storage = {
     }
     updateStorageBanner();
     if(typeof mirrorSnakesRemote==='function') mirrorSnakesRemote();
+    if(typeof scheduleMilestoneCheck==='function') scheduleMilestoneCheck(); // v3.86 — jalons (annonce discrète)
   }
 };
 
@@ -4964,6 +4969,9 @@ const CHANGELOG = [
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '📊 Statistiques (menu ☰) : tout ce qui se mesure dans ta collection au même endroit — chiffres clés (animaux, repas, refus, pesées, mues, coût de nourriture, pontes, ventes), graphiques (repas et refus par mois, coût de nourriture par mois, courbe de poids de chaque animal, mues par mois, taille de la collection, reproduction par année, ventes par mois) et un tableau par animal (intervalle moyen entre les repas et les mues, croissance en g/mois, coût). Touche une barre ou un point pour lire sa valeur; « Voir les données » affiche le tableau. Gratuit.',
+        '🏆 Jalons : premier repas, 100e et 500e repas, première pesée, croissance suivie 6 mois, première ponte, première éclosion, premier visuel récessif produit chez toi, premier Proven, 3 générations nées chez toi, 1 an de suivi — calculés à partir de ce que tu as déjà noté, avec tes records (ponte la plus riche en gènes, meilleur taux d\'éclosion). Un petit message quand tu en atteins un nouveau, jamais de série à garder ni de rappel.',
+        '💲 Prix unitaires des proies dans Élevage › Nourriture (ex. Rat Small = 3,50 $) : le coût de nourriture de chaque animal se calcule maintenant tout seul selon sa proie. Le « Coût par repas » d\'une fiche reste une exception pour cet animal. Les proies utilisées par tes animaux sans prix sont signalées.',
         '🎪 QR visiteurs pour les shows : dans la fiche, choisis ce que les visiteurs voient (génétique, pedigree parents + grands-parents, résumé des repas et dernier poids, prix demandé si « À vendre ») et imprime une étiquette avec le code QR pour la boîte d\'exposition. Dans Ventes, « Étiquettes de show » imprime une planche pour tous tes animaux à vendre. Ce QR a son propre lien, distinct du lien public; jamais d\'acheteur, de prix d\'achat, d\'emplacement ni de notes. Si ta vitrine est active, la fiche mène aussi à tous tes animaux disponibles.',
         '🕊 Mémorial : nouveau statut « Décédé » dans la fiche (date et note optionnelle). Avant, il fallait supprimer la fiche, ce qui retirait le parent de l\'arbre généalogique de ses bébés. Maintenant rien n\'est supprimé : photos, historique et génétique restent, l\'animal reste dans le pedigree et la consanguinité, son bac ou terrarium est libéré, et il sort des alertes, du Mode Tournée et des accouplements. Retrouve-le avec le filtre « 🕊 Mémorial » dans Mes reptiles.',
         '🛒 Ma vitrine (dans Mon profil) : une page publique avec tes animaux « À vendre » et « Réservé » — photo, génétique, Proven, prix demandé, ta région et les liens de contact que tu choisis (Facebook, Instagram, MorphMarket, site, courriel). À mettre dans ta bio Instagram ou sur Facebook. Jamais affichés : acheteur, prix d\'achat, emplacement dans tes racks, santé. Les ventes se font directement entre vous; LOCUS ne gère ni paiement ni livraison.',
@@ -5015,6 +5023,9 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '📊 Statistics (☰ menu): everything measurable in your collection in one place — key numbers (animals, meals, refusals, weigh-ins, sheds, feeding cost, clutches, sales), charts (meals and refusals per month, feeding cost per month, each animal\'s weight curve, sheds per month, collection size, reproduction per year, sales per month) and a per-animal table (average interval between meals and sheds, growth in g/month, cost). Tap a bar or a point to read its value; « See the data » shows the table. Free.',
+        '🏆 Milestones: first meal, 100th and 500th meal, first weigh-in, growth tracked for 6 months, first clutch, first hatch, first visual recessive produced at home, first Proven, 3 generations born at home, 1 year of tracking — calculated from what you\'ve already recorded, with your records (gene-richest clutch, best hatch rate). A short message when you reach a new one, never a streak to keep or a reminder.',
+        '💲 Prey unit prices in Breeding › Food (e.g. Rat Small = $3.50): each animal\'s feeding cost is now calculated automatically from its prey. A record\'s « Cost per meal » stays an exception for that animal. Prey used by your animals without a price is flagged.',
         '🎪 Visitor QR for reptile shows: on the record, choose what visitors see (genetics, pedigree with parents + grandparents, feeding summary and last weight, asking price if « For sale ») and print a label with the QR code for the display box. In Sales, « Show labels » prints a sheet for all your animals for sale. This QR has its own link, separate from the public link; never a buyer, purchase price, location or notes. If your showcase is active, the page also leads to all your available animals.',
         '🕊 Memorial: new « Deceased » status on the record (date and optional note). Before, you had to delete the record, which removed the parent from its babies\' family tree. Now nothing is deleted: photos, history and genetics stay, the animal stays in the pedigree and inbreeding calculation, its tub or enclosure is freed, and it leaves alerts, Tour Mode and pairings. Find it with the « 🕊 Memorial » filter in My reptiles.',
         '🛒 My showcase (in My profile): a public page with your « For sale » and « Reserved » animals — photo, genetics, Proven, asking price, your region and the contact links you choose (Facebook, Instagram, MorphMarket, website, email). Put it in your Instagram bio or on Facebook. Never shown: buyer, purchase price, location in your racks, health. Sales happen directly between you; LOCUS handles no payment or shipping.',
@@ -5385,6 +5396,7 @@ const I18N = {
     dreamSimBtn: '🔮 Simulateur de rêverie',
     goalPathBtn: '🎯 Chemin optimal',
     menuProfile: 'Mon profil',
+    menuStats: 'Statistiques',
     menuHelpSearch: 'Recherche dans l\'aide',
     menuAnnouncements: 'Annonces',
     menuChangelog: 'Notes de mise à jour',
@@ -5956,6 +5968,7 @@ const I18N = {
     dreamSimBtn: '🔮 Dream Simulator',
     goalPathBtn: '🎯 Optimal Path',
     menuProfile: 'My Profile',
+    menuStats: 'Statistics',
     menuHelpSearch: 'Search help',
     menuAnnouncements: 'Announcements',
     menuChangelog: 'Update Notes',
@@ -11201,8 +11214,15 @@ function openLogbook(id){
         '<button class="sex-btn'+(s.preyType==='live'?' active':'')+'" onclick="setPreyType(\''+id+'\', \'live\')">🐭 '+t('preyTypeLive')+'</button>'+
       '</div>'+
     '</div>'+
-    '<div class="modal-row"><span>'+(isEn?'Cost per meal':'Coût par repas')+'</span><span><input type="number" class="price-input" style="width:70px;" min="0" step="0.25" value="'+(s.feedCost!=null?s.feedCost:'')+'" placeholder="0" onchange="setFeedCost(\''+id+'\', this.value)"/> $</span></div>'+
-    (feedCount(s)>0 ? '<div class="modal-row"><span>'+(isEn?'Cumulative feeding cost (estimate)':'Coût de nourriture cumulé (estimé)')+'</span><span style="color:var(--gold);font-weight:600;">'+cumulativeFeedCost(s).toFixed(2)+' $</span></div>' : '')+
+    (function(){ // v3.86 — le prix vient de Nourriture ; ce champ est une exception pour cet animal
+      const k = s.preySpecies && s.preySize ? feederStockKey(s.preySpecies, s.preySize) : null;
+      const listPrice = (k && feederPrices[k]!=null) ? Number(feederPrices[k]) : null;
+      return '<div class="modal-row"><span>'+(isEn?'Cost per meal — exception':'Coût par repas — exception')+'</span><span><input type="number" class="price-input" style="width:70px;" min="0" step="0.25" value="'+(s.feedCost!=null?s.feedCost:'')+'" placeholder="'+(listPrice!=null?listPrice.toFixed(2):'0')+'" onchange="setFeedCost(\''+id+'\', this.value)"/> $</span></div>'+
+        '<div style="font-size:12px;color:var(--ink-dim);margin:-2px 0 6px;">'+(listPrice!=null
+          ? (isEn?'Leave blank to use the price from Food: ':'Laisse vide pour utiliser le prix de Nourriture : ')+listPrice.toFixed(2)+' $'
+          : (isEn?'No unit price for this prey yet — add it in Breeding › Food.':'Pas encore de prix unitaire pour cette proie — ajoute-le dans Élevage › Nourriture.'))+'</div>';
+    })()+
+    (feedCount(s)>0 && cumulativeFeedCost(s)>0 ? '<div class="modal-row"><span>'+(isEn?'Cumulative feeding cost (estimate)':'Coût de nourriture cumulé (estimé)')+'</span><span style="color:var(--gold);font-weight:600;">'+cumulativeFeedCost(s).toFixed(2)+' $</span></div>' : '')+
     '<div class="modal-section"><h3>'+t('careJournalTourTitle')+'</h3>'+eventsHtml+'</div>'+
     '<div class="modal-section">'+
       '<div class="community-folder'+(helpFolderWasOpen?'':' collapsed')+'" id="'+helpFolderId+'">'+
@@ -12520,10 +12540,11 @@ function saveAppStatePushedAt(ts){
 function loadElevage(){
   try{
     const raw = localStorage.getItem(ELEVAGE_KEY);
-    return raw ? JSON.parse(raw) : { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, feederStockLive:{}, todos:[], rodentBins:[], rodentExpenses:[], rodentValuePerUnit:null, rodentPriorityBins:{}, rodentRacks:[{id:'rrack_1', name:'Rack 1', rows:[8,8]}], rodentGoal:{unit:'females',target:null,mode:'expansion'}, dreamSnakes:[] };
-  }catch(e){ console.warn('LOCUS: lecture élevage impossible', e); return { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, feederStockLive:{}, todos:[], rodentBins:[], rodentExpenses:[], rodentValuePerUnit:null, rodentPriorityBins:{}, rodentRacks:[{id:'rrack_1', name:'Rack 1', rows:[8,8]}], rodentGoal:{unit:'females',target:null,mode:'expansion'}, dreamSnakes:[] }; }
+    return raw ? JSON.parse(raw) : { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, feederStockLive:{}, todos:[], rodentBins:[], rodentExpenses:[], rodentValuePerUnit:null, feederPrices:{}, rodentPriorityBins:{}, rodentRacks:[{id:'rrack_1', name:'Rack 1', rows:[8,8]}], rodentGoal:{unit:'females',target:null,mode:'expansion'}, dreamSnakes:[] };
+  }catch(e){ console.warn('LOCUS: lecture élevage impossible', e); return { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, feederStockLive:{}, todos:[], rodentBins:[], rodentExpenses:[], rodentValuePerUnit:null, feederPrices:{}, rodentPriorityBins:{}, rodentRacks:[{id:'rrack_1', name:'Rack 1', rows:[8,8]}], rodentGoal:{unit:'females',target:null,mode:'expansion'}, dreamSnakes:[] }; }
 }
 function saveElevage(){
+  if(typeof scheduleMilestoneCheck==='function') scheduleMilestoneCheck(); // v3.86
   trackLocalChanges('racks', racks);
   trackLocalChanges('terrariums', terrariums);
   trackLocalChanges('pairings', pairings);
@@ -12531,7 +12552,7 @@ function saveElevage(){
   trackLocalChanges('expenses', expenses);
   trackLocalChanges('customers', customers);
   try{
-    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, feederStockLive, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, rodentPriorityBins, rodentRacks, rodentGoal, dreamSnakes, seasonPlans }));
+    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, feederStockLive, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, feederPrices, rodentPriorityBins, rodentRacks, rodentGoal, dreamSnakes, seasonPlans }));
     storageWriteFailed = false;
   }catch(e){
     console.warn('LOCUS: écriture élevage impossible', e);
@@ -12569,6 +12590,8 @@ var rodentBins = elevageData.rodentBins || [];
 // rongeur transféré, saisie par l'éleveur — sert au calcul de ROI, jamais un prix inventé par LOCUS.
 var rodentExpenses = elevageData.rodentExpenses || [];
 var rodentValuePerUnit = elevageData.rodentValuePerUnit != null ? elevageData.rodentValuePerUnit : null;
+// v3.86 — prix unitaires des proies (Nourriture) : { 'espèce|taille': prix } — synchronisé via app_state.feeder_prices
+var feederPrices = (elevageData.feederPrices && typeof elevageData.feederPrices==='object') ? elevageData.feederPrices : {};
 var rodentPriorityBins = elevageData.rodentPriorityBins || {};
 // Objectif & modes Expansion/Croisière (10 sept, Phase 4) — target:null = pas d'objectif défini,
 // mode par défaut 'expansion' tant qu'aucun objectif n'est atteint. La progression se calcule en
@@ -13531,7 +13554,7 @@ async function pushAllUserData(forceAll){
         else markPushed('customers', [[cu.id, custSig]]);
       }
     }
-    var stRes = await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock, feeder_stock_live: feederStockLive, todos, genetic_ambiguities: geneticAmbiguities, rodent_bins: rodentBins, rodent_expenses: rodentExpenses, rodent_value_per_unit: rodentValuePerUnit, rodent_priority_bins: rodentPriorityBins, rodent_racks: rodentRacks, rodent_goal: rodentGoal, dream_snakes: dreamSnakes, season_plans: seasonPlans });
+    var stRes = await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock, feeder_stock_live: feederStockLive, todos, genetic_ambiguities: geneticAmbiguities, rodent_bins: rodentBins, rodent_expenses: rodentExpenses, rodent_value_per_unit: rodentValuePerUnit, feeder_prices: feederPrices, rodent_priority_bins: rodentPriorityBins, rodent_racks: rodentRacks, rodent_goal: rodentGoal, dream_snakes: dreamSnakes, season_plans: seasonPlans });
     if(stRes && stRes.error){ allOk = false; console.warn('LOCUS: envoi échoué (app_state)', stRes.error); }
     else saveAppStatePushedAt(Date.now());
     var profile = loadProfile();
@@ -13651,6 +13674,7 @@ async function pullAllUserData(){
     if(stateRes.data && stateRes.data.rodent_bins) rodentBins = mergeById(rodentBins, stateRes.data.rodent_bins);
     if(stateRes.data && stateRes.data.rodent_expenses) rodentExpenses = mergeById(rodentExpenses, stateRes.data.rodent_expenses);
     if(stateRes.data && stateRes.data.rodent_value_per_unit!=null && remoteAppStateWins) rodentValuePerUnit = stateRes.data.rodent_value_per_unit;
+    if(stateRes.data && stateRes.data.feeder_prices && typeof stateRes.data.feeder_prices==='object' && remoteAppStateWins) feederPrices = stateRes.data.feeder_prices; // v3.86
     if(stateRes.data && stateRes.data.rodent_priority_bins && remoteAppStateWins) rodentPriorityBins = stateRes.data.rodent_priority_bins;
     if(stateRes.data && stateRes.data.rodent_racks && remoteAppStateWins) rodentRacks = stateRes.data.rodent_racks;
     if(stateRes.data && stateRes.data.rodent_goal && remoteAppStateWins) rodentGoal = stateRes.data.rodent_goal;
@@ -13729,7 +13753,7 @@ function buildBackupPayload(){
   return {
     app:'LOCUS', version:2, exportedAt:new Date().toISOString(),
     snakes: savedSnakes,
-    elevage: { racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, feederStockLive, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, rodentPriorityBins, rodentRacks, rodentGoal, dreamSnakes, seasonPlans }
+    elevage: { racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, feederStockLive, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, feederPrices, rodentPriorityBins, rodentRacks, rodentGoal, dreamSnakes, seasonPlans }
   };
 }
 function lbkOpen(){
@@ -13916,6 +13940,7 @@ function applyBackupData(data){
     rodentBins = el.rodentBins || [];
     rodentExpenses = el.rodentExpenses || [];
     rodentValuePerUnit = el.rodentValuePerUnit != null ? el.rodentValuePerUnit : null;
+    feederPrices = (el.feederPrices && typeof el.feederPrices==='object') ? el.feederPrices : {}; // v3.86
     rodentPriorityBins = el.rodentPriorityBins || {};
     rodentRacks = el.rodentRacks || [];
     rodentGoal = el.rodentGoal || { unit:'females', target:null, mode:'expansion' };
@@ -15082,8 +15107,85 @@ function feedCount(s){
   // peut maintenant inclure plusieurs proies (preyCount), important pour un coût cumulé juste.
   return (s.health && s.health.events) ? s.health.events.filter(e=>e.type==='fed').reduce((sum,e)=>sum+(e.preyCount||1), 0) : 0;
 }
+// v3.86 — coût d'un repas : le « Coût par repas » de la fiche est une EXCEPTION (prioritaire s'il est
+// rempli) ; sinon le prix unitaire de Nourriture selon la proie du repas (stock tiré) ou de l'animal.
+// Retourne null si aucun prix n'est connu (le repas n'est alors pas compté dans les coûts).
+function mealPreyKey(s, e){
+  const d = e && e.stockDraw;
+  const sp = (d && d.species) || (e && e.preySpecies) || (s && s.preySpecies) || null;
+  const sz = (d && d.size) || (e && e.preySize) || (s && s.preySize) || null;
+  return (sp && sz) ? feederStockKey(sp, sz) : null;
+}
+function mealCost(s, e){
+  const n = (e && e.preyCount) || 1;
+  if(s && s.feedCost!=null && s.feedCost!=='' && !isNaN(Number(s.feedCost))) return Number(s.feedCost) * n;
+  const k = mealPreyKey(s, e);
+  const price = (k && feederPrices && feederPrices[k]!=null) ? Number(feederPrices[k]) : null;
+  return (price!=null && !isNaN(price)) ? price * n : null;
+}
 function cumulativeFeedCost(s){
-  return feedCount(s) * (s.feedCost || 0);
+  if(!s || !s.health || !s.health.events) return 0;
+  return s.health.events.filter(e=>e.type==='fed').reduce((sum,e)=>{ const c = mealCost(s, e); return sum + (c!=null ? c : 0); }, 0);
+}
+function renderFeederPriceSection(){
+  const wrap = document.getElementById('feeder-price-section');
+  if(!wrap) return;
+  const isEn = currentLang==='en';
+  const label = key=>{ const [sp,sz] = String(key).split('|'); const pt = PREY_TYPES[sp]; return (pt?pt.icon+' ':'')+escapeHtml(sz||'')+' '+escapeHtml(pt?(isEn?pt.labelEn:pt.labelFr):sp); };
+  const entries = Object.entries(feederPrices||{}).filter(([k,v])=>v!=null && v!=='').sort((a,b)=>a[0].localeCompare(b[0]));
+  // proies utilisées par tes animaux qui n'ont pas encore de prix
+  const used = new Set();
+  savedSnakes.forEach(s=>{ if(isActiveSnake(s) && s.preySpecies && s.preySize) used.add(feederStockKey(s.preySpecies, s.preySize)); });
+  const missing = [...used].filter(k=>feederPrices[k]==null);
+  const species = preyTypesInCollection();
+  const selStyle = 'background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-size:15px;padding:8px;';
+  wrap.innerHTML =
+    '<div class="results-hdr"><h2 style="font-size:16px;">💲 '+(isEn?'Unit prices of prey':'Prix unitaires des proies')+'</h2></div>'+
+    '<p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 10px;line-height:1.5;">'+(isEn
+      ? 'The price of one prey, by kind and size. Used for each animal\'s feeding cost and the Statistics. A « Cost per meal » entered on a record stays an exception for that animal.'
+      : 'Le prix d\'une proie, par sorte et par taille. Sert au coût de nourriture de chaque animal et aux Statistiques. Un « Coût par repas » entré dans une fiche reste une exception pour cet animal.')+'</p>'+
+    (entries.length ? entries.map(([k,v])=>
+      '<div class="expense-cat-row" style="font-size:15px;">'+
+        '<div class="expense-cat-label">'+label(k)+'</div>'+
+        '<div style="display:flex;align-items:center;gap:8px;">'+
+          '<span style="font-weight:600;color:var(--gold);">'+Number(v).toFixed(2)+' $</span>'+
+          '<button class="sc-btn" style="padding:4px 10px;" onclick="removeFeederPrice(\''+escapeHtml(k)+'\')" aria-label="'+(isEn?'Remove':'Retirer')+'">✕</button>'+
+        '</div></div>').join('')
+      : '<div class="empty">'+(isEn?'No price entered yet.':'Aucun prix entré pour l\'instant.')+'</div>')+
+    (missing.length ? '<div style="font-size:13px;color:var(--gold);margin:10px 0 0;">⚠ '+(isEn?'Prey used by your animals without a price: ':'Proies utilisées par tes animaux sans prix : ')+missing.map(label).join(', ')+'</div>' : '')+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;align-items:center;">'+
+      '<select id="feeder-price-species" onchange="renderFeederPriceSizeOptions()" style="'+selStyle+'">'+species.map(k=>'<option value="'+k+'">'+PREY_TYPES[k].icon+' '+(isEn?PREY_TYPES[k].labelEn:PREY_TYPES[k].labelFr)+'</option>').join('')+'</select>'+
+      '<select id="feeder-price-size" style="'+selStyle+'"></select>'+
+      '<input type="number" id="feeder-price-input" min="0" step="0.05" placeholder="0.00" class="price-input" style="width:90px;font-size:16px;padding:8px;"/>'+
+      '<span style="color:var(--ink-dim);">$</span>'+
+      '<button class="sc-btn accent" style="font-size:14px;padding:9px 12px;" onclick="setFeederPrice()">'+(isEn?'Save price':'Enregistrer le prix')+'</button>'+
+    '</div>';
+  renderFeederPriceSizeOptions();
+}
+function renderFeederPriceSizeOptions(){
+  const sp = document.getElementById('feeder-price-species');
+  const sz = document.getElementById('feeder-price-size');
+  if(!sp || !sz) return;
+  const pt = PREY_TYPES[sp.value];
+  sz.innerHTML = pt ? pt.sizes.map(x=>'<option value="'+escapeHtml(x)+'">'+escapeHtml(x)+'</option>').join('') : '';
+}
+function setFeederPrice(){
+  const isEn = currentLang==='en';
+  const sp = (document.getElementById('feeder-price-species')||{}).value;
+  const sz = (document.getElementById('feeder-price-size')||{}).value;
+  const val = parseFloat((document.getElementById('feeder-price-input')||{}).value);
+  if(!sp || !sz || !PREY_TYPES[sp]){ showToast(isEn?'Choose a prey and a size.':'Choisis une proie et une taille.', 'error'); return; }
+  if(isNaN(val) || val<0 || val>1000){ showToast(isEn?'Enter a valid price.':'Entre un prix valide.', 'error'); return; }
+  feederPrices[feederStockKey(sp, sz)] = Math.round(val*100)/100;
+  saveElevage();
+  renderFeederPriceSection();
+  showToast('💲 '+(isEn?'Price saved.':'Prix enregistré.'), 'success');
+}
+function removeFeederPrice(key){
+  if(!feederPrices || !(key in feederPrices)) return;
+  delete feederPrices[key];
+  saveElevage();
+  renderFeederPriceSection();
 }
 function setFeedCost(id, value){
   const s = savedSnakes.find(x=>x.id===id);
@@ -15292,6 +15394,7 @@ function renderFoodView(){
   renderFeederStockLiveList();
   renderFeederStockLiveSpeciesOptions();
   renderFeederStockLiveSizeOptions();
+  try{ renderFeederPriceSection(); }catch(e){ console.warn('LOCUS: prix unitaires', e); } // v3.86
 }
 
 /* v3.21 (8 oct) — Liste de décongélation séparée en deux (congelé à sortir / vivant à prévoir),
@@ -21820,6 +21923,444 @@ function setListingStatus(id, status){
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
   showToast(saleStatusLabel(status)+' — '+s.name+' — '+(currentLang==='en'?'updated.':'mis à jour.'), 'success');
 }
+// ==================== Statistiques — centre de données (v3.86) ====================
+// Décisions du 19 oct : gratuit ; tout ce qui se mesure au même endroit (menu ☰ › Statistiques) ;
+// jalons calculés rétroactivement depuis les données existantes, sans série ni urgence de se connecter.
+// Graphiques en SVG maison (aucune librairie). Palette validée (validate_palette.js, surface #161210,
+// mode sombre — l'app est toujours sombre) : bleu #3987e5, orange #d95926, aqua #199e70 — chaque
+// couleur suit toujours la même chose (repas = bleu, refus = orange, mues/éclosions = aqua).
+var STATS_COLORS = { blue:'#3987e5', orange:'#d95926', aqua:'#199e70' };
+function statsMonthNames(isEn){
+  return isEn ? ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+              : ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+}
+function statsLastMonths(n){
+  const out = [];
+  const d = new Date(); d.setDate(1);
+  for(let i=n-1;i>=0;i--){
+    const x = new Date(d.getFullYear(), d.getMonth()-i, 1);
+    out.push(x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0'));
+  }
+  return out;
+}
+function statsMonthLabel(ym, isEn){
+  const [y,m] = ym.split('-');
+  return statsMonthNames(isEn)[Number(m)-1]+' '+String(y).slice(2);
+}
+function statsDaysBetween(a, b){ return Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00'))/86400000); }
+function statsFmtMoney(v){ return (Math.round(v*100)/100).toFixed(2)+' $'; }
+function statsAllSnakes(){ return savedSnakes.filter(s=>!s.isSample); }
+function statsEvents(type, includeArchived){
+  const out = [];
+  statsAllSnakes().forEach(s=>{
+    if(!includeArchived && !isActiveSnake(s)) return;
+    ((s.health&&s.health.events)||[]).forEach(e=>{ if(e && e.type===type && e.date) out.push({ s, e }); });
+  });
+  return out.sort((a,b)=>String(a.e.date).localeCompare(String(b.e.date)));
+}
+
+// ---- Graphiques SVG ----
+// Barres groupées : 2px d'écart entre barres, bouts arrondis de 4px ancrés à la ligne de base, cibles de
+// survol plus grandes que les barres (une colonne invisible par catégorie), lecture dans une ligne au-dessus.
+function statsBarChart(o){
+  const W = 480, H = o.height || 230, padL = 46, padR = 8, padT = 12, padB = 34;
+  const cats = o.categories, series = o.series;
+  const maxV = Math.max(1, ...series.flatMap(s=>s.values.map(v=>v||0)));
+  const niceMax = (function(m){ const p = Math.pow(10, Math.floor(Math.log10(m))); const c = [1,2,2.5,5,10].map(x=>x*p).find(x=>x>=m); return c||m; })(maxV);
+  const plotW = W-padL-padR, plotH = H-padT-padB;
+  const groupW = plotW / cats.length;
+  const gap = 2, inner = Math.max(4, groupW*0.72);
+  const barW = Math.max(2, (inner - gap*(series.length-1)) / series.length);
+  const y = v=> padT + plotH - (v/niceMax)*plotH;
+  let svg = '<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="'+escapeHtml(o.title||'')+'" style="display:block;overflow:visible;">';
+  for(let i=0;i<=4;i++){
+    const v = niceMax*i/4, yy = y(v);
+    svg += '<line x1="'+padL+'" x2="'+(W-padR)+'" y1="'+yy+'" y2="'+yy+'" stroke="#3A3025" stroke-width="1"/>'+
+      '<text x="'+(padL-6)+'" y="'+(yy+5)+'" text-anchor="end" font-size="14" fill="#B8A98C">'+escapeHtml(o.fmt ? o.fmt(v, true) : String(Math.round(v*10)/10))+'</text>';
+  }
+  const labelEvery = cats.length>8 ? 2 : 1;
+  cats.forEach((c,ci)=>{
+    const gx = padL + ci*groupW + (groupW-inner)/2;
+    series.forEach((s,si)=>{
+      const v = s.values[ci]||0;
+      if(v<=0) return;
+      const x = gx + si*(barW+gap), yTop = y(v), base = padT+plotH, r = Math.min(4, barW/2, base-yTop);
+      svg += '<path d="M'+x+','+base+' V'+(yTop+r)+' Q'+x+','+yTop+' '+(x+r)+','+yTop+' H'+(x+barW-r)+' Q'+(x+barW)+','+yTop+' '+(x+barW)+','+(yTop+r)+' V'+base+' Z" fill="'+s.color+'"/>';
+    });
+    if(ci%labelEvery===0) svg += '<text x="'+(padL+ci*groupW+groupW/2)+'" y="'+(H-10)+'" text-anchor="middle" font-size="14" fill="#B8A98C">'+escapeHtml(c.label)+'</text>';
+    const tip = c.label+' — '+series.map(s=>s.name+' : '+(o.fmt ? o.fmt(s.values[ci]||0) : (s.values[ci]||0))).join(' · ');
+    svg += '<rect x="'+(padL+ci*groupW)+'" y="'+padT+'" width="'+groupW+'" height="'+plotH+'" fill="transparent" data-tip="'+escapeHtml(tip)+'" style="cursor:pointer;"/>';
+  });
+  svg += '<line x1="'+padL+'" x2="'+(W-padR)+'" y1="'+(padT+plotH)+'" y2="'+(padT+plotH)+'" stroke="#B8A98C" stroke-width="1"/></svg>';
+  return statsChartFrame(o, svg, cats.map((c,ci)=>[c.label].concat(series.map(s=> o.fmt ? o.fmt(s.values[ci]||0) : (s.values[ci]||0)))), ['' ].concat(series.map(s=>s.name)));
+}
+// Courbe : trait de 2px, marqueurs de 8px avec anneau de la couleur du fond, axe du temps à l'échelle.
+function statsLineChart(o){
+  const W = 480, H = o.height || 230, padL = 52, padR = 12, padT = 14, padB = 34;
+  const pts = o.points.filter(p=>p && p.date && p.value!=null && !isNaN(p.value)).sort((a,b)=>a.date.localeCompare(b.date));
+  if(pts.length<2) return statsChartFrame(o, '<div style="font-size:15px;color:var(--ink-dim);padding:14px 0;">'+escapeHtml(o.empty||'')+'</div>', pts.map(p=>[p.date, o.fmt?o.fmt(p.value):p.value]), [o.xName||'', o.yName||'']);
+  const t0 = new Date(pts[0].date+'T00:00:00').getTime(), t1 = new Date(pts[pts.length-1].date+'T00:00:00').getTime();
+  const span = Math.max(1, t1-t0);
+  let minV = Math.min(...pts.map(p=>p.value)), maxV = Math.max(...pts.map(p=>p.value));
+  if(o.zero) minV = 0;
+  const pad = (maxV-minV)*0.12 || Math.max(1, maxV*0.1);
+  minV = o.zero ? 0 : Math.max(0, minV-pad); maxV = maxV+pad;
+  const plotW = W-padL-padR, plotH = H-padT-padB;
+  const X = d=> padL + ((new Date(d+'T00:00:00').getTime()-t0)/span)*plotW;
+  const Y = v=> padT + plotH - ((v-minV)/(maxV-minV))*plotH;
+  let svg = '<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="'+escapeHtml(o.title||'')+'" style="display:block;overflow:visible;">';
+  for(let i=0;i<=4;i++){
+    const v = minV + (maxV-minV)*i/4, yy = Y(v);
+    svg += '<line x1="'+padL+'" x2="'+(W-padR)+'" y1="'+yy+'" y2="'+yy+'" stroke="#3A3025" stroke-width="1"/>'+
+      '<text x="'+(padL-6)+'" y="'+(yy+5)+'" text-anchor="end" font-size="14" fill="#B8A98C">'+escapeHtml(o.fmt ? o.fmt(v, true) : String(Math.round(v)))+'</text>';
+  }
+  svg += '<text x="'+padL+'" y="'+(H-10)+'" text-anchor="start" font-size="14" fill="#B8A98C">'+escapeHtml(pts[0].date)+'</text>'+
+         '<text x="'+(W-padR)+'" y="'+(H-10)+'" text-anchor="end" font-size="14" fill="#B8A98C">'+escapeHtml(pts[pts.length-1].date)+'</text>';
+  svg += '<polyline fill="none" stroke="'+o.color+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="'+pts.map(p=>X(p.date).toFixed(1)+','+Y(p.value).toFixed(1)).join(' ')+'"/>';
+  pts.forEach(p=>{
+    const tip = p.date+' — '+(o.fmt ? o.fmt(p.value) : p.value);
+    svg += '<circle cx="'+X(p.date).toFixed(1)+'" cy="'+Y(p.value).toFixed(1)+'" r="4" fill="'+o.color+'" stroke="#161210" stroke-width="2"/>'+
+           '<circle cx="'+X(p.date).toFixed(1)+'" cy="'+Y(p.value).toFixed(1)+'" r="14" fill="transparent" data-tip="'+escapeHtml(tip)+'" style="cursor:pointer;"/>';
+  });
+  svg += '<line x1="'+padL+'" x2="'+(W-padR)+'" y1="'+(padT+plotH)+'" y2="'+(padT+plotH)+'" stroke="#B8A98C" stroke-width="1"/></svg>';
+  return statsChartFrame(o, svg, pts.map(p=>[p.date, o.fmt?o.fmt(p.value):p.value]), [o.xName||'', o.yName||'']);
+}
+// Cadre commun : titre, légende (seulement si 2 séries ou plus), ligne de lecture au toucher, tableau de données.
+function statsChartFrame(o, svgHtml, rows, header){
+  const isEn = currentLang==='en';
+  const legend = (o.series && o.series.length>1)
+    ? '<div style="display:flex;gap:14px;flex-wrap:wrap;margin:0 0 8px;font-size:14px;color:var(--ink);">'+o.series.map(s=>'<span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:12px;height:12px;border-radius:3px;background:'+s.color+';display:inline-block;"></span>'+escapeHtml(s.name)+'</span>').join('')+'</div>' : '';
+  return '<div class="stats-chart" style="background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px;">'+
+    '<div style="font-size:16px;font-weight:600;color:var(--ink);margin-bottom:4px;">'+escapeHtml(o.title||'')+'</div>'+
+    (o.subtitle ? '<div style="font-size:13px;color:var(--ink-dim);margin-bottom:8px;">'+escapeHtml(o.subtitle)+'</div>' : '')+
+    legend+
+    '<div class="stats-readout" style="min-height:20px;font-size:14px;color:var(--ink);margin-bottom:4px;">'+(isEn?'Tap a bar or a point to read its value.':'Touche une barre ou un point pour lire sa valeur.')+'</div>'+
+    svgHtml+
+    (rows && rows.length ? '<details style="margin-top:8px;"><summary style="font-size:13px;color:var(--ink-dim);cursor:pointer;">'+(isEn?'See the data':'Voir les données')+'</summary>'+
+      '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px;">'+
+        '<tr>'+header.map(x=>'<th style="text-align:left;padding:4px 6px;color:var(--ink-dim);border-bottom:1px solid var(--line);">'+escapeHtml(String(x))+'</th>').join('')+'</tr>'+
+        rows.map(r=>'<tr>'+r.map(x=>'<td style="padding:4px 6px;border-bottom:1px solid var(--line);">'+escapeHtml(String(x))+'</td>').join('')+'</tr>').join('')+
+      '</table></div></details>' : '')+
+  '</div>';
+}
+
+// ---- Calculs ----
+function statsFedByMonth(months){
+  const fed = months.map(()=>0), ref = months.map(()=>0), cost = months.map(()=>0), sheds = months.map(()=>0);
+  statsAllSnakes().forEach(s=>{
+    ((s.health&&s.health.events)||[]).forEach(e=>{
+      if(!e || !e.date) return;
+      const i = months.indexOf(String(e.date).slice(0,7));
+      if(i<0) return;
+      if(e.type==='fed'){ fed[i]++; const c = mealCost(s, e); if(c!=null) cost[i] += c; }
+      else if(e.type==='refused') ref[i]++;
+      else if(e.type==='shed') sheds[i]++;
+    });
+  });
+  return { fed, ref, cost: cost.map(v=>Math.round(v*100)/100), sheds };
+}
+function statsCollectionByMonth(months){
+  return months.map(ym=>{
+    const [y,m] = ym.split('-').map(Number);
+    const end = new Date(y, m, 0, 23, 59, 59).getTime();
+    const endStr = ym+'-31';
+    return statsAllSnakes().filter(s=>{
+      const created = s.createdAt || 0;
+      if(created > end) return false;
+      if(s.status==='sold' && s.soldDate && s.soldDate <= endStr) return false;
+      if(s.status==='deceased' && s.deceasedDate && s.deceasedDate <= endStr) return false;
+      return true;
+    }).length;
+  });
+}
+function statsReproByYear(){
+  const by = {};
+  (clutches||[]).forEach(c=>{
+    if(!c || !c.layDate) return;
+    const y = String(c.layDate).slice(0,4);
+    if(!by[y]) by[y] = { clutches:0, eggs:0, live:0 };
+    by[y].clutches++;
+    by[y].eggs += Number(c.eggCount||0);
+    if(c.hatched) by[y].live += Number(c.liveCount||0);
+  });
+  return Object.keys(by).sort().map(y=>Object.assign({ year:y }, by[y]));
+}
+function statsPerAnimal(){
+  const today = localTodayStr();
+  return statsAllSnakes().filter(isActiveSnake).map(s=>{
+    const ev = (s.health&&s.health.events)||[];
+    const fedDates = ev.filter(e=>e.type==='fed' && e.date).map(e=>e.date).sort();
+    const refused = ev.filter(e=>e.type==='refused').length;
+    const shedDates = ev.filter(e=>e.type==='shed' && e.date).map(e=>e.date).sort();
+    const avgGap = arr=>{ if(arr.length<2) return null; const last = arr.slice(-11); let t=0; for(let i=1;i<last.length;i++) t += statsDaysBetween(last[i-1], last[i]); return Math.round(t/(last.length-1)); };
+    const w = ((s.health&&s.health.weights)||[]).filter(x=>x && x.date && x.value!=null).slice().sort((a,b)=>a.date.localeCompare(b.date));
+    let growth = null;
+    const recent = w.filter(x=>statsDaysBetween(x.date, today)<=120);
+    if(recent.length>=2){ const d = statsDaysBetween(recent[0].date, recent[recent.length-1].date); if(d>=14) growth = Math.round((recent[recent.length-1].value-recent[0].value)/d*30.4); }
+    const total = fedDates.length + refused;
+    return {
+      s, name: s.name, fed: fedDates.length, refused,
+      refusalPct: total ? Math.round(refused/total*100) : null,
+      mealGap: avgGap(fedDates), shedGap: avgGap(shedDates), sheds: shedDates.length,
+      weight: w.length ? w[w.length-1].value : null, growth,
+      cost: cumulativeFeedCost(s)
+    };
+  }).sort((a,b)=>a.name.localeCompare(b.name));
+}
+
+// ---- Jalons ----
+// Liste de départ du 19 oct (à retravailler avec Alex). Rien ne récompense le volume de reproduction :
+// seulement le suivi et la qualité des soins. « Records » = meilleurs résultats de TA collection, jamais
+// une affirmation qu'on ne peut pas vérifier (pas de « world first »).
+function isLocusBorn(s){
+  if(!s) return false;
+  if(s.clutchRef) return true;
+  return !!(s.sireId && s.damId && savedSnakes.some(x=>x.id===s.sireId) && savedSnakes.some(x=>x.id===s.damId));
+}
+function hasVisualRecessive(s){
+  const genes = (s && s.genes) || {};
+  return Object.keys(genes).some(gid=>{
+    const g = (typeof GENES!=='undefined') ? GENES.find(x=>x.id===gid) : null;
+    if(!g || g.type!=='recessive') return false;
+    const n = normalizeGeneEntry(genes[gid]);
+    return n.status==='homo' && !n.possible;
+  });
+}
+function computeMilestones(){
+  const isEn = currentLang==='en';
+  const out = [];
+  const fed = statsEvents('fed', true);
+  [1,100,500,1000].forEach(n=>{
+    out.push({ id:'meal_'+n, icon:'🍽', title: n===1 ? (isEn?'First meal logged':'Premier repas noté') : (isEn?n+'th meal logged':n+'e repas noté'),
+      done: fed.length>=n, date: fed.length>=n ? fed[n-1].e.date : null, progress: Math.min(fed.length, n), goal: n });
+  });
+  const weighs = statsEvents('weigh', true);
+  const firstWeigh = weighs.length ? weighs[0].e.date : (function(){ const all = statsAllSnakes().flatMap(s=>((s.health&&s.health.weights)||[]).map(w=>w.date)).filter(Boolean).sort(); return all[0]||null; })();
+  out.push({ id:'weigh_1', icon:'⚖', title: isEn?'First weigh-in':'Première pesée', done: !!firstWeigh, date: firstWeigh });
+  // Croissance suivie 6 mois sans trou de plus de 45 jours
+  let growthDate = null;
+  statsAllSnakes().forEach(s=>{
+    const ds = ((s.health&&s.health.weights)||[]).map(w=>w.date).filter(Boolean).sort();
+    let start = ds[0];
+    for(let i=1;i<ds.length;i++){
+      if(statsDaysBetween(ds[i-1], ds[i])>45) start = ds[i];
+      if(start && statsDaysBetween(start, ds[i])>=180){ if(!growthDate || ds[i]<growthDate) growthDate = ds[i]; break; }
+    }
+  });
+  out.push({ id:'growth_6m', icon:'📈', title: isEn?'Growth tracked for 6 months (no gap over 45 days)':'Croissance suivie 6 mois (sans trou de plus de 45 jours)', done: !!growthDate, date: growthDate });
+  const cl = (clutches||[]).filter(c=>c && c.layDate).slice().sort((a,b)=>a.layDate.localeCompare(b.layDate));
+  out.push({ id:'clutch_1', icon:'🥚', title: isEn?'First clutch recorded':'Première ponte notée', done: cl.length>0, date: cl.length ? cl[0].layDate : null });
+  const hatchedCl = cl.filter(c=>c.hatched);
+  out.push({ id:'hatch_1', icon:'🐣', title: isEn?'First hatch':'Première éclosion', done: hatchedCl.length>0, date: hatchedCl.length ? (hatchedCl[0].hatchedAt||hatchedCl[0].hatchDate) : null });
+  const born = statsAllSnakes().filter(isLocusBorn);
+  const visRec = born.filter(hasVisualRecessive).sort((a,b)=>String(a.birthDate||'').localeCompare(String(b.birthDate||'')));
+  out.push({ id:'visual_recessive', icon:'🧬', title: isEn?'First visual recessive produced at home':'Premier visuel récessif produit chez toi', done: visRec.length>0, date: visRec.length ? (visRec[0].birthDate||null) : null, detail: visRec.length ? visRec[0].name : null });
+  const proven = statsAllSnakes().filter(isProvenSnake);
+  out.push({ id:'proven_1', icon:'✅', title: isEn?'First Proven animal':'Premier animal Proven', done: proven.length>0, date: null, detail: proven.length ? proven[0].name : null });
+  // 3 générations nées chez toi : un animal né chez toi dont un parent est aussi né chez toi
+  const gen3 = born.filter(s=>{ const p = [s.sireId, s.damId].map(id=>savedSnakes.find(x=>x.id===id)); return p.some(isLocusBorn); }).sort((a,b)=>String(a.birthDate||'').localeCompare(String(b.birthDate||'')));
+  out.push({ id:'gen3', icon:'🌳', title: isEn?'3 generations born at home':'3 générations nées chez toi', done: gen3.length>0, date: gen3.length ? (gen3[0].birthDate||null) : null, detail: gen3.length ? gen3[0].name : null });
+  // 1 an de suivi dans LOCUS
+  const firstDates = statsAllSnakes().flatMap(s=>((s.health&&s.health.events)||[]).map(e=>e.date)).filter(Boolean).sort();
+  const created = statsAllSnakes().map(s=>s.createdAt).filter(Boolean).sort((a,b)=>a-b);
+  let start = firstDates[0] || null;
+  if(created.length){ const c = new Date(created[0]); const cs = c.getFullYear()+'-'+String(c.getMonth()+1).padStart(2,'0')+'-'+String(c.getDate()).padStart(2,'0'); if(!start || cs<start) start = cs; }
+  const days = start ? statsDaysBetween(start, localTodayStr()) : 0;
+  let yearDate = null;
+  if(start && days>=365){ const d = new Date(start+'T00:00:00'); d.setFullYear(d.getFullYear()+1); yearDate = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  out.push({ id:'year_1', icon:'📅', title: isEn?'1 year of tracking in LOCUS':'1 an de suivi dans LOCUS', done: days>=365, date: yearDate, progress: Math.min(days,365), goal: 365 });
+  return out;
+}
+function computeRecords(){
+  const isEn = currentLang==='en';
+  const out = [];
+  // Ponte la plus riche en gènes de ta collection (gènes distincts réunis chez les 2 parents)
+  let best = null;
+  (clutches||[]).forEach(c=>{
+    const sire = savedSnakes.find(x=>x.id===c.sireId), dam = savedSnakes.find(x=>x.id===c.damId);
+    if(!sire && !dam) return;
+    const set = new Set([...Object.keys((sire&&sire.genes)||{}), ...Object.keys((dam&&dam.genes)||{})].filter(g=>!isFreewayKey(g)));
+    if(!best || set.size>best.n) best = { n:set.size, c, sire, dam };
+  });
+  if(best && best.n>0) out.push({ icon:'🧬', title: isEn?'Gene-richest clutch in your collection':'Ponte la plus riche en gènes de ta collection',
+    value: best.n+' '+(isEn?'genes':'gènes'), detail: (best.sire?best.sire.name:'?')+' × '+(best.dam?best.dam.name:'?')+(best.c.layDate?' ('+best.c.layDate+')':'') });
+  // Meilleur rendement : bébés vivants ÷ œufs, femelles avec au moins 2 pontes écloses
+  const byDam = {};
+  (clutches||[]).forEach(c=>{ if(!c.hatched || !c.damId || !c.eggCount) return; (byDam[c.damId] = byDam[c.damId] || []).push(c); });
+  let bestDam = null;
+  Object.keys(byDam).forEach(id=>{
+    const list = byDam[id]; if(list.length<2) return;
+    const eggs = list.reduce((a,c)=>a+Number(c.eggCount||0),0), live = list.reduce((a,c)=>a+Number(c.liveCount||0),0);
+    if(!eggs) return;
+    const r = live/eggs;
+    if(!bestDam || r>bestDam.r) bestDam = { id, r, n:list.length, eggs, live };
+  });
+  if(bestDam){ const d = savedSnakes.find(x=>x.id===bestDam.id);
+    out.push({ icon:'🏅', title: isEn?'Best hatch rate (2+ clutches)':'Meilleur taux d\'éclosion (2 pontes et plus)', value: Math.round(bestDam.r*100)+' %', detail: (d?d.name:'?')+' — '+bestDam.live+'/'+bestDam.eggs+(isEn?' eggs, ':' œufs, ')+bestDam.n+(isEn?' clutches':' pontes') }); }
+  return out;
+}
+var MILESTONES_SEEN_KEY = 'locus_milestones_seen_v1';
+var _milestoneCheckTimer = null;
+// Annonce discrète d'un jalon nouvellement atteint (un seul message, jamais de rappel ni de série).
+// Au tout premier passage, les jalons déjà atteints sont marqués « vus » sans message (rétroactif).
+function scheduleMilestoneCheck(){
+  clearTimeout(_milestoneCheckTimer);
+  _milestoneCheckTimer = setTimeout(function(){
+    try{
+      const done = computeMilestones().filter(m=>m.done);
+      let seen = null;
+      try{ seen = JSON.parse(localStorage.getItem(MILESTONES_SEEN_KEY)||'null'); }catch(e){ seen = null; }
+      const ids = done.map(m=>m.id);
+      if(!Array.isArray(seen)){ try{ localStorage.setItem(MILESTONES_SEEN_KEY, JSON.stringify(ids)); }catch(e){} return; }
+      const fresh = done.filter(m=>!seen.includes(m.id));
+      if(fresh.length){
+        try{ localStorage.setItem(MILESTONES_SEEN_KEY, JSON.stringify([...new Set(seen.concat(ids))])); }catch(e){}
+        showToast('🏆 '+(currentLang==='en'?'Milestone reached: ':'Jalon atteint : ')+fresh.map(m=>m.title).join(' · ')+(currentLang==='en'?' — see ☰ › Statistics.':' — voir ☰ › Statistiques.'), 'success');
+      }
+    }catch(e){}
+  }, 2500);
+}
+
+// ---- Écran ----
+var statsWeightSnakeId = null;
+function openStatsView(){
+  const ov = document.getElementById('stats-overlay');
+  if(!ov) return;
+  savedSnakes.forEach(ensureSnakeMeta);
+  ov.style.display = 'block';
+  renderStatsView();
+  ov.scrollTop = 0;
+}
+function closeStatsView(){ const ov = document.getElementById('stats-overlay'); if(ov){ ov.style.display = 'none'; ov.innerHTML = ''; } }
+function renderStatsView(){
+  const ov = document.getElementById('stats-overlay');
+  if(!ov) return;
+  const isEn = currentLang==='en';
+  const all = statsAllSnakes();
+  const active = all.filter(isActiveSnake);
+  const months = statsLastMonths(12);
+  const mLabels = months.map(m=>({ label: statsMonthLabel(m, isEn) }));
+  const fm = statsFedByMonth(months);
+  const fedAll = statsEvents('fed', true), refAll = statsEvents('refused', true), shedAll = statsEvents('shed', true);
+  const weighCount = all.reduce((a,s)=>a+(((s.health&&s.health.weights)||[]).length),0);
+  const totalCost = all.reduce((a,s)=>a+cumulativeFeedCost(s),0);
+  const cost30 = (function(){ const since = new Date(Date.now()-30*86400000); const ss = since.getFullYear()+'-'+String(since.getMonth()+1).padStart(2,'0')+'-'+String(since.getDate()).padStart(2,'0'); let t=0; all.forEach(s=>((s.health&&s.health.events)||[]).forEach(e=>{ if(e.type==='fed' && e.date>=ss){ const c = mealCost(s,e); if(c!=null) t+=c; } })); return t; })();
+  const mealsNoPrice = fedAll.filter(x=>mealCost(x.s, x.e)==null).length;
+  const repro = statsReproByYear();
+  const reproTot = repro.reduce((a,r)=>({ clutches:a.clutches+r.clutches, eggs:a.eggs+r.eggs, live:a.live+r.live }), { clutches:0, eggs:0, live:0 });
+  const sold = all.filter(s=>s.status==='sold');
+  const salesTotal = sold.reduce((a,s)=>a+(Number(s.soldPrice)||0),0);
+  const refusalPct = (fedAll.length+refAll.length) ? Math.round(refAll.length/(fedAll.length+refAll.length)*100) : null;
+
+  const tile = (icon, label, value, sub)=>'<div style="background:var(--bg-panel);border:1px solid var(--line);border-radius:12px;padding:12px;">'+
+    '<div style="font-size:13px;color:var(--ink-dim);">'+icon+' '+escapeHtml(label)+'</div>'+
+    '<div style="font-size:24px;font-weight:700;color:var(--ink);margin-top:2px;">'+escapeHtml(String(value))+'</div>'+
+    (sub ? '<div style="font-size:12.5px;color:var(--ink-dim);margin-top:2px;">'+escapeHtml(sub)+'</div>' : '')+'</div>';
+  const h2 = txt=>'<h2 style="font-size:19px;color:var(--gold);margin:24px 0 10px;">'+txt+'</h2>';
+
+  let html = '<div style="max-width:880px;margin:0 auto;padding:16px 16px 70px;">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:2;">'+
+      '<h1 style="font-size:24px;color:var(--ink);margin:0;">📊 '+(isEn?'Statistics':'Statistiques')+'</h1>'+
+      '<button class="sc-btn" style="font-size:16px;padding:10px 16px;" onclick="closeStatsView()">✕ '+(isEn?'Close':'Fermer')+'</button>'+
+    '</div>'+
+    '<p style="font-size:13.5px;color:var(--ink-dim);margin:4px 0 0;line-height:1.5;">'+(isEn?'Everything measurable in your collection, calculated from what you\'ve recorded. Nothing to enter here.':'Tout ce qui se mesure dans ta collection, calculé à partir de ce que tu as noté. Rien à entrer ici.')+'</p>';
+
+  // Chiffres clés
+  html += h2(isEn?'Key numbers':'Chiffres clés')+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;">'+
+      tile('🐍', isEn?'Active animals':'Animaux actifs', active.length, (isEn?'Sold: ':'Vendus : ')+sold.length+' · '+(isEn?'Memorial: ':'Mémorial : ')+all.filter(s=>s.status==='deceased').length)+
+      tile('🍽', isEn?'Meals logged':'Repas notés', fedAll.length, (isEn?'Last 30 days: ':'30 derniers jours : ')+fedAll.filter(x=>statsDaysBetween(x.e.date, localTodayStr())<=30).length)+
+      tile('🚫', isEn?'Refusals':'Refus', refAll.length, refusalPct!=null ? (isEn?refusalPct+'% of feeding attempts':refusalPct+' % des tentatives') : '')+
+      tile('⚖', isEn?'Weigh-ins':'Pesées', weighCount, '')+
+      tile('✨', isEn?'Sheds':'Mues', shedAll.length, '')+
+      tile('💲', isEn?'Feeding cost':'Coût de nourriture', statsFmtMoney(totalCost), (isEn?'Last 30 days: ':'30 derniers jours : ')+statsFmtMoney(cost30))+
+      tile('🥚', isEn?'Clutches':'Pontes', reproTot.clutches, reproTot.clutches ? (reproTot.eggs+(isEn?' eggs · ':' œufs · ')+reproTot.live+(isEn?' hatched':' éclos')) : '')+
+      tile('💰', isEn?'Sales':'Ventes', statsFmtMoney(salesTotal), sold.length+(isEn?' animal(s) sold':' animal(aux) vendu(s)'))+
+    '</div>'+
+    (mealsNoPrice ? '<div style="font-size:13px;color:var(--gold);margin-top:8px;">⚠ '+(isEn
+      ? mealsNoPrice+' meal(s) have no known price and aren\'t counted in costs — add unit prices in Breeding › Food.'
+      : mealsNoPrice+' repas n\'ont pas de prix connu et ne sont pas comptés dans les coûts — ajoute les prix unitaires dans Élevage › Nourriture.')+'</div>' : '');
+
+  // Jalons + records
+  const ms = computeMilestones(), recs = computeRecords();
+  html += h2('🏆 '+(isEn?'Milestones':'Jalons')+' <span style="font-size:14px;color:var(--ink-dim);font-weight:400;">'+ms.filter(m=>m.done).length+'/'+ms.length+'</span>')+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;">'+
+    ms.map(m=>'<div style="background:var(--bg-panel);border:1px solid '+(m.done?'var(--gold)':'var(--line)')+';border-radius:12px;padding:12px;'+(m.done?'':'opacity:.6;')+'">'+
+      '<div style="font-size:15px;color:var(--ink);font-weight:600;">'+(m.done?m.icon:'🔒')+' '+escapeHtml(m.title)+'</div>'+
+      '<div style="font-size:13px;color:var(--ink-dim);margin-top:4px;">'+(m.done
+        ? (isEn?'Reached':'Atteint')+(m.date?' — '+escapeHtml(m.date):'')+(m.detail?' — '+escapeHtml(m.detail):'')
+        : (m.goal ? escapeHtml(String(m.progress))+' / '+m.goal : (isEn?'Not yet':'Pas encore')))+'</div>'+
+      (!m.done && m.goal ? '<div style="height:6px;background:var(--bg-panel-2);border-radius:3px;margin-top:6px;overflow:hidden;"><div style="height:100%;width:'+Math.round(m.progress/m.goal*100)+'%;background:var(--gold);"></div></div>' : '')+
+    '</div>').join('')+'</div>'+
+    (recs.length ? '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:10px;">'+recs.map(r=>
+      '<div style="background:var(--bg-panel);border:1px solid var(--line);border-radius:12px;padding:12px;">'+
+        '<div style="font-size:13px;color:var(--ink-dim);">'+r.icon+' '+escapeHtml(r.title)+'</div>'+
+        '<div style="font-size:20px;font-weight:700;color:var(--ink);margin-top:2px;">'+escapeHtml(r.value)+'</div>'+
+        '<div style="font-size:13px;color:var(--ink-dim);">'+escapeHtml(r.detail)+'</div></div>').join('')+'</div>' : '');
+
+  // Graphiques
+  html += h2('📈 '+(isEn?'Charts':'Graphiques'));
+  html += statsBarChart({ title: isEn?'Meals and refusals per month':'Repas et refus par mois', subtitle: isEn?'Last 12 months, whole collection':'12 derniers mois, toute la collection',
+    categories: mLabels, series:[ { name: isEn?'Meals':'Repas', color: STATS_COLORS.blue, values: fm.fed }, { name: isEn?'Refusals':'Refus', color: STATS_COLORS.orange, values: fm.ref } ] });
+  html += statsBarChart({ title: isEn?'Feeding cost per month':'Coût de nourriture par mois', subtitle: mealsNoPrice ? (isEn?'Meals without a known price are not counted':'Les repas sans prix connu ne sont pas comptés') : (isEn?'Last 12 months':'12 derniers mois'),
+    categories: mLabels, series:[ { name: isEn?'Cost':'Coût', color: STATS_COLORS.blue, values: fm.cost } ], fmt:(v, axis)=> axis ? Math.round(v)+' $' : statsFmtMoney(v) });
+  // Poids par animal
+  const withW = all.filter(s=>((s.health&&s.health.weights)||[]).length>0).sort((a,b)=>(isActiveSnake(b)-isActiveSnake(a)) || a.name.localeCompare(b.name));
+  if(!statsWeightSnakeId || !withW.some(s=>s.id===statsWeightSnakeId)) statsWeightSnakeId = withW.length ? withW[0].id : null;
+  const ws = withW.find(s=>s.id===statsWeightSnakeId);
+  html += '<div style="margin-bottom:6px;"><label style="font-size:14px;color:var(--ink-dim);">⚖ '+(isEn?'Weight of: ':'Poids de : ')+
+    '<select onchange="statsWeightSnakeId=this.value; renderStatsView();" style="font-size:16px;padding:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+    (withW.length ? withW.map(s=>'<option value="'+escapeHtml(s.id)+'"'+(s.id===statsWeightSnakeId?' selected':'')+'>'+escapeHtml(s.name)+(isActiveSnake(s)?'':' ('+saleStatusLabel(s.status)+')')+'</option>').join('') : '<option>—</option>')+
+    '</select></label></div>';
+  html += statsLineChart({ title: ws ? (isEn?'Weight — ':'Poids — ')+ws.name : (isEn?'Weight':'Poids'), color: STATS_COLORS.blue,
+    points: ws ? ws.health.weights.map(w=>({ date:w.date, value:Number(w.value) })) : [], fmt:v=>Math.round(v)+' g', xName: isEn?'Date':'Date', yName: isEn?'Weight':'Poids',
+    empty: isEn?'At least 2 weigh-ins are needed to draw a curve.':'Il faut au moins 2 pesées pour tracer une courbe.' });
+  html += statsBarChart({ title: isEn?'Sheds per month':'Mues par mois', subtitle: isEn?'Last 12 months':'12 derniers mois',
+    categories: mLabels, series:[ { name: isEn?'Sheds':'Mues', color: STATS_COLORS.aqua, values: fm.sheds } ] });
+  const months24 = statsLastMonths(24);
+  const coll = statsCollectionByMonth(months24);
+  html += statsLineChart({ title: isEn?'Collection size':'Taille de la collection', subtitle: isEn?'Active animals at the end of each month, last 24 months (based on when they were added to LOCUS)':'Animaux actifs à la fin de chaque mois, 24 derniers mois (selon leur date d\'ajout dans LOCUS)',
+    color: STATS_COLORS.blue, zero:true, points: months24.map((m,i)=>({ date: m+'-01', value: coll[i] })), fmt:v=>String(Math.round(v)), xName: isEn?'Month':'Mois', yName: isEn?'Animals':'Animaux' });
+  if(repro.length){
+    html += statsBarChart({ title: isEn?'Reproduction per year':'Reproduction par année', categories: repro.map(r=>({ label:r.year })),
+      series:[ { name: isEn?'Clutches':'Pontes', color: STATS_COLORS.blue, values: repro.map(r=>r.clutches) }, { name: isEn?'Eggs':'Œufs', color: STATS_COLORS.orange, values: repro.map(r=>r.eggs) }, { name: isEn?'Hatched':'Éclos', color: STATS_COLORS.aqua, values: repro.map(r=>r.live) } ] });
+  } else {
+    html += '<div style="background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px;font-size:15px;color:var(--ink-dim);">🥚 '+(isEn?'Reproduction per year — appears once a clutch is recorded in Incubation.':'Reproduction par année — apparaît dès qu\'une ponte est notée dans Incubation.')+'</div>';
+  }
+  if(sold.length){
+    const salesM = months.map(m=>sold.filter(s=>s.soldDate && s.soldDate.slice(0,7)===m).reduce((a,s)=>a+(Number(s.soldPrice)||0),0));
+    html += statsBarChart({ title: isEn?'Sales per month':'Ventes par mois', subtitle: isEn?'Last 12 months':'12 derniers mois', categories: mLabels,
+      series:[ { name: isEn?'Sales':'Ventes', color: STATS_COLORS.blue, values: salesM } ], fmt:(v, axis)=> axis ? Math.round(v)+' $' : statsFmtMoney(v) });
+  }
+
+  // Tableau par animal
+  const rows = statsPerAnimal();
+  const th = t=>'<th style="text-align:left;padding:8px;color:var(--ink-dim);font-weight:600;border-bottom:1px solid var(--line);white-space:nowrap;">'+t+'</th>';
+  const td = t=>'<td style="padding:8px;border-bottom:1px solid var(--line);white-space:nowrap;">'+t+'</td>';
+  html += h2('🐍 '+(isEn?'Per animal':'Par animal'))+
+    '<div style="font-size:13px;color:var(--ink-dim);margin:-4px 0 8px;">'+(isEn?'Active animals. Average intervals use the last 10 meals or sheds; growth uses the last 120 days.':'Animaux actifs. Les intervalles moyens utilisent les 10 derniers repas ou mues; la croissance utilise les 120 derniers jours.')+'</div>'+
+    (rows.length ? '<div style="overflow-x:auto;background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;"><table style="width:100%;border-collapse:collapse;font-size:14.5px;color:var(--ink);">'+
+      '<tr>'+th(isEn?'Name':'Nom')+th(isEn?'Meals':'Repas')+th(isEn?'Refusals':'Refus')+th(isEn?'Every':'Aux')+th(isEn?'Sheds':'Mues')+th(isEn?'Shed every':'Mue aux')+th(isEn?'Weight':'Poids')+th(isEn?'Growth':'Croissance')+th(isEn?'Food cost':'Coût nourr.')+'</tr>'+
+      rows.map(r=>'<tr>'+
+        td('<a href="javascript:void(0)" onclick="closeStatsView(); openLogbook(\''+escapeHtml(r.s.id)+'\');" style="color:var(--gold);">'+escapeHtml(r.name)+'</a>')+
+        td(r.fed)+td(r.refused+(r.refusalPct!=null?' ('+r.refusalPct+' %)':''))+
+        td(r.mealGap!=null ? r.mealGap+(isEn?' d':' j') : '—')+td(r.sheds)+td(r.shedGap!=null ? r.shedGap+(isEn?' d':' j') : '—')+
+        td(r.weight!=null ? escapeHtml(String(r.weight))+' g' : '—')+
+        td(r.growth!=null ? (r.growth>=0?'+':'')+r.growth+(isEn?' g/mo':' g/mois') : '—')+
+        td(r.cost>0 ? statsFmtMoney(r.cost) : '—')+
+      '</tr>').join('')+'</table></div>'
+      : '<div class="empty">'+(isEn?'No active animal yet.':'Aucun animal actif pour l\'instant.')+'</div>');
+  html += '</div>';
+  ov.innerHTML = html;
+  // Lecture au toucher / survol (une seule ligne par graphique, au-dessus du tracé)
+  ov.querySelectorAll('.stats-chart').forEach(ch=>{
+    const out = ch.querySelector('.stats-readout');
+    const show = ev=>{ const t = ev.target.closest('[data-tip]'); if(t && out) out.textContent = t.getAttribute('data-tip'); };
+    ch.addEventListener('pointerover', show);
+    ch.addEventListener('click', show);
+  });
+}
+
 // ==================== Mémorial — animal décédé (v3.84) ====================
 // Avant : aucun statut « Décédé » — la seule option était de supprimer la fiche, ce qui cassait le
 // pedigree des descendants (parent disparu de l'arbre, consanguinité calculée sur moins de générations).
