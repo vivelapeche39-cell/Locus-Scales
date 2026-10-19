@@ -2214,7 +2214,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.99';
+const APP_VERSION = '2026.09.01.4.00';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -26442,19 +26442,67 @@ function adminMailableEmails(){
   const mine = (currentUser && currentUser.email || '').toLowerCase();
   return adminUsersCache.filter(u=>u.confirmed && !u.email_opt_out && u.email && u.email.toLowerCase()!==mine).map(u=>u.email);
 }
-async function adminCopyEmails(){
+// v4.00 — Copie fiable sur iPhone + choix du format (Zoho refusait « a, b, c » collé d'un bloc).
+// Le bouton copie DIRECTEMENT dans le geste du doigt (iOS refuse la copie sinon) avec un repli
+// execCommand ; le texte reste affiché en gros. Fichier CSV pour un import dans Zoho Campaigns.
+var ADMIN_EMAIL_FMT_KEY = 'locus_admin_email_fmt_v1';
+function adminEmailsText(fmt){
+  const list = [...new Set(adminMailableEmails().map(e=>String(e).trim().toLowerCase()).filter(e=>/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]{2,}$/.test(e)))];
+  return fmt==='semicolon' ? list.join('; ') : fmt==='lines' ? list.join('\n') : list.join(',');
+}
+function copyTextRobust(text){
+  let ok = false;
+  try{
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly',''); ta.style.position='fixed'; ta.style.top='0'; ta.style.left='0'; ta.style.opacity='0'; ta.style.fontSize='16px';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select(); ta.setSelectionRange(0, text.length);
+    ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+  }catch(e){ ok = false; }
+  try{ if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).catch(()=>{}); ok = true; }catch(e){}
+  return ok;
+}
+function adminCopyEmailsAs(fmt){
   const isEn = currentLang==='en';
-  const list = adminMailableEmails();
-  if(!list.length){ showToast(isEn?'No email to copy.':'Aucun courriel à copier.', 'warning'); return; }
-  const text = list.join(', ');
-  let copied = false;
-  try{ await navigator.clipboard.writeText(text); copied = true; }catch(e){}
-  // Toujours affiché en gros aussi : le presse-papiers peut être refusé sur certains appareils.
-  showQuickModal('📋 '+(isEn?'Emails':'Courriels')+' ('+list.length+')',
-    '<p style="font-size:14px;color:'+(copied?'var(--sage)':'var(--ink-dim)')+';margin:0 0 10px;">'+(copied
-      ? (isEn?'Copied! Paste them in the BCC field of your email.':'Copiés! Colle-les dans le champ Cci de ton courriel.')
-      : (isEn?'Select the text below and copy it, then paste it in BCC.':'Sélectionne le texte ci-dessous et copie-le, puis colle-le en Cci.'))+'</p>'+
-    '<textarea readonly style="width:100%;min-height:160px;font-size:16px;line-height:1.5;padding:10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" onfocus="this.select()">'+escapeHtml(text)+'</textarea>'+
+  try{ localStorage.setItem(ADMIN_EMAIL_FMT_KEY, fmt); }catch(e){}
+  const text = adminEmailsText(fmt);
+  const ok = copyTextRobust(text);
+  const ta = document.getElementById('admin-emails-text');
+  if(ta) ta.value = text;
+  document.querySelectorAll('[data-email-fmt]').forEach(b=>b.classList.toggle('accent', b.getAttribute('data-email-fmt')===fmt));
+  showToast(ok ? '📋 '+(isEn?'Copied! Paste in the BCC field.':'Copiés! Colle-les dans le champ Cci.') : (isEn?'Copy blocked — select the text and copy it.':'Copie bloquée — sélectionne le texte et copie-le.'), ok?'success':'warning');
+}
+function adminDownloadEmailsCsv(){
+  const list = adminEmailsText('lines').split('\n').filter(Boolean);
+  const csv = 'Email\n'+list.join('\n')+'\n';
+  try{
+    const blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'locus-membres-'+localTodayStr()+'.csv';
+    document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }catch(e){ showToast(currentLang==='en'?'Download failed.':'Téléchargement impossible.', 'error'); }
+}
+function adminCopyEmails(){
+  const isEn = currentLang==='en';
+  const n = adminEmailsText('lines').split('\n').filter(Boolean).length;
+  if(!n){ showToast(isEn?'No email to copy.':'Aucun courriel à copier.', 'warning'); return; }
+  let fmt = 'comma'; try{ fmt = localStorage.getItem(ADMIN_EMAIL_FMT_KEY) || 'comma'; }catch(e){}
+  const text = adminEmailsText(fmt);
+  copyTextRobust(text); // même geste du doigt que le bouton « Copier les courriels »
+  const btn = (f, label)=>'<button class="sc-btn'+(f===fmt?' accent':'')+'" data-email-fmt="'+f+'" style="flex:1;min-width:0;font-size:15px;padding:12px 6px;" onclick="adminCopyEmailsAs(\''+f+'\')">'+label+'</button>';
+  showQuickModal('📋 '+(isEn?'Emails':'Courriels')+' ('+n+')',
+    '<p style="font-size:15px;color:var(--ink);margin:0 0 10px;line-height:1.5;">'+(isEn
+      ? 'Copied. If your email app rejects the list, tap another format — it copies again right away.'
+      : 'Copiés. Si ton application de courriel refuse la liste, touche un autre format — ça recopie tout de suite.')+'</p>'+
+    '<div style="display:flex;gap:6px;margin-bottom:10px;">'+
+      btn('comma', isEn?'a,b (comma)':'a,b (virgule)')+btn('semicolon', isEn?'a; b':'a; b')+btn('lines', isEn?'1 per line':'1 par ligne')+
+    '</div>'+
+    '<textarea id="admin-emails-text" readonly style="width:100%;min-height:180px;font-size:17px;line-height:1.6;padding:10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" onfocus="this.select();this.setSelectionRange(0,this.value.length)">'+escapeHtml(text)+'</textarea>'+
+    '<button class="sc-btn" style="width:100%;margin-top:10px;font-size:15px;padding:12px;" onclick="adminDownloadEmailsCsv()">⬇️ '+(isEn?'CSV file (Zoho Campaigns import)':'Fichier CSV (import Zoho Campaigns)')+'</button>'+
+    '<p style="font-size:13px;color:var(--ink-dim);margin:10px 0 0;line-height:1.5;">'+(isEn
+      ? 'Zoho Mail: paste in BCC (the comma format usually works). Always BCC, never To.'
+      : 'Zoho Mail : colle dans Cci (le format virgule passe d\'habitude). Toujours en Cci, jamais dans À.')+'</p>'+
     '<button class="sc-btn" style="width:100%;margin-top:10px;" onclick="openAdminOverview()">← '+(isEn?'Back to Admin':'Retour à Admin')+'</button>');
 }
 async function adminSetEmailOptOut(encEmail, optOut){
