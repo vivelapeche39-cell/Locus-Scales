@@ -1431,6 +1431,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <button class="tour-action-btn fed" data-i18n="actionFedFrozen" onclick="applyTourAction('fed_frozen')">❄️ A mangé</button>
         <button class="tour-action-btn fed" data-i18n="actionFedLive" onclick="applyTourAction('fed_live')">🐭 A mangé</button>
         <button class="tour-action-btn fed" id="tour-plate-btn" style="display:none;" onclick="applyTourAction('plate')">🥗 Assiette</button>
+        <button class="tour-action-btn" data-i18n="actionInShed" onclick="applyTourAction('inshed')">🔵 En mue</button>
         <button class="tour-action-btn shed" data-i18n="actionShed" onclick="applyTourAction('shed')">A mué</button>
         <button class="tour-action-btn refused" data-i18n="actionRefused" onclick="applyTourAction('refused')">Refus</button>
         <button class="tour-action-btn" data-i18n="actionWeigh" onclick="applyTourAction('weigh')">Peser</button>
@@ -2211,7 +2212,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.89';
+const APP_VERSION = '2026.09.01.3.91';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4970,6 +4971,12 @@ const CHANGELOG = [
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '🏆 Trophées renommés et beaucoup plus nombreux : chaque étape a maintenant un nom (de « Bon appétit! » au 1er repas jusqu\'au « Roi du dégel » au 1000e) avec ce qu\'il faut faire. Nouveaux groupes : Pesées (« La Grande Pesée »), Mues (« Une Nouvelle Peau » : 10 mues complètes d\'affilée), Entretien, Photos, Santé et installation, et plus d\'étapes en génétique (« Chasseur de récessifs », « Alchimiste génétique »). Les trophées liés à une fonction payante (locks, rongeurs) apparaissent seulement si tu y as accès.',
+        '🤫 16 trophées cachés à découvrir — ils restent secrets jusqu\'à ce que tu tombes dessus. Pas d\'indice!',
+        '🎉 Un message festif quand tu débloques un trophée (un seul, jamais de rappel).',
+        '🔵 Nouveau « En mue » (yeux bleus / peau terne), distinct de « A mué » : bouton dans la fiche et dans le Mode Tournée. Pendant la mue, un refus est considéré normal (aucune alerte), il ne casse pas la série de repas réussis, et un badge 🔵 s\'affiche sur la carte, dans le Mode Tournée et dans la fiche — jusqu\'à « A mué » (21 jours maximum).',
+        '✨ « A mué » dans le Mode Tournée demande maintenant la qualité (complète, incomplète, en morceaux) avec 3 gros boutons, pour tous les animaux sélectionnés d\'un coup.',
+        '⇄ Dans le journal d\'une fiche, chaque mue a un bouton pour la changer en « En mue » (et l\'inverse) — pratique pour corriger d\'anciennes entrées.',
         'Correctif (iPhone) : faire défiler une fenêtre (Configuration, fiche d\'un animal, Statistiques, etc.) faisait aussi défiler la page derrière, et on ne pouvait pas atteindre le bas. La page de fond reste maintenant immobile tant qu\'une fenêtre est ouverte, puis revient exactement où elle était.',
         '📊 Statistiques réorganisées en sous-onglets : Chiffres clés, Trophées, Graphiques, Par animal. Le coût de nourriture est maintenant détaillé par sorte de proie (rat, souris, gerbille, grillon, verdure…), au total et sur 30 jours.',
         '🏆 Les jalons deviennent des Trophées, par étapes : chaque trophée montre ton niveau et la prochaine étape; touche-le pour voir toutes ses étapes. Repas notés : 1, 50, 75, 100, 150, 200, 250, 300, 400, 500 (puis 750 et 1000). Nouveau : 🔥 repas réussis d\'affilée sans refus (5 à 50), avec le record de ta collection et la série de chaque animal (en cours / record) dans Par animal. Suivi du poids sur 3 mois, 6 mois et 1 an; ancienneté 1, 2, 3 et 5 ans.',
@@ -5029,6 +5036,12 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '🏆 Trophies renamed and many more of them: each step now has a name (from « Bon appétit! » at the 1st meal to « King of the Thaw » at the 1000th) with what it takes. New groups: Weigh-ins (« The Great Weigh-in »), Sheds (« A Brand New Skin »: 10 complete sheds in a row), Maintenance, Photos, Health and setup, and more genetics steps (« Recessive hunter », « Genetic alchemist »). Trophies tied to a paid feature (locks, rodents) only appear if you have access to it.',
+        '🤫 16 hidden trophies to discover — they stay secret until you stumble on them. No hints!',
+        '🎉 A festive message when you unlock a trophy (just one, never a reminder).',
+        '🔵 New « In shed » (blue eyes / dull skin), separate from « Shed »: button on the record and in Tour Mode. While in shed, a refusal is considered normal (no alert), it doesn\'t break the run of successful meals, and a 🔵 badge shows on the card, in Tour Mode and on the record — until « Shed » (21 days max).',
+        '✨ « Shed » in Tour Mode now asks for the quality (complete, incomplete, in pieces) with 3 big buttons, for all selected animals at once.',
+        '⇄ In a record\'s journal, each shed has a button to change it to « In shed » (and back) — handy to fix older entries.',
         'Fix (iPhone): scrolling a window (Settings, an animal\'s record, Statistics, etc.) also scrolled the page behind it, and you couldn\'t reach the bottom. The page behind now stays still while a window is open, then returns exactly where it was.',
         '📊 Statistics reorganized into sub-tabs: Key numbers, Trophies, Charts, Per animal. Feeding cost is now broken down by prey kind (rat, mouse, gerbil, cricket, greens…), in total and over 30 days.',
         '🏆 Milestones become Trophies, in steps: each trophy shows your level and the next step; tap it to see all its steps. Meals logged: 1, 50, 75, 100, 150, 200, 250, 300, 400, 500 (then 750 and 1000). New: 🔥 meals in a row without refusal (5 to 50), with your collection\'s record and each animal\'s run (current / record) in Per animal. Weight tracked for 3 months, 6 months and 1 year; 1, 2, 3 and 5 years of tracking.',
@@ -5829,6 +5842,7 @@ const I18N = {
     actionFedFrozen: '❄️ A mangé',
     actionFedLive: '🐭 A mangé',
     actionShed: 'A mué',
+    actionInShed: '🔵 En mue',
     actionRefused: 'Refus',
     actionWeigh: 'Peser',
     deselectBtn: 'Désélectionner',
@@ -6401,6 +6415,7 @@ const I18N = {
     actionFedFrozen: '❄️ Fed',
     actionFedLive: '🐭 Fed',
     actionShed: 'Shed',
+    actionInShed: '🔵 In shed',
     actionRefused: 'Refused',
     actionWeigh: 'Weigh',
     deselectBtn: 'Deselect',
@@ -9119,7 +9134,7 @@ function renderSavedList(){
     const batchCheckbox = batchSelectMode ? '<input type="checkbox" class="batch-select-cb" data-batch-id="'+s.id+'" '+(batchSelectedIds.has(s.id)?'checked':'')+' style="width:20px;height:20px;margin-right:8px;accent-color:var(--gold);flex-shrink:0;"/>' : '';
     if(batchSelectMode) card.classList.toggle('batch-selected', batchSelectedIds.has(s.id));
     card.innerHTML =
-      '<div class="sc-head"><span class="sc-name" style="display:flex;align-items:center;">'+batchCheckbox+thumb+escapeHtml(s.name)+'</span><span>'+sexBadge+provenBadgeHtml(s, isEn)+statusBadge+unverifiedBadge+quarantineBadge+speciesBadge+tagsBadges+'</span></div>'+
+      '<div class="sc-head"><span class="sc-name" style="display:flex;align-items:center;">'+batchCheckbox+thumb+escapeHtml(s.name)+'</span><span>'+sexBadge+provenBadgeHtml(s, isEn)+(isInShed(s)?'<span class="sc-status" style="background:rgba(57,135,229,.16);border:1px solid rgba(57,135,229,.45);color:#8fb8ef;">🔵 '+(isEn?'In shed':'En mue')+'</span>':'')+statusBadge+unverifiedBadge+quarantineBadge+speciesBadge+tagsBadges+'</span></div>'+
       '<div class="sc-genes">'+summarizeGenes(s.genes)+'</div>'+
       '<div class="sc-genes" style="color:var(--sage);">📍 '+placeLabel+'</div>'+
       '<div class="sc-genes">'+weightLine+'</div>'+
@@ -11034,7 +11049,8 @@ function openLogbook(id){
     ? eventsSorted.map(e=>{
         const idx = s.health.events.indexOf(e);
         const label = eventLabel(e.type)+(e.type==='weigh'?' ('+e.value+'g)':'')+(e.type==='length'?' ('+e.value+'cm)':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(currentLang==='en'?'partial':'partiel'):'')+feedPreyTag(e)+(e.partner?' — '+escapeHtml(e.partner):'');
-        return '<div class="modal-row"><span>'+e.date+'</span><span style="display:flex;align-items:center;gap:6px;">'+label+'<button class="sc-btn danger" style="padding:2px 8px;font-size:11px;line-height:1;" onclick="deleteHealthEvent(\''+id+'\','+idx+')">×</button></span></div>';
+        const swapBtn = (e.type==='shed' || e.type==='inshed') ? '<button class="sc-btn" style="padding:2px 8px;font-size:12px;line-height:1.2;" onclick="toggleShedEventType(\''+id+'\','+idx+')" title="'+(currentLang==='en'?(e.type==='shed'?'Change to « In shed »':'Change to « Shed »'):(e.type==='shed'?'Changer en « En mue »':'Changer en « A mué »'))+'">⇄ '+(e.type==='shed'?(currentLang==='en'?'In shed':'En mue'):(currentLang==='en'?'Shed':'A mué'))+'</button>' : ''; // v3.90
+        return '<div class="modal-row"><span>'+e.date+'</span><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">'+label+swapBtn+'<button class="sc-btn danger" style="padding:2px 8px;font-size:11px;line-height:1;" onclick="deleteHealthEvent(\''+id+'\','+idx+')">×</button></span></div>';
       }).join('')
     : '<div class="modal-row"><span>'+t('noEventRecorded')+'</span></div>';
 
@@ -11173,6 +11189,7 @@ function openLogbook(id){
       (isPlateFeeder(s)
         ? '<button class="tour-action-btn fed" onclick="logAction(\''+id+'\',\'plate\')">🥗 '+(isEn?'Plate':'Assiette')+'</button>'
         : '<button class="tour-action-btn fed" onclick="logAction(\''+id+'\',\'fed\')">'+t('eventFed')+'</button>')+
+      '<button class="tour-action-btn" onclick="logInShed(\''+id+'\')">🔵 '+(isEn?'In shed':'En mue')+'</button>'+ // v3.90
       '<button class="tour-action-btn shed" onclick="logAction(\''+id+'\',\'shed\')">'+t('eventShed')+'</button>'+
       (isPlateFeeder(s) ? '' : '<button class="tour-action-btn refused" onclick="logAction(\''+id+'\',\'refused\')">'+t('eventRefused')+'</button>')+
       (needsSupplements(s) ? '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'supplement\')">💊 '+(isEn?'Supplement':'Supplément')+'</button>' : '')+
@@ -11185,6 +11202,7 @@ function openLogbook(id){
       const hl = handlingHoursLeft(s);
       const dd = lastDefecationDays(s);
       let out = '';
+      if(isInShed(s)) out += '<div style="margin-top:8px;font-size:14px;color:#8fb8ef;">🔵 '+(isEn?'In shed since '+inShedSince(s)+' — a refusal is normal right now.':'En mue depuis le '+inShedSince(s)+' — un refus est normal en ce moment.')+'</div>'; // v3.90
       if(hl>0) out += '<div style="margin-top:8px;font-size:14px;color:var(--gold);">🤚 '+(isEn?'Avoid handling: '+hl+' h left (digesting)':'Évite de manipuler : encore '+hl+' h (digestion)')+'</div>';
       out += '<div style="margin-top:6px;font-size:13px;color:var(--ink-dim);">💩 '+(dd===null ? (isEn?'No poop logged yet':'Aucune défécation notée') : (dd===0 ? (isEn?'Last poop: today':'Dernières selles : aujourd\'hui') : (isEn?'Last poop: '+dd+' d ago':'Dernières selles : il y a '+dd+' j')))+'</div>';
       return out;
@@ -12188,6 +12206,76 @@ function confirmShed(id){
   showToast('✨ '+escapeHtml(s.name)+(isEn?' shed — ':' a mué — ')+shedQualityLabel(quality)+(shedHint?'<br/><small>'+shedHint+'</small>':''), quality==='complete'?'success':undefined, 'undoLastLoggedEvent()');
   renderFirstSnakeTip();
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
+}
+
+// ==================== En mue (v3.90) ====================
+// « En mue » (yeux bleus / peau terne) est distinct de « A mué ». L'état dure jusqu'à la prochaine
+// mue notée, ou 21 jours au maximum. Pendant ce temps : pas d'alerte de repas (refus normal), la série
+// de repas réussis n'est pas cassée par un refus, et un badge 🔵 s'affiche (carte, Tournée, fiche).
+var IN_SHED_MAX_DAYS = 21;
+function inShedWindows(s){
+  const ev = ((s && s.health && s.health.events)||[]).filter(e=>e && e.date && (e.type==='inshed' || e.type==='shed'))
+    .slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  const out = [];
+  ev.forEach((e,i)=>{
+    if(e.type!=='inshed') return;
+    const limit = (function(){ const d = new Date(e.date+'T00:00:00'); d.setDate(d.getDate()+IN_SHED_MAX_DAYS); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
+    const nextShed = ev.slice(i+1).find(x=>x.type==='shed');
+    const end = nextShed && nextShed.date < limit ? nextShed.date : limit;
+    out.push({ start:e.date, end, closed: !!(nextShed && nextShed.date <= limit) });
+  });
+  return out;
+}
+function isInShed(s){
+  if(!s || !s.health) return false;
+  const today = localTodayStr();
+  return inShedWindows(s).some(w=>!w.closed && today>=w.start && today<=w.end);
+}
+function inShedSince(s){
+  const today = localTodayStr();
+  const w = inShedWindows(s).filter(w=>!w.closed && today>=w.start && today<=w.end).pop();
+  return w ? w.start : '';
+}
+function logInShed(id){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const isEn = currentLang==='en';
+  const event = { date: localTodayStr(), type:'inshed' };
+  s.health.events.push(event);
+  storage.save(savedSnakes);
+  registerEventUndo([{snakeId:id, event}]);
+  showToast('🔵 '+escapeHtml(s.name)+(isEn?' — in shed. Refusals won\'t be flagged until « Shed ».':' — en mue. Les refus ne seront pas signalés jusqu\'à « A mué ».'), 'success', 'undoLastLoggedEvent()');
+  if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
+  try{ renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderSavedList(); }catch(e){}
+}
+function toggleShedEventType(id, idx){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s || !s.health || !s.health.events[idx]) return;
+  const e = s.health.events[idx];
+  if(e.type!=='shed' && e.type!=='inshed') return;
+  // pierre tombale sur l'ancienne version pour que la synchro entre appareils ne la ramène pas
+  try{ addHealthTombstone(s, healthEventKey(e)); }catch(err){}
+  if(e.type==='shed'){ e.type = 'inshed'; delete e.quality; delete e.note; }
+  else { e.type = 'shed'; e.quality = 'complete'; }
+  storage.save(savedSnakes);
+  openLogbook(id);
+  try{ renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderSavedList(); }catch(err){}
+}
+// Mode Tournée : qualité de la mue pour tous les animaux sélectionnés (gros boutons)
+var tourShedQualityPending = null;
+function openTourShedQualityModal(){
+  const isEn = currentLang==='en';
+  const n = tourSelection.size;
+  showQuickModal('✨ '+(isEn?'Shed quality':'Qualité de la mue'),
+    '<p style="font-size:14px;color:var(--ink-dim);margin:0 0 12px;">'+(isEn?'For the '+n+' selected animal(s):':'Pour '+(n>1?'les '+n+' animaux sélectionnés':'l\'animal sélectionné')+' :')+'</p>'+
+    SHED_QUALITIES.map(q=>'<button class="'+(q==='complete'?'save-btn':'sc-btn')+'" style="display:block;width:100%;font-size:17px;padding:14px;margin-bottom:10px;" onclick="confirmTourShedQuality(\''+q+'\')">'+(q==='complete'?'✅ ':q==='incomplete'?'⚠️ ':'🧩 ')+shedQualityLabel(q)+'</button>').join('')
+  );
+}
+function confirmTourShedQuality(q){
+  closeQuickModal();
+  tourShedQualityPending = SHED_QUALITIES.includes(q) ? q : 'complete';
+  try{ applyTourAction('shed'); } finally { tourShedQualityPending = null; }
 }
 
 // Raison de refus catégorisée (25 août) — au lieu de juste noter "refusé" sans contexte, choisir
@@ -14971,6 +15059,7 @@ function isCurrentRefusalPostShed(s){
 // dans le même esprit que le reste de l'app (Freeway/Possible, avertissements de santé, etc.).
 function feedingStatusExplanation(s){
   const isEn = currentLang==='en';
+  if(isInShed(s)) return isEn ? 'In shed — skipping or refusing a meal is normal, not flagged.' : 'En mue — sauter ou refuser un repas est normal, pas signalé.'; // v3.90
   if(isCurrentRefusalPostShed(s) && hasPostShedRefusalPattern(s)){
     return isEn ? 'Refused shortly after shedding — usual for this animal, not flagged as urgent.' : 'Refus peu après une mue — habituel pour cet animal, pas signalé comme urgent.';
   }
@@ -14981,6 +15070,7 @@ function feedingStatusExplanation(s){
 
 function feedingStatus(s){
   if(s && s.status==='deceased') return 'green'; // v3.84 — aucune alerte pour un animal décédé
+  if(s && isInShed(s)) return 'green'; // v3.90 — en mue : ne mange souvent pas, refus normal, aucune alerte
   let etape = 'debut';
   try{
     etape = 'brumation';
@@ -19296,6 +19386,7 @@ function renderTourGrid(){
             }
             var hlT = handlingHoursLeft(snake); // v3.77
             if(hlT>0) tag = (tag ? tag+' · ' : '')+'🤚'+hlT+'h';
+            if(isInShed(snake)) tag = (tag ? tag+' · ' : '')+'🔵'; // v3.90 — en mue
             cell.setAttribute('data-tooltip', snakeTooltip(snake));
           }
           cell.innerHTML = (snake ? '<div class="tub-name">'+escapeHtml(snake.name)+'</div><div class="tub-tag">'+tag+'</div>' : (isEn?'Tub ':'Bac ')+tubIdx+(isEn?' — empty':' — vide')) + alertIcon
@@ -19385,6 +19476,7 @@ function renderTourTerrariums(){
       var chipDsf = daysSinceLastFed(s);
       var chipTag = feedingStatus(s)!=='green' ? (chipDsf!==null ? (isEn?' — '+chipDsf+'d':' — '+chipDsf+'j') : (isEn?' — never fed':' — jamais nourri')) : '';
       var chipHl = handlingHoursLeft(s); if(chipHl>0) chipTag += ' · 🤚'+chipHl+'h'; // v3.77
+      if(isInShed(s)) chipTag += ' · 🔵'; // v3.90 — en mue
       chip.innerHTML = '<span>'+escapeHtml(s.name)+' ('+(s.sex==='male'?'♂':'♀')+')'+chipTag+alertIcon+'</span>'+
         '<span class="tc-prey" data-preytoggle="'+s.id+'" title="'+(isEn?'Tap to switch live/frozen':'Toucher pour changer vivant/décongelé')+'">'+(s.preyType==='live'?'🐭':'❄️')+'</span>';
       chip.querySelector('.tc-prey').addEventListener('click', (ev)=>{ ev.stopPropagation(); toggleTourPreyType(s.id); });
@@ -19448,6 +19540,9 @@ function applyTourAction(action){
   const today = tourEventDate();
   const pastDateNote = today!==localTodayStr() ? ' ('+today+')' : '';
 
+  // v3.90 — « A mué » demande la qualité (une fois pour tous les animaux sélectionnés)
+  if(action==='shed' && !tourShedQualityPending){ openTourShedQualityModal(); return; }
+
   if(action==='weigh'){
     const snakes = [...tourSelection].map(snakeFromKey).filter(Boolean);
     batchWeighDate = today;
@@ -19509,7 +19604,12 @@ function applyTourAction(action){
       undoPairs.push({snakeId:snake.id, event});
     }
     else if(action==='shed'){
-      const event = {date:today, type:'shed'};
+      const event = {date:today, type:'shed', quality: tourShedQualityPending || 'complete'};
+      snake.health.events.push(event);
+      undoPairs.push({snakeId:snake.id, event});
+    }
+    else if(action==='inshed'){ // v3.90 — en mue (yeux bleus)
+      const event = {date:today, type:'inshed'};
       snake.health.events.push(event);
       undoPairs.push({snakeId:snake.id, event});
     }
@@ -19543,10 +19643,11 @@ function applyTourAction(action){
       fed_live: isEn ? n+' reptile(s) fed.' : n+' reptile(s) nourri(s).',
       refused: isEn ? n+' refusal(s) noted.' : n+' refus noté(s).',
       shed: isEn ? n+' shed(s) noted.' : n+' mue(s) notée(s).',
+      inshed: isEn ? n+' animal(s) in shed — refusals won\'t be flagged.' : n+' animal(aux) en mue — les refus ne seront pas signalés.', // v3.90
       plate: isEn ? n+' plate(s) eaten.' : n+' assiette(s) mangée(s).',
       water: isEn ? n+' water change(s) logged.' : n+' changement(s) d\'eau noté(s).',
     };
-    const icons = { fed_frozen:'🍽', fed_live:'🍽', refused:'⚠', shed:'✨', water:'💧', plate:'🥗' };
+    const icons = { fed_frozen:'🍽', fed_live:'🍽', refused:'⚠', shed:'✨', inshed:'🔵', water:'💧', plate:'🥗' };
     // Mue d'un seul serpent : même indice de prédiction que dans la fiche (v3.50). En lot, on
     // garde le message court (une phrase par serpent serait illisible dans un toast).
     let shedHintTour = null;
@@ -22151,9 +22252,10 @@ function mealStreakInfo(s){
     .slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)) || (a.type==='refused'?1:0)-(b.type==='refused'?1:0));
   let cur = 0, best = 0, bestEnd = null;
   const reachedAt = {}; // longueur -> première date où une série a atteint cette longueur
+  const windows = inShedWindows(s); // v3.90 — un refus pendant la mue ne casse pas la série
   ev.forEach(e=>{
     if(e.type==='fed'){ cur++; if(!reachedAt[cur]) reachedAt[cur] = e.date; if(cur>best){ best = cur; bestEnd = e.date; } }
-    else cur = 0;
+    else if(!windows.some(w=>e.date>=w.start && e.date<=w.end)) cur = 0;
   });
   return { best, bestEnd, current: cur, reachedAt };
 }
@@ -22163,26 +22265,46 @@ function collectionStreakRecord(){
   return rec;
 }
 function trophyStep(id, title, done, date, detail){ return { id, title, done:!!done, date: date||null, detail: detail||null }; }
+// v3.91 — liste finale validée par Alex le 19 oct : noms amusants + critère, groupes payants visibles
+// seulement pour ceux qui y ont accès (jamais affichés comme appât), 16 trophées cachés (révélés une fois
+// débloqués). Tout est calculé à partir des données existantes — rien de nouveau à entrer.
+function tStep(id, fr, en, crFr, crEn, done, date, detail, goal){
+  const isEn = currentLang==='en';
+  const s = trophyStep(id, isEn?en:fr, done, date, detail);
+  s.desc = isEn ? crEn : crFr;
+  if(goal!=null) s.goal = goal;
+  return s;
+}
+function ymdLocal(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function computeTrophyGroups(){
   const isEn = currentLang==='en';
+  const L = (fr,en)=> isEn ? en : fr;
   const groups = [];
   const all = statsAllSnakes();
-  // 🍽 Repas notés (toute la collection)
-  const fed = statsEvents('fed', true);
-  const mealSteps = [1,50,75,100,150,200,250,300,400,500,750,1000];
-  groups.push({ id:'meals', icon:'🍽', title: isEn?'Meals logged':'Repas notés', value: fed.length, unit: isEn?'meals':'repas',
-    steps: mealSteps.map(n=>Object.assign(trophyStep('meal_'+n, n===1?(isEn?'First meal':'Premier repas'):(n+(isEn?' meals':' repas')), fed.length>=n, fed.length>=n ? fed[n-1].e.date : null), { goal:n })) });
-  // 🔥 Série de repas réussis (meilleur animal de la collection)
-  const streakSteps = [5,10,15,20,30,40,50];
+  const active = all.filter(isActiveSnake);
+  const evAll = []; all.forEach(s=>((s.health&&s.health.events)||[]).forEach(e=>{ if(e && e.date) evAll.push({ s, e }); }));
+  evAll.sort((a,b)=>String(a.e.date).localeCompare(String(b.e.date)));
+  const fed = evAll.filter(x=>x.e.type==='fed');
+  const nth = (arr,n)=> arr.length>=n ? arr[n-1].e.date : null;
+
+  // 🍽 Repas notés
+  const meals = [[1,'Bon appétit!','Bon appétit!'],[50,'Cantine ouverte','Canteen open'],[75,'Service aux tables','Table service'],[100,'Chef de rang','Head waiter'],[150,'Sous-chef','Sous-chef'],[200,'Chef cuisinier','Head chef'],[250,'Traiteur du rack','Rack caterer'],[300,'Buffet à volonté','All-you-can-eat buffet'],[400,'Resto 5 écailles','5-scale restaurant'],[500,'Grand chef étoilé','Starred grand chef'],[750,'Légende du congélo','Freezer legend'],[1000,'Le Roi du dégel','King of the Thaw']];
+  groups.push({ id:'meals', icon:'🍽', title: L('Repas notés','Meals logged'), value: fed.length,
+    steps: meals.map(([n,fr,en])=>tStep('meal_'+n, fr, en, n===1?'1er repas noté':n+' repas notés', n===1?'1st meal logged':n+' meals logged', fed.length>=n, nth(fed,n), null, n)) });
+  // 🔥 Repas d'affilée sans refus
   const infos = all.map(s=>({ s, m: mealStreakInfo(s) }));
   const bestStreak = infos.reduce((a,x)=>Math.max(a, x.m.best), 0);
-  groups.push({ id:'streak', icon:'🔥', title: isEn?'Meals in a row without refusal':'Repas réussis d\'affilée (sans refus)', value: bestStreak, unit: isEn?'in a row (best animal)':'d\'affilée (meilleur animal)',
-    steps: streakSteps.map(n=>{
-      const hit = infos.filter(x=>x.m.reachedAt[n]).sort((a,b)=>String(a.m.reachedAt[n]).localeCompare(String(b.m.reachedAt[n])))[0];
-      return Object.assign(trophyStep('streak_'+n, n+(isEn?' in a row':' d\'affilée'), !!hit, hit ? hit.m.reachedAt[n] : null, hit ? hit.s.name : null), { goal:n });
-    }) });
-  // ⚖ Suivi du poids
-  const weighDates = all.flatMap(s=>((s.health&&s.health.weights)||[]).map(w=>w.date)).filter(Boolean).sort();
+  const streaks = [[5,'Petit creux réglé','Snack sorted'],[10,'Bonne fourchette','Good appetite'],[15,'Zéro gaspillage','Zero waste'],[20,'Estomac d\'acier','Iron stomach'],[30,'Ventre sans pattes','Legless belly'],[40,'Machine à avaler','Swallowing machine'],[50,'Jamais rassasié','Never full']];
+  groups.push({ id:'streak', icon:'🔥', title: L('Repas d\'affilée sans refus','Meals in a row without refusal'), value: bestStreak,
+    steps: streaks.map(([n,fr,en])=>{ const hit = infos.filter(x=>x.m.reachedAt[n]).sort((a,b)=>String(a.m.reachedAt[n]).localeCompare(String(b.m.reachedAt[n])))[0];
+      return tStep('streak_'+n, fr, en, n+' repas d\'affilée sans refus (un animal)', n+' meals in a row without refusal (one animal)', !!hit, hit?hit.m.reachedAt[n]:null, hit?hit.s.name:null, n); }) });
+  // ⚖ Pesées
+  const wAll = []; all.forEach(s=>((s.health&&s.health.weights)||[]).forEach(w=>{ if(w && w.date) wAll.push({ s, w }); }));
+  wAll.sort((a,b)=>String(a.w.date).localeCompare(String(b.w.date)));
+  const weighs = [[1,'Sur la balance','On the scale'],[10,'Pèse-personne','Bathroom scale'],[50,'Peseur certifié','Certified weigher'],[100,'La Grande Pesée','The Great Weigh-in'],[250,'Maître des grammes','Master of grams']];
+  groups.push({ id:'weighs', icon:'⚖', title: L('Pesées','Weigh-ins'), value: wAll.length,
+    steps: weighs.map(([n,fr,en])=>tStep('weigh_'+n, fr, en, n===1?'1re pesée':n+' pesées', n===1?'1st weigh-in':n+' weigh-ins', wAll.length>=n, wAll.length>=n?wAll[n-1].w.date:null, null, n)) });
+  // 📈 Suivi de croissance
   const trackedFor = days=>{
     let found = null;
     all.forEach(s=>{
@@ -22195,42 +22317,161 @@ function computeTrophyGroups(){
     });
     return found;
   };
-  const g3 = trackedFor(90), g6 = trackedFor(180), g12 = trackedFor(365);
-  groups.push({ id:'weight', icon:'⚖', title: isEn?'Weight tracking':'Suivi du poids', unit:'',
+  const growth = [[90,'Œil de lynx','Eagle eye','3 mois','3 months'],[180,'Suivi de pro','Pro tracking','6 mois','6 months'],[365,'Courbe parfaite','Perfect curve','1 an','1 year']];
+  groups.push({ id:'growth', icon:'📈', title: L('Suivi de croissance','Growth tracking'),
+    steps: growth.map(([d,fr,en,pf,pe])=>{ const g = trackedFor(d); return tStep('growth_'+d, fr, en, 'Pesées sur '+pf+' sans trou de plus de 45 jours', 'Weigh-ins over '+pe+' with no gap over 45 days', !!g, g&&g.date, g&&g.name); }) });
+  // ✨ Mues
+  const sheds = evAll.filter(x=>x.e.type==='shed');
+  let completeRun = null;
+  all.forEach(s=>{
+    let run = 0;
+    ((s.health&&s.health.events)||[]).filter(e=>e && e.type==='shed' && e.date).slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(e=>{
+      if(!e.quality) return; // anciennes mues sans qualité : ne comptent pas, ne cassent pas la série
+      if(e.quality==='complete'){ run++; if(run===10 && (!completeRun || e.date<completeRun.date)) completeRun = { date:e.date, name:s.name }; }
+      else run = 0;
+    });
+  });
+  groups.push({ id:'sheds', icon:'✨', title: L('Mues','Sheds'), value: sheds.length,
     steps: [
-      trophyStep('weigh_1', isEn?'First weigh-in':'Première pesée', weighDates.length>0, weighDates[0]),
-      trophyStep('growth_3m', isEn?'Tracked 3 months (no gap over 45 days)':'Suivi 3 mois (sans trou de plus de 45 jours)', !!g3, g3&&g3.date, g3&&g3.name),
-      trophyStep('growth_6m', isEn?'Tracked 6 months (no gap over 45 days)':'Suivi 6 mois (sans trou de plus de 45 jours)', !!g6, g6&&g6.date, g6&&g6.name),
-      trophyStep('growth_12m', isEn?'Tracked 1 year (no gap over 45 days)':'Suivi 1 an (sans trou de plus de 45 jours)', !!g12, g12&&g12.date, g12&&g12.name)
+      tStep('shed_1','Premier déshabillage','First undressing','1re mue notée','1st shed logged', sheds.length>=1, nth(sheds,1), null, 1),
+      tStep('shed_10','Collectionneur de peaux','Skin collector','10 mues notées','10 sheds logged', sheds.length>=10, nth(sheds,10), null, 10),
+      tStep('shed_complete10','Une Nouvelle Peau','A Brand New Skin','10 mues complètes d\'affilée (un animal)','10 complete sheds in a row (one animal)', !!completeRun, completeRun&&completeRun.date, completeRun&&completeRun.name)
     ] });
   // 🥚 Reproduction
   const cl = (clutches||[]).filter(c=>c && c.layDate).slice().sort((a,b)=>a.layDate.localeCompare(b.layDate));
   const hatchedCl = cl.filter(c=>c.hatched);
   const proven = all.filter(isProvenSnake);
-  groups.push({ id:'repro', icon:'🥚', title: isEn?'Reproduction':'Reproduction', unit:'',
+  groups.push({ id:'repro', icon:'🥚', title: L('Reproduction','Reproduction'),
     steps: [
-      trophyStep('clutch_1', isEn?'First clutch recorded':'Première ponte notée', cl.length>0, cl.length?cl[0].layDate:null),
-      trophyStep('hatch_1', isEn?'First hatch':'Première éclosion', hatchedCl.length>0, hatchedCl.length?(hatchedCl[0].hatchedAt||hatchedCl[0].hatchDate):null),
-      trophyStep('proven_1', isEn?'First Proven animal':'Premier animal Proven', proven.length>0, null, proven.length?proven[0].name:null)
+      tStep('clutch_1','Ça pond!','It\'s laying!','1re ponte notée','1st clutch recorded', cl.length>0, cl.length?cl[0].layDate:null),
+      tStep('hatch_1','Le Grand Perçage (Pip Day!)','Pip Day!','1re éclosion','1st hatch', hatchedCl.length>0, hatchedCl.length?(hatchedCl[0].hatchedAt||hatchedCl[0].hatchDate):null),
+      tStep('proven_1','Preuve à l\'appui','Proof in hand','1er animal Proven','1st Proven animal', proven.length>0, null, proven.length?proven[0].name:null)
     ] });
   // 🧬 Génétique et lignée
   const born = all.filter(isLocusBorn);
-  const visRec = born.filter(hasVisualRecessive).sort((a,b)=>String(a.birthDate||'').localeCompare(String(b.birthDate||'')));
-  const gen3 = born.filter(s=>[s.sireId, s.damId].map(id=>savedSnakes.find(x=>x.id===id)).some(isLocusBorn)).sort((a,b)=>String(a.birthDate||'').localeCompare(String(b.birthDate||'')));
-  groups.push({ id:'genetics', icon:'🧬', title: isEn?'Genetics and lineage':'Génétique et lignée', unit:'',
+  const byBirth = arr=>arr.slice().sort((a,b)=>String(a.birthDate||'').localeCompare(String(b.birthDate||'')));
+  const ownVisRec = all.filter(hasVisualRecessive);
+  const visRec = byBirth(born.filter(hasVisualRecessive));
+  const visibleGeneCount = s=>Object.keys(s.genes||{}).filter(gid=>{ if(isFreewayKey(gid)) return false; const g = GENES.find(x=>x.id===gid); if(!g) return false; const n = normalizeGeneEntry(s.genes[gid]); if(n.possible) return false; return !(g.type==='recessive' && n.status==='het'); }).length;
+  const alch = byBirth(born.filter(s=>visibleGeneCount(s)>=3));
+  const gen3 = byBirth(born.filter(s=>[s.sireId, s.damId].map(id=>savedSnakes.find(x=>x.id===id)).some(isLocusBorn)));
+  groups.push({ id:'genetics', icon:'🧬', title: L('Génétique et lignée','Genetics and lineage'),
     steps: [
-      trophyStep('visual_recessive', isEn?'First visual recessive produced at home':'Premier visuel récessif produit chez toi', visRec.length>0, visRec.length?visRec[0].birthDate:null, visRec.length?visRec[0].name:null),
-      trophyStep('gen3', isEn?'3 generations born at home':'3 générations nées chez toi', gen3.length>0, gen3.length?gen3[0].birthDate:null, gen3.length?gen3[0].name:null)
+      tStep('own_visual_recessive','Chasseur de récessifs','Recessive hunter','1er visuel récessif dans ta collection','1st visual recessive in your collection', ownVisRec.length>0, null, ownVisRec.length?ownVisRec[0].name:null),
+      tStep('visual_recessive','Recette secrète','Secret recipe','1er visuel récessif produit chez toi','1st visual recessive produced at home', visRec.length>0, visRec.length?visRec[0].birthDate:null, visRec.length?visRec[0].name:null),
+      tStep('alchemist','Alchimiste génétique','Genetic alchemist','Bébé né chez toi avec 3 gènes visuels ou plus','Baby born at home with 3+ visual genes', alch.length>0, alch.length?alch[0].birthDate:null, alch.length?alch[0].name:null),
+      tStep('gen3','Dynastie','Dynasty','3 générations nées chez toi','3 generations born at home', gen3.length>0, gen3.length?gen3[0].birthDate:null, gen3.length?gen3[0].name:null)
     ] });
-  // 📅 Ancienneté du suivi
-  const firstDates = all.flatMap(s=>((s.health&&s.health.events)||[]).map(e=>e.date)).filter(Boolean).sort();
+  // 🧽 Entretien (reptiles : bacs, terrariums, fiches)
+  const maint = [];
+  (racks||[]).forEach(r=>{ [r.tubCleanings, r.tubWaterChanges].forEach(obj=>{ if(obj && typeof obj==='object') Object.values(obj).forEach(arr=>{ if(Array.isArray(arr)) arr.forEach(x=>{ if(x && x.date) maint.push(x.date); }); }); }); });
+  (terrariums||[]).forEach(te=>{ [te.cleanings, te.waterChanges].forEach(arr=>{ if(Array.isArray(arr)) arr.forEach(x=>{ if(x && x.date) maint.push(x.date); }); }); });
+  all.forEach(s=>{ const c = s.health && s.health.cleanings; if(Array.isArray(c)) c.forEach(x=>{ if(x && x.date) maint.push(x.date); }); });
+  maint.sort();
+  const maintSteps = [[10,'Monsieur Net','Mr. Clean'],[50,'Pro du torchon','Rag pro'],[100,'Salle blanche','Clean room']];
+  groups.push({ id:'maintenance', icon:'🧽', title: L('Entretien','Maintenance'), value: maint.length,
+    steps: maintSteps.map(([n,fr,en])=>tStep('maint_'+n, fr, en, n+' nettoyages ou changements d\'eau notés', n+' cleanings or water changes logged', maint.length>=n, maint.length>=n?maint[n-1]:null, null, n)) });
+  // 📸 Photos
+  const photos = []; all.forEach(s=>(s.photos||[]).forEach(p=>photos.push(p && p.date ? String(p.date).slice(0,10) : '')));
+  photos.sort();
+  groups.push({ id:'photos', icon:'📸', title: L('Photos','Photos'), value: photos.length,
+    steps: [
+      tStep('photo_1','Séance photo','Photo shoot','1re photo ajoutée','1st photo added', photos.length>=1, photos[0]||null, null, 1),
+      tStep('photo_25','Paparazzi','Paparazzi','25 photos ajoutées','25 photos added', photos.length>=25, photos[24]||null, null, 25)
+    ] });
+  // 🩺 Santé et installation
+  const vets = []; all.forEach(s=>((s.health&&s.health.vetVisits)||[]).forEach(v=>{ if(v && v.date) vets.push(v.date); })); vets.sort();
+  const careOk = active.length>0 && active.every(s=>s.careParams && s.careParams.tempWarm!=null && s.careParams.tempCool!=null && s.careParams.humidity!=null);
+  const inRack = all.find(s=>s.placement && s.placement.mode==='rack');
+  groups.push({ id:'care', icon:'🩺', title: L('Santé et installation','Health and setup'),
+    steps: [
+      tStep('vet_1','Bilan de santé','Check-up','1re visite véto notée','1st vet visit logged', vets.length>0, vets[0]||null),
+      tStep('care_params','Climat contrôlé','Climate controlled','Paramètres d\'élevage remplis pour tous tes animaux actifs','Care parameters filled in for all your active animals', careOk, null),
+      tStep('rack_1','Le Roi du Rack','King of the Rack','1er animal placé dans un bac de rack','1st animal placed in a rack tub', !!inRack, null, inRack?inRack.name:null)
+    ] });
+  // 📅 Ancienneté
+  const firstDates = evAll.map(x=>x.e.date);
   const created = all.map(s=>s.createdAt).filter(Boolean).sort((a,b)=>a-b);
   let start = firstDates[0] || null;
-  if(created.length){ const c = new Date(created[0]); const cs = c.getFullYear()+'-'+String(c.getMonth()+1).padStart(2,'0')+'-'+String(c.getDate()).padStart(2,'0'); if(!start || cs<start) start = cs; }
+  if(created.length){ const cs = ymdLocal(new Date(created[0])); if(!start || cs<start) start = cs; }
   const days = start ? statsDaysBetween(start, localTodayStr()) : 0;
-  const anniv = n=>{ if(!start) return null; const d = new Date(start+'T00:00:00'); d.setFullYear(d.getFullYear()+n); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
-  groups.push({ id:'years', icon:'📅', title: isEn?'Tracking in LOCUS':'Suivi dans LOCUS', value: Math.floor(days/365), unit: isEn?'year(s)':'an(s)',
-    steps: [1,2,3,5].map(n=>Object.assign(trophyStep('year_'+n, n+(isEn?(n>1?' years':' year'):(n>1?' ans':' an'))+(isEn?' of tracking':' de suivi'), days>=365*n, days>=365*n ? anniv(n) : null), { goal:365*n, progressValue: days })) });
+  const anniv = n=>{ if(!start) return null; const d = new Date(start+'T00:00:00'); d.setFullYear(d.getFullYear()+n); return ymdLocal(d); };
+  const yrs = [[1,'Fidèle au poste','Always on duty'],[2,'Vieux de la vieille','Old hand'],[3,'Pilier du rack','Pillar of the rack'],[5,'Monument','Monument']];
+  groups.push({ id:'years', icon:'📅', title: L('Ancienneté','Seniority'), value: Math.floor(days/365),
+    steps: yrs.map(([n,fr,en])=>Object.assign(tStep('year_'+n, fr, en, n+(n>1?' ans':' an')+' de suivi dans LOCUS', n+(n>1?' years':' year')+' of tracking in LOCUS', days>=365*n, days>=365*n?anniv(n):null, null, 365*n), { progressValue: days })) });
+  // 🔒 Accouplements — visible seulement avec le Mode Verrou (Première ponte + Illimité)
+  if(hasAccess('lockMode')){
+    const locks = evAll.filter(x=>x.e.type==='lock');
+    groups.push({ id:'locks', icon:'🔒', title: L('Accouplements','Pairings'),
+      steps: [ tStep('lock_1','L\'Étincelle','The Spark','1er lock noté','1st lock logged', locks.length>0, locks.length?locks[0].e.date:null) ] });
+  }
+  // 🐭 Rongeurs — visible seulement avec la gestion des rongeurs (Illimité)
+  if(hasAccess('rodentManagement')){
+    const bins = (typeof rodentBins!=='undefined' && Array.isArray(rodentBins)) ? rodentBins : [];
+    const litters = []; bins.forEach(b=>(b.litters||[]).forEach(l=>{ if(l && l.date) litters.push(l.date); })); litters.sort();
+    groups.push({ id:'rodents', icon:'🐭', title: L('Rongeurs','Rodents'), value: litters.length,
+      steps: [
+        tStep('rodent_bin','Fermier en herbe','Budding farmer','1er bac reproducteur','1st breeding bin', bins.length>0, null),
+        tStep('rodent_litter_1','Ça grouille!','It\'s swarming!','1re portée notée','1st litter logged', litters.length>=1, litters[0]||null, null, 1),
+        tStep('rodent_litter_10','Ferme modèle','Model farm','10 portées notées','10 litters logged', litters.length>=10, litters[9]||null, null, 10)
+      ] });
+  }
+  // 🤫 Trophées cachés — révélés seulement une fois débloqués
+  const firstEv = (pred)=>{ const x = evAll.find(pred); return x ? x : null; };
+  const mmdd = d=>String(d||'').slice(5,10);
+  const hourOf = e=>{ if(!e.at) return null; const d = new Date(e.at); return isNaN(d) ? null : d.getHours(); };
+  const hidden = [];
+  const H = (id, fr, en, crFr, crEn, hit, date, detail)=>hidden.push(tStep(id, fr, en, crFr, crEn, !!hit, date||null, detail||null));
+  let x;
+  x = firstEv(v=>v.e.type==='fed' && mmdd(v.e.date)==='12-25'); H('h_xmas','Noël au vivarium','Christmas in the vivarium','Un repas noté le 25 décembre','A meal logged on December 25', x, x&&x.e.date, x&&x.s.name);
+  x = firstEv(v=>{ const b = v.s.birthDate; return b && /^\d{4}-\d{2}-\d{2}$/.test(b) && mmdd(v.e.date)===mmdd(b) && v.e.date.slice(0,4)>b.slice(0,4); });
+  H('h_birthday','Bonne fête!','Happy birthday!','Un soin noté le jour de l\'anniversaire d\'un animal','Care logged on an animal\'s birthday', x, x&&x.e.date, x&&x.s.name);
+  x = firstEv(v=>v.e.type==='fed' && (h=>h!=null && h>=0 && h<4)(hourOf(v.e))); H('h_night','Oiseau de nuit','Night owl','Un repas noté entre minuit et 4 h','A meal logged between midnight and 4 a.m.', x, x&&x.e.date, x&&x.s.name);
+  x = firstEv(v=>v.e.type==='fed' && (h=>h!=null && h>=5 && h<7)(hourOf(v.e))); H('h_early','Lève-tôt','Early bird','Un repas noté entre 5 h et 7 h','A meal logged between 5 and 7 a.m.', x, x&&x.e.date, x&&x.s.name);
+  x = firstEv(v=>v.e.type==='fed' && mmdd(v.e.date)==='06-24'); H('h_stjean','Bonne Saint-Jean!','Happy Saint-Jean!','Un repas noté le 24 juin','A meal logged on June 24', x, x&&x.e.date, x&&x.s.name);
+  x = firstEv(v=>v.e.type==='fed' && mmdd(v.e.date)==='10-31'); H('h_halloween','Festin d\'Halloween','Halloween feast','Un repas noté le 31 octobre','A meal logged on October 31', x, x&&x.e.date, x&&x.s.name);
+  x = firstEv(v=>mmdd(v.e.date)==='01-01'); H('h_newyear','Bonne année, les écailles','Happy New Scales','Un soin noté le 1er janvier','Care logged on January 1', x, x&&x.e.date, x&&x.s.name);
+  // Fin de la grève : un repas après 5 refus d'affilée ou plus
+  let strike = null, clock = null;
+  all.forEach(s=>{
+    const ev = ((s.health&&s.health.events)||[]).filter(e=>e && e.date && (e.type==='fed'||e.type==='refused')).slice().sort((a,b)=>a.date.localeCompare(b.date));
+    let refusals = 0;
+    ev.forEach(e=>{ if(e.type==='refused') refusals++; else { if(refusals>=5 && (!strike || e.date<strike.date)) strike = { date:e.date, name:s.name }; refusals = 0; } });
+    const fd = [...new Set(ev.filter(e=>e.type==='fed').map(e=>e.date))];
+    for(let i=4;i<fd.length;i++){
+      const gaps = [1,2,3,4].map(k=>statsDaysBetween(fd[i-k], fd[i-k+1]));
+      if(gaps[0]>0 && gaps.every(g=>g===gaps[0])){ if(!clock || fd[i]<clock.date) clock = { date:fd[i], name:s.name }; break; }
+    }
+  });
+  H('h_strike','Fin de la grève','Strike\'s over','Un animal mange après 5 refus d\'affilée ou plus','An animal eats after 5+ refusals in a row', strike, strike&&strike.date, strike&&strike.name);
+  H('h_clock','Réglé comme une horloge','Like clockwork','5 repas de suite avec exactement le même intervalle','5 meals in a row at exactly the same interval', clock, clock&&clock.date, clock&&clock.name);
+  const kilo = wAll.find(v=>Number(v.w.value)>0 && Number(v.w.value)%1000===0);
+  H('h_kilo','Kilo pile','Spot-on kilo','Une pesée de exactement 1000 g (ou 2000 g, 3000 g…)','A weigh-in of exactly 1000 g (or 2000 g, 3000 g…)', kilo, kilo&&kilo.w.date, kilo&&kilo.s.name);
+  const heavy = wAll.find(v=>Number(v.w.value)>=2000);
+  H('h_heavy','Poids lourd','Heavyweight','Un animal atteint 2 kg','An animal reaches 2 kg', heavy, heavy&&heavy.w.date, heavy&&heavy.s.name);
+  const ageYears = s=>{ const b = String(s.birthDate||''); if(!/^\d{4}/.test(b)) return 0; const by = Number(b.slice(0,4)); const md = b.length>=10 ? b.slice(5,10) : '12-31'; const today = localTodayStr(); return Number(today.slice(0,4))-by - (today.slice(5,10)<md ? 1 : 0); };
+  const old10 = active.find(s=>ageYears(s)>=10), old20 = active.find(s=>ageYears(s)>=20);
+  H('h_elder10','Le Doyen','The Elder','Un animal de 10 ans dans ta collection','A 10-year-old animal in your collection', old10, null, old10&&old10.name);
+  H('h_elder20','Vénérable','Venerable','Un animal de 20 ans dans ta collection','A 20-year-old animal in your collection', old20, null, old20&&old20.name);
+  // Copie conforme : 2 bébés de la même ponte avec exactement la même génétique
+  let twins = null;
+  const sameClutch = (a,b)=> (a.clutchRef && a.clutchRef===b.clutchRef) || (a.sireId && a.damId && a.sireId===b.sireId && a.damId===b.damId && a.birthDate && a.birthDate===b.birthDate);
+  for(let i=0;i<born.length && !twins;i++) for(let j=i+1;j<born.length && !twins;j++){
+    const a = born[i], b = born[j];
+    if(sameClutch(a,b) && stableStringify(a.genes||{})===stableStringify(b.genes||{})) twins = { date:a.birthDate||null, name:a.name+' & '+b.name };
+  }
+  H('h_twins','Copie conforme','Carbon copy','2 bébés de la même ponte avec exactement la même génétique','2 babies from the same clutch with exactly the same genetics', twins, twins&&twins.date, twins&&twins.name);
+  // Tournée parfaite : tous les animaux actifs (au moins 3) nourris le même jour
+  let perfect = null;
+  if(active.length>=3){
+    const byDate = {};
+    active.forEach(s=>((s.health&&s.health.events)||[]).forEach(e=>{ if(e && e.type==='fed' && e.date){ (byDate[e.date] = byDate[e.date] || new Set()).add(s.id); } }));
+    Object.keys(byDate).sort().some(d=>{ const present = active.filter(s=>!s.createdAt || ymdLocal(new Date(s.createdAt))<=d); if(present.length>=3 && present.every(s=>byDate[d].has(s.id))){ perfect = d; return true; } return false; });
+  }
+  H('h_perfect','Tournée parfaite','Perfect round','Tous tes animaux actifs (au moins 3) nourris le même jour','All your active animals (at least 3) fed on the same day', perfect, perfect);
+  const imported = all.find(s=>s.importedTransferToken);
+  H('h_imported','Nouveau pensionnaire','New lodger','Un 1er animal importé avec un lien de transfert','A 1st animal imported with a transfer link', imported, null, imported&&imported.name);
+  groups.push({ id:'hidden', icon:'🤫', title: L('Trophées cachés','Hidden trophies'), hidden:true, steps: hidden });
   return groups;
 }
 // Liste à plat (annonce des nouveaux trophées, résumé de saison)
@@ -22265,7 +22506,7 @@ function computeRecords(){
     out.push({ icon:'🏅', title: isEn?'Best hatch rate (2+ clutches)':'Meilleur taux d\'éclosion (2 pontes et plus)', value: Math.round(bestDam.r*100)+' %', detail: (d?d.name:'?')+' — '+bestDam.live+'/'+bestDam.eggs+(isEn?' eggs, ':' œufs, ')+bestDam.n+(isEn?' clutches':' pontes') }); }
   return out;
 }
-var MILESTONES_SEEN_KEY = 'locus_milestones_seen_v1';
+var MILESTONES_SEEN_KEY = 'locus_milestones_seen_v2'; // v3.91 — nouvelle liste : re-semée en silence au 1er lancement
 var _milestoneCheckTimer = null;
 // Annonce discrète d'un trophée nouvellement débloqué (un seul message, jamais de rappel).
 // Au tout premier passage, les trophées déjà atteints sont marqués « vus » sans message (rétroactif).
@@ -22281,7 +22522,10 @@ function scheduleMilestoneCheck(){
       const fresh = done.filter(m=>!seen.includes(m.id));
       if(fresh.length){
         try{ localStorage.setItem(MILESTONES_SEEN_KEY, JSON.stringify([...new Set(seen.concat(ids))])); }catch(e){}
-        showToast('🏆 '+(currentLang==='en'?'Trophy unlocked: ':'Trophée débloqué : ')+fresh.map(m=>m.title).join(' · ')+(currentLang==='en'?' — see ☰ › Statistics.':' — voir ☰ › Statistiques.'), 'success');
+        const en = currentLang==='en';
+        const names = fresh.slice(0,3).map(m=>'« '+m.title+' »').join(', ')+(fresh.length>3 ? (en?' and '+(fresh.length-3)+' more':' et '+(fresh.length-3)+' autre(s)') : '');
+        const hiddenFound = fresh.some(m=>String(m.id).startsWith('h_'));
+        showToast('🎉🏆 '+(en?(fresh.length>1?'Trophies unlocked! ':'Trophy unlocked! '):(fresh.length>1?'Trophées débloqués! ':'Trophée débloqué! '))+names+(hiddenFound?(en?' 🤫 (hidden trophy!)':' 🤫 (trophée caché!)'):'')+'<br/><small>'+(en?'See ☰ › Statistics › Trophies':'Voir ☰ › Statistiques › Trophées')+'</small>', 'hatch');
       }
     }catch(e){}
   }, 2500);
@@ -22406,11 +22650,22 @@ function renderStatsView(){
 
   if(statsTab==='trophies'){
     const groups = computeTrophyGroups(), recs = computeRecords();
-    const doneCount = groups.reduce((a,g)=>a+g.steps.filter(s=>s.done).length,0), totalCount = groups.reduce((a,g)=>a+g.steps.length,0);
+    const doneCount = groups.reduce((a,g)=>a+g.steps.filter(s=>s.done).length,0), totalCount = groups.reduce((a,g)=>a+(g.hidden ? g.steps.filter(s=>s.done).length : g.steps.length),0);
     html += h2('🏆 '+(isEn?'Trophies':'Trophées')+' <span style="font-size:14px;color:var(--ink-dim);font-weight:400;">'+doneCount+'/'+totalCount+'</span>')+
       '<p style="font-size:13.5px;color:var(--ink-dim);margin:-4px 0 10px;">'+(isEn?'Tap a trophy to see all its steps.':'Touche un trophée pour voir toutes ses étapes.')+'</p>';
+    const stepLine = (s, withDate)=>escapeHtml(s.title)+(s.desc?' <span style="color:var(--ink-dim);font-size:13px;">— '+escapeHtml(s.desc)+'</span>':'')+(withDate && (s.date||s.detail)?'<div style="font-size:12.5px;color:var(--ink-dim);margin-top:1px;">'+escapeHtml([s.date, s.detail].filter(Boolean).join(' — '))+'</div>':'');
     html += groups.map(g=>{
       const done = g.steps.filter(s=>s.done);
+      const open = !!statsOpenTrophies[g.id];
+      if(g.hidden){
+        // Trophées cachés : on ne montre que ceux découverts, jamais la liste de ce qui reste
+        return '<div style="background:var(--bg-panel);border:1px dashed '+(done.length?'var(--gold)':'var(--line)')+';border-radius:14px;padding:12px 14px;margin-bottom:10px;">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><div style="font-size:17px;font-weight:600;color:var(--ink);">'+g.icon+' '+escapeHtml(g.title)+'</div>'+
+          '<div style="font-size:14px;color:var(--ink-dim);white-space:nowrap;">'+done.length+' / '+g.steps.length+' '+(isEn?'found':'découverts')+'</div></div>'+
+          (done.length ? done.map(s=>'<div style="padding:7px 0;font-size:15px;color:var(--ink);border-top:1px solid var(--line);margin-top:6px;">✅ '+stepLine(s, true)+'</div>').join('')
+            : '<div style="font-size:14px;color:var(--ink-dim);margin-top:6px;">'+(isEn?'Surprises appear here when you stumble on them. No hints!':'Des surprises apparaissent ici quand tu tombes dessus. Pas d\'indice!')+'</div>')+
+        '</div>';
+      }
       const last = done[done.length-1] || null;
       const next = g.steps.find(s=>!s.done) || null;
       let progressPct = null, progressTxt = '';
@@ -22419,23 +22674,20 @@ function renderStatsView(){
         progressPct = Math.max(0, Math.min(100, Math.round(v/next.goal*100)));
         progressTxt = next.progressValue!=null ? '' : (g.value||0)+' / '+next.goal;
       }
-      const open = !!statsOpenTrophies[g.id];
       return '<div style="background:var(--bg-panel);border:1px solid '+(done.length?'var(--gold)':'var(--line)')+';border-radius:14px;padding:12px 14px;margin-bottom:10px;">'+
         '<button onclick="toggleTrophyGroup(\''+g.id+'\')" aria-expanded="'+open+'" style="all:unset;display:block;width:100%;cursor:pointer;">'+
           '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'+
             '<div style="font-size:17px;font-weight:600;color:var(--ink);">'+g.icon+' '+escapeHtml(g.title)+'</div>'+
             '<div style="font-size:14px;color:var(--ink-dim);white-space:nowrap;">'+done.length+'/'+g.steps.length+' '+(open?'▴':'▾')+'</div>'+
           '</div>'+
-          '<div style="font-size:14.5px;color:var(--ink);margin-top:4px;">'+(last
-            ? '✅ '+escapeHtml(last.title)+(last.date?' — '+escapeHtml(last.date):'')+(last.detail?' — '+escapeHtml(last.detail):'')
+          '<div style="font-size:15px;color:var(--ink);margin-top:4px;">'+(last
+            ? '🏆 <b>'+escapeHtml(last.title)+'</b>'+(last.date?' <span style="color:var(--ink-dim);font-size:13px;">'+escapeHtml(last.date)+'</span>':'')+(last.detail?' <span style="color:var(--ink-dim);font-size:13px;">— '+escapeHtml(last.detail)+'</span>':'')
             : '<span style="color:var(--ink-dim);">'+((g.value||0)>0 ? (isEn?'On the way to the first step':'En route vers la première étape') : (isEn?'Not started yet':'Pas encore commencé'))+'</span>')+'</div>'+
-          (next ? '<div style="font-size:13.5px;color:var(--ink-dim);margin-top:4px;">'+(isEn?'Next: ':'Prochaine étape : ')+escapeHtml(next.title)+(progressTxt?' ('+escapeHtml(progressTxt)+')':'')+'</div>' : '<div style="font-size:13.5px;color:var(--gold);margin-top:4px;">'+(isEn?'All steps reached!':'Toutes les étapes atteintes!')+'</div>')+
+          (next ? '<div style="font-size:13.5px;color:var(--ink-dim);margin-top:4px;">'+(isEn?'Next: ':'Prochaine étape : ')+'<b>'+escapeHtml(next.title)+'</b>'+(next.desc?' — '+escapeHtml(next.desc):'')+(progressTxt?' ('+escapeHtml(progressTxt)+')':'')+'</div>' : '<div style="font-size:13.5px;color:var(--gold);margin-top:4px;">'+(isEn?'All steps reached!':'Toutes les étapes atteintes!')+'</div>')+
           (progressPct!=null ? '<div style="height:7px;background:var(--bg-panel-2);border-radius:4px;margin-top:6px;overflow:hidden;"><div style="height:100%;width:'+progressPct+'%;background:var(--gold);"></div></div>' : '')+
         '</button>'+
-        (open ? '<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:6px;">'+g.steps.map(s=>
-          '<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;font-size:14.5px;color:'+(s.done?'var(--ink)':'var(--ink-dim)')+';">'+
-            '<span>'+(s.done?'✅':'🔒')+' '+escapeHtml(s.title)+'</span>'+
-            '<span style="font-size:13px;color:var(--ink-dim);text-align:right;">'+(s.done?escapeHtml((s.date||'')+(s.detail?(s.date?' — ':'')+s.detail:'')):'')+'</span></div>').join('')+'</div>' : '')+
+        (open ? '<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:4px;">'+g.steps.map(s=>
+          '<div style="padding:7px 0;font-size:15px;color:'+(s.done?'var(--ink)':'var(--ink-dim)')+';border-bottom:1px solid var(--line);">'+(s.done?'🏆 ':'🔒 ')+stepLine(s, s.done)+'</div>').join('')+'</div>' : '')+
       '</div>';
     }).join('');
     if(recs.length){
@@ -25538,6 +25790,7 @@ function renderTimeline(){
 
 function eventLabel(type){
   if(type==='supplement') return '💊 '+(currentLang==='en'?'Supplement':'Supplément'); // v3.53
+  if(type==='inshed') return '🔵 '+(currentLang==='en'?'In shed (blue)':'En mue'); // v3.90
   const map = { fed:'eventFed', shed:'eventShed', refused:'eventRefused', weigh:'eventWeigh', length:'eventLength', water:'eventWater', pair_in:'eventPairIn', pair_out:'eventPairOut', lock:'eventLock' };
   return map[type] ? t(map[type]) : type;
 }
