@@ -1431,6 +1431,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <button class="tour-action-btn fed" data-i18n="actionFedFrozen" onclick="applyTourAction('fed_frozen')">❄️ A mangé</button>
         <button class="tour-action-btn fed" data-i18n="actionFedLive" onclick="applyTourAction('fed_live')">🐭 A mangé</button>
         <button class="tour-action-btn fed" id="tour-plate-btn" style="display:none;" onclick="applyTourAction('plate')">🥗 Assiette</button>
+        <button class="tour-action-btn" data-i18n="actionRefusedShed" onclick="applyTourAction('refused_shed')">🔵 Refus (mue)</button>
         <button class="tour-action-btn" data-i18n="actionInShed" onclick="applyTourAction('inshed')">🔵 En mue</button>
         <button class="tour-action-btn" data-i18n="actionSkipped" onclick="applyTourAction('skipped')">⏭ Sauté</button>
         <button class="tour-action-btn shed" data-i18n="actionShed" onclick="applyTourAction('shed')">A mué</button>
@@ -2213,7 +2214,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.92';
+const APP_VERSION = '2026.09.01.3.93';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4972,6 +4973,7 @@ const CHANGELOG = [
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '🔵 Nouveau bouton « Refus (mue) » dans la fiche et le Mode Tournée : un seul toucher note le refus avec la raison « En mue » et met l\'animal en mue s\'il ne l\'était pas déjà. Pas d\'alerte, la série de repas réussis est conservée. « En mue » est aussi ajouté aux raisons de refus.',
         '✏️ Modifier le passé : dans le journal d\'une fiche, le crayon ✏️ permet de changer la date d\'une entrée et ce qui s\'est passé (A mangé, Refus, Repas sauté, En mue, A mué), ou de la supprimer. Le bouton « ＋ Entrée passée » ajoute un repas, un refus, une mue ou une pesée à n\'importe quelle date passée, directement depuis la fiche.',
         '⏭ Nouveau « Repas sauté (volontaire) » (fiche et Mode Tournée) : quand tu ne nourris simplement pas, ce n\'est pas un refus. Il remet le compte du prochain repas à zéro, sans alerte, sans fausser le % de refus ni la série de repas réussis.',
         'Les refus pendant une mue sont maintenant ignorés aussi pour le rappel de pesée des bébés et pour le trophée caché « Fin de la grève ».',
@@ -5040,6 +5042,7 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '🔵 New « Refused (shed) » button on the record and in Tour Mode: one tap logs the refusal with the reason « In shed » and puts the animal in shed if it wasn\'t already. No alert, the run of successful meals is kept. « In shed » is also added to the refusal reasons.',
         '✏️ Edit the past: in a record\'s journal, the ✏️ pencil lets you change an entry\'s date and what happened (Ate, Refused, Meal skipped, In shed, Shed), or delete it. The « ＋ Past entry » button adds a meal, refusal, shed or weigh-in on any past date, right from the record.',
         '⏭ New « Meal skipped (on purpose) » (record and Tour Mode): when you simply don\'t feed, it\'s not a refusal. It resets the next-meal count, with no alert, without skewing the refusal % or the run of successful meals.',
         'Refusals during a shed are now also ignored for the babies\' weigh-in reminder and for the hidden trophy « Strike\'s over ».',
@@ -5850,6 +5853,7 @@ const I18N = {
     actionFedLive: '🐭 A mangé',
     actionShed: 'A mué',
     actionInShed: '🔵 En mue',
+    actionRefusedShed: '🔵 Refus (mue)',
     actionSkipped: '⏭ Sauté',
     actionRefused: 'Refus',
     actionWeigh: 'Peser',
@@ -6424,6 +6428,7 @@ const I18N = {
     actionFedLive: '🐭 Fed',
     actionShed: 'Shed',
     actionInShed: '🔵 In shed',
+    actionRefusedShed: '🔵 Refused (shed)',
     actionSkipped: '⏭ Skipped',
     actionRefused: 'Refused',
     actionWeigh: 'Weigh',
@@ -11199,6 +11204,7 @@ function openLogbook(id){
       (isPlateFeeder(s)
         ? '<button class="tour-action-btn fed" onclick="logAction(\''+id+'\',\'plate\')">🥗 '+(isEn?'Plate':'Assiette')+'</button>'
         : '<button class="tour-action-btn fed" onclick="logAction(\''+id+'\',\'fed\')">'+t('eventFed')+'</button>')+
+      '<button class="tour-action-btn" onclick="logRefusedInShed(\''+id+'\')">🔵 '+(isEn?'Refused (shed)':'Refus (mue)')+'</button>'+ // v3.93
       '<button class="tour-action-btn" onclick="logInShed(\''+id+'\')">🔵 '+(isEn?'In shed':'En mue')+'</button>'+ // v3.90
       '<button class="tour-action-btn" onclick="logSkippedMeal(\''+id+'\')">⏭ '+(isEn?'Skipped':'Sauté')+'</button>'+ // v3.92
       '<button class="tour-action-btn shed" onclick="logAction(\''+id+'\',\'shed\')">'+t('eventShed')+'</button>'+
@@ -12307,6 +12313,33 @@ function pastEventFieldsHtml(type, isEn){
   if(type==='weigh') return '<label style="display:block;font-size:13px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Weight (g)':'Poids (g)')+'</label><input type="number" id="pe-weight" min="0" style="'+sel+'"/>';
   return '';
 }
+// v3.93 — « Refus (mue) » : un refus avec la raison « En mue », et l'animal passe « En mue » s'il ne
+// l'était pas déjà à cette date. La proie décongelée est décomptée comme un refus normal (jetée).
+function inShedOnDate(s, date){ return inShedWindows(s).some(w=>date>=w.start && date<=w.end && !(w.closed && date===w.end)); }
+function refusedInShedEvents(s, date){
+  const out = [];
+  if(!inShedOnDate(s, date)) out.push({ date, type:'inshed' });
+  s.health.consecutiveRefusals = (s.health.consecutiveRefusals||0)+1;
+  const isFrozen = (s.preyType||'frozen')==='frozen';
+  const ev = { date, type:'refused', reason:'in_shed', lostPrey:isFrozen };
+  if(isFrozen && s.preySpecies && s.preySize){ const rec = consumePreyForEvent(s, 'frozen', 1); if(rec) ev.stockDraw = rec; }
+  out.push(ev);
+  return out;
+}
+function logRefusedInShed(id){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const isEn = currentLang==='en';
+  const evs = refusedInShedEvents(s, localTodayStr());
+  evs.forEach(ev=>s.health.events.push(ev));
+  if(evs.some(ev=>ev.stockDraw)){ saveElevage(); try{ renderDefrostList(); renderFeederStockList(); }catch(e){} }
+  storage.save(savedSnakes);
+  registerEventUndo(evs.map(ev=>({ snakeId:id, event:ev })));
+  showToast('🔵 '+escapeHtml(s.name)+(isEn?' — refused because of the shed. No alert, run kept.':' — refus à cause de la mue. Pas d\'alerte, série conservée.'), 'success', 'undoLastLoggedEvent()');
+  if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
+  try{ renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderSavedList(); }catch(e){}
+}
 function logSkippedMeal(id){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
@@ -12435,11 +12468,12 @@ function confirmTourShedQuality(q){
 // Raison de refus catégorisée (25 août) — au lieu de juste noter "refusé" sans contexte, choisir
 // parmi des raisons courantes permet de repérer un patron dans le temps (ex. refuse toujours en
 // période de mue). "unknown" reste l'option par défaut — jamais forcer une raison qu'on n'est pas sûr.
-const REFUSAL_REASONS = ['unknown','shed_upcoming','stress','breeding_season','recent_move','other'];
+const REFUSAL_REASONS = ['unknown','in_shed','shed_upcoming','stress','breeding_season','recent_move','other']; // v3.93 — « en mue » ajouté
 function refusalReasonLabel(reason){
   const isEn = currentLang==='en';
   const labels = {
     unknown: isEn?'Not sure / no obvious reason':'Pas sûr / pas de raison évidente',
+    in_shed: isEn?'In shed (blue)':'En mue', // v3.93
     shed_upcoming: isEn?'Upcoming shed':'Mue à venir',
     stress: isEn?'Stress / recent disturbance':'Stress / dérangement récent',
     breeding_season: isEn?'Breeding season':'Saison de reproduction',
@@ -19766,6 +19800,10 @@ function applyTourAction(action){
       snake.health.events.push(event);
       undoPairs.push({snakeId:snake.id, event});
     }
+    else if(action==='refused_shed'){ // v3.93 — refus à cause de la mue, en un toucher
+      const evs = refusedInShedEvents(snake, today);
+      evs.forEach(ev=>{ if(ev.stockDraw) stockTouched = true; snake.health.events.push(ev); undoPairs.push({snakeId:snake.id, event:ev}); });
+    }
     else if(action==='skipped'){ // v3.92 — repas sauté volontairement (pas un refus)
       const event = {date:today, type:'skipped'};
       snake.health.events.push(event);
@@ -19808,10 +19846,11 @@ function applyTourAction(action){
       shed: isEn ? n+' shed(s) noted.' : n+' mue(s) notée(s).',
       inshed: isEn ? n+' animal(s) in shed — refusals won\'t be flagged.' : n+' animal(aux) en mue — les refus ne seront pas signalés.', // v3.90
       skipped: isEn ? n+' meal(s) skipped on purpose — not counted as refusals.' : n+' repas sauté(s) volontairement — pas comptés comme refus.', // v3.92
+      refused_shed: isEn ? n+' refusal(s) due to shed — no alert, run kept.' : n+' refus à cause de la mue — pas d\'alerte, série conservée.', // v3.93
       plate: isEn ? n+' plate(s) eaten.' : n+' assiette(s) mangée(s).',
       water: isEn ? n+' water change(s) logged.' : n+' changement(s) d\'eau noté(s).',
     };
-    const icons = { fed_frozen:'🍽', fed_live:'🍽', refused:'⚠', shed:'✨', inshed:'🔵', skipped:'⏭', water:'💧', plate:'🥗' };
+    const icons = { fed_frozen:'🍽', fed_live:'🍽', refused:'⚠', refused_shed:'🔵', shed:'✨', inshed:'🔵', skipped:'⏭', water:'💧', plate:'🥗' };
     // Mue d'un seul serpent : même indice de prédiction que dans la fiche (v3.50). En lot, on
     // garde le message court (une phrase par serpent serait illisible dans un toast).
     let shedHintTour = null;
