@@ -2210,7 +2210,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.3.86';
+const APP_VERSION = '2026.09.01.3.87';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4969,6 +4969,7 @@ const CHANGELOG = [
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '🎉 Résumé de saison : dans Statistiques, « Mon résumé de saison » crée une image format Story (Instagram, Facebook) avec les chiffres de l\'année choisie — repas, mues, pesées, locks, pontes, œufs, éclosions, combos produits chez toi, nouveaux Proven, jalons, record de la saison. Coche ce que tu veux montrer (les ventes sont décochées par défaut); les cases à zéro sont cachées. En novembre et décembre, une petite carte sur le tableau de bord te le rappelle une fois — un toucher pour la fermer.',
         '📊 Statistiques (menu ☰) : tout ce qui se mesure dans ta collection au même endroit — chiffres clés (animaux, repas, refus, pesées, mues, coût de nourriture, pontes, ventes), graphiques (repas et refus par mois, coût de nourriture par mois, courbe de poids de chaque animal, mues par mois, taille de la collection, reproduction par année, ventes par mois) et un tableau par animal (intervalle moyen entre les repas et les mues, croissance en g/mois, coût). Touche une barre ou un point pour lire sa valeur; « Voir les données » affiche le tableau. Gratuit.',
         '🏆 Jalons : premier repas, 100e et 500e repas, première pesée, croissance suivie 6 mois, première ponte, première éclosion, premier visuel récessif produit chez toi, premier Proven, 3 générations nées chez toi, 1 an de suivi — calculés à partir de ce que tu as déjà noté, avec tes records (ponte la plus riche en gènes, meilleur taux d\'éclosion). Un petit message quand tu en atteins un nouveau, jamais de série à garder ni de rappel.',
         '💲 Prix unitaires des proies dans Élevage › Nourriture (ex. Rat Small = 3,50 $) : le coût de nourriture de chaque animal se calcule maintenant tout seul selon sa proie. Le « Coût par repas » d\'une fiche reste une exception pour cet animal. Les proies utilisées par tes animaux sans prix sont signalées.',
@@ -5023,6 +5024,7 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '🎉 Season recap: in Statistics, « My season recap » creates a Story-format image (Instagram, Facebook) with the chosen year\'s numbers — meals, sheds, weigh-ins, locks, clutches, eggs, hatches, combos produced at home, new Proven, milestones, record of the season. Check what you want to show (sales are unchecked by default); boxes at zero are hidden. In November and December, a small card on the dashboard reminds you once — one tap to close it.',
         '📊 Statistics (☰ menu): everything measurable in your collection in one place — key numbers (animals, meals, refusals, weigh-ins, sheds, feeding cost, clutches, sales), charts (meals and refusals per month, feeding cost per month, each animal\'s weight curve, sheds per month, collection size, reproduction per year, sales per month) and a per-animal table (average interval between meals and sheds, growth in g/month, cost). Tap a bar or a point to read its value; « See the data » shows the table. Free.',
         '🏆 Milestones: first meal, 100th and 500th meal, first weigh-in, growth tracked for 6 months, first clutch, first hatch, first visual recessive produced at home, first Proven, 3 generations born at home, 1 year of tracking — calculated from what you\'ve already recorded, with your records (gene-richest clutch, best hatch rate). A short message when you reach a new one, never a streak to keep or a reminder.',
         '💲 Prey unit prices in Breeding › Food (e.g. Rat Small = $3.50): each animal\'s feeding cost is now calculated automatically from its prey. A record\'s « Cost per meal » stays an exception for that animal. Prey used by your animals without a price is flagged.',
@@ -22263,6 +22265,7 @@ function renderStatsView(){
       '<h1 style="font-size:24px;color:var(--ink);margin:0;">📊 '+(isEn?'Statistics':'Statistiques')+'</h1>'+
       '<button class="sc-btn" style="font-size:16px;padding:10px 16px;" onclick="closeStatsView()">✕ '+(isEn?'Close':'Fermer')+'</button>'+
     '</div>'+
+    '<button class="save-btn" style="width:100%;font-size:17px;padding:13px;margin:10px 0 4px;" onclick="openSeasonRecap()">🎉 '+(isEn?'My season recap (image to share)':'Mon résumé de saison (image à partager)')+'</button>'+
     '<p style="font-size:13.5px;color:var(--ink-dim);margin:4px 0 0;line-height:1.5;">'+(isEn?'Everything measurable in your collection, calculated from what you\'ve recorded. Nothing to enter here.':'Tout ce qui se mesure dans ta collection, calculé à partir de ce que tu as noté. Rien à entrer ici.')+'</p>';
 
   // Chiffres clés
@@ -22359,6 +22362,229 @@ function renderStatsView(){
     ch.addEventListener('pointerover', show);
     ch.addEventListener('click', show);
   });
+}
+
+// ==================== Résumé de saison à partager (v3.87) ====================
+// Image Story 1080×1920 avec les chiffres de l'année choisie, tirés des vraies données. Décisions du
+// 19 oct : année au choix, cases à cocher (tout coché sauf les ventes), gratuit, petite carte sur le
+// tableau de bord en novembre-décembre (fermée d'un toucher, ne revient pas pour cette année).
+// Jamais d'affirmation invérifiable (pas de « 0 rat gaspillé », pas de « world first »).
+var RECAP_FIELDS_KEY = 'locus_recap_fields_v1';
+var seasonRecap = { year: new Date().getFullYear(), fields: null };
+function recapFieldDefs(){
+  return [
+    { k:'animals', icon:'🐍', fr:'reptiles dans la collection', en:'reptiles in the collection', fr1:'reptile dans la collection', en1:'reptile in the collection', def:true },
+    { k:'meals', icon:'🍽', fr:'repas donnés', en:'meals given', fr1:'repas donné', en1:'meal given', def:true },
+    { k:'sheds', icon:'✨', fr:'mues', en:'sheds', fr1:'mue', en1:'shed', def:true },
+    { k:'weighs', icon:'⚖', fr:'pesées', en:'weigh-ins', fr1:'pesée', en1:'weigh-in', def:true },
+    { k:'locks', icon:'🔒', fr:'locks notés', en:'locks logged', fr1:'lock noté', en1:'lock logged', def:true },
+    { k:'clutches', icon:'🥚', fr:'pontes', en:'clutches', fr1:'ponte', en1:'clutch', def:true },
+    { k:'eggs', icon:'🥚', fr:'œufs', en:'eggs', fr1:'œuf', en1:'egg', def:true },
+    { k:'hatched', icon:'🐣', fr:'bébés éclos', en:'babies hatched', fr1:'bébé éclos', en1:'baby hatched', def:true },
+    { k:'combos', icon:'🧬', fr:'combos produits chez moi', en:'combos produced at home', fr1:'combo produit chez moi', en1:'combo produced at home', def:true },
+    { k:'proven', icon:'✅', fr:'nouveaux Proven', en:'new Proven', fr1:'nouveau Proven', en1:'new Proven', def:true },
+    { k:'milestones', icon:'🏆', fr:'jalons atteints', en:'milestones reached', fr1:'jalon atteint', en1:'milestone reached', def:true },
+    { k:'record', icon:'🏅', fr:'record de la saison', en:'record of the season', def:true },
+    { k:'sales', icon:'💰', fr:'animaux vendus', en:'animals sold', fr1:'animal vendu', en1:'animal sold', def:false }
+  ];
+}
+function loadRecapFields(){
+  let saved = null;
+  try{ saved = JSON.parse(localStorage.getItem(RECAP_FIELDS_KEY)||'null'); }catch(e){ saved = null; }
+  const out = {};
+  recapFieldDefs().forEach(d=>{ out[d.k] = (saved && typeof saved[d.k]==='boolean') ? saved[d.k] : d.def; });
+  return out;
+}
+function saveRecapFields(){ try{ localStorage.setItem(RECAP_FIELDS_KEY, JSON.stringify(seasonRecap.fields)); }catch(e){} }
+function recapYearsAvailable(){
+  const ys = new Set([new Date().getFullYear()]);
+  statsAllSnakes().forEach(s=>((s.health&&s.health.events)||[]).forEach(e=>{ if(e && e.date) ys.add(Number(String(e.date).slice(0,4))); }));
+  (clutches||[]).forEach(c=>{ if(c && c.layDate) ys.add(Number(String(c.layDate).slice(0,4))); });
+  return [...ys].filter(y=>y>1990 && y<=new Date().getFullYear()).sort((a,b)=>b-a);
+}
+function computeSeasonRecap(year){
+  const Y = String(year);
+  const inY = d=> d && String(d).slice(0,4)===Y;
+  const all = statsAllSnakes();
+  let meals=0, sheds=0, weighs=0;
+  const locks = new Set();
+  all.forEach(s=>{
+    ((s.health&&s.health.events)||[]).forEach(e=>{
+      if(!e || !inY(e.date)) return;
+      if(e.type==='fed') meals++;
+      else if(e.type==='shed') sheds++;
+      else if(e.type==='lock') locks.add(e.lockId ? 'id|'+e.lockId : (s.sex==='female' ? 'f|'+s.id+'|'+e.date : null));
+    });
+    weighs += ((s.health&&s.health.weights)||[]).filter(w=>inY(w.date)).length;
+  });
+  locks.delete(null);
+  const cl = (clutches||[]).filter(c=>c && inY(c.layDate));
+  const eggs = cl.reduce((a,c)=>a+Number(c.eggCount||0),0);
+  const hatched = cl.filter(c=>c.hatched).reduce((a,c)=>a+Number(c.liveCount||0),0);
+  const babies = all.filter(s=>inY(s.birthDate) && isLocusBorn(s));
+  const combos = new Set(babies.map(s=>{ try{ return summarizeGenes(s.genes||{}); }catch(e){ return ''; } }).filter(Boolean)).size;
+  const proven = all.filter(s=>{
+    if((s.provenSeasons||[]).some(p=>String(p.year)===Y)) return true;
+    return cl.some(c=>c.damId===s.id || c.sireId===s.id);
+  }).length;
+  const milestones = computeMilestones().filter(m=>m.done && inY(m.date)).length;
+  const endStr = Y+'-12-31';
+  const animals = all.filter(s=>{
+    const created = s.createdAt ? new Date(s.createdAt) : null;
+    if(created && created.getFullYear()>year) return false;
+    if(s.status==='sold' && s.soldDate && s.soldDate<=endStr && !inY(s.soldDate)) return false;
+    if(s.status==='deceased' && s.deceasedDate && s.deceasedDate<=endStr && !inY(s.deceasedDate)) return false;
+    return true;
+  }).length;
+  const sales = all.filter(s=>s.status==='sold' && inY(s.soldDate)).length;
+  // Record : ponte de l'année la plus riche en gènes (gènes distincts réunis chez les 2 parents)
+  let record = null;
+  cl.forEach(c=>{
+    const sire = savedSnakes.find(x=>x.id===c.sireId), dam = savedSnakes.find(x=>x.id===c.damId);
+    const n = new Set([...Object.keys((sire&&sire.genes)||{}), ...Object.keys((dam&&dam.genes)||{})].filter(g=>!isFreewayKey(g))).size;
+    if(n>0 && (!record || n>record.n)) record = { n, pair:(sire?sire.name:'?')+' × '+(dam?dam.name:'?') };
+  });
+  return { animals, meals, sheds, weighs, locks:locks.size, clutches:cl.length, eggs, hatched, combos, proven, milestones, sales, record };
+}
+function openSeasonRecap(year){
+  const isEn = currentLang==='en';
+  if(year) seasonRecap.year = Number(year);
+  if(!seasonRecap.fields) seasonRecap.fields = loadRecapFields();
+  const years = recapYearsAvailable();
+  if(!years.includes(seasonRecap.year)) seasonRecap.year = years[0];
+  const f = seasonRecap.fields;
+  const body =
+    '<p style="font-size:13px;color:var(--ink-dim);margin:0 0 10px;line-height:1.5;">'+(isEn
+      ? 'A Story-format image (Instagram, Facebook) with your season\'s numbers, taken from what you\'ve recorded. Boxes at zero are hidden. Everything stays on your device until you share it.'
+      : 'Une image format Story (Instagram, Facebook) avec les chiffres de ta saison, tirés de ce que tu as noté. Les cases à zéro sont cachées. Tout reste sur ton appareil tant que tu ne la partages pas.')+'</p>'+
+    '<label style="font-size:15px;color:var(--ink);">'+(isEn?'Year: ':'Année : ')+
+      '<select onchange="openSeasonRecap(this.value)" style="font-size:16px;padding:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+      years.map(y=>'<option value="'+y+'"'+(y===seasonRecap.year?' selected':'')+'>'+y+'</option>').join('')+'</select></label>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;margin:10px 0;">'+
+      recapFieldDefs().map(d=>'<label style="display:flex;gap:8px;align-items:center;font-size:14px;padding:5px 0;cursor:pointer;"><input type="checkbox" style="width:20px;height:20px;accent-color:var(--sage);" '+(f[d.k]?'checked ':'')+'onchange="seasonRecap.fields[\''+d.k+'\']=this.checked; saveRecapFields(); drawSeasonRecap();"/>'+(isEn?d.en:d.fr)+'</label>').join('')+
+    '</div>'+
+    '<canvas id="recap-canvas" style="width:100%;height:auto;border-radius:10px;border:1px solid var(--line);background:#000;"></canvas>'+
+    '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">'+
+      '<button class="save-btn" style="flex:1;font-size:16px;" onclick="shareSeasonRecap()">📤 '+(isEn?'Share':'Partager')+'</button>'+
+      '<button class="sc-btn" style="flex:1;font-size:16px;" onclick="downloadSeasonRecap()">⬇️ '+(isEn?'Download':'Télécharger')+'</button>'+
+    '</div>';
+  showQuickModal('🎉 '+(isEn?'Season recap ':'Résumé de saison ')+seasonRecap.year, body);
+  ensureShareLogo(drawSeasonRecap);
+  drawSeasonRecap();
+}
+function drawSeasonRecap(){
+  const canvas = document.getElementById('recap-canvas');
+  if(!canvas) return;
+  const isEn = currentLang==='en';
+  const W = 1080, H = 1920;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const font = 'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+  const r = computeSeasonRecap(seasonRecap.year);
+  const f = seasonRecap.fields || loadRecapFields();
+  const bg = ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#211B15'); bg.addColorStop(1,'#000000');
+  ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle = 'rgba(201,151,62,.55)'; ctx.lineWidth = 4;
+  ctx.strokeRect(36,36,W-72,H-72);
+  const pad = 90;
+  ctx.textBaseline = 'top'; ctx.textAlign = 'center';
+  ctx.fillStyle = '#C9973E'; ctx.font = '700 46px '+font;
+  ctx.fillText(isEn?'MY SEASON':'MA SAISON', W/2, 120);
+  ctx.fillStyle = '#EDE6D6'; ctx.font = '800 150px '+font;
+  ctx.fillText(String(seasonRecap.year), W/2, 180);
+  const breeder = (loadProfile().breederName||'').trim();
+  if(breeder){ ctx.fillStyle = '#B8A98C'; ctx.font = '600 48px '+font; ctx.fillText(shareWrapLines(ctx, breeder, W-pad*2)[0]||'', W/2, 350); }
+  const tiles = recapFieldDefs().filter(d=>d.k!=='record' && f[d.k] && Number(r[d.k])>0).map(d=>({ value:r[d.k], label: Number(r[d.k])===1 ? (isEn?(d.en1||d.en):(d.fr1||d.fr)) : (isEn?d.en:d.fr), icon:d.icon }));
+  const showRecord = !!(f.record && r.record);
+  const maxTiles = showRecord ? 8 : 10; // garde la place du record de la saison
+  let y = 470;
+  if(!tiles.length && !(f.record && r.record)){
+    ctx.fillStyle = '#B8A98C'; ctx.font = '500 46px '+font;
+    shareWrapLines(ctx, isEn?'Nothing recorded for this year yet.':'Rien de noté pour cette année pour l\'instant.', W-pad*2).forEach((l,i)=>ctx.fillText(l, W/2, 760+i*60));
+  }
+  const colW = (W-pad*2-30)/2, tileH = 240;
+  tiles.slice(0,maxTiles).forEach((t,i)=>{
+    const col = i%2, row = Math.floor(i/2);
+    const x = pad + col*(colW+30), ty = y + row*(tileH+24);
+    ctx.fillStyle = 'rgba(22,18,16,.92)'; ctx.strokeStyle = '#3A3025'; ctx.lineWidth = 2;
+    if(ctx.roundRect){ ctx.beginPath(); ctx.roundRect(x, ty, colW, tileH, 26); ctx.fill(); ctx.stroke(); } else { ctx.fillRect(x, ty, colW, tileH); ctx.strokeRect(x, ty, colW, tileH); }
+    ctx.textAlign = 'left';
+    ctx.font = '48px '+font; ctx.fillStyle = '#EDE6D6'; ctx.fillText(t.icon, x+30, ty+26);
+    ctx.font = '800 88px '+font; ctx.fillStyle = '#EDE6D6'; ctx.fillText(String(t.value), x+30, ty+74);
+    ctx.font = '500 32px '+font; ctx.fillStyle = '#B8A98C';
+    shareWrapLines(ctx, t.label, colW-60).slice(0,2).forEach((l,li)=>ctx.fillText(l, x+30, ty+166+li*36));
+  });
+  const rows = Math.ceil(Math.min(tiles.length,maxTiles)/2);
+  y += rows*(tileH+24) + 10;
+  if(showRecord){
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#C9973E'; ctx.font = '700 40px '+font;
+    ctx.fillText('🏅 '+(isEn?'Record of the season':'Record de la saison'), W/2, y+10);
+    ctx.fillStyle = '#EDE6D6'; ctx.font = '600 44px '+font;
+    const txt = (isEn?'Gene-richest clutch: ':'Ponte la plus riche : ')+r.record.n+(isEn?' genes':' gènes');
+    ctx.fillText(shareWrapLines(ctx, txt, W-pad*2)[0]||'', W/2, y+66);
+    ctx.fillStyle = '#B8A98C'; ctx.font = '500 38px '+font;
+    ctx.fillText(shareWrapLines(ctx, r.record.pair, W-pad*2)[0]||'', W/2, y+124);
+  }
+  // Pied : logo + « Fait avec LOCUS Scales »
+  ctx.textAlign = 'center';
+  const logo = 84, ly = H-250;
+  if(shareLogoImg && shareLogoImg.complete && shareLogoImg.naturalWidth && !shareLogoImg.failed) ctx.drawImage(shareLogoImg, W/2-logo/2, ly, logo, logo);
+  ctx.fillStyle = '#EDE6D6'; ctx.font = '700 40px '+font;
+  ctx.fillText((isEn?'Made with ':'Fait avec ')+'LOCUS Scales', W/2, ly+100);
+  ctx.fillStyle = '#B8A98C'; ctx.font = '500 32px '+font;
+  ctx.fillText('locusscales.com', W/2, ly+152);
+  ctx.textAlign = 'left';
+}
+function seasonRecapBlob(cb){
+  const canvas = document.getElementById('recap-canvas');
+  if(!canvas) return;
+  try{ canvas.toBlob(b=>cb(b), 'image/jpeg', 0.92); }catch(e){ showToast(currentLang==='en'?'Could not create the image.':'Impossible de créer l\'image.', 'error'); }
+}
+function seasonRecapFileName(){ return 'locus-saison-'+seasonRecap.year+'.jpg'; }
+function downloadSeasonRecap(){
+  seasonRecapBlob(b=>{
+    if(!b) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(b); a.download = seasonRecapFileName();
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+  });
+}
+function shareSeasonRecap(){
+  seasonRecapBlob(b=>{
+    if(!b) return;
+    const file = new File([b], seasonRecapFileName(), { type:'image/jpeg' });
+    if(navigator.canShare && navigator.canShare({ files:[file] })) navigator.share({ files:[file] }).catch(()=>{});
+    else downloadSeasonRecap();
+  });
+}
+// Carte discrète sur le tableau de bord en novembre-décembre — fermée d'un toucher, ne revient pas
+// pour cette année. Seulement s'il y a au moins quelque chose de noté cette année.
+function seasonRecapCardKey(){ return 'locus_recap_card_dismissed_'+new Date().getFullYear(); }
+function renderSeasonRecapCard(){
+  const dash = document.getElementById('view-dash');
+  if(!dash) return;
+  let card = document.getElementById('season-recap-card');
+  const month = new Date().getMonth(); // 10 = novembre, 11 = décembre
+  let dismissed = false;
+  try{ dismissed = localStorage.getItem(seasonRecapCardKey())==='1'; }catch(e){}
+  const r = (month>=10 && !dismissed) ? computeSeasonRecap(new Date().getFullYear()) : null;
+  const show = !!(r && (r.meals || r.sheds || r.weighs || r.clutches));
+  if(!show){ if(card) card.remove(); return; }
+  const isEn = currentLang==='en';
+  if(!card){ card = document.createElement('div'); card.id = 'season-recap-card'; dash.insertBefore(card, dash.firstChild); }
+  card.innerHTML = '<div style="background:var(--bg-panel);border:1px solid var(--gold);border-radius:14px;padding:14px 16px;margin:0 0 14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">'+
+    '<div style="flex:1;min-width:200px;font-size:15px;color:var(--ink);">🎉 '+(isEn?'Your '+new Date().getFullYear()+' season recap is ready — an image to share if you feel like it.':'Ton résumé de la saison '+new Date().getFullYear()+' est prêt — une image à partager si le cœur t\'en dit.')+'</div>'+
+    '<button class="save-btn" style="font-size:15px;padding:10px 14px;" onclick="openSeasonRecap()">'+(isEn?'See it':'Le voir')+'</button>'+
+    '<button class="sc-btn" style="font-size:15px;padding:10px 12px;" onclick="dismissSeasonRecapCard()" aria-label="'+(isEn?'Close':'Fermer')+'">✕</button>'+
+  '</div>';
+}
+function dismissSeasonRecapCard(){
+  try{ localStorage.setItem(seasonRecapCardKey(), '1'); }catch(e){}
+  const card = document.getElementById('season-recap-card');
+  if(card) card.remove();
 }
 
 // ==================== Mémorial — animal décédé (v3.84) ====================
@@ -23478,6 +23704,7 @@ function updateSampleDataBanner(){
 function renderDashboard(){
   const isEn = currentLang==='en';
   savedSnakes.forEach(ensureSnakeMeta);
+  try{ renderSeasonRecapCard(); }catch(e){} // v3.87
   renderWelcomeHero();
   renderFirstSnakeNudge();
   updateBackupReminderBanner();
