@@ -2214,7 +2214,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.02';
+const APP_VERSION = '2026.09.01.4.03';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5016,6 +5016,7 @@ const CHANGELOG = [
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '📈 Les graphiques mensuels commencent maintenant environ 1 mois avant ta première donnée notée, au lieu d\'afficher des mois vides (maximum 12 mois, 24 pour la taille de la collection).',
         '📈 Statistiques › Chiffres : nouvelle section « Tendances » avec des flèches ▲▼ (vert = mieux, rouge = moins bien) — repas, taux de refus, coût de nourriture (30 derniers jours vs les 30 d\'avant), œufs en incubation et ventes (cette année vs l\'an passé). Locks (réservé au palier Première ponte et Illimité après la bêta), rongeurs nés et % d\'auto-suffisance alimentaire (réservés au palier Illimité après la bêta).',
         '🧬 Consanguinité publique (au choix du vendeur) : ta vitrine peut afficher le coefficient de chaque animal, avec le nombre de générations complètes connues — « inconnue » si un parent n\'est pas enregistré, jamais un faux 0 %. Aussi sur le QR de show (case à cocher, décochée par défaut) et dans le lien de transfert. Un animal importé garde le coefficient calculé chez l\'ancien propriétaire.',
         '🩸 Ta vitrine peut afficher ton trophée « Sang neuf » tant que tu l\'as — il disparaît tout seul si tu le perds.',
@@ -5092,6 +5093,7 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '📈 Monthly charts now start about 1 month before your first recorded data, instead of showing empty months (12 months max, 24 for collection size).',
         '📈 Statistics › Numbers: new « Trends » section with ▲▼ arrows (green = better, red = worse) — meals, refusal rate, feeding cost (last 30 days vs the 30 before), eggs incubated and sales (this year vs last year). Locks (reserved for the First Clutch and Unlimited tiers after the beta), rodents born and food self-sufficiency % (reserved for the Unlimited tier after the beta).',
         '🧬 Public inbreeding (seller\'s choice): your showcase can show each animal\'s coefficient, with the number of complete known generations — « unknown » if a parent isn\'t recorded, never a fake 0 %. Also on the show QR (checkbox, unchecked by default) and in the transfer link. An imported animal keeps the coefficient calculated at the previous owner\'s.',
         '🩸 Your showcase can show your « New blood » trophy as long as you have it — it disappears by itself if you lose it.',
@@ -22363,6 +22365,36 @@ function statsLastMonths(n){
   }
   return out;
 }
+// v4.03 — Les graphiques mensuels commencent environ 1 mois avant la toute première donnée notée
+// (au lieu d'afficher 12 ou 24 mois vides). Maximum : n mois. Minimum : 3 mois, pour garder une forme.
+function statsFirstDataMonth(){
+  let first = null;
+  const take = d=>{ const s = String(d||''); if(/^\d{4}-\d{2}/.test(s)){ const m = s.slice(0,7); if(!first || m<first) first = m; } };
+  try{
+    statsAllSnakes().forEach(s=>{
+      ((s.health&&s.health.events)||[]).forEach(e=>e && take(e.date));
+      ((s.health&&s.health.weights)||[]).forEach(w=>w && take(w.date));
+      take(s.soldDate);
+      if(s.createdAt){ try{ take(ymdLocal(new Date(s.createdAt))); }catch(e){} }
+    });
+    (clutches||[]).forEach(c=>c && take(c.layDate));
+  }catch(e){}
+  return first;
+}
+function statsChartMonths(n){
+  const all = statsLastMonths(n);
+  const first = statsFirstDataMonth();
+  if(!first) return all.slice(-3);
+  const [y,m] = first.split('-').map(Number);
+  const d = new Date(y, m-2, 1); // 1 mois avant
+  const start = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  const cut = all.filter(x=>x>=start);
+  return cut.length>=3 ? cut : all.slice(-3);
+}
+function statsMonthsSubtitle(months, n, isEn){
+  if(months.length>=n) return isEn ? 'Last '+n+' months' : n+' derniers mois';
+  return (isEn?'Since ':'Depuis ')+statsMonthLabel(months[0], isEn);
+}
 function statsMonthLabel(ym, isEn){
   const [y,m] = ym.split('-');
   return statsMonthNames(isEn)[Number(m)-1]+' '+String(y).slice(2);
@@ -23147,11 +23179,12 @@ function renderStatsView(){
   }
 
   if(statsTab==='charts'){
-    const months = statsLastMonths(12);
+    const months = statsChartMonths(12);
+    const sub12 = statsMonthsSubtitle(months, 12, isEn);
     const mLabels = months.map(m=>({ label: statsMonthLabel(m, isEn) }));
     const fm = statsFedByMonth(months);
     const charts = [];
-    charts.push({ id:'meals', html: statsBarChart({ id:'meals', title: isEn?'Meals and refusals per month':'Repas et refus par mois', subtitle: isEn?'Last 12 months, whole collection':'12 derniers mois, toute la collection',
+    charts.push({ id:'meals', html: statsBarChart({ id:'meals', title: isEn?'Meals and refusals per month':'Repas et refus par mois', subtitle: sub12+(isEn?', whole collection':', toute la collection'),
       categories: mLabels, series:[ { name: isEn?'Meals':'Repas', color: STATS_COLORS.blue, values: fm.fed }, { name: isEn?'Refusals':'Refus', color: STATS_COLORS.orange, values: fm.ref } ] }), title: isEn?'Meals and refusals per month':'Repas et refus par mois' });
     charts.push({ id:'cost', html: statsBarChart({ id:'cost', title: isEn?'Feeding cost per month':'Coût de nourriture par mois', subtitle: mealsNoPrice ? (isEn?'Meals without a known price are not counted':'Les repas sans prix connu ne sont pas comptés') : (isEn?'Last 12 months':'12 derniers mois'),
       categories: mLabels, series:[ { name: isEn?'Cost':'Coût', color: STATS_COLORS.blue, values: fm.cost } ], fmt:(v, axis)=> axis ? Math.round(v)+' $' : statsFmtMoney(v) }), title: isEn?'Feeding cost per month':'Coût de nourriture par mois' });
@@ -23165,10 +23198,10 @@ function renderStatsView(){
     charts.push({ id:'weight', html: statsLineChart({ id:'weight', pre: weightSel, title: ws ? (isEn?'Weight — ':'Poids — ')+ws.name : (isEn?'Weight':'Poids'), color: STATS_COLORS.blue,
       points: ws ? ws.health.weights.map(w=>({ date:w.date, value:Number(w.value) })) : [], fmt:v=>Math.round(v)+' g', xName: 'Date', yName: isEn?'Weight':'Poids',
       empty: isEn?'At least 2 weigh-ins are needed to draw a curve.':'Il faut au moins 2 pesées pour tracer une courbe.' }), title: isEn?'Weight per animal':'Poids par animal' });
-    charts.push({ id:'sheds', html: statsBarChart({ id:'sheds', title: isEn?'Sheds per month':'Mues par mois', subtitle: isEn?'Last 12 months':'12 derniers mois',
+    charts.push({ id:'sheds', html: statsBarChart({ id:'sheds', title: isEn?'Sheds per month':'Mues par mois', subtitle: sub12,
       categories: mLabels, series:[ { name: isEn?'Sheds':'Mues', color: STATS_COLORS.aqua, values: fm.sheds } ] }), title: isEn?'Sheds per month':'Mues par mois' });
-    const months24 = statsLastMonths(24), coll = statsCollectionByMonth(months24);
-    charts.push({ id:'collection', html: statsLineChart({ id:'collection', title: isEn?'Collection size':'Taille de la collection', subtitle: isEn?'Active animals at the end of each month, last 24 months (based on when they were added to LOCUS)':'Animaux actifs à la fin de chaque mois, 24 derniers mois (selon leur date d\'ajout dans LOCUS)',
+    const months24 = statsChartMonths(24), coll = statsCollectionByMonth(months24);
+    charts.push({ id:'collection', html: statsLineChart({ id:'collection', title: isEn?'Collection size':'Taille de la collection', subtitle: (isEn?'Active animals at the end of each month — ':'Animaux actifs à la fin de chaque mois — ')+statsMonthsSubtitle(months24, 24, isEn).toLowerCase()+(isEn?' (based on when they were added to LOCUS)':' (selon leur date d\'ajout dans LOCUS)'),
       color: STATS_COLORS.blue, zero:true, points: months24.map((m,i)=>({ date: m+'-01', value: coll[i] })), fmt:v=>String(Math.round(v)), xName: isEn?'Month':'Mois', yName: isEn?'Animals':'Animaux' }), title: isEn?'Collection size':'Taille de la collection' });
     const repro = statsReproByYear();
     charts.push({ id:'repro', title: isEn?'Reproduction per year':'Reproduction par année', html: repro.length
@@ -23176,7 +23209,7 @@ function renderStatsView(){
           series:[ { name: isEn?'Clutches':'Pontes', color: STATS_COLORS.blue, values: repro.map(r=>r.clutches) }, { name: isEn?'Eggs':'Œufs', color: STATS_COLORS.orange, values: repro.map(r=>r.eggs) }, { name: isEn?'Hatched':'Éclos', color: STATS_COLORS.aqua, values: repro.map(r=>r.live) } ] })
       : statsChartFrame({ id:'repro', title: isEn?'Reproduction per year':'Reproduction par année' }, '<div style="font-size:15px;color:var(--ink-dim);padding:10px 0;">'+(isEn?'Appears once a clutch is recorded in Incubation.':'Apparaît dès qu\'une ponte est notée dans Incubation.')+'</div>', [], []) });
     const salesM = months.map(m=>sold.filter(s=>s.soldDate && s.soldDate.slice(0,7)===m).reduce((a,s)=>a+(Number(s.soldPrice)||0),0));
-    charts.push({ id:'sales', title: isEn?'Sales per month':'Ventes par mois', html: statsBarChart({ id:'sales', title: isEn?'Sales per month':'Ventes par mois', subtitle: isEn?'Last 12 months':'12 derniers mois', categories: mLabels,
+    charts.push({ id:'sales', title: isEn?'Sales per month':'Ventes par mois', html: statsBarChart({ id:'sales', title: isEn?'Sales per month':'Ventes par mois', subtitle: sub12, categories: mLabels,
       series:[ { name: isEn?'Sales':'Ventes', color: STATS_COLORS.blue, values: salesM } ], fmt:(v, axis)=> axis ? Math.round(v)+' $' : statsFmtMoney(v) }) });
     const prefs = loadStatsChartPrefs();
     const visible = charts.filter(c=>!prefs.hidden.includes(c.id));
