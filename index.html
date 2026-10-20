@@ -2214,7 +2214,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.09';
+const APP_VERSION = '2026.09.01.4.10';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5053,10 +5053,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'3.76', date:'2026-10-14',
+  { version:'4.10', date:'2026-10-20',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '🏆 Trophées : une vitrine en haut montre maintenant tous tes trophées gagnés en médailles dorées. L\'ancienneté se calcule à partir de ton arrivée dans LOCUS (création du compte ou 1er animal ajouté) — les entrées antidatées ne comptent plus pour ce trophée.',
         '🤫 5 nouveaux trophées cachés à découvrir… indice : un bac propre ne le reste jamais longtemps.',
         '🏆 6 nouveaux trophées : Super Héros, L\'Incubateur d\'Or, Le Briseur de Glace (génétique et reproduction), et un nouveau groupe « 🎯 Défis de nourrissage » : Converti au congelé, Fin du jeûne, Zéro Gâchis.',
         '🧬 Les formes Super s\'affichent maintenant sous leur nom du milieu partout, aussi dans les résumés de génétique : Specter homozygote = Super Stripe, Yellowbelly homozygote = Ivory, etc.',
@@ -5139,6 +5140,7 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '🏆 Trophies: a showcase at the top now displays all the trophies you\'ve earned as gold medals. Seniority is now counted from when you joined LOCUS (account created or 1st animal added) — back-dated entries no longer count toward it.',
         '🤫 5 new hidden trophies to discover… hint: a clean tub never stays clean for long.',
         '🏆 6 new trophies: Super Hero, The Golden Incubator, The Icebreaker (genetics and reproduction), and a new « 🎯 Feeding challenges » group: Frozen convert, Breaking the fast, Zero Waste.',
         '🧬 Super forms now show under their hobby name everywhere, including genetics summaries: homozygous Specter = Super Stripe, homozygous Yellowbelly = Ivory, etc.',
@@ -22924,10 +22926,12 @@ function computeTrophyGroups(){
       tStep('zero_waste_month','Zéro Gâchis','Zero Waste','Un mois complet sans aucun refus ni repas sauté (au moins 4 repas notés dans la collection)','A full month without a single refusal or skipped meal (at least 4 meals logged in the collection)', !!zeroWaste, zeroWaste?zeroWaste+'-01':null, zeroWaste ? statsMonthLabel(zeroWaste, currentLang==='en') : null)
     ] });
   // 📅 Ancienneté
-  const firstDates = evAll.map(x=>x.e.date);
-  const created = all.map(s=>s.createdAt).filter(Boolean).sort((a,b)=>a-b);
-  let start = firstDates[0] || null;
-  if(created.length){ const cs = ymdLocal(new Date(created[0])); if(!start || cs<start) start = cs; }
+  // v4.10 — basée sur la vraie arrivée dans LOCUS (création du compte ou 1er animal ajouté),
+  // jamais sur les dates des entrées : une pesée ou un repas antidaté ne donne plus d'ancienneté.
+  const created = all.map(s=>Number(s.createdAt)).filter(n=>n>0).sort((a,b)=>a-b);
+  let start = null;
+  if(created.length){ try{ start = ymdLocal(new Date(created[0])); }catch(e){ start = null; } }
+  if(currentUser && currentUser.created_at){ const d = new Date(currentUser.created_at); if(!isNaN(d)){ const us = ymdLocal(d); if(!start || us<start) start = us; } }
   const days = start ? statsDaysBetween(start, localTodayStr()) : 0;
   const anniv = n=>{ if(!start) return null; const d = new Date(start+'T00:00:00'); d.setFullYear(d.getFullYear()+n); return ymdLocal(d); };
   const yrs = [[1,'Fidèle au poste','Always on duty'],[2,'Vieux de la vieille','Old hand'],[3,'Pilier du rack','Pillar of the rack'],[5,'Monument','Monument']];
@@ -23322,6 +23326,16 @@ function renderStatsView(){
     const doneCount = groups.reduce((a,g)=>a+g.steps.filter(s=>s.done).length,0), totalCount = groups.reduce((a,g)=>a+(g.hidden ? g.steps.filter(s=>s.done).length : g.steps.length),0);
     html += h2('🏆 '+(isEn?'Trophies':'Trophées')+' <span style="font-size:14px;color:var(--ink-dim);font-weight:400;">'+doneCount+'/'+totalCount+'</span>')+
       '<p style="font-size:13.5px;color:var(--ink-dim);margin:-4px 0 10px;">'+(isEn?'Tap a trophy to see all its steps.':'Touche un trophée pour voir toutes ses étapes.')+'</p>';
+    // v4.10 — vitrine : tous les trophées gagnés en médailles dorées, avant les groupes
+    const won = []; groups.forEach(g=>g.steps.forEach(s=>{ if(s.done) won.push({ g, s }); }));
+    html += won.length
+      ? '<div class="trophy-case" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;margin:0 0 16px;">'+won.map(w=>
+          '<div title="'+escapeHtml(w.s.desc||'')+'" style="background:linear-gradient(160deg,rgba(212,175,55,.20),var(--bg-panel) 70%);border:1.5px solid var(--gold);border-radius:12px;padding:10px 6px;text-align:center;">'+
+            '<div style="font-size:28px;line-height:1.1;">'+w.g.icon+'</div>'+
+            '<div style="font-size:14px;font-weight:700;color:var(--ink);margin-top:4px;line-height:1.25;">'+escapeHtml(w.s.title)+'</div>'+
+            (w.s.detail ? '<div style="font-size:12px;color:var(--ink-dim);margin-top:2px;">'+escapeHtml(w.s.detail)+'</div>' : '')+
+          '</div>').join('')+'</div>'
+      : '<div style="background:var(--bg-panel);border:1px dashed var(--line);border-radius:12px;padding:12px;margin:0 0 16px;font-size:14.5px;color:var(--ink-dim);text-align:center;">'+(isEn?'Your trophies will show up here as you earn them.':'Tes trophées gagnés s\'afficheront ici.')+'</div>';
     const stepLine = (s, withDate)=>escapeHtml(s.title)+(s.desc?' <span style="color:var(--ink-dim);font-size:13px;">— '+escapeHtml(s.desc)+'</span>':'')+(withDate && (s.date||s.detail)?'<div style="font-size:12.5px;color:var(--ink-dim);margin-top:1px;">'+escapeHtml([s.date, s.detail].filter(Boolean).join(' — '))+'</div>':'');
     html += groups.map(g=>{
       const done = g.steps.filter(s=>s.done);
