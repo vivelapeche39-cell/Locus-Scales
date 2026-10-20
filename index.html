@@ -1735,10 +1735,15 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   </div>
 
   <div id="view-utilitaire" style="display:none;">
-    <div class="subtab-bar" style="display:flex;gap:8px;margin-bottom:18px;">
+    <div class="subtab-bar" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;">
       <button class="subtab-btn active" data-usub="communaute" data-i18n="subCommunaute" onclick="showUtilitaireSubtab('communaute')">💬 Communauté</button>
       <button class="subtab-btn" data-usub="outils" data-i18n="subOutils" onclick="showUtilitaireSubtab('outils')">🛠 Outils</button>
       <button class="subtab-btn" data-usub="savais-tu" data-i18n="subSavaisTu" onclick="showUtilitaireSubtab('savais-tu')">💡 Le saviez-vous</button>
+      <button class="subtab-btn" data-usub="sante" data-i18n="subSante" onclick="showUtilitaireSubtab('sante')">🩺 Santé</button>
+    </div>
+
+    <div id="usub-sante" style="display:none;">
+      <div id="health-guide-list"></div>
     </div>
 
     <div id="usub-savais-tu" style="display:none;">
@@ -2214,7 +2219,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.10';
+const APP_VERSION = '2026.09.01.4.11';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5053,10 +5058,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'4.10', date:'2026-10-20',
+  { version:'4.11', date:'2026-10-20',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '🩺 Nouveau : Utilitaire › Santé — un guide pour 8 problèmes de santé courants (infection respiratoire, nidovirus, acariens, stomatite, mue difficile, brûlures et dermatite, régurgitation, IBD) : signes, quoi faire en attendant, quand voir un vétérinaire, prévention et sources. Ne remplace pas un vétérinaire et ne donne jamais de dose de médicament.',
         '🏆 Trophées : une vitrine en haut montre maintenant tous tes trophées gagnés en médailles dorées. L\'ancienneté se calcule à partir de ton arrivée dans LOCUS (création du compte ou 1er animal ajouté) — les entrées antidatées ne comptent plus pour ce trophée.',
         '🤫 5 nouveaux trophées cachés à découvrir… indice : un bac propre ne le reste jamais longtemps.',
         '🏆 6 nouveaux trophées : Super Héros, L\'Incubateur d\'Or, Le Briseur de Glace (génétique et reproduction), et un nouveau groupe « 🎯 Défis de nourrissage » : Converti au congelé, Fin du jeûne, Zéro Gâchis.',
@@ -5140,6 +5146,7 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '🩺 New: Utility › Health — a guide to 8 common health problems (respiratory infection, nidovirus, mites, stomatitis, stuck shed, burns and dermatitis, regurgitation, IBD): signs, what to do while waiting, when to see a vet, prevention and sources. It doesn\'t replace a vet and never gives medication doses.',
         '🏆 Trophies: a showcase at the top now displays all the trophies you\'ve earned as gold medals. Seniority is now counted from when you joined LOCUS (account created or 1st animal added) — back-dated entries no longer count toward it.',
         '🤫 5 new hidden trophies to discover… hint: a clean tub never stays clean for long.',
         '🏆 6 new trophies: Super Hero, The Golden Incubator, The Icebreaker (genetics and reproduction), and a new « 🎯 Feeding challenges » group: Frozen convert, Breaking the fast, Zero Waste.',
@@ -5509,6 +5516,7 @@ const I18N = {
     subCommunaute: '💬 Communauté',
     subOutils: '🛠 Outils',
     subSavaisTu: '💡 Le saviez-vous',
+    subSante: '🩺 Santé',
     savaisTuIntro: 'Des faits, précisions et petites curiosités du monde reptile qui rentrent nulle part ailleurs — au fil du temps.',
     toolTempTitle: 'Convertisseur de température',
     toolTempHint: 'Entre une valeur dans l\'une ou l\'autre case — l\'autre se calcule automatiquement.',
@@ -6084,6 +6092,7 @@ const I18N = {
     subCommunaute: '💬 Community',
     subOutils: '🛠 Tools',
     subSavaisTu: '💡 Did you know?',
+    subSante: '🩺 Health',
     savaisTuIntro: 'Facts, nuances, and little curiosities from the reptile world that don\'t really fit anywhere else — added over time.',
     toolTempTitle: 'Temperature converter',
     toolTempHint: 'Enter a value in either field — the other calculates automatically.',
@@ -6684,6 +6693,8 @@ function applyTranslations(){
   try{ renderChecklist(); }catch(e){}
   try{ renderSuppliers(); }catch(e){}
   try{ renderGlossary(); }catch(e){}
+  try{ renderSavaisTu(); }catch(e){} // v4.11
+  try{ renderHealthGuide(); }catch(e){} // v4.11
   try{ renderLastYearReference(); }catch(e){}
   try{ renderCustomEvents(); }catch(e){}
   try{ renderTimeline(); }catch(e){}
@@ -24217,9 +24228,11 @@ function showUtilitaireSubtab(sub){
   document.getElementById('usub-communaute').style.display = sub==='communaute' ? '' : 'none';
   document.getElementById('usub-outils').style.display = sub==='outils' ? '' : 'none';
   document.getElementById('usub-savais-tu').style.display = sub==='savais-tu' ? '' : 'none';
+  document.getElementById('usub-sante').style.display = sub==='sante' ? '' : 'none'; // v4.11
   document.querySelectorAll('#view-utilitaire .subtab-btn').forEach(b=>b.classList.toggle('active', b.dataset.usub===sub));
   if(sub==='outils'){ renderPreBuyCalculator(); renderSpeciesGuidesList(); renderCommunityFaqAdmin(); }
   if(sub==='savais-tu'){ renderSavaisTu(); }
+  if(sub==='sante'){ renderHealthGuide(); }
 }
 function renderSavaisTu(){
   const isEn = currentLang==='en';
@@ -24247,6 +24260,158 @@ function renderSavaisTu(){
       '<div class="community-folder-body">'+itemsHtml+'</div>'+
     '</div>';
   }).join('');
+}
+
+// v4.11 — 🩺 Guide santé (Utilitaire › Santé, gratuit). Contenu tiré de sources vétérinaires
+// (Merck Veterinary Manual, WikiVet, cliniques vétérinaires) — AUCUNE dose de médicament : le
+// vétérinaire prescrit. Les ids servent aussi au futur dossier santé sur la fiche.
+var HEALTH_GUIDE = [
+  { id:'ri', icon:'🫁', vet:'soon',
+    title:{ fr:'Infection respiratoire', en:'Respiratory infection' },
+    intro:{ fr:'Fréquente chez les serpents. Souvent liée à une température trop basse, une installation sale ou un animal affaibli.',
+            en:'Common in snakes. Often linked to temperatures that are too low, a dirty enclosure or a weakened animal.' },
+    signs:{ fr:['Respiration bouche ouverte','Mucus ou bulles aux narines ou dans la bouche','Sifflement ou petits « clics » en respirant','Tête souvent relevée','Perte d\'appétit, animal amorphe'],
+            en:['Open-mouth breathing','Mucus or bubbles at the nostrils or in the mouth','Wheezing or small "clicks" when breathing','Head often held up','Loss of appetite, lethargic animal'] },
+    doNow:{ fr:['Garder l\'animal dans le haut de sa plage de température (point chaud et ambiance) — vérifie au thermomètre, pas seulement au thermostat','Vérifier l\'humidité et la propreté : ni air trop sec, ni substrat détrempé ou sale','L\'isoler de tes autres reptiles et te laver les mains entre chaque bac','Noter les symptômes et la date de début'],
+            en:['Keep the animal at the upper end of its temperature range (hot spot and ambient) — check with a thermometer, not just the thermostat','Check humidity and cleanliness: no overly dry air, no soaked or dirty substrate','Isolate it from your other reptiles and wash your hands between enclosures','Write down the symptoms and the start date'] },
+    vetTxt:{ fr:'Oui. Seul le vétérinaire peut confirmer l\'infection et choisir un antibiotique. Si ça ne s\'améliore pas avec le traitement habituel, un virus (ex. nidovirus) peut être en cause.',
+             en:'Yes. Only a vet can confirm the infection and choose an antibiotic. If it doesn\'t improve with the usual treatment, a virus (e.g. nidovirus) may be involved.' },
+    prevent:{ fr:['Températures stables et correctes, aussi la nuit','Installation propre','Quarantaine des nouveaux animaux'], en:['Stable, correct temperatures, at night too','Clean enclosure','Quarantine new animals'] },
+    sources:[ { n:'Merck Veterinary Manual', u:'https://www.merckvetmanual.com/en-ca/all-other-pets/reptiles/disorders-and-diseases-of-reptiles' } ] },
+
+  { id:'nido', icon:'🦠', vet:'urgent',
+    title:{ fr:'Nidovirus (serpentovirus)', en:'Nidovirus (serpentovirus)' },
+    intro:{ fr:'Virus respiratoire qui touche surtout les pythons, dont le python royal. Il peut se propager vite dans une collection et être mortel.',
+            en:'Respiratory virus that mainly affects pythons, including ball pythons. It can spread quickly through a collection and can be fatal.' },
+    signs:{ fr:['Beaucoup de mucus dans la bouche (le signe le plus marquant)','Intérieur de la bouche rouge, enflammé','« Clics » en respirant, respiration bouche ouverte, posture anormale','Refus de manger, animal amorphe','Ressemble à une infection respiratoire qui revient malgré le traitement'],
+            en:['Lots of mucus in the mouth (the most striking sign)','Red, inflamed inside of the mouth','"Clicking" when breathing, open-mouth breathing, abnormal posture','Refusing food, lethargic animal','Looks like a respiratory infection that keeps coming back despite treatment'] },
+    doNow:{ fr:['Isoler l\'animal tout de suite, idéalement dans une autre pièce','Matériel séparé pour lui; changer de gants et te laver les mains entre chaque animal','T\'occuper de l\'animal malade en dernier','Désinfecter les surfaces et les outils','Ne pas le reproduire, le vendre ni le prêter tant que ce n\'est pas éclairci'],
+            en:['Isolate the animal right away, ideally in another room','Separate equipment for it; change gloves and wash your hands between animals','Care for the sick animal last','Disinfect surfaces and tools','Don\'t breed, sell or lend it until it\'s cleared up'] },
+    vetTxt:{ fr:'Oui, rapidement. Seul un test PCR sur prélèvement (écouvillon) confirme le virus. Aucun traitement ne guérit le virus : le vétérinaire offre des soins de soutien (hydratation, nébulisation) et des antibiotiques pour les infections secondaires. Les rechutes sont fréquentes.',
+             en:'Yes, quickly. Only a PCR test on a swab confirms the virus. No treatment cures it: the vet provides supportive care (fluids, nebulization) and antibiotics for secondary infections. Relapses are common.' },
+    prevent:{ fr:['Quarantaine des nouveaux animaux (souvent autour de 90 jours, la durée idéale est débattue)','Dépistage avant d\'intégrer un nouvel animal','Hygiène entre les animaux de provenances différentes'], en:['Quarantine new animals (often around 90 days; the ideal length is debated)','Screening before adding a new animal','Hygiene between animals from different sources'] },
+    sources:[ { n:'Arizona Exotic Animal Hospital', u:'https://azeah.com/node/500' }, { n:'Frontiers in Veterinary Science (2021)', u:'https://www.frontiersin.org/journals/veterinary-science/articles/10.3389/fvets.2021.733404/full' } ] },
+
+  { id:'mites', icon:'🕷', vet:'soon',
+    title:{ fr:'Acariens (mites)', en:'Snake mites' },
+    intro:{ fr:'L\'acarien du serpent (Ophionyssus natricis) se nourrit de sang. Une forte infestation peut causer de l\'anémie et tuer. On soupçonne aussi les acariens de transporter des virus (IBD).',
+            en:'The snake mite (Ophionyssus natricis) feeds on blood. A heavy infestation can cause anemia and death. Mites are also suspected of carrying viruses (IBD).' },
+    signs:{ fr:['Petits points noirs qui bougent, surtout autour des yeux, du menton et sous les écailles','Acariens noyés dans le bol d\'eau','Poussière blanche sur la peau (déjections)','Le serpent trempe longtemps dans son bol','Mue difficile, appétit réduit','Test : frotter doucement l\'animal sur un papier blanc — des acariens peuvent tomber'],
+            en:['Tiny moving black dots, especially around the eyes, chin and under the scales','Drowned mites in the water bowl','White dust on the skin (droppings)','The snake soaks in its bowl for a long time','Bad sheds, reduced appetite','Test: gently rub the animal over white paper — mites may fall off'] },
+    doNow:{ fr:['Isoler l\'animal et vérifier tous tes autres animaux','Traiter l\'animal ET son installation en même temps','Enlever tout le substrat; utiliser du papier journal ou de l\'essuie-tout pendant le traitement et le changer souvent (2 fois par semaine)','Nettoyer à la vapeur ou à l\'eau très chaude le bac, le décor et les recoins de la pièce; jeter ce qui ne se nettoie pas bien (bois)','Continuer au moins 6 semaines — les œufs éclosent après le premier nettoyage'],
+            en:['Isolate the animal and check all your other animals','Treat the animal AND its enclosure at the same time','Remove all substrate; use newspaper or paper towel during treatment and change it often (twice a week)','Steam-clean or use very hot water on the enclosure, decor and the room\'s corners; throw away what can\'t be cleaned well (wood)','Keep going for at least 6 weeks — eggs hatch after the first cleaning'] },
+    vetTxt:{ fr:'Recommandé avant d\'utiliser un produit : certains produits anti-acariens sont toxiques pour les reptiles. Consulte sans attendre si l\'infestation est forte ou si l\'animal est faible.',
+             en:'Recommended before using any product: some anti-mite products are toxic to reptiles. See a vet right away if the infestation is heavy or the animal is weak.' },
+    prevent:{ fr:['Quarantaine et inspection de tout nouvel animal','Vérifier le fond du bol d\'eau régulièrement','Te laver les mains après chaque manipulation'], en:['Quarantine and inspect every new animal','Check the bottom of the water bowl regularly','Wash your hands after each handling'] },
+    sources:[ { n:'WikiVet', u:'https://en.wikivet.net/Snake_Mite_Infestation' }, { n:'Merck Veterinary Manual', u:'https://www.merckvetmanual.com/en-ca/all-other-pets/reptiles/disorders-and-diseases-of-reptiles' } ] },
+
+  { id:'stomatitis', icon:'👄', vet:'soon',
+    title:{ fr:'Stomatite (« mouth rot »)', en:'Stomatitis ("mouth rot")' },
+    intro:{ fr:'Infection de la bouche. Prise tôt, elle se traite bien; sinon elle peut s\'étendre aux voies respiratoires ou digestives.',
+            en:'Mouth infection. Caught early it treats well; otherwise it can spread to the airways or digestive tract.' },
+    signs:{ fr:['Petits points rouge-violet dans la bouche (signe précoce)','Gencives enflées, matière blanchâtre ou jaunâtre','Salive épaisse','Refus de manger'],
+            en:['Tiny purplish-red spots in the mouth (early sign)','Swollen gums, whitish or yellowish material','Thick saliva','Refusing food'] },
+    doNow:{ fr:['Vérifier les températures et la propreté de l\'installation','Noter la date de début et prendre une photo si possible','Ne pas gratter ni nettoyer toi-même l\'intérieur de la bouche'],
+            en:['Check the enclosure\'s temperatures and cleanliness','Write down the start date and take a photo if you can','Don\'t scrape or clean inside the mouth yourself'] },
+    vetTxt:{ fr:'Oui, rapidement. Le vétérinaire retire les tissus morts, nettoie avec un antiseptique et choisit l\'antibiotique.',
+             en:'Yes, quickly. The vet removes dead tissue, cleans with an antiseptic and chooses the antibiotic.' },
+    prevent:{ fr:['Températures correctes','Installation propre','Traiter vite toute blessure à la bouche'], en:['Correct temperatures','Clean enclosure','Treat any mouth injury quickly'] },
+    sources:[ { n:'Merck Veterinary Manual', u:'https://www.merckvetmanual.com/en-ca/all-other-pets/reptiles/disorders-and-diseases-of-reptiles' } ] },
+
+  { id:'shed', icon:'🧦', vet:'watch',
+    title:{ fr:'Mue difficile et lunettes restées', en:'Stuck shed and retained eye caps' },
+    intro:{ fr:'Souvent liée à une humidité trop basse, mais peut aussi cacher des acariens, une maladie ou une carence.',
+            en:'Often linked to low humidity, but can also hide mites, illness or a deficiency.' },
+    signs:{ fr:['Peau qui reste en morceaux sur le corps ou au bout de la queue','Lunette (capuchon de l\'œil) restée après la mue : œil terne ou plissé'],
+            en:['Skin left in pieces on the body or the tail tip','Eye cap (spectacle) left after the shed: dull or wrinkled eye'] },
+    doNow:{ fr:['Vérifier et monter l\'humidité; offrir une cachette humide (mousse humide)','Bain d\'eau tiède, puis retirer doucement la peau avec un linge ou une compresse','Ne JAMAIS arracher une lunette : tu risques d\'abîmer celle en dessous','Fournir des surfaces rugueuses pour se frotter (branche, roche)'],
+            en:['Check and raise the humidity; offer a humid hide (damp moss)','Lukewarm soak, then gently remove the skin with a cloth or gauze','NEVER force off an eye cap: you could damage the one underneath','Provide rough surfaces to rub on (branch, rock)'] },
+    vetTxt:{ fr:'Si une lunette reste après quelques jours de soins doux, si l\'œil semble enflé, ou si les mues difficiles se répètent.',
+             en:'If an eye cap is still there after a few days of gentle care, if the eye looks swollen, or if bad sheds keep happening.' },
+    prevent:{ fr:['Humidité adaptée à l\'espèce','Pas d\'acariens','Surfaces rugueuses dans l\'installation'], en:['Humidity suited to the species','No mites','Rough surfaces in the enclosure'] },
+    sources:[ { n:'Merck Veterinary Manual', u:'https://www.merckvetmanual.com/en-ca/all-other-pets/reptiles/disorders-and-diseases-of-reptiles' } ] },
+
+  { id:'burns', icon:'🔥', vet:'soon',
+    title:{ fr:'Brûlures et dermatite (« scale rot »)', en:'Burns and dermatitis ("scale rot")' },
+    intro:{ fr:'Les reptiles ne s\'éloignent pas toujours d\'une source trop chaude. La dermatite vient surtout d\'un substrat humide et sale. Les dommages d\'une brûlure peuvent prendre jusqu\'à une semaine à bien paraître.',
+            en:'Reptiles don\'t always move away from a source that is too hot. Dermatitis mostly comes from damp, dirty substrate. Burn damage can take up to a week to fully show.' },
+    signs:{ fr:['Écailles rouges, brunes ou noires, surtout sous le ventre','Cloques, croûtes, enflure, écailles qui tombent','Animal plus caché, refuse de manger, mue difficile'],
+            en:['Red, brown or black scales, especially on the belly','Blisters, scabs, swelling, scales falling off','Animal hides more, refuses food, bad sheds'] },
+    doNow:{ fr:['Vérifier la source de chaleur tout de suite : le thermostat fonctionne? la lampe a une grille? le tapis a une barrière?','Mesurer la température de surface où l\'animal se couche','Substrat propre et sec : garder l\'humidité dans l\'air, pas dans un sol détrempé','Passer à l\'essuie-tout pendant la guérison pour garder propre'],
+            en:['Check the heat source right away: is the thermostat working? does the lamp have a guard? does the mat have a barrier?','Measure the surface temperature where the animal lies','Clean, dry substrate: keep humidity in the air, not in a soaked floor','Switch to paper towel during healing to keep things clean'] },
+    vetTxt:{ fr:'Oui. Une peau abîmée fait perdre de l\'eau et laisse entrer les infections. Le vétérinaire peut donner antibiotiques, crèmes, hydratation ou soins plus poussés. Prises tôt, les cloques guérissent souvent sans ulcère.',
+             en:'Yes. Damaged skin loses water and lets infections in. The vet may give antibiotics, creams, fluids or further care. Caught early, blisters often heal without ulcers.' },
+    prevent:{ fr:['Thermostat sur TOUTE source de chaleur','Grille de protection sur les lampes','Gradient de température : l\'animal doit pouvoir s\'éloigner de la chaleur','Substrat propre et sec'], en:['Thermostat on EVERY heat source','Guard over lamps','Temperature gradient: the animal must be able to move away from heat','Clean, dry substrate'] },
+    sources:[ { n:'Unusual Pet Vets', u:'https://unusualpetvets.com.au/thermal-burns-in-reptiles' }, { n:'Merck Veterinary Manual', u:'https://www.merckvetmanual.com/en-ca/all-other-pets/reptiles/disorders-and-diseases-of-reptiles' } ] },
+
+  { id:'regurg', icon:'↩️', vet:'watch',
+    title:{ fr:'Régurgitation', en:'Regurgitation' },
+    intro:{ fr:'La proie est rejetée, partiellement digérée, quelques heures à quelques jours après le repas. Selon un vétérinaire spécialisé, environ 90 % des cas viennent d\'une température trop basse (souvent la nuit) ou d\'une manipulation trop tôt après le repas.',
+            en:'The prey comes back up, partly digested, a few hours to a few days after the meal. According to a specialist vet, about 90% of cases come from temperatures that are too low (often at night) or handling too soon after the meal.' },
+    signs:{ fr:['Proie rejetée, partiellement digérée','Odeur forte dans l\'installation'], en:['Prey brought back up, partly digested','Strong smell in the enclosure'] },
+    doNow:{ fr:['Ne plus manipuler l\'animal','Vérifier les températures, surtout la nuit','Eau propre, nettoyer l\'installation','Garder la proie régurgitée (sac au frigo) si tu consultes','Avant de renourrir — pratique courante chez les gardiens, pas une règle vétérinaire : attendre environ 2 semaines que l\'animal aille bien, puis offrir une proie plus petite (la moitié ou le quart d\'un repas normal)'],
+            en:['Stop handling the animal','Check temperatures, especially at night','Clean water, clean the enclosure','Keep the regurgitated prey (bag in the fridge) if you see a vet','Before feeding again — common keeper practice, not a vet rule: wait about 2 weeks until the animal is doing well, then offer a smaller prey (half to a quarter of a normal meal)'] },
+    vetTxt:{ fr:'Si tu ne trouves pas de cause claire, si ça se répète, ou si l\'animal maigrit ou s\'affaiblit. Causes plus rares : parasites, cryptosporidiose (contagieuse, sans traitement fiable), virus, obstruction.',
+             en:'If you can\'t find a clear cause, if it happens again, or if the animal loses weight or weakens. Rarer causes: parasites, cryptosporidiosis (contagious, no reliable treatment), viruses, blockage.' },
+    prevent:{ fr:['Ne pas manipuler pendant la digestion (LOCUS peut afficher un compte à rebours)','Températures stables jour et nuit','Proie de taille adaptée'], en:['Don\'t handle during digestion (LOCUS can show a countdown)','Stable temperatures day and night','Properly sized prey'] },
+    sources:[ { n:'Dr Douglas Mader, DVM (Reptiles Magazine)', u:'https://reptilesmagazine.com/the-vet-report-reptile-vomiting-and-regurgitation' }, { n:'Merck Veterinary Manual', u:'https://www.merckvetmanual.com/en-ca/all-other-pets/reptiles/disorders-and-diseases-of-reptiles' }, { n:'ReptiFiles (pratique courante / common practice)', u:'https://reptifiles.com/heterodon-hognose-snake-care/hognose-snake-health/regurgitation/' } ] },
+
+  { id:'ibd', icon:'🧠', vet:'urgent',
+    title:{ fr:'IBD (maladie des corps d\'inclusion)', en:'IBD (inclusion body disease)' },
+    intro:{ fr:'Maladie virale (arenavirus) des boas et des pythons. Incurable. Les boas peuvent la porter des années sans signe; chez les pythons, la plupart meurent quelques jours ou semaines après les premiers signes. À ne pas confondre avec le « wobble » génétique de certains gènes (ex. Spider).',
+            en:'Viral disease (arenavirus) of boas and pythons. Incurable. Boas can carry it for years without signs; in pythons, most die within days or weeks after the first signs. Not to be confused with the genetic "wobble" of some genes (e.g. Spider).' },
+    signs:{ fr:['Regarde vers le haut de façon anormale (« stargazing »), torsion du corps','Mouvements de langue anormaux, convulsions','Perte d\'appétit et de poids, régurgitation','Infections à répétition, plaies qui guérissent mal'],
+            en:['Abnormal upward gazing ("stargazing"), body twisting','Abnormal tongue flicking, seizures','Loss of appetite and weight, regurgitation','Repeated infections, wounds that heal poorly'] },
+    doNow:{ fr:['Isoler immédiatement','Hygiène stricte entre les animaux','Contrôler les acariens (soupçonnés de transporter le virus)','Ne pas reproduire l\'animal'],
+            en:['Isolate immediately','Strict hygiene between animals','Control mites (suspected of carrying the virus)','Don\'t breed the animal'] },
+    vetTxt:{ fr:'Oui, rapidement, pour le diagnostic. Il n\'y a pas de guérison : isolement et soins de soutien; beaucoup de propriétaires choisissent l\'euthanasie avec leur vétérinaire. Ne jamais vendre un animal atteint ni ses bébés.',
+             en:'Yes, quickly, for a diagnosis. There is no cure: isolation and supportive care; many owners choose euthanasia with their vet. Never sell an affected animal or its offspring.' },
+    prevent:{ fr:['Quarantaine des nouveaux animaux, surtout les boas','Se transmet par les liquides du corps : reproduction, contacts, matières fécales','Contrôle des acariens'], en:['Quarantine new animals, especially boas','Spreads through body fluids: breeding, contact, feces','Mite control'] },
+    sources:[ { n:'Merck Veterinary Manual', u:'https://www.merckvetmanual.com/en-ca/all-other-pets/reptiles/disorders-and-diseases-of-reptiles' }, { n:'WikiVet', u:'https://en.wikivet.net/Inclusion_Body_Disease' } ] }
+];
+var healthGuideOpen = {};
+function healthGuideVetBadge(level, isEn){
+  if(level==='urgent') return '<span style="display:inline-block;font-size:13px;font-weight:700;padding:3px 9px;border-radius:10px;background:rgba(200,70,50,.18);color:var(--rust);border:1px solid var(--rust);">'+(isEn?'Vet quickly':'Vétérinaire rapidement')+'</span>';
+  if(level==='soon') return '<span style="display:inline-block;font-size:13px;font-weight:700;padding:3px 9px;border-radius:10px;background:rgba(212,175,55,.15);color:var(--gold);border:1px solid var(--gold);">'+(isEn?'Vet recommended':'Vétérinaire recommandé')+'</span>';
+  return '<span style="display:inline-block;font-size:13px;font-weight:700;padding:3px 9px;border-radius:10px;background:var(--bg-panel-2);color:var(--ink-dim);border:1px solid var(--line);">'+(isEn?'Watch closely':'À surveiller')+'</span>';
+}
+function toggleHealthGuide(id){ healthGuideOpen[id] = !healthGuideOpen[id]; renderHealthGuide(); }
+function renderHealthGuide(){
+  const wrap = document.getElementById('health-guide-list');
+  if(!wrap) return;
+  const isEn = currentLang==='en';
+  const L = o=> isEn ? o.en : o.fr;
+  const list = (title, items)=> '<div style="font-size:15px;font-weight:700;color:var(--ink);margin:12px 0 4px;">'+title+'</div>'+
+    '<ul style="margin:0;padding-left:20px;">'+items.map(x=>'<li style="font-size:15px;line-height:1.5;color:var(--ink);margin:3px 0;">'+escapeHtml(x)+'</li>').join('')+'</ul>';
+  wrap.innerHTML =
+    '<div style="background:rgba(200,70,50,.10);border:1px solid var(--rust);border-radius:12px;padding:12px 14px;margin:0 0 14px;font-size:15px;line-height:1.5;color:var(--ink);">'+
+      '<b>'+(isEn?'This guide does not replace a veterinarian.':'Ce guide ne remplace pas un vétérinaire.')+'</b> '+
+      (isEn?'It helps you recognize a problem and know what to do while waiting. It never gives medication doses: only a vet can prescribe them.'
+           :'Il t\'aide à reconnaître un problème et à savoir quoi faire en attendant. Il ne donne jamais de dose de médicament : seul un vétérinaire peut en prescrire.')+
+      '<div style="margin-top:8px;">'+(isEn?'Find a reptile vet: ':'Trouver un vétérinaire en reptiles : ')+'<a href="https://arav.org/find-a-vet/" target="_blank" rel="noopener" style="color:var(--sage);font-weight:600;">ARAV — Find a Vet</a></div>'+
+    '</div>'+
+    HEALTH_GUIDE.map(h=>{
+      const open = !!healthGuideOpen[h.id];
+      return '<div style="background:var(--bg-panel);border:1px solid '+(open?'var(--gold)':'var(--line)')+';border-radius:14px;padding:12px 14px;margin-bottom:10px;">'+
+        '<button onclick="toggleHealthGuide(\''+h.id+'\')" aria-expanded="'+open+'" style="all:unset;display:block;width:100%;cursor:pointer;">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'+
+            '<div style="font-size:17px;font-weight:600;color:var(--ink);">'+h.icon+' '+escapeHtml(L(h.title))+'</div>'+
+            '<div style="font-size:16px;color:var(--ink-dim);">'+(open?'▴':'▾')+'</div>'+
+          '</div>'+
+          '<div style="margin-top:6px;">'+healthGuideVetBadge(h.vet, isEn)+'</div>'+
+        '</button>'+
+        (open ? '<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:6px;">'+
+          '<p style="font-size:15px;line-height:1.5;color:var(--ink);margin:6px 0;">'+escapeHtml(L(h.intro))+'</p>'+
+          list(isEn?'👀 Signs':'👀 Signes', L(h.signs))+
+          list(isEn?'🧰 What to do now':'🧰 Quoi faire maintenant', L(h.doNow))+
+          '<div style="font-size:15px;font-weight:700;color:var(--ink);margin:12px 0 4px;">'+(isEn?'🩺 See a vet?':'🩺 Vétérinaire?')+'</div>'+
+          '<p style="font-size:15px;line-height:1.5;color:var(--ink);margin:0;">'+escapeHtml(L(h.vetTxt))+'</p>'+
+          list(isEn?'🛡 Prevention':'🛡 Prévention', L(h.prevent))+
+          '<div style="font-size:13.5px;color:var(--ink-dim);margin-top:12px;">'+(isEn?'Sources: ':'Sources : ')+
+            h.sources.map(s=>'<a href="'+s.u+'" target="_blank" rel="noopener" style="color:var(--sage);">'+escapeHtml(s.n)+'</a>').join(' · ')+'</div>'+
+        '</div>' : '')+
+      '</div>';
+    }).join('');
 }
 
 function showVentesSubtab(sub){
