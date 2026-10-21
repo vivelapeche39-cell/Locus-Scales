@@ -2212,7 +2212,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.39';
+const APP_VERSION = '2026.09.01.4.40';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5223,6 +5223,17 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.40', date:'2026-10-21',
+    title:{ fr:'Aperçu d\'import plus clair', en:'Clearer import preview' },
+    changes:{
+      fr:[
+        '👀 Aperçu d\'import : « +12 de plus » est maintenant un bouton qui affiche toute la liste; l\'avertissement de génétique non reconnue dit quels animaux (ligne, ID et mots) sont concernés; une colonne qui répète une colonne déjà utilisée (« Common Name » à côté de « Species ») est ignorée sans avertissement.'
+      ],
+      en:[
+        '👀 Import preview: « +12 more » is now a button that shows the whole list; the unrecognized-genetics warning says which animals (line, ID and words) are affected; a column that repeats one already used (« Common Name » next to « Species ») is ignored without a warning.'
+      ]
+    }
+  },
   { version:'4.39', date:'2026-10-21',
     title:{ fr:'Import : espèces et prix abrégés', en:'Import: shortened species and prices' },
     changes:{
@@ -16059,7 +16070,7 @@ function rebuildGenericImportRows(){
     const priceNotes = [['purchasePrice', isEn?'Purchase price':'Prix d\'achat'],['askingPrice', isEn?'Asking price':'Prix demandé']].map(([f,lb])=>{ const tx = priceText(cols,f); return tx ? lb+(isEn?' in the file: ':' dans le fichier : ')+tx : ''; }).filter(Boolean);
     const packedNotes = (m.packed && m.packed.notesByLine && m.packed.notesByLine[cols.__line]) || [];
     return {
-      name: name.slice(0,80), animalId,
+      name: name.slice(0,80), animalId, line: cols.__line, // v4.40 — numéro de ligne pour les messages
       status: st.status, statusKnown: st.known, statusRaw: str(cols,'status'), quarantine: !!st.quarantine,
       notes: [str(cols,'notes'), ...wordNotes, ...priceNotes, ...packedNotes, (parsed.unknown && parsed.unknown.length && str(cols,'genes') ? (isEn?'Genetics in the file: ':'Génétique dans le fichier : ')+str(cols,'genes') : ''), (!st.known && str(cols,'status') ? (isEn?'Status in the imported file: ':'Statut dans le fichier importé : ')+str(cols,'status') : '')].filter(Boolean).join('\n') || null, // v4.21 (+ date d'acquisition v4.30)
       sireRef: str(cols,'sire') || null, damRef: str(cols,'dam') || null, // v4.20 — liés après la création (ID ou nom, dans LOCUS ou dans le fichier)
@@ -16105,6 +16116,7 @@ function importRowsToCreate(){
     used++; return true;
   });
 }
+function toggleImportShowAll(){ const m = pendingGenericImportMeta; if(!m) return; m.showAll = !m.showAll; renderGenericCsvPreview(); } // v4.40
 function toggleImportPicking(on){
   const m = pendingGenericImportMeta; if(!m) return;
   m.picking = !!on;
@@ -16141,14 +16153,18 @@ function renderGenericCsvPreview(){
   const slots = importAnimalSlots();
   const overLimit = slots!=null && eligible.filter(importCountsTowardLimit).length > slots;
   const unknownSp = [...new Set(rowsAll.filter(r=>!r.speciesKnown).map(r=>r.species))];
-  const withUnknownGenes = rowsAll.filter(r=>r.unknownGenes && r.unknownGenes.length).length;
+  const unknownGeneRows = rowsAll.filter(r=>r.unknownGenes && r.unknownGenes.length);
+  const withUnknownGenes = unknownGeneRows.length;
   const weightsNoDate = rowsAll.filter(r=>r.weight && !r.weightDate).length;
   const p = (txt, color)=>'<p style="font-size:14px;line-height:1.45;margin:8px 0;color:'+(color||'var(--ink)')+';">'+txt+'</p>';
   const firstData = m.rows[m.hIdx+1] || [];
   const fieldOf = {}; Object.keys(m.colMap).forEach(f=>{ fieldOf[m.colMap[f]] = f; });
   const logCols = m.combined ? new Set(Object.values(mapLogHeaders(m.headerRow))) : new Set(); // v4.28 — en mode mixte, ces colonnes servent à l'étape historique
   if(m.packed) m.packed.cols.forEach(i=>logCols.add(i)); // v4.35 — colonnes d'historique entassé : lues à l'étape historique
-  const unmatched = m.headerRow.map((h,i)=>({ h, i })).filter(x=>fieldOf[x.i]===undefined && !logCols.has(x.i) && (x.h || importCellStr(firstData[x.i])));
+  // v4.40 — colonne qui veut dire la même chose qu'une colonne déjà utilisée (« Common Name » quand « Species » existe) : ignorée sans avertissement
+  const redundantOf = {};
+  m.headerRow.forEach((h,i)=>{ if(fieldOf[i]!==undefined || !h) return; const hk = normalizeHeaderKey(h); const f = Object.keys(CSV_COLUMN_ALIASES).find(k=>m.colMap[k]!==undefined && m.colMap[k]!==i && CSV_COLUMN_ALIASES[k].some(a=>normalizeHeaderKey(a)===hk)); if(f) redundantOf[i] = f; });
+  const unmatched = m.headerRow.map((h,i)=>({ h, i })).filter(x=>fieldOf[x.i]===undefined && !logCols.has(x.i) && redundantOf[x.i]===undefined && (x.h || importCellStr(firstData[x.i])));
   const colsHtml = m.headerRow.map((h,i)=>{
     const sample = importCellStr(firstData[i]);
     if(!h && !sample) return '';
@@ -16156,15 +16172,16 @@ function renderGenericCsvPreview(){
     if(logCols.has(i) && f===undefined) return '<div style="padding:8px 0;border-bottom:1px solid var(--line);font-size:14.5px;color:var(--ink);"><b>« '+escapeHtml(h)+' »</b> <span style="font-size:13px;color:var(--sage);">🗓 '+(isEn?'used in the history step':'utilisée à l\'étape historique')+'</span></div>'; // v4.28
     return '<div style="padding:8px 0;border-bottom:1px solid var(--line);">'+
       '<div style="font-size:14.5px;color:var(--ink);"><b>« '+escapeHtml(h || (isEn?'(no title)':'(sans titre)'))+' »</b>'+(sample ? ' <span style="font-size:13px;color:var(--ink-dim);">'+(isEn?'e.g. ':'ex. ')+escapeHtml(sample.slice(0,40))+'</span>' : '')+'</div>'+
-      '<select onchange="setImportColumn('+i+', this.value)" style="width:100%;margin-top:5px;font-size:16px;padding:8px;background:var(--bg-panel-2);border:1px solid '+(f?'var(--sage)':'var(--gold)')+';border-radius:8px;color:var(--ink);">'+
-        '<option value="">'+(f ? (isEn?'— Ignore this column —':'— Ignorer cette colonne —') : (isEn?'⚠ Not recognized — ignored':'⚠ Non reconnue — ignorée'))+'</option>'+
+      '<select onchange="setImportColumn('+i+', this.value)" style="width:100%;margin-top:5px;font-size:16px;padding:8px;background:var(--bg-panel-2);border:1px solid '+(f?'var(--sage)':redundantOf[i]?'var(--line)':'var(--gold)')+';border-radius:8px;color:var(--ink);">'+
+        '<option value="">'+(f ? (isEn?'— Ignore this column —':'— Ignorer cette colonne —') : redundantOf[i] ? (isEn?'— Ignored (already covered by « ':'— Ignorée (déjà couverte par « ')+escapeHtml(m.headerRow[m.colMap[redundantOf[i]]]||'')+' ») —' : (isEn?'⚠ Not recognized — ignored':'⚠ Non reconnue — ignorée'))+'</option>'+
         IMPORT_FIELD_ORDER.map(k=>'<option value="'+k+'"'+(f===k?' selected':'')+'>'+escapeHtml(importFieldLabel(k, isEn))+(m.colMap[k]!==undefined && m.colMap[k]!==i ? (isEn?' (replaces « ':' (remplace « ')+escapeHtml(m.headerRow[m.colMap[k]]||'?')+' »)' : '')+'</option>').join('')+
       '</select></div>';
   }).join('');
   const pickHtml = (overLimit && m.picking) ? '<div style="max-height:320px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;padding:4px 10px;margin:6px 0;">'+
       pendingGenericCsvRows.map((r,i)=>({ r, i })).filter(x=>!x.r.fileDupe && (m.importDupes || !x.r.dupe)).map(x=>'<label style="display:flex;gap:10px;align-items:center;font-size:15px;padding:7px 0;border-bottom:1px solid var(--line);cursor:pointer;"><input type="checkbox" style="width:22px;height:22px;flex-shrink:0;accent-color:var(--sage);" '+(m.pick && m.pick.has(x.i)?'checked ':'')+(importCountsTowardLimit(x.r)?'':'checked disabled ')+'onchange="toggleImportPick('+x.i+',this.checked)"/><span><b>'+escapeHtml(x.r.name||x.r.animalId||'')+'</b>'+(x.r.name&&x.r.animalId?' <span style="font-size:13px;color:var(--ink-dim);">'+escapeHtml(x.r.animalId)+'</span>':'')+' <span style="font-size:13px;color:var(--ink-dim);">'+(Object.keys(x.r.genes||{}).length?summarizeGenes(x.r.genes):'')+'</span></span></label>').join('')+
     '</div>' : '';
-  const previewRows = rowsAll.filter(r=>!r.fileDupe).slice(0,8).map(r=>{
+  const previewList = rowsAll.filter(r=>!r.fileDupe); // v4.40 — « +N de plus » ouvre la liste complète
+  const previewRows = previewList.slice(0, m.showAll ? previewList.length : 8).map(r=>{
     const g = Object.keys(r.genes).length ? summarizeGenes(r.genes) : (r.genesRaw ? escapeHtml(r.genesRaw) : '');
     return '<div style="padding:8px 0;border-bottom:1px solid var(--line);font-size:14.5px;'+(r.dupe && !m.importDupes?'opacity:.5;':'')+'">'+
       '<div><b>'+escapeHtml(r.name || r.animalId)+'</b>'+(r.name && r.animalId ? ' <span style="font-size:13px;color:var(--ink-dim);">'+escapeHtml(r.animalId)+'</span>' : '')+' <span style="color:var(--ink-dim);font-size:13px;">'+(r.sex==='male'?'♂':r.sex==='female'?'♀':'?')+' · '+escapeHtml(speciesDisplayLabel(r.species, isEn))+(r.birthDate?' · '+escapeHtml(r.birthDate):'')+(r.weight?' · '+r.weight+' g':'')+'</span>'+(r.dupe?' <span style="color:var(--gold);font-size:13px;">'+(isEn?'(already in your collection)':'(déjà dans ta collection)')+'</span>':'')+'</div>'+
@@ -16191,7 +16208,7 @@ function renderGenericCsvPreview(){
     (m.combined ? p('🗓 '+(isEn?'Each line is a meal: '+(m.totalLines||'')+' line(s) for '+rowsAll.length+' animal(s). The animals are created first (from their first line), then every line is added to their history in the next step.':'Chaque ligne est un repas : '+(m.totalLines||'')+' ligne(s) pour '+rowsAll.length+' animal(s). Les animaux sont créés d\'abord (avec leur 1re ligne), puis chaque ligne s\'ajoute à leur historique à l\'étape suivante.'), 'var(--sage)') : '')+
     (fileDupes ? p('↺ '+(isEn?fileDupes+' line(s) repeat an ID already higher in the file — the animal is created only once.':fileDupes+' ligne(s) répètent un ID déjà plus haut dans le fichier — l\'animal n\'est créé qu\'une fois.'), 'var(--ink-dim)') : '')+
     (dupes ? '<label style="display:flex;gap:8px;align-items:center;font-size:14px;margin:6px 0;"><input type="checkbox" '+(m.importDupes?'checked':'')+' onchange="pendingGenericImportMeta.importDupes=this.checked; renderGenericCsvPreview();" style="width:20px;height:20px;"> '+(isEn?dupes+' animal(s) already in your collection (same ID, or same name when there is no ID) — import them anyway':dupes+' animal(s) déjà dans ta collection (même ID, ou même nom s\'il n\'y a pas d\'ID) — les importer quand même')+'</label>' : '')+
-    (withUnknownGenes ? p('⚠ '+(isEn?withUnknownGenes+' animal(s) have words in the genetics that LOCUS doesn\'t recognize — they\'re not used as genes, but the original text is kept in the animal\'s notes; you can fix the genetics on the sheet after.':withUnknownGenes+' animal(s) ont des mots dans la génétique que LOCUS ne reconnaît pas — ils ne deviennent pas des gènes, mais le texte d\'origine est gardé dans les notes de l\'animal; tu pourras corriger la génétique sur la fiche ensuite.'), 'var(--gold)') : '')+
+    (withUnknownGenes ? p('⚠ '+(isEn?withUnknownGenes+' animal(s) have words in the genetics that LOCUS doesn\'t recognize — they\'re not used as genes, but the original text is kept in the animal\'s notes; you can fix the genetics on the sheet after.':withUnknownGenes+' animal(s) ont des mots dans la génétique que LOCUS ne reconnaît pas — ils ne deviennent pas des gènes, mais le texte d\'origine est gardé dans les notes de l\'animal; tu pourras corriger la génétique sur la fiche ensuite.')+' <b>'+escapeHtml(unknownGeneRows.slice(0,8).map(r=>(r.line?(isEn?'line ':'ligne ')+r.line+' ':'')+(r.animalId||r.name)+' « '+r.unknownGenes.join(', ')+' »').join(', '))+(unknownGeneRows.length>8?' +'+(unknownGeneRows.length-8):'')+'</b>', 'var(--gold)') : '')+
     (function(){ // v4.20 — parents
       const withPar = rowsAll.filter(r=>r.sireRef || r.damRef);
       if(!withPar.length) return '';
@@ -16232,7 +16249,7 @@ function renderGenericCsvPreview(){
     '</details>'+
     (hasKey ? p(isEn?'Genetics are marked "To verify" until you confirm them.':'La génétique est marquée « À vérifier » jusqu\'à ce que tu la confirmes.', 'var(--ink-dim)')+
       (pickHtml || '<div style="margin-top:6px;">'+previewRows+'</div>')+
-      (rowsAll.length>8 ? '<div style="font-size:13.5px;color:var(--ink-dim);padding:6px 0;">+'+(rowsAll.length-8)+' '+(isEn?'more':'de plus')+'</div>' : '') : '')+
+      (previewList.length>8 && !pickHtml ? '<button class="sc-btn" style="width:100%;margin-top:6px;font-size:14.5px;padding:9px;" onclick="toggleImportShowAll()">'+(m.showAll ? (isEn?'▲ Show less':'▲ Afficher moins') : '▼ +'+(previewList.length-8)+' '+(isEn?'more — show all':'de plus — tout afficher'))+'</button>' : '') : '')+
     '<button class="save-btn" style="width:100%;margin-top:14px;font-size:16px;padding:12px;" '+(hasKey && toImport.length?'':'disabled')+' onclick="confirmGenericCsvImport()">✅ '+(isEn?'Import '+toImport.length+' reptile(s)':'Importer '+toImport.length+' reptile(s)')+'</button>'+
     '<button class="sc-btn" style="width:100%;margin-top:6px;font-size:15px;padding:10px;" onclick="pendingGenericCsvRows=[]; pendingGenericImportMeta=null; pendingLogAfterAnimals=null; closeQuickModal();">'+(isEn?'Cancel':'Annuler')+'</button>';
   showQuickModal((isEn?'Import preview':'Aperçu de l\'import'), body);
