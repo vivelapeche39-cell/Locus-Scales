@@ -2090,9 +2090,9 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   </div>
 
   <div class="reg-card">
-    <div class="reg-card-head"><span class="reg-flag">📥</span><h3 data-i18n="genericCsvTitle">Importer (Excel, CSV, MorphMarket, autre app)</h3></div>
-    <p data-i18n="genericCsvDesc">Un seul bouton pour tout : une feuille Excel ou un CSV fait à la main, un export MorphMarket, Husbandry Pro ou une autre app, un historique de repas, mues et pesées. LOCUS reconnaît le format tout seul et te montre un aperçu avant de confirmer quoi que ce soit.</p>
-    <input type="file" id="generic-csv-file-input" accept=".xlsx,.xls,.xlsm,.ods,.csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none;"/>
+    <div class="reg-card-head"><span class="reg-flag">📥</span><h3 data-i18n="genericCsvTitle">Importer (Excel, CSV, Word, texte, MorphMarket, autre app)</h3></div>
+    <p data-i18n="genericCsvDesc">Un seul bouton pour tout : une feuille Excel, un CSV, un document Word (.docx ou .doc) ou un fichier texte (.txt) fait à la main, un export MorphMarket, Husbandry Pro ou une autre app, un historique de repas, mues et pesées. LOCUS reconnaît le format tout seul et te montre un aperçu avant de confirmer quoi que ce soit.</p>
+    <input type="file" id="generic-csv-file-input" accept=".xlsx,.xls,.xlsm,.ods,.csv,.tsv,.txt,.doc,.docx,text/csv,text/tab-separated-values,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none;"/>
     <input type="file" id="mm-csv-file-input" accept=".csv,.tsv" style="display:none;"/><!-- v4.23 : ancien bouton MorphMarket, gardé caché (écouteur existant) -->
     <div class="reg-links">
       <button class="sc-btn accent" onclick="if(requireAuthOrPrompt()) document.getElementById('generic-csv-file-input').click()">📥 <span data-i18n="genericCsvBtn">Choisir un fichier</span></button>
@@ -2212,7 +2212,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.33';
+const APP_VERSION = '2026.09.01.4.34';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5223,6 +5223,17 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.34', date:'2026-10-21',
+    title:{ fr:'Import de documents Word', en:'Word document import' },
+    changes:{
+      fr:[
+        '📄 Import : les documents Word (.docx et l\'ancien format .doc) sont maintenant acceptés par le bouton Importer. Un tableau Word est lu comme une feuille Excel (une rangée = un animal), et le texte hors tableau est lu comme un fichier Bloc-notes (fiches « Nom : Rex », colonnes ou texte libre). Les fichiers .txt sont aussi nommés clairement sur le bouton. Un document protégé par mot de passe est signalé au lieu de planter.'
+      ],
+      en:[
+        '📄 Import: Word documents (.docx and the older .doc format) are now accepted by the Import button. A Word table is read like an Excel sheet (one row = one animal), and text outside tables is read like a Notepad file (« Name: Rex » cards, columns or free text). Text files (.txt) are also named clearly on the button. A password-protected document is flagged instead of failing.'
+      ]
+    }
+  },
   { version:'4.33', date:'2026-10-21',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
@@ -5960,8 +5971,8 @@ const I18N = {
     exportCsvTitle: 'Import CSV (onboarding rapide)',
     exportCsvDescPrefix: 'Ajoute plusieurs reptiles d\'un coup depuis un fichier CSV. Format attendu par ligne : ',
     exportCsvBtn: '📑 Choisir un fichier CSV',
-    genericCsvTitle: 'Importer (Excel, CSV, MorphMarket, autre app)',
-    genericCsvDesc: 'Un seul bouton pour tout : une feuille Excel ou un CSV fait à la main, un export MorphMarket, Husbandry Pro ou une autre app, un historique de repas, mues et pesées. LOCUS reconnaît le format tout seul et te montre un aperçu avant de confirmer quoi que ce soit.',
+    genericCsvTitle: 'Importer (Excel, CSV, Word, texte, MorphMarket, autre app)',
+    genericCsvDesc: 'Un seul bouton pour tout : une feuille Excel, un CSV, un document Word (.docx ou .doc) ou un fichier texte (.txt) fait à la main, un export MorphMarket, Husbandry Pro ou une autre app, un historique de repas, mues et pesées. LOCUS reconnaît le format tout seul et te montre un aperçu avant de confirmer quoi que ce soit.',
     genericCsvBtn: 'Choisir un fichier',
     exportValueReportTitle: 'Rapport de valeur (assurance)',
     exportValueReportDesc: "Déjà disponible dans l'onglet Valeur — génère un document imprimable/PDF de tout ton inventaire avec valeur estimée.",
@@ -6538,8 +6549,8 @@ const I18N = {
     exportCsvTitle: 'CSV import (quick onboarding)',
     exportCsvDescPrefix: 'Add several reptiles at once from a CSV file. Expected format per line: ',
     exportCsvBtn: '📑 Choose a CSV file',
-    genericCsvTitle: 'Import (Excel, CSV, MorphMarket, other app)',
-    genericCsvDesc: 'One button for everything: a homemade Excel sheet or CSV, a MorphMarket, Husbandry Pro or other app export, a history of meals, sheds and weigh-ins. LOCUS recognizes the format by itself and shows you a preview before confirming anything.',
+    genericCsvTitle: 'Import (Excel, CSV, Word, text, MorphMarket, other app)',
+    genericCsvDesc: 'One button for everything: a homemade Excel sheet, CSV, Word document (.docx or .doc) or text file (.txt), a MorphMarket, Husbandry Pro or other app export, a history of meals, sheds and weigh-ins. LOCUS recognizes the format by itself and shows you a preview before confirming anything.',
     genericCsvBtn: 'Choose a file',
     exportValueReportTitle: 'Value report (insurance)',
     exportValueReportDesc: "Already available in the Value tab — generates a printable/PDF document of your whole inventory with estimated value.",
@@ -15063,6 +15074,18 @@ function readImportFileAsRows(file, done){
   const isExcel = /\.(xlsx|xlsm|xls|ods)$/i.test(file.name||'');
   const reader = new FileReader();
   reader.onload = ()=>{
+    // v4.34 — Word (.docx / .doc) : reconnu par son contenu (iOS renomme parfois les fichiers)
+    const wordKind = importWordKind(reader.result, file.name);
+    if(wordKind){
+      importWordToSheets(reader.result, wordKind).then(sheets=>{
+        if(!sheets.length){ done([], null); return; }
+        done(sheets, { isExcel:false, isWord:true });
+      }).catch(err=>{
+        console.warn('[import word]', err);
+        alert(err && err.locusMsg ? err.locusMsg : (isEn?'Could not read this Word file. Try saving it again as .docx, or as a text file (.txt).':'Impossible de lire ce fichier Word. Essaie de le réenregistrer en .docx, ou en fichier texte (.txt).'));
+      });
+      return;
+    }
     if(isExcel){
       let wb;
       try{ wb = XLSX.read(new Uint8Array(reader.result), { type:'array', cellDates:false }); }
@@ -15088,6 +15111,201 @@ function importDecodeText(buf){
   }catch(e){
     try{ return new TextDecoder('windows-1252').decode(u); }catch(e2){ return String.fromCharCode.apply(null, Array.from(u.slice(0, 2000000))); }
   }
+}
+// ==================== v4.34 — import de fichiers Word (.docx et ancien .doc) ====================
+// Les tableaux Word deviennent des lignes/colonnes (comme une feuille Excel, un tableau = une feuille);
+// le texte hors tableau passe par le même lecteur que les fichiers Bloc-notes (importTextToRows).
+function importWordKind(buf, name){
+  const u = new Uint8Array(buf||[], 0, Math.min(8, (buf&&buf.byteLength)||0));
+  const ext = String(name||'').toLowerCase().split('.').pop();
+  if(u[0]===0xD0 && u[1]===0xCF && u[2]===0x11 && u[3]===0xE0) return ext==='xls' ? null : 'doc';
+  if(u[0]===0x50 && u[1]===0x4B && ['docx','docm','dotx'].includes(ext)) return 'docx';
+  if(['docx','docm','dotx'].includes(ext)) return 'docx';
+  if(['doc','dot'].includes(ext)) return 'doc';
+  return null;
+}
+function importWordError(fr, en){ const e = new Error(en); e.locusMsg = currentLang==='en' ? en : fr; return e; }
+// --- .docx : un zip; on lit word/document.xml (DecompressionStream, iOS 16.4+)
+async function importZipEntry(buf, wanted){
+  const u = new Uint8Array(buf), dv = new DataView(buf);
+  let eocd = -1;
+  for(let i=u.length-22; i>=Math.max(0, u.length-65558); i--){ if(dv.getUint32(i, true)===0x06054b50){ eocd = i; break; } }
+  if(eocd<0) throw importWordError('Fichier .docx abîmé (zip illisible).', 'Damaged .docx file (unreadable zip).');
+  const count = dv.getUint16(eocd+10, true);
+  let p = dv.getUint32(eocd+16, true);
+  for(let k=0;k<count && p+46<=u.length;k++){
+    if(dv.getUint32(p, true)!==0x02014b50) break;
+    const method = dv.getUint16(p+10, true), csize = dv.getUint32(p+20, true);
+    const nlen = dv.getUint16(p+28, true), xlen = dv.getUint16(p+30, true), clen = dv.getUint16(p+32, true);
+    const local = dv.getUint32(p+42, true);
+    const nm = new TextDecoder('utf-8').decode(u.subarray(p+46, p+46+nlen));
+    p += 46+nlen+xlen+clen;
+    if(nm!==wanted) continue;
+    const start = local+30+dv.getUint16(local+26, true)+dv.getUint16(local+28, true);
+    const data = u.subarray(start, start+csize);
+    if(method===0) return new TextDecoder('utf-8').decode(data);
+    if(method!==8) throw importWordError('Compression .docx non prise en charge.', 'Unsupported .docx compression.');
+    if(typeof DecompressionStream==='undefined'){
+      if(typeof XLSX!=='undefined' && XLSX.CFB && XLSX.CFB.read){ // repli : lecteur zip de SheetJS (déjà chargé)
+        const z = XLSX.CFB.read(u, { type:'array' }), f = XLSX.CFB.find(z, wanted);
+        if(f && f.content) return new TextDecoder('utf-8').decode(new Uint8Array(f.content));
+      }
+      throw importWordError('Ton navigateur est trop ancien pour lire les .docx. Enregistre le fichier en .txt et réessaie.', 'Your browser is too old to read .docx files. Save the file as .txt and try again.');
+    }
+    const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return await new Response(stream).text();
+  }
+  throw importWordError('Ce fichier .docx ne contient pas de document Word.', 'This .docx file does not contain a Word document.');
+}
+function importXmlText(s){
+  return String(s).replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'")
+    .replace(/&#x([0-9a-f]+);/gi,(a,h)=>String.fromCodePoint(parseInt(h,16))).replace(/&#(\d+);/g,(a,d)=>String.fromCodePoint(+d)).replace(/&amp;/g,'&');
+}
+function importDocxXmlToParts(xml){
+  const tables = [], lines = [];
+  let depth = 0, tbl = null, row = null, cell = null, para = null, inT = false, inDel = 0;
+  const re = /<(\/?)w:(tbl|tr|tc|p|t|tab|br|cr|del)\b[^>]*?(\/?)>|([^<]+)|<[^>]*>/g;
+  let m;
+  while((m = re.exec(xml))){
+    const close = m[1]==='/', tag = m[2], self = m[3]==='/';
+    if(m[4]!==undefined){ if(inT && !inDel && para!==null) para += importXmlText(m[4]); continue; }
+    if(!tag) continue;
+    if(tag==='del'){ if(!self) inDel += close ? -1 : 1; continue; } // texte supprimé (suivi des modifications) ignoré
+    if(tag==='t'){ inT = !close && !self; continue; }
+    if(tag==='tab' && !close){ if(para!==null) para += depth ? ' ' : '\t'; continue; }
+    if((tag==='br' || tag==='cr') && !close){ if(para!==null) para += depth ? ' ' : '\n'; continue; }
+    if(tag==='tbl'){
+      if(!close){ depth++; if(depth===1){ tbl = []; } }
+      else { if(depth===1 && tbl){ if(tbl.length) tables.push(tbl); tbl = null; } depth = Math.max(0, depth-1); }
+      continue;
+    }
+    if(depth!==1 && (tag==='tr' || tag==='tc')) continue; // tableau dans un tableau : son texte va dans la case parente
+    if(tag==='tr'){ if(!close) row = []; else { if(row && row.some(c=>c!=='')) tbl.push(row); row = null; } continue; }
+    if(tag==='tc'){ if(!close) cell = []; else { if(row) row.push(cell.join(' ').replace(/\s+/g,' ').trim()); cell = null; } continue; }
+    if(tag==='p'){
+      if(self){ if(!depth) lines.push(''); continue; }
+      if(!close){ if(para===null) para = ''; else para += ' '; continue; }
+      if(para===null) continue;
+      if(depth && cell){ cell.push(para); para = null; }
+      else if(depth){ /* paragraphe imbriqué : attendre la fin du paragraphe parent */ }
+      else { lines.push(para); para = null; }
+    }
+  }
+  return { tables, text: lines.join('\n') };
+}
+// --- .doc (Word 97-2003) : fichier « OLE » (CFB) → flux WordDocument + table des pièces de texte
+function importCfbStreams(u){
+  const dv = new DataView(u.buffer, u.byteOffset, u.byteLength);
+  const ssz = 1<<dv.getUint16(0x1E, true), msz = 1<<dv.getUint16(0x20, true);
+  const END = 0xFFFFFFFA;
+  const sec = n=>u.subarray((n+1)*ssz, (n+2)*ssz);
+  const difat = [];
+  for(let i=0;i<109;i++){ const v = dv.getUint32(0x4C+i*4, true); if(v<END) difat.push(v); }
+  let dn = dv.getUint32(0x44, true), guard = 0;
+  while(dn<END && guard++<10000){ const s = sec(dn), sd = new DataView(s.buffer, s.byteOffset, s.byteLength); for(let i=0;i<ssz/4-1;i++){ const v = sd.getUint32(i*4, true); if(v<END) difat.push(v); } dn = sd.getUint32(ssz-4, true); }
+  const fat = [];
+  difat.forEach(n=>{ const s = sec(n), sd = new DataView(s.buffer, s.byteOffset, s.byteLength); for(let i=0;i<ssz/4;i++) fat.push(sd.getUint32(i*4, true)); });
+  const chain = (start, table)=>{ const out = []; let n = start, g = 0; while(n<END && n<table.length && g++<1000000){ out.push(n); n = table[n]; } return out; };
+  const readBig = (start, size)=>{ const ids = chain(start, fat), out = new Uint8Array(ids.length*ssz); ids.forEach((n,i)=>out.set(sec(n), i*ssz)); return size==null ? out : out.subarray(0, size); };
+  const dir = readBig(dv.getUint32(0x30, true));
+  const dd = new DataView(dir.buffer, dir.byteOffset, dir.byteLength);
+  const entries = [];
+  for(let o=0; o+128<=dir.length; o+=128){
+    const nl = dd.getUint16(o+0x40, true), type = dir[o+0x42];
+    if(!type) continue;
+    let nm = ''; for(let i=0;i<Math.max(0,nl-2);i+=2) nm += String.fromCharCode(dd.getUint16(o+i, true));
+    entries.push({ nm, type, start: dd.getUint32(o+0x74, true), size: dd.getUint32(o+0x78, true) });
+  }
+  const root = entries.find(e=>e.type===5);
+  const cutoff = dv.getUint32(0x38, true) || 4096;
+  const ministream = root ? readBig(root.start, root.size) : new Uint8Array(0);
+  const minifat = [];
+  const mfBytes = readBig(dv.getUint32(0x3C, true)); const mfd = new DataView(mfBytes.buffer, mfBytes.byteOffset, mfBytes.byteLength);
+  for(let i=0;i+4<=mfBytes.length;i+=4) minifat.push(mfd.getUint32(i, true));
+  const out = {};
+  entries.filter(e=>e.type===2).forEach(e=>{
+    if(e.size<cutoff){ const ids = chain(e.start, minifat), b = new Uint8Array(ids.length*msz); ids.forEach((n,i)=>b.set(ministream.subarray(n*msz, (n+1)*msz), i*msz)); out[e.nm] = b.subarray(0, e.size); }
+    else out[e.nm] = readBig(e.start, e.size);
+  });
+  return out;
+}
+function importDocBinaryText(buf){
+  const u = new Uint8Array(buf);
+  const st = importCfbStreams(u);
+  const wd = st['WordDocument'];
+  if(!wd) throw importWordError('Ce fichier .doc n\'est pas un document Word.', 'This .doc file is not a Word document.');
+  const w = new DataView(wd.buffer, wd.byteOffset, wd.byteLength);
+  if(w.getUint16(0, true)!==0xA5EC) throw importWordError('Version de Word trop ancienne. Réenregistre le fichier en .docx.', 'Word version too old. Save the file again as .docx.');
+  const flags = w.getUint16(0x0A, true);
+  if(flags & 0x0100) throw importWordError('Ce fichier Word est protégé par un mot de passe. Enlève la protection et réessaie.', 'This Word file is password-protected. Remove the protection and try again.');
+  const tblSt = st[(flags & 0x0200) ? '1Table' : '0Table'];
+  if(!tblSt) throw importWordError('Fichier .doc incomplet.', 'Incomplete .doc file.');
+  const csw = w.getUint16(32, true), lwAt = 34+csw*2, cslw = w.getUint16(lwAt, true);
+  const ccpText = w.getInt32(lwAt+2+12, true);
+  const fcLcbAt = lwAt+2+cslw*4+2;
+  const fcClx = w.getUint32(fcLcbAt+33*8, true), lcbClx = w.getUint32(fcLcbAt+33*8+4, true);
+  const tdv = new DataView(tblSt.buffer, tblSt.byteOffset, tblSt.byteLength);
+  let p = fcClx;
+  while(p<fcClx+lcbClx && tblSt[p]===0x01) p += 3+tdv.getInt16(p+1, true);
+  if(tblSt[p]!==0x02) throw importWordError('Fichier .doc illisible.', 'Unreadable .doc file.');
+  const lcb = tdv.getUint32(p+1, true), plc = p+5, n = (lcb-4)/12;
+  const cp1252 = new TextDecoder('windows-1252'), u16 = new TextDecoder('utf-16le');
+  let text = '';
+  for(let i=0;i<n;i++){
+    const cp0 = tdv.getInt32(plc+i*4, true), cp1 = tdv.getInt32(plc+(i+1)*4, true);
+    if(cp0>=ccpText) break;
+    const len = Math.min(cp1, ccpText)-cp0;
+    let fc = tdv.getUint32(plc+(n+1)*4+i*8+2, true);
+    const comp = !!(fc & 0x40000000); fc &= 0x3FFFFFFF;
+    text += comp ? cp1252.decode(wd.subarray(fc/2, fc/2+len)) : u16.decode(wd.subarray(fc, fc+len*2));
+  }
+  return text;
+}
+function importDocTextToParts(raw){
+  // champs Word : \x13 code \x14 résultat \x15 → on garde seulement le résultat
+  let s = '', stack = [];
+  for(const ch of raw){
+    if(ch==='\x13'){ stack.push('code'); continue; }
+    if(ch==='\x14'){ if(stack.length) stack[stack.length-1] = 'res'; continue; }
+    if(ch==='\x15'){ stack.pop(); continue; }
+    if(stack.some(x=>x==='code')) continue;
+    s += ch;
+  }
+  s = s.replace(/[\x0b\x0c\x0e]/g,'\r').replace(/[\x00-\x06\x08\x10-\x12\x16-\x1f]/g,'').replace(/ /g,' ');
+  // Cases de tableau : chaque case finit par \x07, et la fin de rangée est un \x07 de plus.
+  // Une case vide est aussi un \x07 seul : on se fie au nombre de colonnes de la 1re rangée du tableau.
+  const tables = [], lines = [];
+  let buf = '', row = null, tbl = null, cols = null;
+  for(const ch of s){
+    if(ch==='\x07'){
+      if(row && buf.trim()==='' && (cols===null ? true : row.length>=cols)){
+        if(cols===null) cols = row.length;
+        if(!tbl){ tbl = []; tables.push(tbl); }
+        if(row.some(c=>c!=='')) tbl.push(row);
+        row = null; buf = '';
+      } else { (row = row||[]).push(buf.replace(/\s+/g,' ').trim()); buf = ''; }
+      continue;
+    }
+    if(ch==='\r'){
+      if(row){ buf += ' '; continue; }
+      lines.push(buf); buf = ''; tbl = null; cols = null; // paragraphe hors tableau = fin du tableau
+      continue;
+    }
+    buf += ch;
+  }
+  if(row){ row.push(buf.trim()); if(!tbl){ tbl = []; tables.push(tbl); } tbl.push(row); }
+  else if(buf.trim()) lines.push(buf);
+  return { tables: tables.filter(x=>x.length), text: lines.join('\n') };
+}
+async function importWordToSheets(buf, kind){
+  const isEn = currentLang==='en';
+  const parts = kind==='docx' ? importDocxXmlToParts(await importZipEntry(buf, 'word/document.xml')) : importDocTextToParts(importDocBinaryText(buf));
+  const sheets = parts.tables.map((rows, i)=>({ n:(isEn?'Table ':'Tableau ')+(i+1), rows }));
+  const textLines = parts.text.split('\n').filter(l=>l.trim()!=='').length;
+  // avec des tableaux, un titre ou une date au-dessus ne doit pas devenir un « animal »
+  const rows = (!sheets.length || textLines>=3) ? importTextToRows(parts.text.replace(/\n{3,}/g,'\n\n')) : [];
+  if(rows.length) sheets.push({ n:isEn?'Text':'Texte', rows });
+  return sheets;
 }
 // v4.33 — un fichier texte en n'importe quelle forme → lignes/colonnes
 //  1) fiches « clé : valeur » (un animal par paragraphe)
