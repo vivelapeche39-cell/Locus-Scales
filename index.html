@@ -2207,7 +2207,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.24';
+const APP_VERSION = '2026.09.01.4.25';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3736,6 +3736,7 @@ async function sbSignOut(){
 // par la sécurité du serveur, mais l'inverse — revenir au 1er compte après avoir importé dans le 2e — aurait
 // mélangé les deux collections). Maintenant chaque appareil sait à quel compte appartiennent ses données.
 var LOCUS_OWNER_KEY = 'locus_data_owner_v1';
+var _ownerCheckPromise = null;
 var LOCUS_KEEP_ON_SWITCH = ['locus_config_v1','locus_identity_v1','locus_data_owner_v1','locus_nosw','locus_version_reloaded','locus_install_dismissed_at','locus_install_shown','locus_calc_results_hidden','locus_ped_gens'];
 function getDataOwner(){ try{ return localStorage.getItem(LOCUS_OWNER_KEY) || null; }catch(e){ return null; } }
 function setDataOwner(id){ try{ if(id) localStorage.setItem(LOCUS_OWNER_KEY, id); }catch(e){} }
@@ -3757,6 +3758,20 @@ async function wipeLocalDataForAccount(newOwnerId){
   setDataOwner(newOwnerId);
   location.reload();
 }
+// v4.25 — déconnecté = l'appareil n'affiche plus la collection d'un compte. Des données « de compte » sont
+// reconnues par leur propriétaire (v4.24) ou, pour les plus vieilles, parce que des fiches ont déjà été
+// synchronisées (empreinte de champs du serveur). Des données d'invité (jamais synchronisées) restent.
+function localDataBelongsToAccount(){
+  if(getDataOwner()) return true;
+  try{ return !!localStorage.getItem('locus_last_sync_ok_v1'); }catch(e){ return false; } // plus vieilles données : cet appareil s'est déjà synchronisé avec un compte
+}
+async function clearAccountDataIfSignedOut(){
+  if(currentUser || offlineIdentity) return;
+  if(!localHasAnyData() || !localDataBelongsToAccount()) return;
+  try{ await lbkTake('safety', true); }catch(e){} // copie de sécurité au nom du compte : revient dans ses copies à la reconnexion
+  try{ Object.keys(localStorage).filter(k=>/^locus_/.test(k) && !LOCUS_KEEP_ON_SWITCH.includes(k)).forEach(k=>localStorage.removeItem(k)); localStorage.removeItem(LOCUS_OWNER_KEY); /* données d'invité après : sans propriétaire */ }catch(e){}
+  location.reload();
+}
 // Retourne true si la synchro peut continuer, false si l'app se recharge ou si la connexion est annulée.
 async function ensureLocalDataOwner(user){
   if(!user || !user.id || user._offline) return true;
@@ -3773,15 +3788,9 @@ async function ensureLocalDataOwner(user){
     await wipeLocalDataForAccount(user.id);
     return false;
   }
-  // Données d'un AUTRE compte sur cet appareil
-  const pending = pendingSyncCount();
-  if(pending>0){
-    alert(isEn
-      ? 'The other account used on this device has '+pending+' change(s) not yet sent to the server. To lose nothing: sign back in to that account, let the sync finish, then sign out and sign in again here.'
-      : 'L\'autre compte utilisé sur cet appareil a '+pending+' changement(s) pas encore envoyé(s) au serveur. Pour ne rien perdre : reconnecte-toi à cet autre compte, laisse la synchro finir, puis déconnecte-toi et reconnecte-toi ici.');
-    await sbSignOut();
-    return false;
-  }
+  // Données d'un AUTRE compte sur cet appareil. v4.25 : la file « en attente » n'est pas fiable pour bloquer
+  // (le chargement marque des fiches modifiées) — on retire donc toujours, avec une copie de sécurité au nom de
+  // l'autre compte : elle réapparaît dans SES « Copies automatiques » s'il se reconnecte ici.
   showToast('🔄 '+(isEn?'Loading this account\'s data…':'Chargement des données de ce compte…'), 'success');
   await wipeLocalDataForAccount(user.id);
   return false;
@@ -3799,7 +3808,7 @@ if(sb){
     if((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && currentUser){
       const u = currentUser;
       // v4.24 — attend que les données locales soient chargées (le script entier), puis vérifie à qui elles appartiennent
-      setTimeout(()=>{ ensureLocalDataOwner(u).then(ok=>{ if(ok && currentUser && currentUser.id===u.id) synchroniserAvecServeur().then(()=>backfillMissingPhotoUrls()); }).catch(e=>console.warn('LOCUS: owner check', e)); }, 0);
+      setTimeout(()=>{ if(currentUser && currentUser.id===u.id) synchroniserAvecServeur().then(()=>backfillMissingPhotoUrls()); }, 0); // la vérification du propriétaire est faite dans synchroniserAvecServeur (v4.25)
     }
   });
 }
@@ -4037,9 +4046,19 @@ async function handleAuthSignUp(){
 }
 async function handleAuthSignOut(){
   const isEn = currentLang==='en';
+  // v4.25 — envoyer d'abord ce qui attend; sinon prévenir avant de perdre des changements
+  if(pendingSyncCount()>0 && currentUser && !offlineIdentity && !isDeviceOffline()){ try{ await pushAllUserData(false); }catch(e){} }
+  const pending = pendingSyncCount();
+  if(pending>0 && !confirm(isEn
+      ? pending+' change(s) haven\'t reached the server yet and will be lost if you sign out now. Sign out anyway?\n\n(Cancel, then reconnect to the internet and wait a few seconds to keep them.)'
+      : pending+' changement(s) ne sont pas encore rendus au serveur et seront perdus si tu te déconnectes maintenant. Te déconnecter quand même?\n\n(Annule, puis reconnecte-toi à internet et attends quelques secondes pour les garder.)')) return;
   await sbSignOut();
   closeAuthModal();
-  showToast(isEn?'Signed out — back to local mode.':'Déconnecté — retour au mode local.');
+  // Déconnexion = la collection du compte quitte l'appareil (elle reste sur le serveur). Copie de sécurité cachée gardée.
+  try{ await lbkTake('safety', true); }catch(e){}
+  try{ Object.keys(localStorage).filter(k=>/^locus_/.test(k) && !LOCUS_KEEP_ON_SWITCH.includes(k)).forEach(k=>localStorage.removeItem(k)); localStorage.removeItem(LOCUS_OWNER_KEY); /* données d'invité après : sans propriétaire */ }catch(e){}
+  showToast(isEn?'Signed out — your collection stays safe in your account.':'Déconnecté — ta collection reste en sécurité dans ton compte.');
+  setTimeout(()=>location.reload(), 600);
 }
 // Restaure la session existante au chargement (si l'utilisateur était déjà connecté)
 if(sb){
@@ -4047,6 +4066,7 @@ if(sb){
     currentUser = resolveUserFromSession(session, 'INITIAL_SESSION');
     updateAuthUI();
     if(currentUser && !offlineIdentity) synchroniserAvecServeur();
+    else if(!currentUser) setTimeout(()=>{ clearAccountDataIfSignedOut(); }, 0); // v4.25
   });
 }
 
@@ -5198,11 +5218,12 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'4.24', date:'2026-10-21',
+  { version:'4.25', date:'2026-10-21',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
-        '🔐 Correctif important : se connecter à un autre compte sur le même appareil n\'affiche plus les animaux du compte précédent. Chaque appareil sait maintenant à quel compte appartiennent ses données; en changeant de compte, celles de l\'autre sont retirées de l\'appareil et celles du compte connecté sont chargées du serveur. Si l\'autre compte avait des changements pas encore synchronisés, LOCUS demande d\'abord de le reconnecter pour ne rien perdre. Les copies automatiques sont aussi séparées par compte.',
+        '🔐 Déconnexion : l\'appareil n\'affiche plus ta collection une fois déconnecté — elle reste en sécurité dans ton compte et revient à la reconnexion. Si des changements n\'ont pas encore été envoyés au serveur, LOCUS essaie de les envoyer d\'abord, puis te prévient avant de te déconnecter.',
+        '🔐 Correctif important : se connecter à un autre compte sur le même appareil n\'affiche plus les animaux du compte précédent. Chaque appareil sait maintenant à quel compte appartiennent ses données; en changeant de compte, celles de l\'autre sont retirées de l\'appareil et celles du compte connecté sont chargées du serveur. Une copie de sécurité est gardée au nom de l\'autre compte (elle réapparaît dans ses Copies automatiques s\'il se reconnecte ici). Les copies automatiques sont séparées par compte.',
         '📥 Un seul bouton Importer : Excel, CSV, export MorphMarket, Husbandry Pro ou autre app, ancien format rapide (nom;sexe;gènes) et historique — LOCUS reconnaît le format tout seul et le dit dans l\'aperçu. L\'import MorphMarket est maintenant gratuit comme les autres. La restauration d\'une sauvegarde reste un bouton séparé (elle remplace tes données). Quand les paliers seront actifs, l\'import respectera la limite d\'animaux de ton palier : les premiers par défaut, ou tu choisis lesquels.',
         '📋 Import : une date impossible ou illisible (ex. 32-13-2024, 30 février) est maintenant signalée en rouge avec sa valeur et l\'animal concerné, au lieu d\'être confondue avec une date ambiguë — et elle ne fausse plus la lecture du reste de la colonne.',
         '📝 Notes : nouvelle section Notes sur la fiche de chaque reptile, pour tout ce qu\'il faut retenir (tempérament, historique…). Enregistrée pendant que tu écris, privée — jamais affichée sur les pages publiques, la vitrine ou les liens partagés. L\'import Excel/CSV remplit les notes depuis une colonne « Notes ».',
@@ -5299,7 +5320,8 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
-        '🔐 Important fix: signing in to another account on the same device no longer shows the previous account\'s animals. Each device now knows which account its data belongs to; when switching accounts, the other account\'s data is removed from the device and the signed-in account\'s data is loaded from the server. If the other account had unsynced changes, LOCUS asks you to sign back in to it first so nothing is lost. Automatic copies are also separated by account.',
+        '🔐 Sign-out: the device no longer shows your collection once signed out — it stays safe in your account and comes back when you sign in. If some changes haven\'t reached the server yet, LOCUS tries to send them first, then warns you before signing out.',
+        '🔐 Important fix: signing in to another account on the same device no longer shows the previous account\'s animals. Each device now knows which account its data belongs to; when switching accounts, the other account\'s data is removed from the device and the signed-in account\'s data is loaded from the server. A safety copy is kept under the other account\'s name (it reappears in its Automatic copies if it signs in here again). Automatic copies are separated by account.',
         '📥 One Import button: Excel, CSV, MorphMarket export, Husbandry Pro or other app, the old quick format (name;sex;genes) and history — LOCUS recognizes the format by itself and says so in the preview. MorphMarket import is now free like the others. Restoring a backup stays a separate button (it replaces your data). Once tiers are active, import will respect your plan\'s animal limit: the first ones by default, or you choose which.',
         '📋 Import: an impossible or unreadable date (e.g. 32-13-2024, February 30) is now flagged in red with its value and the animal, instead of being confused with an ambiguous date — and it no longer throws off the reading of the rest of the column.',
         '📝 Notes: new Notes section on each reptile\'s sheet for anything worth remembering (temperament, history…). Saved as you type, private — never shown on public pages, the showcase or shared links. Excel/CSV import fills notes from a « Notes » column.',
@@ -13975,7 +13997,13 @@ function reinitialiserDonneesLocales(){
 }
 async function synchroniserAvecServeur(){
   if(!sb || !currentUser) return;
-  if(!currentUser._offline && getDataOwner() && getDataOwner()!==currentUser.id) return; // v4.24 — jamais synchroniser les données d'un autre compte
+  // v4.24/4.25 — toutes les portes d'entrée de la synchro passent ici : jamais synchroniser des données dont on ne sait pas qu'elles sont à ce compte
+  if(!currentUser._offline && getDataOwner()!==currentUser.id){
+    const u = currentUser;
+    if(!_ownerCheckPromise) _ownerCheckPromise = ensureLocalDataOwner(u).finally(()=>{ _ownerCheckPromise = null; });
+    const ok = await _ownerCheckPromise;
+    if(!ok || !currentUser || currentUser.id!==u.id || getDataOwner()!==u.id) return;
+  }
   if(offlineIdentity){ updateSyncPill(); if(!isDeviceOffline()) tryRecoverSession(); return; }
   if(isDeviceOffline()){ syncPushFailed = true; updateSyncPill(); return; } // hors ligne : on garde le local, l'événement « online » relancera
   if(estOccupe){
