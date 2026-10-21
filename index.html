@@ -1348,6 +1348,11 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         </label>
       </div>
       <div class="pedigree-row">
+        <label style="flex:1;"><span data-i18n="acquisitionDateLabel">Date d'acquisition</span> <span style="font-weight:400;color:var(--ink-dim);" data-i18n="acquisitionDateHint">(optionnel — quand il est arrivé chez toi)</span>
+          <input type="date" id="draft-acquisition-date" class="pedigree-select" style="width:100%;margin-top:4px;"/>
+        </label>
+      </div>
+      <div class="pedigree-row">
         <label style="flex:1;"><span data-i18n="purchasePriceLabel">Prix d'achat</span> <span style="font-weight:400;color:var(--ink-dim);" data-i18n="purchasePriceHint">(optionnel — laisse vide si né chez toi ; sert au calcul de profit par ponte/animal)</span>
           <input type="number" id="draft-purchase-price" class="pedigree-select" min="0" step="0.01" style="width:100%;margin-top:4px;" placeholder="0.00 $"/>
         </label>
@@ -2207,7 +2212,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.29';
+const APP_VERSION = '2026.09.01.4.33';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5218,10 +5223,15 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'4.29', date:'2026-10-21',
+  { version:'4.33', date:'2026-10-21',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '📝 Import : les fichiers Bloc-notes (.txt) sont lus, peu importe leur forme — fiches « Nom : Rex / Morph : Pastel » (un animal par paragraphe), colonnes séparées par tab, point-virgule, virgule, | ou « - », colonnes alignées avec des espaces, ou même un animal par ligne en texte libre (« Rex Pastel Pied M 2022 »). Sans ligne d\'en-tête, LOCUS devine chaque colonne d\'après son contenu, et tu peux corriger avec les menus. Les accents sont gardés même si le fichier a été enregistré en ANSI.',
+        '🧬 Import : les gènes collés par un trait d\'union (« Pied-Enchi ») sont maintenant lus, et une faute d\'une lettre dans un gène (« Enchie », « Peid ») est corrigée et listée pour vérification.',
+        '📅 Date d\'acquisition : nouveau champ sur la fiche (quand l\'animal est arrivé chez toi), dans le formulaire, l\'export Excel et l\'import (colonne « Acquisition Date »).',
+        '🧬 Import : les noms de combos du python royal sont traduits en gènes — Bumblebee, Killer Bee, Queen Bee, Fire Bee, Honey Bee, Spinner, Lemon Blast, Pewter, Silver Streak, Firefly, Pastave, Mochi, Purple Passion, Mystic Potion, Freeway, Highway, Puma, Dreamsicle, Candino, Toffino, Kingpin et autres, tous vérifiés sur World of Ball Pythons. Les noms qui couvrent plusieurs génétiques (BEL, Snow) sont signalés plutôt que devinés.',
+        '📋 Import : quand deux colonnes ressemblent à un ID (« Id » 1, 2, 3 et « Animal ID » BP-001), la plus précise gagne. Nouvelles colonnes reconnues : dernier repas (proie), dernière mue (date et qualité, « 100% » = complète), prix et date d\'acquisition, « Notes / Errata ». Les valeurs « unknown », « NOT WEIGHED », « M/F? », « N/A » sont traitées comme vides; « approx 499 grams » est lu; « 00/00/2021 » = année 2021. Statut « quarantine » = gardé avec quarantaine active; un statut inconnu (« LOST ») devient « Gardé » et le mot d\'origine est gardé dans les notes. Les petites fautes de frappe (« MALEE », « Ball Piton », « Pyth0n regius ») sont corrigées et listées pour vérification.',
         '🇬🇧 Import en anglais : beaucoup plus de titres de colonnes reconnus (Pet Name, Gender, Hatch_Date, Animal #, Acquired From, Price Paid, Feed Date, Ate?, Food Type, Qty…), même avec une unité ou un souligné (« Weight (lbs) »). Dates avec le mois en lettres (Oct 14, 2026 · 14 octobre 2026 · Sep 2025), poids en kg, lb ou oz convertis en grammes, prix « $1,200.00 », réponses Yes/No, noms courts d\'espèces (Leo, Corn, Beardie, BCI…) et abréviations de proies (XL, med, crickets).',
         '🛡️ Import plus strict, testé avec un fichier plein de pièges : les dates dans le futur, les poids illisibles ou négatifs (« Trois-cents », -150), les quantités de proies impossibles (-5, 9999), les sexes inconnus (« Hélicoptère »), les espèces vides et les lignes sans ID ni nom sont maintenant signalés avec leur numéro de ligne au lieu d\'être ignorés en silence. Les dates avec l\'année sur 2 chiffres (25/10/26) sont comprises.',
         '❓ Import d\'historique : quand « Mue » apparaît dans la même colonne que les repas et les refus, LOCUS te demande ce que ça veut dire (refus parce qu\'en mue, ou vraie mue) avant d\'importer, au lieu de deviner.',
@@ -5324,6 +5334,11 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '📝 Import: Notepad files (.txt) are read whatever their shape — « Name: Rex / Morph: Pastel » cards (one animal per paragraph), columns separated by tab, semicolon, comma, | or « - », columns aligned with spaces, or even one animal per line as free text (« Rex Pastel Pied M 2022 »). Without a header row, LOCUS guesses each column from its content, and you can fix it with the menus. Accents are kept even if the file was saved as ANSI.',
+        '🧬 Import: genes joined by a hyphen (« Pied-Enchi ») are now read, and a one-letter typo in a gene (« Enchie », « Peid ») is corrected and listed for checking.',
+        '📅 Acquisition date: new field on the sheet (when the animal arrived at your place), in the form, the Excel export and the import (« Acquisition Date » column).',
+        '🧬 Import: ball python combo names are translated into genes — Bumblebee, Killer Bee, Queen Bee, Fire Bee, Honey Bee, Spinner, Lemon Blast, Pewter, Silver Streak, Firefly, Pastave, Mochi, Purple Passion, Mystic Potion, Freeway, Highway, Puma, Dreamsicle, Candino, Toffino, Kingpin and more, all checked on World of Ball Pythons. Names that cover several genetics (BEL, Snow) are flagged instead of guessed.',
+        '📋 Import: when two columns look like an ID (« Id » 1, 2, 3 and « Animal ID » BP-001), the more specific one wins. New columns recognized: last feed (prey), last shed (date and quality, « 100% » = complete), acquisition price and date, « Notes / Errata ». Values « unknown », « NOT WEIGHED », « M/F? », « N/A » are treated as empty; « approx 499 grams » is read; « 00/00/2021 » = year 2021. Status « quarantine » = kept with an active quarantine; an unknown status (« LOST ») becomes « Kept » and the original word is kept in the notes. Small typos (« MALEE », « Ball Piton », « Pyth0n regius ») are corrected and listed for checking.',
         '🇬🇧 English import: many more column titles recognized (Pet Name, Gender, Hatch_Date, Animal #, Acquired From, Price Paid, Feed Date, Ate?, Food Type, Qty…), even with a unit or underscore (« Weight (lbs) »). Dates with the month in letters (Oct 14, 2026 · Sep 2025), weights in kg, lb or oz converted to grams, prices like « $1,200.00 », Yes/No answers, short species names (Leo, Corn, Beardie, BCI…) and prey abbreviations (XL, med, crickets).',
         '🛡️ Stricter import, tested with a file full of traps: future dates, unreadable or negative weights (« Three hundred », -150), impossible prey quantities (-5, 9999), unknown sexes, empty species and lines with neither ID nor name are now flagged with their line number instead of being silently ignored. Dates with a 2-digit year (25/10/26) are understood.',
         '❓ History import: when « Shed » appears in the same column as meals and refusals, LOCUS asks you what it means (refused because in shed, or an actual shed) before importing, instead of guessing.',
@@ -6122,6 +6137,7 @@ const I18N = {
     editReptileTitle: 'Modifier le reptile',
     saveEditBtn: 'Enregistrer les modifications',
     provenanceLabel: 'Provenance',
+    acquisitionDateLabel: 'Date d\'acquisition', acquisitionDateHint: '(optionnel — quand il est arrivé chez toi)',
     // Phase 3 — Élevage : Racks & Terrariums
     addRackBtn: '➕ Ajouter un rack',
     terrariumsTitle: 'Terrariums (affichage individuel)',
@@ -6699,6 +6715,7 @@ const I18N = {
     editReptileTitle: 'Edit Reptile',
     saveEditBtn: 'Save Changes',
     provenanceLabel: 'Provenance',
+    acquisitionDateLabel: 'Acquisition date', acquisitionDateHint: '(optional — when it arrived at your place)',
     // Phase 3 — Husbandry: Racks & Terrariums
     addRackBtn: '➕ Add a Rack',
     terrariumsTitle: 'Terrariums (individual display)',
@@ -8954,6 +8971,7 @@ function saveDraft(){
   const damId = document.getElementById('draft-dam').value || null;
   const birthDate = readBirthDateFromForm();
   const provenance = document.getElementById('draft-provenance').value.trim() || null;
+  const acqEl = document.getElementById('draft-acquisition-date'); const acquisitionDate = (acqEl && acqEl.value) || null; // v4.31
   const purchasePriceEl = document.getElementById('draft-purchase-price');
   const purchasePrice = purchasePriceEl && purchasePriceEl.value !== '' ? parseFloat(purchasePriceEl.value) : null;
   const preySpecies = document.getElementById('draft-prey-species').value || null;
@@ -8969,16 +8987,17 @@ function saveDraft(){
       if(!snake.geneticsHistory) snake.geneticsHistory = [];
       snake.geneticsHistory.push({ id:'ghist_'+Date.now(), date:localTodayStr(), from:oldGeneNames, to:newGeneNames });
     }
-    snake.name = name; snake.animalId = animalId; snake.sex = draftSex; snake.genes = {...state.draft}; snake.sireId = sireId; snake.damId = damId; snake.birthDate = birthDate; snake.provenance = provenance; snake.purchasePrice = purchasePrice; snake.species = species;
+    snake.name = name; snake.animalId = animalId; snake.sex = draftSex; snake.genes = {...state.draft}; snake.sireId = sireId; snake.damId = damId; snake.birthDate = birthDate; snake.provenance = provenance; snake.acquisitionDate = acquisitionDate; snake.purchasePrice = purchasePrice; snake.species = species;
     snake.preySpecies = preySpecies; snake.preySize = preySize;
     editingId = null;
   } else {
-    savedSnakes.push({ id: 'snk_'+Date.now(), name, animalId, sex: draftSex, genes: {...state.draft}, sireId, damId, birthDate, provenance, purchasePrice, species, preySpecies, preySize, preyType:'frozen' });
+    savedSnakes.push({ id: 'snk_'+Date.now(), name, animalId, sex: draftSex, genes: {...state.draft}, sireId, damId, birthDate, provenance, acquisitionDate, purchasePrice, species, preySpecies, preySize, preyType:'frozen' });
   }
   state.draft = {};
   nameInput.value = '';
   if(idInput) idInput.value = '';
   document.getElementById('draft-provenance').value = '';
+  document.getElementById('draft-acquisition-date').value = '';
   document.getElementById('draft-purchase-price').value = '';
   document.getElementById('draft-species-select').value = 'ball_python';
   document.getElementById('draft-species-other').value = '';
@@ -9044,6 +9063,7 @@ function editSnake(id){
   document.getElementById('draft-name').value = snake.name;
   document.getElementById('draft-animal-id').value = snake.animalId || ''; // v4.16
   document.getElementById('draft-provenance').value = snake.provenance || '';
+  document.getElementById('draft-acquisition-date').value = (snake.acquisitionDate && snake.acquisitionDate.length===10) ? snake.acquisitionDate : '';
   document.getElementById('draft-purchase-price').value = (snake.purchasePrice!=null) ? snake.purchasePrice : '';
   const species = snake.species || 'ball_python';
   setDraftSpeciesValue(species);
@@ -9076,6 +9096,7 @@ function duplicateSnake(id){
   document.getElementById('draft-name').value = '';
   document.getElementById('draft-animal-id').value = ''; // v4.16 — un nouvel animal = un nouvel ID
   document.getElementById('draft-provenance').value = snake.provenance || '';
+  document.getElementById('draft-acquisition-date').value = (snake.acquisitionDate && snake.acquisitionDate.length===10) ? snake.acquisitionDate : '';
   document.getElementById('draft-purchase-price').value = (snake.purchasePrice!=null) ? snake.purchasePrice : '';
   const species = snake.species || 'ball_python';
   setDraftSpeciesValue(species);
@@ -9103,6 +9124,7 @@ function cancelEdit(){
   document.getElementById('draft-name').value = '';
   document.getElementById('draft-animal-id').value = '';
   document.getElementById('draft-provenance').value = '';
+  document.getElementById('draft-acquisition-date').value = '';
   document.getElementById('draft-purchase-price').value = '';
   document.getElementById('draft-prey-species').value = '';
   updateDraftPreySizeOptions();
@@ -11666,6 +11688,7 @@ function openLogbook(id){
       mrow(t('birthLabel'), formatBirthLabel(s.birthDate)) +
       (s.birthDate ? mrow(t('ageLabel').replace(':',''), computeAgeLabel(s.birthDate)) : '')+
       (s.provenance ? mrow(t('provenanceLabel'), escapeHtml(s.provenance)) : '')+
+      (s.acquisitionDate ? mrow(t('acquisitionDateLabel'), escapeHtml(s.acquisitionDate)) : '')+ // v4.31
     '</div>'+
     '<div class="modal-section"><h3>🌡️ '+(currentLang==='en'?'Care parameters':'Paramètres d\'élevage')+'</h3>'+
       (s.species!=='ball_python' ? (
@@ -14079,7 +14102,7 @@ function snakeToRow(s){
     notes: (typeof s.notes==='string' && s.notes) ? s.notes : null, // v4.21 — notes privées, jamais publiques
     genes: s.genes||{}, genes_verified: !!s.genesVerified,
     sire_id: s.sireId||null, dam_id: s.damId||null, birth_date: s.birthDate||null,
-    provenance: s.provenance||null, status: s.status||'kept',
+    provenance: s.provenance||null, acquisition_date: s.acquisitionDate||null, status: s.status||'kept',
     health: s.health||{}, placement: s.placement||{}, photos: s.photos||[],
     feeding_interval_days: s.feedingIntervalDays||null, prey_species: s.preySpecies||null,
     prey_size: s.preySize||null, prey_type: s.preyType||'frozen', asking_price: s.askingPrice||null, listed_date: s.listedDate||null,
@@ -14103,7 +14126,7 @@ function snakeToRow(s){
 function rowToSnake(r){
   return {
     id: r.id, name: r.name||'', animalId: r.animal_id||null, notes: r.notes||'', sex: r.sex, genes: r.genes||{}, genesVerified: r.genes_verified,
-    sireId: r.sire_id, damId: r.dam_id, birthDate: r.birth_date, provenance: r.provenance,
+    sireId: r.sire_id, damId: r.dam_id, birthDate: r.birth_date, provenance: r.provenance, acquisitionDate: r.acquisition_date||null,
     status: r.status, health: r.health||{}, placement: r.placement||{}, photos: r.photos||[],
     feedingIntervalDays: r.feeding_interval_days, preySpecies: r.prey_species, preySize: r.prey_size, preyType: r.prey_type || 'frozen',
     askingPrice: r.asking_price, listedDate: r.listed_date, listingUrl: r.listing_url,
@@ -14754,16 +14777,20 @@ const CSV_COLUMN_ALIASES = {
   genes: ['genes','gene','genetique','genetics','morph','morphs','morphe','traits','genetic','genetic mutation','genetic mutations','mutation','mutations','genotype','phenotype'],
   birthDate: ['date de naissance','birth date','dob','naissance','date naissance','date of birth','hatch date','eclosion','date d\'eclosion','ne le','hatched','birthdate','birthday','born','hatch','hatchdate','date hatched','hatched on','date born','annee de naissance','birth year','year born','hatch year'],
   provenance: ['provenance','source','eleveur','breeder','origine','origin','acquired from','purchased from','bought from','supplier','vendor','fournisseur','achete chez','produced by'],
-  purchasePrice: ['prix d\'achat','prix achat','purchase price','cost','cout','paid','paye','price paid','acquisition cost','bought for','paid price','cost price'],
+  purchasePrice: ['prix d\'achat','prix achat','purchase price','cost','cout','paid','paye','price paid','acquisition cost','bought for','paid price','cost price','acquisition price','acquisition cost','purchase cost','bought price'],
   species: ['espece','species','type d\'animal','animal type','common name','nom commun','scientific name','nom scientifique','category','categorie'], // v4.18 — Husbandry Pro : « Common Name » = l'espèce, pas le nom de l'animal
   askingPrice: ['prix demande','prix','asking price','price','prix de vente','sale price','list price','for sale price','selling price'],
-  animalId: ['id/name','name/id','id / name','id/nom','nom/id','id','animal id','animal_id','animalid','id animal','id de l\'animal','identifiant','# id','#','tag','tag id','code','animal #','tag #','id #','identifier','animal number','number','no','numero','reference','ref','record id','collection id'], // v4.16
+  animalId: ['animal id','animal_id','animalid','id animal','id/name','name/id','id / name','id/nom','nom/id','id','animal_id','animalid','id animal','id de l\'animal','identifiant','# id','#','tag','tag id','code','animal #','tag #','id #','identifier','animal number','number','no','numero','reference','ref','record id','collection id'], // v4.16
   weight: ['poids','poids (g)','poids animal','poids animal (g)','poids de l\'animal','animal weight','weight','weight (g)','masse','dernier poids','last weight','poids actuel','current weight','current weight (g)','weight (grams)','mass','body weight','latest weight','recent weight','wt'], // v4.12
   notes: ['notes','note','remarques','remarque','comment','comments','commentaire','commentaires','details','description','remarks','memo','observations'], // v4.21
+  lastFedPrey: ['last feed item','last fed item','last prey','last feeder','derniere proie','last meal item','last food'], // v4.30
+  lastShed: ['last shed date','last shed','derniere mue','date derniere mue','last sheded','shed date'], // v4.30
+  lastShedQuality: ['last shed status','last shed quality','shed quality','shed status','qualite de la mue','etat de la mue'], // v4.30
+  acquired: ['acquisition date','date of acquisition','acquisition','acquired','date acquired','purchase date','date of purchase','date d\'achat','date d\'acquisition','acquired on','bought on'], // v4.31 — vrai champ acquisitionDate
   status: ['status','statut','etat','state','sale status','statut de vente','availability','disponibilite','animal status','inventory status'], // v4.20
   sire: ['sire','pere','father','male parent','parent male','sire id','id du pere','dad','sire name','nom du pere'], // v4.20
   dam: ['dam','mere','mother','female parent','parent femelle','dam id','id de la mere','mom','dam name','nom de la mere'], // v4.20
-  lastFed: ['dernier repas','date du dernier repas','last fed','last fed date','last feeding','last meal','date last fed','last feeding date','last feed','last fed on','dernier nourrissage'], // v4.18
+  lastFed: ['dernier repas','date du dernier repas','last fed','last fed date','last feeding','last meal','date last fed','last feeding date','last feed','last fed on','dernier nourrissage','last feed date','last meal date','date of last feed'], // v4.18
   weightDate: ['date de pesee','date pesee','date du poids','weigh date','weight date','date of weight','derniere pesee','last weigh-in','date weighed','weighed on','last weighed','weigh-in date'], // v4.12
 };
 // v4.29 — variantes d'un titre : « Weight (lbs) », « Hatch_Date », « Fed? » se comparent aussi sans unité, soulignés ni ponctuation
@@ -14772,17 +14799,23 @@ function headerVariants(h){
   const v = new Set([n]);
   const noParen = n.replace(/\s*[\(\[][^\)\]]*[\)\]]\s*/g,' ').replace(/\s+/g,' ').trim();
   v.add(noParen);
-  [n, noParen].forEach(x=>{ v.add(x.replace(/[_\-.]+/g,' ').replace(/\s+/g,' ').trim()); v.add(x.replace(/[?:*#]+/g,'').trim()); v.add(x.replace(/[_\-.?:*]+/g,' ').replace(/\s+/g,' ').trim()); });
+  [n, noParen].forEach(x=>{ v.add(x.replace(/[_\-.]+/g,' ').replace(/\s+/g,' ').trim()); v.add(x.replace(/[?:*#]+/g,'').trim()); v.add(x.replace(/[_\-.?:*]+/g,' ').replace(/\s+/g,' ').trim()); if(x.includes('/')) x.split('/').forEach(part=>v.add(part.trim())); }); // v4.30 — « Notes / Errata »
   return [...v].filter(Boolean);
 }
 function mapCsvHeaders(headerRow){
   const map = {};
-  headerRow.forEach((h,i)=>{
-    const vars = headerVariants(h);
-    for(const field in CSV_COLUMN_ALIASES){
-      if(map[field]===undefined && CSV_COLUMN_ALIASES[field].some(alias=>normalizeHeaderKey(alias)===vars[0])){ map[field] = i; break; }
-    }
-  });
+  // v4.30 — priorité aux alias : « Animal ID » gagne sur une colonne « Id » qui n'est qu'un numéro de ligne
+  const used = new Set();
+  for(const field in CSV_COLUMN_ALIASES){
+    let best = null;
+    headerRow.forEach((h,i)=>{
+      if(used.has(i)) return;
+      const n = normalizeHeaderKey(h);
+      const rank = CSV_COLUMN_ALIASES[field].findIndex(alias=>normalizeHeaderKey(alias)===n);
+      if(rank>=0 && (!best || rank<best.rank)) best = { i, rank };
+    });
+    if(best){ map[field] = best.i; used.add(best.i); }
+  }
   headerRow.forEach((h,i)=>{ // 2e passe : variantes (sans unité, sans soulignés…), seulement pour les colonnes encore libres
     if(Object.values(map).includes(i)) return;
     const vars = headerVariants(h).slice(1);
@@ -14833,7 +14866,11 @@ function normalizeImportDate(v, order){ // v4.18 — order 'dmy'/'mdy' déduit d
     return { value:null, ambiguous:false, invalid:true };
   }
   const str = String(v).trim();
-  if(!str) return { value:null, ambiguous:false };
+  if(!str || importIsBlankish(str)) return { value:null, ambiguous:false }; // v4.30 — « unknown » = vide
+  let z = str.match(/^0{1,2}[\/.\-]0{1,2}[\/.\-](\d{4})$/); // v4.30 — « 00/00/2021 » = année seulement
+  if(z) return (+z[1]>=1900 && +z[1]<=new Date().getFullYear()) ? { value:z[1], ambiguous:false } : { value:null, ambiguous:false, invalid:true };
+  z = str.match(/^0{1,2}[\/.\-](\d{1,2})[\/.\-](\d{4})$/); // « 00/05/2021 » = mois seulement
+  if(z && +z[1]>=1 && +z[1]<=12) return (z[2]+'-'+z[1].padStart(2,'0')) <= localTodayStr().slice(0,7) ? { value: z[2]+'-'+z[1].padStart(2,'0'), ambiguous:false } : { value:null, ambiguous:false, invalid:true, future:true };
   let m = str.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})(?:[T ].*)?$/);
   if(m) return importYmd(+m[1], +m[2], +m[3]);
   m = str.match(/^(\d{4})[-\/](\d{1,2})$/);
@@ -14871,7 +14908,9 @@ function importMonthFromWord(str){
 }
 // Espèce en texte libre → id LOCUS (nom FR, EN, latin ou id). Vide = python royal. Non reconnue = texte gardé tel quel.
 function matchImportSpecies(raw){
-  let norm = normalizeHeaderKey(raw||'');
+  let norm = normalizeHeaderKey(raw||'').replace(/[-_]+/g,' ').replace(/\s+/g,' ').trim(); // v4.30 — « Ball-Python »
+  norm = norm.replace(/0/g,'o'); // « Pyth0n »
+  if(['regius','p regius','p. regius','python regius','royal','royal python','ball'].includes(norm)) norm = 'ball python';
   if(['ball pythons','pythons royaux','royal pythons','pythons'].includes(norm)) norm = 'ball python'; // v4.23 — MorphMarket écrit « Ball Pythons »
   const SHORT = { 'corn':'corn_snake','corns':'corn_snake','couleuvre des bles':'corn_snake','serpent des bles':'corn_snake','hognose snake':'hognose','western hognose':'hognose','hoggie':'hognose','leo':'leopard_gecko','leos':'leopard_gecko','leopard':'leopard_gecko','gecko leopard':'leopard_gecko','crestie':'crested_gecko','cresties':'crested_gecko','crested':'crested_gecko','gargoyle':'gargoyle_gecko','fat tail':'fat_tail_gecko','fat tailed gecko':'fat_tail_gecko','african fat tail':'fat_tail_gecko','beardie':'bearded_dragon','beardies':'bearded_dragon','pogona':'bearded_dragon','blue tongue':'blue_tongue_skink','bts':'blue_tongue_skink','blue tongued skink':'blue_tongue_skink','bci':'boa_bci','bcc':'boa_bcc','brb':'rainbow_boa','rainbow boa':'rainbow_boa','ackie':'ackie_monitor','sulcata':'sulcata_tortoise','res':'red_eared_slider','california king':'king_california','cal king':'king_california','florida king':'king_florida','mexican black king':'king_mexican','mbk':'king_mexican' }; // v4.29
   if(SHORT[norm]) return { id:SHORT[norm], known:true };
@@ -14880,6 +14919,13 @@ function matchImportSpecies(raw){
   const ref = SPECIES_REFERENCE.find(sp=>[sp.id, sp.nameFr, sp.nameEn, sp.nameLatin].filter(Boolean).some(x=>normalizeHeaderKey(String(x).replace(/_/g,' '))===norm.replace(/_/g,' ')));
   if(ref) return { id:ref.id, known:true };
   if(/s$/.test(norm) && norm.length>4){ const again = matchImportSpecies(norm.replace(/s$/,'')); if(again.known) return again; } // pluriel (« Corn Snakes », « Leopard Geckos »)
+  // v4.30 — faute de frappe proche d'un nom connu (« Ball Piton ») : corrigé, mais signalé dans l'aperçu
+  if(norm.length>=6){
+    const cands = [['ball python','ball_python'],['python royal','ball_python'],['python regius','ball_python']].concat(SPECIES_REFERENCE.flatMap(sp=>[sp.nameFr, sp.nameEn, sp.nameLatin].filter(Boolean).map(n=>[normalizeHeaderKey(n), sp.id])));
+    let best = null;
+    cands.forEach(([n,id])=>{ const dd = importLev(norm, n); if(dd<=2 && dd < Math.max(2, Math.floor(n.length/5)+1) && (!best || dd<best.d)) best = { id, d:dd }; });
+    if(best) return { id:best.id, known:true, fuzzy:true };
+  }
   return { id:String(raw).trim().slice(0,60), known:false };
 }
 // Génétique en texte libre (« Super Pastel Banana 66% het Clown », « Pastel | Enchi », « Ivory »…) → gènes
@@ -14887,7 +14933,7 @@ function matchImportSpecies(raw){
 // reconnus sont rendus pour l'aperçu. Toujours marqué « à vérifier » (genesVerified:false).
 // Raccourcis du milieu, seulement quand ils ne sont pas ambigus (« Axanthic » seul = 5 lignées différentes → pas d'alias).
 var IMPORT_GENE_ALIASES = { hypo:['hypo','hypomelanistic','ghost'], yellowbelly:['yb','yellow belly'], orangedream:['od'], piebald:['pied'], mojave:['mojo'], desertghost:['dg'], highintensityod:['hi od','high intensity orange dream'], lavenderalbino:['lavender','lav albino'], spotnose:['spot nose'], lg_tremper:['tremper','tremper albino'], lg_bell:['bell','bell albino'], lg_rainwater:['rainwater','rainwater albino','las vegas albino','las vegas'], lg_murphy:['murphy'], lg_wy:['w y','white and yellow'] }; // v4.15 — gecko léopard : noms courts du milieu
-function importGeneNorm(str){ return String(str||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[|,;\/+&()\[\]]/g,' ').replace(/\s+/g,' ').trim(); }
+function importGeneNorm(str){ return String(str||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[|,;\/+&()\[\]_]/g,' ').replace(/(^|\s)-+|-+(?=\s|$)|(?<=[a-z])-(?=[a-z])/g,' ').replace(/\s+/g,' ').trim(); }
 function importGeneVariants(species){
   const sp = species || 'ball_python';
   const list = [];
@@ -14908,12 +14954,73 @@ function importGeneVariants(species){
 // Génétique en texte libre (« Super Pastel Banana 66% het Clown », « Pastel | Enchi », « Ivory », « pos het Pied »…)
 // → gènes de l'espèce avec le bon statut. Plus long nom d'abord (Black Pastel avant Pastel). Les mots non
 // reconnus sont rendus pour l'aperçu. Toujours marqué « à vérifier » (genesVerified:false).
+// v4.31 — Noms de combos (python royal) traduits en gènes à l'import.
+// RÈGLE : une ligne = un nom VÉRIFIÉ sur World of Ball Pythons (titre/AKA de la page du combo ou d'un
+// combo qui le contient). Jamais deviner. Un nom qui couvre plusieurs génétiques possibles a une `note`
+// (affichée dans l'aperçu) et ne met que les gènes certains.
+// Non ajoutés faute de source claire (oct 2026) : Coral Glow (= Banana ? WOBP ne le dit pas), Spinner Blast, Lesser Bee, Crystal.
+var IMPORT_COMBO_NAMES = [
+  { n:['bumblebee','bumble bee','pastel bee'], g:{ pastel:'single', spider:'single' } },          // WOBP : Black Axanthic Bumblebee = Black Axanthic Pastel Spider
+  { n:['killer bee'], g:{ pastel:'homo', spider:'single' } },                                      // WOBP killer-bee : AKA Spider Super Pastel
+  { n:['queen bee'], g:{ butter:'single', pastel:'single', spider:'single' }, note:'queenbee' },   // WOBP bumble-bee-butter : (Queen Bee)
+  { n:['killer queen bee'], g:{ butter:'single', pastel:'homo', spider:'single' }, note:'queenbee' }, // WOBP : Butter Spider Super Pastel
+  { n:['fire bee','firebee'], g:{ fire:'single', pastel:'single', spider:'single' } },              // WOBP : Axanthic Fire Bee = Axanthic Fire Pastel Spider
+  { n:['honey bee','honeybee'], g:{ hypo:'visual', spider:'single' } },                            // WOBP honey-bee : Ghost Spider, Hypo Spider
+  { n:['cinna bee','cinnabee'], g:{ cinnamon:'single', spider:'single' } },                        // WOBP : Coral Glow Cinna Bee = Cinnamon Coral Glow Spider
+  { n:['stinger bee','stingerbee'], g:{ enchi:'single', spider:'single' } },                      // WOBP : Freeway Stingerbee = Asphalt Enchi Spider Yellow Belly
+  { n:['calibee'], g:{ calico:'single', pastel:'single', spider:'single' } },                      // WOBP calibee : (Bumble Bee Calico)
+  { n:['killer calibee'], g:{ calico:'single', pastel:'homo', spider:'single' } },                 // WOBP : Banana Killer Calibee = Banana Calico Spider Super Pastel
+  { n:['spinner'], g:{ pinstripe:'single', spider:'single' } },                                    // WOBP : Axanthic Spinner = Axanthic Pinstripe Spider
+  { n:['killer spinner','killspin'], g:{ pinstripe:'single', spider:'single', pastel:'homo' } },  // WOBP : Leopard Killer Spinner = Leopard Pinstripe Spider Super Pastel
+  { n:['king spin','kingspin'], g:{ lesser:'single', pinstripe:'single', spider:'single' } },     // WOBP : Banana King Spin = Banana Lesser Pinstripe Spider
+  { n:['kingpin'], g:{ lesser:'single', pinstripe:'single' } },                                    // WOBP : Kingpin Banana Desert Ghost = Banana Desert Ghost Lesser Pinstripe
+  { n:['lemon blast'], g:{ pastel:'single', pinstripe:'single' } },                                // WOBP : Genetic Stripe Lemon Blast = Genetic Stripe Pastel Pinstripe
+  { n:['killer blast','super blast'], g:{ pastel:'homo', pinstripe:'single' } },                   // WOBP : Killer Blast Pied = Pied Pinstripe Super Pastel; Super Blast Leopard = Killer Blast Leopard
+  { n:['pewter'], g:{ pastel:'single', cinnamon:'single' } },                                      // WOBP : Blonde Pewter Lesser = Blonde Pastel Cinnamon Lesser
+  { n:['black pewter'], g:{ blackpastel:'single', pastel:'single' } },                             // WOBP : Ghi Black Pewter = Black Pastel Ghi Pastel
+  { n:['silver streak'], g:{ blackpastel:'single', pastel:'homo' } },                              // WOBP : Citrus Silver Streak = Black Pastel Super Citrus Pastel
+  { n:['sterling'], g:{ cinnamon:'single', pastel:'homo' } },                                      // WOBP : Sterling Leopard Pinstripe = Cinnamon Leopard Pinstripe Super Pastel
+  { n:['8 ball','eight ball'], g:{ blackpastel:'single', cinnamon:'single' } },                    // WOBP : Super Pastel Eight Ball = Black Pastel Cinnamon Super Pastel
+  { n:['firefly'], g:{ fire:'single', pastel:'single' } },                                         // WOBP : Desert Firefly = Desert Fire Pastel
+  { n:['pastave'], g:{ pastel:'single', mojave:'single' } },                                       // WOBP : Pastave Ultramel = Lemon Pastel Mojave Ultramelanistic
+  { n:['mochi'], g:{ enchi:'single', mojave:'single' } },                                          // WOBP : Leopard Mochi = Enchi Leopard Mojave
+  { n:['purple passion'], g:{ phantom:'single', mojave:'single' } },                               // WOBP phantom-mojave-ghost : Purple Passion Ghost
+  { n:['mystic potion'], g:{ mojave:'single', mystic:'single' } },                                 // WOBP mojave-mystic : (Mystic Potion)
+  { n:['freeway'], g:{ asphalt:'single', yellowbelly:'single' } },                                 // WOBP : Spider Freeway = Asphalt Spider Yellow Belly
+  { n:['highway'], g:{ gravel:'single', yellowbelly:'single' } },                                  // WOBP : Hypo Highway Spider = Ghost Gravel Spider Yellow Belly
+  { n:['puma'], g:{ spark:'single', yellowbelly:'single' } },                                      // WOBP : Pewter Puma = Cinnamon Pastel Spark Yellow Belly
+  { n:['dreamsicle'], g:{ lavenderalbino:'visual', piebald:'visual' } },                           // WOBP dreamsicle : Lavender Albino Piebald
+  { n:['candino'], g:{ albino:'het', candy:'het' } },                                              // WOBP candino : « combination of Candy and Albino » (allèles du même locus)
+  { n:['toffino'], g:{ albino:'het', candy:'het' } },                                              // WOBP : Toffino Super Cinny = Albino Super Cinnamon Toffee
+  { n:['vpi snow'], g:{ albino:'visual', axanthic:'visual' } },                                    // WOBP : VPI Snow Pied = Albino Axanthic Piebald - VPI Line
+  { n:['snow'], g:{ albino:'visual' }, note:'snow' },                                              // lignée Axanthic non précisée
+  { n:['bel','blue eyed leucistic','blue eye leucistic','blue eyed lucy','blue eye lucy'], g:{}, note:'bel' } // plusieurs combinaisons possibles (WOBP : Lesser Mojave Vanilla = BEL Vanilla; Blue Eyed Lucy Super Stripe = Lesser Mojave Specter Yellow Belly)
+];
+var IMPORT_COMBO_NOTES = {
+  queenbee: ['Queen Bee lu comme Butter + Pastel + Spider (World of Ball Pythons) — certains l\'emploient pour Lesser : vérifie sur la fiche.', 'Queen Bee read as Butter + Pastel + Spider (World of Ball Pythons) — some use it for Lesser: check on the sheet.'],
+  snow: ['Snow = Albino + Axanthic : la lignée Axanthic (VPI, TSK, Jolliff, MJ…) n\'est pas dans le nom — Albino ajouté, choisis l\'Axanthic sur la fiche.', 'Snow = Albino + Axanthic: the Axanthic line (VPI, TSK, Jolliff, MJ…) isn\'t in the name — Albino added, pick the Axanthic on the sheet.'],
+  bel: ['BEL : plusieurs combinaisons possibles (Lesser, Mojave, Butter, Phantom, Russo…) — aucun gène deviné, choisis-les sur la fiche.', 'BEL: several possible combinations (Lesser, Mojave, Butter, Phantom, Russo…) — no gene guessed, pick them on the sheet.']
+};
+function importStatusRank(st){ const v = (st && typeof st==='object') ? st.status : st; return v==='homo'||v==='visual' ? 3 : v==='single'||v==='present' ? 2 : v==='het' ? 1 : 0; }
 function parseImportGenes(text, species){
   const genes = {};
   if(!text) return { genes, unknown:[] };
   let work = ' '+importGeneNorm(text)+' ';
   const esc = x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-  importGeneVariants(species).forEach(({ g, n, sup })=>{
+  // v4.31 — noms de combos d'abord (le plus long en premier : « killer queen bee » avant « queen bee »)
+  const fromCombos = {}, combos = [];
+  if((species||'ball_python')==='ball_python'){
+    IMPORT_COMBO_NAMES.flatMap(c=>c.n.map(n=>({ c, n:importGeneNorm(n) }))).sort((a,b)=>b.n.length-a.n.length).forEach(({ c, n })=>{
+      const re = new RegExp(' '+esc(n)+'(?= )','g');
+      work = work.replace(re, ()=>{
+        Object.keys(c.g).forEach(id=>{ if(GENES.some(x=>x.id===id) && importStatusRank(c.g[id]) > importStatusRank(fromCombos[id])) fromCombos[id] = c.g[id]; });
+        combos.push({ name:n, genes:Object.assign({}, c.g), note:c.note||null });
+        return '  ';
+      });
+    });
+  }
+  const variants = importGeneVariants(species);
+  const pass = ()=> variants.forEach(({ g, n, sup })=>{
     const re = new RegExp(' (?:(\\d{2,3}) ?% ?)?((?:pos(?:sible)?|ph) )?(het )?(super )?'+esc(n)+'(?= )','g');
     work = work.replace(re, (all, pct, pos, het, sp)=>{
       if(genes[g.id]) return ' ';
@@ -14925,9 +15032,31 @@ function parseImportGenes(text, species){
       return '  ';
     });
   });
+  pass();
+  // v4.32 — faute de frappe d'un mot (« Enchie », « Peid », « Pasel ») : corrigée si un seul gène est à 1 lettre près, et signalée
+  const fixes = [];
+  const singles = variants.filter(v=>!v.n.includes(' ') && v.n.length>=4);
+  work.split(' ').filter(w=>w.length>=4 && /^[a-z]+$/.test(w) && !['het','super','possible','normal','classic','male','female'].includes(w)).forEach(w=>{
+    const hits = singles.filter(v=>importOsa(w, v.n)<=1);
+    const ids = [...new Set(hits.map(h=>h.g.id))];
+    if(ids.length===1){ work = work.replace(new RegExp(' '+esc(w)+'(?= )'), ' '+hits[0].n); fixes.push({ from:w, to:hits[0].g.name }); }
+  });
+  if(fixes.length) pass();
   const stop = ['het','super','pos','possible','ph','normal','classic','and','et','dh','th','qh','pdh','male','female','m','f','%'];
   const unknown = work.split(' ').map(w=>w.trim()).filter(w=>w && !stop.includes(w) && !/^\d+%?$/.test(w));
-  return { genes, unknown };
+  Object.keys(fromCombos).forEach(id=>{ if(importStatusRank(fromCombos[id]) > importStatusRank(genes[id])) genes[id] = fromCombos[id]; }); // ex. « Bumblebee Super Pastel » → Pastel super
+  return { genes, unknown, combos, fixes };
+}
+// Distance avec transposition (« peid » ↔ « pied » = 1)
+function importOsa(a, b){
+  if(Math.abs(a.length-b.length)>1) return 99;
+  const d = Array.from({ length:a.length+1 }, (_,i)=>[i].concat(Array(b.length).fill(0)));
+  for(let j=1;j<=b.length;j++) d[0][j] = j;
+  for(let i=1;i<=a.length;i++) for(let j=1;j<=b.length;j++){
+    d[i][j] = Math.min(d[i-1][j]+1, d[i][j-1]+1, d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+    if(i>1 && j>1 && a[i-1]===b[j-2] && a[i-2]===b[j-1]) d[i][j] = Math.min(d[i][j], d[i-2][j-2]+1);
+  }
+  return d[a.length][b.length];
 }
 function readImportFileAsRows(file, done){
   const isEn = currentLang==='en';
@@ -14941,16 +15070,91 @@ function readImportFileAsRows(file, done){
       // v4.19 — toutes les feuilles : une liste d'animaux ET un historique peuvent être dans le même fichier
       done(wb.SheetNames.map(n=>({ n, rows: XLSX.utils.sheet_to_json(wb.Sheets[n], { header:1, raw:true, defval:'' }) })), { isExcel:true });
     } else {
-      const text = String(reader.result||'').replace(/^﻿/,'');
-      const lines = text.split(/\r?\n/).filter(l=>l.trim()!=='');
-      if(!lines.length){ done([], null); return; }
-      // délimiteur détecté sur la ligne la plus « remplie » des 10 premières (une ligne de titre ne doit pas fausser)
-      const sample = lines.slice(0,10).reduce((a,l)=>l.length>a.length?l:a, lines[0]);
-      const delim = detectCsvDelimiter(sample);
-      done([{ n:file.name||'CSV', rows: lines.map(l=>parseCsvLine(l, delim)) }], { isExcel:false });
+      const text = importDecodeText(reader.result).replace(/^\uFEFF/,'');
+      const rows = importTextToRows(text);
+      if(!rows.length){ done([], null); return; }
+      done([{ n:file.name||'CSV', rows }], { isExcel:false });
     }
   };
-  if(isExcel) reader.readAsArrayBuffer(file); else reader.readAsText(file);
+  reader.readAsArrayBuffer(file); // v4.33 — texte décodé nous-mêmes (Bloc-notes : UTF-8, ANSI ou « Unicode »)
+}
+// v4.33 — Bloc-notes Windows : UTF-8, UTF-16 (« Unicode ») ou ANSI (Windows-1252, les accents sinon brisés)
+function importDecodeText(buf){
+  const u = new Uint8Array(buf||[]);
+  try{
+    if(u[0]===0xFF && u[1]===0xFE) return new TextDecoder('utf-16le').decode(u);
+    if(u[0]===0xFE && u[1]===0xFF) return new TextDecoder('utf-16be').decode(u);
+    return new TextDecoder('utf-8', { fatal:true }).decode(u);
+  }catch(e){
+    try{ return new TextDecoder('windows-1252').decode(u); }catch(e2){ return String.fromCharCode.apply(null, Array.from(u.slice(0, 2000000))); }
+  }
+}
+// v4.33 — un fichier texte en n'importe quelle forme → lignes/colonnes
+//  1) fiches « clé : valeur » (un animal par paragraphe)
+//  2) colonnes séparées par tab, ;, virgule, |, « - » ou des espaces alignés
+//  3) texte libre, un animal par ligne (« Rex Pastel Pied M 2022 ») : chaque mot est classé
+function importTextToRows(text){
+  const lines = String(text||'').split(/\r?\n/);
+  const filled = lines.filter(l=>l.trim()!=='');
+  if(!filled.length) return [];
+  const kvRe = /^\s*[-•*]?\s*([A-Za-zÀ-ÿ#][^:=\t]{0,30}?)\s*[:=]\s*(.*)$/;
+  const kvCount = filled.filter(l=>kvRe.test(l) && !/^\s*\d{1,2}:\d{2}/.test(l)).length;
+  if(kvCount>=2 && kvCount >= filled.length*0.6){
+    const blocks = []; let cur = null;
+    const flush = ()=>{ if(cur && Object.keys(cur).length) blocks.push(cur); cur = null; };
+    const keys = [];
+    lines.forEach(l=>{
+      if(l.trim()===''){ flush(); return; }
+      const m = l.match(kvRe);
+      if(!m) return;
+      const k = m[1].trim(), v = m[2].trim();
+      if(cur && cur[k]!==undefined) flush(); // même clé qui revient = nouvel animal (fichier sans lignes vides)
+      if(!cur) cur = {};
+      cur[k] = v;
+      if(!keys.includes(k)) keys.push(k);
+    });
+    flush();
+    if(blocks.length) return [keys].concat(blocks.map(b=>keys.map(k=>b[k]!==undefined ? b[k] : '')));
+  }
+  const sample = filled.slice(0, 30).filter(l=>!/^\s*\|?\s*:?-{3,}/.test(l));
+  const cands = [
+    { d:'\t', split:l=>parseCsvLine(l, '\t') },
+    { d:';',  split:l=>parseCsvLine(l, ';') },
+    { d:'|',  split:l=>l.replace(/^\s*\|/,'').replace(/\|\s*$/,'').split('|').map(x=>x.trim()) },
+    { d:',',  split:l=>parseCsvLine(l, ',') },
+    { d:' - ', split:l=>l.split(/\s+[-–—]\s+/).map(x=>x.trim()) },
+    { d:'  ', split:l=>l.trim().split(/\s{2,}/) }
+  ];
+  let best = null;
+  cands.forEach((c, ci)=>{
+    const counts = sample.map(l=>c.split(l).length);
+    const freq = {}; counts.forEach(n=>{ if(n>1) freq[n] = (freq[n]||0)+1; });
+    const top = Object.keys(freq).sort((a,b)=>freq[b]-freq[a])[0];
+    if(!top) return;
+    const score = freq[top]/sample.length;
+    if(score>=0.6 && (!best || score>best.score+0.05)) best = { c, score };
+  });
+  if(best) return filled.filter(l=>!/^\s*\|?\s*:?-{3,}[-|: ]*$/.test(l)).map(l=>best.c.split(l));
+  return importFreeTextRows(filled);
+}
+// Texte libre : « Rex Pastel Pied M 2022-05-10 850g » → Nom | Génétique | Sexe | Naissance | Poids
+function importFreeTextRows(lines){
+  const isEn = currentLang==='en';
+  const out = [[isEn?'Name':'Nom', isEn?'Genetics':'Génétique', isEn?'Sex':'Sexe', isEn?'Birth date':'Date de naissance', isEn?'Weight (g)':'Poids (g)']];
+  lines.forEach(l=>{
+    let rest = ' '+l.replace(/[,;]/g,' ').replace(/\s+/g,' ').trim()+' ';
+    let sex = '', date = '', weight = '';
+    rest = rest.replace(/ (\d{4}[-\/.]\d{1,2}[-\/.]\d{1,2}|\d{1,2}[-\/.]\d{1,2}[-\/.]\d{2,4}|(?:19|20)\d{2})(?= )/, (all, d)=>{ date = d; return ' '; });
+    rest = rest.replace(/ (\d+(?:[.,]\d+)?) ?(g|gr|grams?|grammes?|kg)(?= )/i, (all, n, u)=>{ weight = n+' '+u; return ' '; });
+    rest = rest.replace(/ (male|mâle|female|femelle|m|f|1\.0|0\.1|♂|♀)(?= )/i, (all, x)=>{ if(!sex){ sex = x; return ' '; } return all; });
+    const genesPart = parseImportGenes(rest, 'ball_python');
+    const nameWords = (genesPart.unknown||[]);
+    let genesText = rest;
+    nameWords.forEach(w=>{ genesText = genesText.replace(new RegExp('(^|\\s)'+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?=\\s|$)','i'), ' '); });
+    const name = rest.split(' ').filter(w=>w && nameWords.includes(importGeneNorm(w))).join(' ');
+    out.push([name, genesText.replace(/\s+/g,' ').trim(), sex, date, weight]);
+  });
+  return out;
 }
 document.getElementById('generic-csv-file-input').addEventListener('change', (e)=>{
   const file = e.target.files[0];
@@ -15271,9 +15475,9 @@ function routeImportSheets(sheets, meta){
 // une colonne au titre inconnu (« Morph », « Hatch »…) s'associe sans toucher au fichier. Si aucune
 // colonne nom/ID n'est reconnue, on demande laquelle au lieu d'un message d'erreur. L'ordre des
 // colonnes n'a jamais compté : tout passe par les titres (ou par le choix fait ici).
-var IMPORT_FIELD_ORDER = ['animalId','name','sex','species','genes','birthDate','status','sire','dam','weight','weightDate','lastFed','provenance','purchasePrice','askingPrice','notes'];
+var IMPORT_FIELD_ORDER = ['animalId','name','sex','species','genes','birthDate','status','sire','dam','weight','weightDate','lastFed','lastFedPrey','lastShed','lastShedQuality','acquired','provenance','purchasePrice','askingPrice','notes'];
 function importFieldLabel(f, isEn){
-  const L = { animalId:['ID','ID'], name:['Nom','Name'], sex:['Sexe','Sex'], species:['Espèce','Species'], genes:['Génétique','Genetics'], birthDate:['Date de naissance','Birth date'], weight:['Poids (g)','Weight (g)'], weightDate:['Date de pesée','Weigh date'], status:['Statut','Status'], sire:['Père (ID ou nom)','Sire (ID or name)'], dam:['Mère (ID ou nom)','Dam (ID or name)'], lastFed:['Dernier repas (date)','Last fed (date)'], notes:['Notes','Notes'], provenance:['Provenance','Provenance'], purchasePrice:['Prix d\'achat','Purchase price'], askingPrice:['Prix demandé','Asking price'] };
+  const L = { animalId:['ID','ID'], name:['Nom','Name'], sex:['Sexe','Sex'], species:['Espèce','Species'], genes:['Génétique','Genetics'], birthDate:['Date de naissance','Birth date'], weight:['Poids (g)','Weight (g)'], weightDate:['Date de pesée','Weigh date'], status:['Statut','Status'], sire:['Père (ID ou nom)','Sire (ID or name)'], dam:['Mère (ID ou nom)','Dam (ID or name)'], lastFed:['Dernier repas (date)','Last fed (date)'], lastFedPrey:['Dernier repas (proie)','Last fed (prey)'], lastShed:['Dernière mue (date)','Last shed (date)'], lastShedQuality:['Dernière mue (qualité)','Last shed (quality)'], acquired:['Date d\'acquisition','Acquisition date'], notes:['Notes','Notes'], provenance:['Provenance','Provenance'], purchasePrice:['Prix d\'achat','Purchase price'], askingPrice:['Prix demandé','Asking price'] };
   return L[f] ? L[f][isEn?1:0] : f;
 }
 function genericImportFromRows(rows, meta){
@@ -15282,18 +15486,42 @@ function genericImportFromRows(rows, meta){
   if(!rows.length){ alert(isEn?'Empty file.':'Fichier vide.'); return; }
   let hIdx = -1, colMap = null;
   for(let i=0;i<Math.min(10,rows.length);i++){ const mm = mapCsvHeaders(rows[i].map(importCellStr)); if(mm.name!==undefined || mm.animalId!==undefined){ hIdx = i; colMap = mm; break; } }
+  let headerless = false;
   if(hIdx<0){
+    // v4.33 — pas d'en-tête du tout ? On devine les colonnes d'après leur contenu (sexe, gènes, dates, poids…)
+    const guess = guessImportColumnsByContent(rows);
+    if(guess && (guess.name!==undefined || guess.animalId!==undefined) && Object.keys(guess).length>=2){ hIdx = -1; colMap = guess; headerless = true; }
+  }
+  if(hIdx<0 && !headerless){
     // Aucune colonne nom/ID reconnue : on prend la première ligne « titre » (au moins 2 cases remplies) et on laisse choisir
     hIdx = rows.findIndex((r,i)=>i<10 && r.filter(c=>importCellStr(c)!=='').length>=2);
     if(hIdx<0) hIdx = 0;
     colMap = mapCsvHeaders(rows[hIdx].map(importCellStr));
   }
   const width = rows.reduce((a,r)=>Math.max(a, r.length), 0);
-  const headerRow = Array.from({ length: width }, (_, i)=>importCellStr(rows[hIdx][i]));
-  if(meta && meta.combined){ ['status','weight','weightDate','lastFed','notes'].forEach(f=>delete colMap[f]); } // v4.26 — ces colonnes vont dans l'historique
-  pendingGenericImportMeta = { rows, hIdx, colMap, headerRow, ambiguousDates:0, emptyRows:0, sheet: meta && meta.sheet, sheets: meta && meta.sheets, hasLog: !!(meta && meta.hasLog), combined: !!(meta && meta.combined), totalLines: meta && meta.totalLines, source: meta && meta.source, importDupes:false, pick:null, picking:false };
+  const headerRow = Array.from({ length: width }, (_, i)=> headerless ? (isEn?'Column ':'Colonne ')+(i+1) : importCellStr(rows[hIdx][i]));
+  if(meta && meta.combined){ ['status','weight','weightDate','lastFed','notes','lastFedPrey','lastShed','lastShedQuality'].forEach(f=>delete colMap[f]); } // v4.26 — ces colonnes vont dans l'historique
+  pendingGenericImportMeta = { rows, hIdx, colMap, headerRow, headerless, ambiguousDates:0, emptyRows:0, sheet: meta && meta.sheet, sheets: meta && meta.sheets, hasLog: !!(meta && meta.hasLog), combined: !!(meta && meta.combined), totalLines: meta && meta.totalLines, source: meta && meta.source, importDupes:false, pick:null, picking:false };
   rebuildGenericImportRows();
   renderGenericCsvPreview();
+}
+// v4.33 — fichier sans en-tête : chaque colonne est reconnue par ce qu'elle contient
+function guessImportColumnsByContent(rows){
+  const width = rows.reduce((a,r)=>Math.max(a, r.length), 0);
+  const sample = rows.slice(0, 60);
+  const map = {}, used = new Set();
+  const frac = (i, test)=>{ const v = sample.map(r=>importCellStr(r[i])).filter(Boolean); return v.length ? v.filter(test).length/v.length : 0; };
+  const take = (field, i)=>{ if(map[field]===undefined && !used.has(i)){ map[field] = i; used.add(i); } };
+  for(let i=0;i<width;i++){
+    if(frac(i, x=>importSexOf(x)!==null || importSexIsExplicitUnknown(x))>=0.7) take('sex', i);
+    else if(frac(i, x=>{ const d = normalizeImportDate(x); return !!d.value || d.ambiguous; })>=0.7) take(map.birthDate===undefined?'birthDate':'weightDate', i);
+    else if(frac(i, x=>/^[A-Z]{1,5}[-_ ]?\d{1,5}([-_][A-Z0-9]{1,6})*$/i.test(x))>=0.7) take('animalId', i);
+    else if(frac(i, x=>/\d/.test(x) && importWeightGrams(x)>5 && /^\s*[~≈]?\s*\d[\d\s.,]*\s*(g|gr|grams?|grammes?|kg|lbs?|oz)?\s*$/i.test(x))>=0.7) take('weight', i);
+    else if(frac(i, x=>matchImportSpecies(x).known)>=0.7) take('species', i);
+    else if(frac(i, x=>{ const pg = parseImportGenes(x, 'ball_python'); return Object.keys(pg.genes).length>0 || (pg.combos||[]).length>0; })>=0.5) take('genes', i);
+  }
+  for(let i=0;i<width && map.name===undefined;i++){ if(!used.has(i) && frac(i, x=>/[a-zà-ÿ]/i.test(x))>=0.7) take('name', i); }
+  return map;
 }
 // v4.18 — une colonne de dates JJ/MM ou MM/JJ : si UNE seule date de la colonne a un jour > 12, on connaît
 // l'ordre de toute la colonne (fichiers américains comme Husbandry Pro = MM/JJ). Si la colonne se contredit, on ne devine pas.
@@ -15308,13 +15536,29 @@ function importSexOf(raw){
   const x = normalizeHeaderKey(raw).replace(/[.\s]+$/,'');
   if(/^(f|fem|femelle|female|femme|0\.1|0,1|♀)$/.test(x)) return 'female';
   if(/^(m|male|masc|1\.0|1,0|♂)$/.test(x)) return 'male';
+  // v4.30 — fautes de frappe courtes : « MALEE », « femal », « femelel »
+  if(x.length>=4 && x.length<=9){ if(importLev(x,'female')<=1 || importLev(x,'femelle')<=1) return 'female'; if(importLev(x,'male')<=1) return 'male'; }
   return null;
 }
+function importSexIsExplicitUnknown(raw){ return /^(u|unknown|inconnu|inconnue|unsexed|non sexe|non sexee|\?+|0\.0\.1|n\/a|na|-|m\/f\??|f\/m\??|tbd|unk|indetermine|undetermined|pas sexe)$/.test(normalizeHeaderKey(raw).replace(/[.\s]+$/,'')); }
+// Distance de Levenshtein (fautes de frappe), limitée aux petites chaînes
+function importLev(a, b){
+  a = String(a); b = String(b);
+  if(Math.abs(a.length-b.length)>2) return 99;
+  const d = Array.from({ length:a.length+1 }, (_,i)=>[i].concat(Array(b.length).fill(0)));
+  for(let j=1;j<=b.length;j++) d[0][j] = j;
+  for(let i=1;i<=a.length;i++) for(let j=1;j<=b.length;j++) d[i][j] = Math.min(d[i-1][j]+1, d[i][j-1]+1, d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+  return d[a.length][b.length];
+}
 // v4.29 — poids en texte : « 1,850 g », « 1 850 g », « 1,5 kg », « 3.2 lbs », « 12 oz » → grammes. Unité de l'en-tête si la valeur n'en a pas.
+function importIsBlankish(raw){ // v4.30 — « NOT WEIGHED », « unknown », « N/A », « - » = vide, pas une erreur
+  return /^(n\/?a|na|none|nil|null|unknown|unk|inconnu|inconnue|not weighed|not recorded|no data|tbd|tba|\?+|-+|—|x|non pese|pas pese|aucun|aucune|s\/o)$/i.test(normalizeHeaderKey(String(raw==null?'':raw)).replace(/[.!]+$/,''));
+}
 function importWeightGrams(raw, headerUnit){
   if(raw==null || raw==='') return null;
+  if(importIsBlankish(raw)) return null;
   if(typeof raw==='number') return raw>0 ? raw*(headerUnit==='kg'?1000:headerUnit==='lb'?453.592:headerUnit==='oz'?28.3495:1) : NaN;
-  let t = String(raw).trim().toLowerCase();
+  let t = String(raw).trim().toLowerCase().replace(/^(approx\.?|approximately|about|around|env\.?|environ|ca\.?|circa|~|±|\+\/-)\s*/,''); // v4.30 — « approx 499 grams »
   if(!t) return null;
   if(/^-/.test(t)) return NaN;
   let unit = /\bkg\b|kilo/.test(t) ? 'kg' : /\blbs?\b|pound|livre/.test(t) ? 'lb' : /\boz\b|ounce|once/.test(t) ? 'oz' : /\bg\b|gr\b|gram/.test(t) ? 'g' : (headerUnit||'g');
@@ -15348,6 +15592,7 @@ function matchImportStatus(raw){
   if(/(reserv|on hold|hold for|deposit|acompte|pending)/.test(x)) return { status:'reserved', known:true };
   if(/(^|[^a-z])(sold|vendu|vendue)([^a-z]|$)/.test(x)) return { status:'sold', known:true };
   if(/(deceased|dead|died|decede|decedee|mort|morte|rip)/.test(x)) return { status:'deceased', known:true };
+  if(/(quarantin)/.test(x)) return { status:'kept', known:true, quarantine:true }; // v4.30 — gardé + quarantaine active
   if(/(breeder|reproducteur|holdback|hold back|juvenile|juvenil|keeper|pet|active|actif|kept|garde|collection|project|projet|retired|retraite|adult|adulte|baby|bebe|hatchling)/.test(x)) return { status:'kept', known:true };
   return { status:'kept', known:false };
 }
@@ -15362,10 +15607,11 @@ function rebuildGenericImportRows(){
   const seen = new Set();
   let ambiguousDates = 0, emptyRows = 0;
   const invalidDates = []; // v4.22 — { val, who, field }
-  const anomalies = { weight:[], sex:[], speciesEmpty:[] }; // v4.28 — valeurs illisibles signalées, jamais avalées en silence
+  const isEn = currentLang==='en';
+  const anomalies = { weight:[], sex:[], speciesEmpty:[], fixed:[], combos:[] }; // v4.28 — valeurs illisibles signalées, jamais avalées en silence
   const dataRows = m.rows.slice(m.hIdx+1);
   const wUnit = colMap.weight!==undefined ? importHeaderUnit(m.headerRow[colMap.weight]) : null; // v4.29
-  const ord = { birthDate: importDateOrder(dataRows, colMap.birthDate), weightDate: importDateOrder(dataRows, colMap.weightDate), lastFed: importDateOrder(dataRows, colMap.lastFed) };
+  const ord = { birthDate: importDateOrder(dataRows, colMap.birthDate), weightDate: importDateOrder(dataRows, colMap.weightDate), lastFed: importDateOrder(dataRows, colMap.lastFed), lastShed: importDateOrder(dataRows, colMap.lastShed), acquired: importDateOrder(dataRows, colMap.acquired) };
   m.dateOrders = ord;
   if(colMap.name===undefined && colMap.animalId===undefined){ pendingGenericCsvRows = []; m.ambiguousDates = 0; m.emptyRows = 0; return; }
   pendingGenericCsvRows = m.rows.slice(m.hIdx+1).map(cols=>{
@@ -15379,13 +15625,19 @@ function rebuildGenericImportRows(){
     if(wd.ambiguous) ambiguousDates++;
     const lf = normalizeImportDate(raw(cols,'lastFed'), ord.lastFed); // v4.18
     if(lf.ambiguous) ambiguousDates++;
-    [['birthDate',bd],['weightDate',wd],['lastFed',lf]].forEach(([f,res])=>{ if(res.invalid) invalidDates.push({ val: str(cols,f), who: animalId || name, field: f, line: cols.__line, future: !!res.future }); }); // v4.22
+    const ls = normalizeImportDate(raw(cols,'lastShed'), ord.lastShed); // v4.30
+    if(ls.ambiguous) ambiguousDates++;
+    const acq = normalizeImportDate(raw(cols,'acquired'), ord.acquired);
+    [['birthDate',bd],['weightDate',wd],['lastFed',lf],['lastShed',ls],['acquired',acq]].forEach(([f,res])=>{ if(res.invalid) invalidDates.push({ val: str(cols,f), who: animalId || name, field: f, line: cols.__line, future: !!res.future }); }); // v4.22
     const who = animalId || name, line = cols.__line;
-    if(colMap.sex!==undefined){ const sx = str(cols,'sex'); if(sx && importSexOf(sx)===null && !/^(u|unknown|inconnu|inconnue|unsexed|non sexe|non sexee|\?|0\.0\.1|n\/a|na|-)$/.test(normalizeHeaderKey(sx))) anomalies.sex.push({ val:sx, who, line }); }
+    if(colMap.sex!==undefined){ const sx = str(cols,'sex'); if(sx && importSexOf(sx)===null && !importSexIsExplicitUnknown(sx)) anomalies.sex.push({ val:sx, who, line }); else if(sx && importSexOf(sx) && !/^(f|fem|femelle|female|femme|0\.1|0,1|♀|m|male|masc|1\.0|1,0|♂)$/.test(normalizeHeaderKey(sx).replace(/[.\s]+$/,''))) anomalies.fixed.push({ val:sx, to: importSexOf(sx)==='male'?(isEn?'Male':'Mâle'):(isEn?'Female':'Femelle'), who, line }); }
     if(colMap.species!==undefined && !str(cols,'species')) anomalies.speciesEmpty.push({ who, line });
-    if(colMap.weight!==undefined){ const wr = str(cols,'weight'); if(wr){ const wv = importWeightGrams(raw(cols,'weight'), wUnit); if(!(wv>0) || /[a-z]{3,}/i.test(wr.replace(/\b(g|gr|grams?|grammes?|kg|kilos?|lbs?|pounds?|livres?|oz|ounces?)\b/ig,''))) anomalies.weight.push({ val:wr, who, line }); } }
+    if(colMap.weight!==undefined){ const wr = str(cols,'weight'); if(wr && !importIsBlankish(wr)){ const wv = importWeightGrams(raw(cols,'weight'), wUnit); if(!(wv>0) || /[a-z]{3,}/i.test(wr.replace(/\b(g|gr|grams?|grammes?|kg|kilos?|lbs?|pounds?|livres?|oz|ounces?|approx|approximately|about|around|environ|env|circa)\b/ig,''))) anomalies.weight.push({ val:wr, who, line }); } }
     const sp = matchImportSpecies(str(cols,'species'));
+    if(sp.fuzzy) anomalies.fixed.push({ val: str(cols,'species'), to: speciesDisplayLabel(sp.id, isEn), who: animalId||name, line: cols.__line });
     const parsed = hasGenetics(sp.id) ? parseImportGenes(str(cols,'genes'), sp.id) : { genes:{}, unknown: str(cols,'genes') ? [str(cols,'genes')] : [] };
+    (parsed.fixes||[]).forEach(f=>anomalies.fixed.push({ val:f.from, to:f.to, who: animalId||name, line: cols.__line })); // v4.32
+    (parsed.combos||[]).forEach(c=>anomalies.combos.push({ val:c.name, to:(Object.keys(c.genes).length ? summarizeGenes(c.genes) : '—'), note:c.note, line: cols.__line }));
     // v4.16 — doublon : par ID quand il y en a un (deux « Rex » avec des ID différents sont deux animaux), sinon par nom
     const key = animalId ? 'id:'+animalId.toUpperCase() : 'n:'+normalizeHeaderKey(name);
     const dupe = (animalId ? existingIds.has(animalId.toUpperCase()) : existing.has(normalizeHeaderKey(name)));
@@ -15396,8 +15648,8 @@ function rebuildGenericImportRows(){
     const st = matchImportStatus(str(cols,'status')); // v4.20
     return {
       name: name.slice(0,80), animalId,
-      status: st.status, statusKnown: st.known, statusRaw: str(cols,'status'),
-      notes: str(cols,'notes') || null, // v4.21
+      status: st.status, statusKnown: st.known, statusRaw: str(cols,'status'), quarantine: !!st.quarantine,
+      notes: [str(cols,'notes'), (!st.known && str(cols,'status') ? (isEn?'Status in the imported file: ':'Statut dans le fichier importé : ')+str(cols,'status') : '')].filter(Boolean).join('\n') || null, // v4.21 (+ date d'acquisition v4.30)
       sireRef: str(cols,'sire') || null, damRef: str(cols,'dam') || null, // v4.20 — liés après la création (ID ou nom, dans LOCUS ou dans le fichier)
       sex: importSexOf(sexRaw),
       genes: parsed.genes, unknownGenes: parsed.unknown, genesRaw: str(cols,'genes'),
@@ -15409,6 +15661,10 @@ function rebuildGenericImportRows(){
       weight: weight && weight>0 ? Math.round(weight*10)/10 : null,
       weightDate: wd.value && wd.value.length===10 ? wd.value : null,
       lastFed: lf.value && lf.value.length===10 ? lf.value : null,
+      lastFedPrey: str(cols,'lastFedPrey') || null, // v4.30
+      lastShed: ls.value && ls.value.length===10 ? ls.value : null,
+      lastShedQuality: (function(q){ if(!q) return undefined; const pc = q.match(/(\d+)\s*%/); if(pc) return +pc[1]>=100 ? 'complete' : 'incomplete'; return logShedQuality(q); })(str(cols,'lastShedQuality')),
+      acquired: acq.value || null,
       dupe, fileDupe
     };
   }).filter(Boolean);
@@ -15531,12 +15787,18 @@ function renderGenericCsvPreview(){
       return p('🌳 '+(isEn?withPar.length+' animal(s) have a sire/dam in the file; they\'re linked when the parent is in your collection or in this file.':withPar.length+' animal(s) ont un père/une mère dans le fichier; ils sont liés quand le parent est dans ta collection ou dans ce fichier.'), 'var(--ink-dim)')+
         (u.length ? p('⚠ '+(isEn?'Parent(s) not found, left empty: ':'Parent(s) introuvable(s), laissé(s) vide(s) : ')+'<b>'+escapeHtml(u.slice(0,10).join(', '))+(u.length>10?' +'+(u.length-10):'')+'</b>', 'var(--gold)') : '');
     })()+
-    (function(){ const us = [...new Set(rowsAll.filter(r=>!r.statusKnown).map(r=>r.statusRaw))]; return us.length ? p('⚠ '+(isEn?'Status not recognized, set to « Kept »: ':'Statut non reconnu, mis à « Gardé » : ')+'<b>'+escapeHtml(us.slice(0,8).join(', '))+'</b>', 'var(--gold)') : ''; })()+
+    (function(){ const us = [...new Set(rowsAll.filter(r=>!r.statusKnown).map(r=>r.statusRaw))]; return us.length ? p('⚠ '+(isEn?'Status not recognized, set to « Kept » (the original word is kept in the notes): ':'Statut non reconnu, mis à « Gardé » (le mot d\'origine est gardé dans les notes) : ')+'<b>'+escapeHtml(us.slice(0,8).join(', '))+'</b>', 'var(--gold)') : ''; })()+
     (unknownSp.length ? p('⚠ '+(isEn?'Species not recognized (kept as written): ':'Espèce non reconnue (gardée telle quelle) : ')+escapeHtml(unknownSp.join(', ')), 'var(--gold)') : '')+
     (function(){ // v4.28 — anomalies, avec la ligne du fichier
       const a = m.anomalies || {}; let h = '';
       const ex = (arr, fmt)=> escapeHtml(arr.slice(0,6).map(fmt).join(', '))+(arr.length>6?' +'+(arr.length-6):'');
       if((a.weight||[]).length) h += p('⛔ '+(isEn?a.weight.length+' unreadable or impossible weight(s), ignored: ':a.weight.length+' poids illisible(s) ou impossible(s), ignoré(s) : ')+'<b>'+ex(a.weight, x=>(isEn?'line ':'ligne ')+x.line+' « '+x.val+' »')+'</b>', 'var(--rust)');
+      if((a.fixed||[]).length) h += p('✏️ '+(isEn?a.fixed.length+' typo(s) corrected — check them: ':a.fixed.length+' faute(s) de frappe corrigée(s) — vérifie : ')+'<b>'+ex(a.fixed, x=>(isEn?'line ':'ligne ')+x.line+' « '+x.val+' » → '+x.to)+'</b>', 'var(--sage)');
+      if((a.combos||[]).length){ // v4.31 — noms de combos traduits
+        const uniq = []; a.combos.forEach(x=>{ if(!uniq.some(u=>u.val===x.val)) uniq.push(x); });
+        h += p('🧬 '+(isEn?a.combos.length+' combo name(s) translated into genes: ':a.combos.length+' nom(s) de combo traduit(s) en gènes : ')+'<b>'+ex(uniq, x=>'« '+(x.val.length<=3 ? x.val.toUpperCase() : x.val.replace(/\b\w/g,ch=>ch.toUpperCase()))+' » → '+x.to)+'</b>', 'var(--sage)');
+        [...new Set(a.combos.map(x=>x.note).filter(Boolean))].forEach(k=>{ const nt = IMPORT_COMBO_NOTES[k]; if(nt) h += p('⚠ '+escapeHtml(nt[isEn?1:0])+' '+ex(a.combos.filter(x=>x.note===k), x=>(isEn?'line ':'ligne ')+x.line), 'var(--gold)'); });
+      }
       if((a.sex||[]).length) h += p('⚠ '+(isEn?a.sex.length+' sex value(s) not recognized, left « unknown »: ':a.sex.length+' sexe(s) non reconnu(s), laissé(s) « inconnu » : ')+'<b>'+ex(a.sex, x=>(isEn?'line ':'ligne ')+x.line+' « '+x.val+' »')+'</b>', 'var(--gold)');
       if((a.speciesEmpty||[]).length) h += p('⚠ '+(isEn?a.speciesEmpty.length+' animal(s) with no species, set to Ball python: ':a.speciesEmpty.length+' animal(s) sans espèce, mis en Python royal : ')+'<b>'+ex(a.speciesEmpty, x=>(isEn?'line ':'ligne ')+x.line+' ('+x.who+')')+'</b>', 'var(--gold)');
       return h;
@@ -15575,14 +15837,15 @@ function confirmGenericCsvImport(){
     const snake = {
       id:'snk_'+base+'_'+i+'_'+Math.random().toString(36).slice(2,6),
       name:r.name||'', animalId:r.animalId||null, sex:r.sex, genes:r.genes||{}, genesVerified:false, sireId:null, damId:null,
-      birthDate:r.birthDate||null, provenance:r.provenance,
+      birthDate:r.birthDate||null, provenance:r.provenance, acquisitionDate:r.acquired||null,
       purchasePrice:r.purchasePrice, species:r.species||'ball_python',
       askingPrice:r.askingPrice, notes:r.notes||undefined,
       status: r.status || 'kept', createdAt: base+i,
-      health:{ events: r.lastFed ? [{ id:'ev_imp_'+base+'_'+i, type:'fed', date:r.lastFed }] : [], weights: r.weight ? [{ date: r.weightDate || today, value: r.weight }] : [], lengths:[] }
+      health:{ events: [].concat(r.lastFed ? [Object.assign({ id:'ev_imp_'+base+'_'+i, type:'fed', date:r.lastFed }, r.lastFedPrey ? parseLogPrey(r.lastFedPrey) : {})] : [], r.lastShed ? [Object.assign({ id:'ev_imps_'+base+'_'+i, type:'shed', date:r.lastShed }, r.lastShedQuality ? { quality:r.lastShedQuality } : {})] : []), weights: r.weight ? [{ date: r.weightDate || today, value: r.weight }] : [], lengths:[] }
     };
     if(!snake.notes) snake.notes = '';
     if(snake.status==='deceased' && !snake.deceasedDate) snake.deceasedDate = null;
+    if(r.quarantine) snake.quarantine = { active:true, startDate: (r.acquired && r.acquired.length===10 && (Date.parse(today)-Date.parse(r.acquired))/864e5 < 60) ? r.acquired : today, durationDays:60 }; // v4.30 — le fichier dit « en quarantaine » : jamais une quarantaine déjà échue
     r._createdId = snake.id;
     savedSnakes.push(snake);
     ensureSnakeMeta(snake);
@@ -26812,8 +27075,8 @@ function exportInventoryExcel(){
   const isEn = currentLang==='en';
   savedSnakes.forEach(ensureSnakeMeta);
   const headerRow = isEn
-    ? ['ID','Name','Sex','Species','Genetics','Birth date','Status','Last weight (g)','Provenance','Purchase price ($)','Asking/Sold price ($)','Location']
-    : ['ID','Nom','Sexe','Espèce','Génétique','Date de naissance','Statut','Dernier poids (g)','Provenance','Prix d\'achat ($)','Prix demandé/vendu ($)','Emplacement'];
+    ? ['ID','Name','Sex','Species','Genetics','Birth date','Status','Last weight (g)','Provenance','Acquisition date','Purchase price ($)','Asking/Sold price ($)','Location']
+    : ['ID','Nom','Sexe','Espèce','Génétique','Date de naissance','Statut','Dernier poids (g)','Provenance','Date d\'acquisition','Prix d\'achat ($)','Prix demandé/vendu ($)','Emplacement'];
   const statusLabel = s => s.status==='deceased' ? (isEn?'Deceased':'Décédé') : s.status==='sold' ? (isEn?'Sold':'Vendu') : s.status==='reserved' ? (isEn?'Reserved':'Réservé') : s.status==='forsale' ? (isEn?'Available':'Disponible') : (isEn?'Not for sale':'Pas à vendre');
   const locationLabel = s => {
     if(s.placement.mode==='rack'){
@@ -26829,7 +27092,7 @@ function exportInventoryExcel(){
     return [
       s.animalId||'', s.name, s.sex==='male'?(isEn?'Male':'Mâle'):(isEn?'Female':'Femelle'), speciesLabel,
       summarizeGenes(s.genes), s.birthDate||'', statusLabel(s), lastWeight,
-      s.provenance||'', s.purchasePrice!=null?s.purchasePrice:'',
+      s.provenance||'', s.acquisitionDate||'', s.purchasePrice!=null?s.purchasePrice:'',
       s.status==='sold'?(s.soldPrice!=null?s.soldPrice:''):(s.askingPrice!=null?s.askingPrice:''),
       locationLabel(s)
     ];
