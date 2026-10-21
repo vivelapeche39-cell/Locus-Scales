@@ -2212,7 +2212,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.42';
+const APP_VERSION = '2026.09.01.4.43';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5223,6 +5223,17 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.43', date:'2026-10-21',
+    title:{ fr:'Import : prix négatifs', en:'Import: negative prices' },
+    changes:{
+      fr:[
+        '💲 Import : un prix d\'achat ou un prix demandé négatif (« -50 $ ») n\'est plus accepté — il est ignoré et signalé avec sa ligne dans l\'aperçu.'
+      ],
+      en:[
+        '💲 Import: a negative purchase or asking price (« -$50 ») is no longer accepted — it is ignored and flagged with its line in the preview.'
+      ]
+    }
+  },
   { version:'4.42', date:'2026-10-21',
     title:{ fr:'Import : poids impossibles', en:'Import: impossible weights' },
     changes:{
@@ -16048,14 +16059,14 @@ function rebuildGenericImportRows(){
   const num = (cols,f)=>importNumber(raw(cols,f)); // v4.29 — « $1,200.00 », « 1 200,50 $ »
   // v4.35 — prix écrit en mots (« Échange contre une console », « Virement Interac ») : pas un nombre, texte gardé dans les notes
   const priceText = (cols,f)=>{ const v = str(cols,f); if(!v) return null; const rest = normalizeHeaderKey(v).replace(/\b(piastres?|piasses?|dollars?|bucks?|bux|buck|balles?|cad|usd|eur|euros?|cents?|approx|environ|env|about|around|ca|paye|payé|paid|prix|price|cout|cost|total)\b/g,'').replace(/[$€£\d.,\s:~+\-\/]/g,''); return /[a-z]{3,}/.test(rest) ? v : null; };
-  const priceNum = (cols,f)=> priceText(cols,f) ? null : num(cols,f);
+  const priceNum = (cols,f)=>{ if(priceText(cols,f)) return null; const v = num(cols,f); if(v!=null && v<0){ anomalies.price.push({ val: str(cols,f), who: importCellStr(raw(cols,'animalId'))||importCellStr(raw(cols,'name')), line: cols.__line }); return null; } return v; }; // v4.43 — un prix négatif (« -50 $ ») n'est jamais pris
   const existing = new Set(savedSnakes.map(s=>normalizeHeaderKey(s.name||'')).filter(Boolean));
   const existingIds = new Set(savedSnakes.map(s=>String(s.animalId||'').toUpperCase()).filter(Boolean)); // v4.16
   const seen = new Set();
   let ambiguousDates = 0, emptyRows = 0;
   const invalidDates = []; // v4.22 — { val, who, field }
   const isEn = currentLang==='en';
-  const anomalies = { weight:[], weightLow:[], weightHigh:[], sex:[], speciesEmpty:[], fixed:[], combos:[], deceased:[] }; // v4.28 — valeurs illisibles signalées, jamais avalées en silence
+  const anomalies = { weight:[], weightLow:[], weightHigh:[], price:[], sex:[], speciesEmpty:[], fixed:[], combos:[], deceased:[] }; // v4.28 — valeurs illisibles signalées, jamais avalées en silence
   const dataRows = m.rows.slice(m.hIdx+1);
   const wUnit = colMap.weight!==undefined ? importHeaderUnit(m.headerRow[colMap.weight]) : null; // v4.29
   const ord = { birthDate: importDateOrder(dataRows, colMap.birthDate), weightDate: importDateOrder(dataRows, colMap.weightDate), lastFed: importDateOrder(dataRows, colMap.lastFed), lastShed: importDateOrder(dataRows, colMap.lastShed), acquired: importDateOrder(dataRows, colMap.acquired) };
@@ -16256,6 +16267,7 @@ function renderGenericCsvPreview(){
       const a = m.anomalies || {}; let h = '';
       const ex = (arr, fmt)=> escapeHtml(arr.slice(0,6).map(fmt).join(', '))+(arr.length>6?' +'+(arr.length-6):'');
       if((a.weight||[]).length) h += p('⛔ '+(isEn?a.weight.length+' unreadable or impossible weight(s), ignored: ':a.weight.length+' poids illisible(s) ou impossible(s), ignoré(s) : ')+'<b>'+ex(a.weight, x=>(isEn?'line ':'ligne ')+x.line+' « '+x.val+' »')+'</b>', 'var(--rust)');
+      if((a.price||[]).length) h += p('⛔ '+(isEn?a.price.length+' negative price(s), ignored: ':a.price.length+' prix négatif(s), ignoré(s) : ')+'<b>'+ex(a.price, x=>(isEn?'line ':'ligne ')+x.line+' « '+x.val+' »')+'</b>', 'var(--rust)');
       if((a.deceased||[]).length) h += p('🕊 '+(isEn?a.deceased.length+' animal(s) marked « Deceased » because the file says so (dead, died…) — they don\'t count toward your plan\'s limit: ':a.deceased.length+' animal(s) mis « Décédé » parce que le fichier le dit (morte, décédé…) — ils ne comptent pas dans la limite de ton palier : ')+'<b>'+ex(a.deceased, x=>(isEn?'line ':'ligne ')+x.line+' ('+x.who+')')+'</b>', 'var(--gold)');
       if((a.weightHigh||[]).length) h += p('⚠ '+(isEn?a.weightHigh.length+' very high weight(s) for a ball python (over 5 kg) — check the unit, kept as is: ':a.weightHigh.length+' poids très haut(s) pour un python royal (plus de 5 kg) — vérifie l\'unité, gardé(s) tel(s) quel(s) : ')+'<b>'+ex(a.weightHigh, x=>(isEn?'line ':'ligne ')+x.line+' « '+x.val+' »')+'</b>', 'var(--gold)');
       if((a.weightLow||[]).length) h += p('⚠ '+(isEn?a.weightLow.length+' very low weight(s) for a ball python (under 25 g) — check the unit, kept as is: ':a.weightLow.length+' poids très bas pour un python royal (moins de 25 g) — vérifie l\'unité, gardé(s) tel(s) quel(s) : ')+'<b>'+ex(a.weightLow, x=>(isEn?'line ':'ligne ')+x.line+' « '+x.val+' »')+'</b>', 'var(--gold)');
