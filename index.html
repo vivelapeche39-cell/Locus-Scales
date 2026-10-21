@@ -2219,7 +2219,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.13';
+const APP_VERSION = '2026.09.01.4.14';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3014,7 +3014,7 @@ function vitrineContactButtonsHtml(links, isEn){
     return u ? '<a href="'+escapeHtml(u)+'" target="_blank" rel="noopener noreferrer nofollow" style="display:inline-block;margin:4px;padding:10px 14px;border:1px solid var(--line);border-radius:10px;color:var(--ink);text-decoration:none;font-size:15px;background:var(--bg-panel);">'+f.icon+' '+(isEn?f.en:f.fr)+'</a>' : '';
   }).join('');
 }
-function vitrineAnimalCardHtml(a, isEn){
+function vitrineAnimalCardHtml(a, isEn, breederMode){ // v4.14 — breederMode : « Mes reproducteurs », jamais de prix
   const img = safeImageSrc(a.photo);
   const sexLabel = a.sex==='male' ? (isEn?'Male':'Mâle') : a.sex==='female' ? (isEn?'Female':'Femelle') : (isEn?'Unsexed':'Non sexé');
   let species = '';
@@ -3026,7 +3026,9 @@ function vitrineAnimalCardHtml(a, isEn){
   const live = speciesIsLiveBearer({ species:a.species });
   const provenLine = (a.proven || seasons.length)
     ? '<div style="font-size:13px;color:var(--sage);margin-top:6px;">✅ Proven'+(seasons.length ? ' — '+escapeHtml(seasons.map(p=>provenSeasonLabel(Object.assign({live:live}, p), isEn)).join(' / ')) : '')+'</div>' : '';
-  const price = a.status==='reserved'
+  const price = breederMode
+    ? (a.show_token && /^[A-Za-z0-9_-]{16,}$/.test(String(a.show_token)) ? '<a href="'+escapeHtml(showUrlFor(a.show_token))+'" style="display:inline-block;margin-top:10px;font-size:15px;color:var(--gold);">'+(isEn?'See its history →':'Voir sa fiche →')+'</a>' : '')
+    : a.status==='reserved'
     ? '<div style="font-size:16px;color:var(--gold);font-weight:600;margin-top:8px;">'+(isEn?'Reserved':'Réservé')+'</div>'
     : (a.asking_price!=null && a.asking_price!=='' ? '<div style="font-size:18px;color:var(--gold);font-weight:600;margin-top:8px;">'+escapeHtml(String(a.asking_price))+' $</div>'
       : '<div style="font-size:14px;color:var(--ink-dim);margin-top:8px;">'+(isEn?'Price on request':'Prix sur demande')+'</div>');
@@ -3063,6 +3065,7 @@ function vitrineAnimalCardHtml(a, isEn){
     }
     const title = data.title ? String(data.title) : (isEn?'Showcase':'Vitrine');
     const animals = Array.isArray(data.animals) ? data.animals : [];
+    const breeders = Array.isArray(data.breeders) ? data.breeders : []; // v4.14
     const contacts = vitrineContactButtonsHtml(data.links, isEn);
     setPageMeta(title+(isEn?' — Available animals':' — Animaux disponibles')+' | LOCUS Scales',
       isEn ? (animals.length+' animal(s) available from '+title+'.') : (animals.length+' animal(s) disponible(s) chez '+title+'.'), false);
@@ -3074,9 +3077,12 @@ function vitrineAnimalCardHtml(a, isEn){
         newbloodBadgeHtml(data.newblood, isEn)+ // v3.98
         (contacts ? '<div style="margin-top:14px;">'+contacts+'</div>' : '')+
       '</div>'+
+      ((animals.length || breeders.length) ? '<div style="font-size:20px;font-weight:600;color:var(--gold);margin:0 0 12px;">🛒 '+(isEn?'Available':'Disponibles')+'</div>' : '')+
       (animals.length
         ? '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;">'+animals.map(a=>vitrineAnimalCardHtml(a, isEn)).join('')+'</div>'
         : '<div style="text-align:center;color:var(--ink-dim);font-size:15px;padding:30px 0;">'+(isEn?'No animals available right now — check back soon.':'Aucun animal disponible pour le moment — reviens bientôt.')+'</div>')+
+      (breeders.length ? '<div style="font-size:20px;font-weight:600;color:var(--gold);margin:28px 0 12px;">🏆 '+(isEn?'My breeders':'Mes reproducteurs')+'</div>'+
+        '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;">'+breeders.map(a=>vitrineAnimalCardHtml(a, isEn, true)).join('')+'</div>' : '')+
       '<div style="text-align:center;margin-top:28px;font-size:12px;color:var(--ink-dim);line-height:1.6;">'+(isEn
         ? 'Sales are made directly with the seller — LOCUS Scales handles no payment or shipping.'
         : 'Les ventes se font directement avec le vendeur — LOCUS Scales ne gère ni paiement ni livraison.')+'<br/>'+
@@ -3300,6 +3306,7 @@ function showQrSectionHtml(s, id){
     '<p style="font-size:14px;color:var(--ink-dim);margin:0 0 10px;line-height:1.5;">'+(isEn
       ? 'A live page for a buyer (Facebook post, Messenger, text) or for visitors at a show (QR on the display box). They see only what you check below. Separate from the public link.'
       : 'Une page à jour pour un acheteur (publication Facebook, Messenger, texto) ou pour les visiteurs d\'un show (QR sur la boîte d\'exposition). Ils voient seulement ce que tu coches ici. Distinct du lien public.')+'</p>'+
+    '<label style="display:flex;gap:10px;align-items:flex-start;font-size:15px;padding:6px 0 10px;cursor:pointer;border-bottom:1px solid var(--line);margin-bottom:6px;"><input type="checkbox" style="width:22px;height:22px;flex-shrink:0;accent-color:var(--sage);" '+(s.vitrineBreeder?'checked ':'')+'onchange="setVitrineBreeder(\''+id+'\',this.checked)"/><span>🏆 '+(isEn?'Show in « My breeders » on my showcase (never a price; link to this page if you shared it)':'Montrer dans « Mes reproducteurs » de ma vitrine (jamais de prix; lien vers cette page si tu l\'as partagée)')+'</span></label>'+
     showFieldDefs().map(d=>'<label style="display:flex;gap:10px;align-items:center;font-size:15px;padding:6px 0;cursor:pointer;"><input type="checkbox" style="width:22px;height:22px;accent-color:var(--sage);" '+(f[d.k]?'checked ':'')+'onchange="setShowField(\''+id+'\',\''+d.k+'\',this.checked)"/>'+(isEn?d.en:d.fr)+'</label>').join('')+
     '<div style="background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:4px 0 8px;">'+coiDisplayHtml(snakeCoiInfo(s), isEn, false)+'</div>'+ // v3.98
     '<div style="font-size:12px;color:var(--ink-dim);margin:4px 0 10px;">'+(isEn?'Always shown: name, sex, species, birth, photo, Proven. Never shown: buyer, purchase price, location in your racks, notes.':'Toujours affichés : nom, sexe, espèce, naissance, photo, Proven. Jamais affichés : acheteur, prix d\'achat, emplacement dans tes racks, notes.')+'</div>'+
@@ -3309,6 +3316,15 @@ function showQrSectionHtml(s, id){
     '</div>'+
     '<div id="show-qr-'+id+'" style="display:none;margin-top:12px;"></div>';
 }
+function setVitrineBreeder(id, checked){ // v4.14
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  s.vitrineBreeder = !!checked;
+  storage.save(savedSnakes);
+  try{ const box = document.getElementById('vit-breeders-count'); if(box) box.textContent = String(savedSnakes.filter(x=>x.vitrineBreeder && vitrineBreederEligible(x)).length); }catch(e){}
+}
+function vitrineBreederEligible(s){ return !!s && !['forsale','reserved','sold','deceased'].includes(s.status||'kept'); }
 function setShowField(id, key, checked){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
@@ -3458,6 +3474,13 @@ function renderVitrineSettings(){
       (isEn ? forSale+' for sale, '+reserved+' reserved in your collection.' : forSale+' à vendre, '+reserved+' réservé(s) dans ta collection.')+
       '<div style="font-size:12px;color:var(--ink-dim);margin-top:4px;">'+(isEn?'Set an animal\'s status to « For sale » (with its asking price) in its record to show it. Changes appear after the sync (a few seconds).':'Mets le statut d\'un animal à « À vendre » (avec son prix demandé) dans sa fiche pour qu\'il apparaisse. Les changements paraissent après la synchro (quelques secondes).')+'</div>'+
     '</div>'+
+    (function(){ // v4.14 — « Mes reproducteurs »
+      const elig = savedSnakes.filter(vitrineBreederEligible).sort((a,b)=>String(a.sex||'').localeCompare(String(b.sex||'')) || String(a.name||'').localeCompare(String(b.name||'')));
+      return '<p style="font-size:14px;color:var(--sage);margin:0 0 6px;font-weight:600;">🏆 '+(isEn?'My breeders (optional)':'Mes reproducteurs (facultatif)')+' — <span id="vit-breeders-count">'+elig.filter(x=>x.vitrineBreeder).length+'</span></p>'+
+        '<div style="font-size:12.5px;color:var(--ink-dim);margin:0 0 8px;line-height:1.5;">'+(isEn?'Animals you keep, shown in their own section: photo, genetics, Proven. Never a price. Saved right away.':'Les animaux que tu gardes, dans leur propre section : photo, génétique, Proven. Jamais de prix. Enregistré tout de suite.')+'</div>'+
+        (elig.length ? '<div style="max-height:220px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:4px 10px;margin-bottom:14px;">'+elig.map(x=>'<label style="display:flex;gap:10px;align-items:center;font-size:15px;padding:7px 0;cursor:pointer;"><input type="checkbox" style="width:22px;height:22px;flex-shrink:0;accent-color:var(--sage);" '+(x.vitrineBreeder?'checked ':'')+'onchange="setVitrineBreeder(\''+x.id+'\',this.checked)"/><span>'+(x.sex==='male'?'♂ ':x.sex==='female'?'♀ ':'')+escapeHtml(x.name||'')+'</span></label>').join('')+'</div>'
+          : '<div style="font-size:13px;color:var(--ink-dim);margin-bottom:14px;">'+(isEn?'No animal to show here yet.':'Aucun animal à montrer ici pour l\'instant.')+'</div>');
+    })()+
     lbl(isEn?'Showcase title (blank = your breeder name)':'Titre de la vitrine (vide = ton nom d\'élevage)')+
     '<input type="text" id="vit-title" maxlength="80" style="'+inputStyle+'" value="'+escapeHtml(v.title||'')+'" placeholder="'+escapeHtml(loadProfile().breederName||'Ex. Python of the North')+'"/>'+
     lbl(isEn?'Region (shown publicly — never your address)':'Région (affichée publiquement — jamais ton adresse)')+
@@ -5129,10 +5152,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'4.13', date:'2026-10-21',
+  { version:'4.14', date:'2026-10-21',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '🏆 Vitrine : nouvelle section facultative « Mes reproducteurs » pour montrer les animaux que tu gardes (photo, génétique, Proven, lien vers leur fiche partagée), jamais de prix. À cocher dans Ma vitrine ou sur la fiche de l\'animal (section Partager).',
         '📤 Partager la fiche d\'un animal : nouveau bouton sur la fiche (section « Partager ») qui envoie un lien par Facebook, Messenger ou texto. L\'acheteur voit une page à jour avec, au choix, la génétique, le pedigree, le prix, et maintenant la courbe de poids (12 derniers mois), le journal des 20 derniers repas et les dernières mues. C\'est le même lien que le QR de show. Les notes écrites à la main ne sont jamais montrées.',
         '📋 Import Excel : Mes reptiles › Import accepte maintenant directement les fichiers Excel (.xlsx, .xls, .ods) en plus du CSV. LOCUS trouve la ligne d\'en-tête même s\'il y a un titre au-dessus, reconnaît plus de noms de colonnes (FR/EN), lit la génétique écrite comme dans le milieu (« Super Pastel Banana 66% het Clown »), l\'espèce, le poids, et signale les noms déjà dans ta collection avant d\'importer.',
         '📉 Alerte de perte de poids refaite : elle sonne quand la dernière pesée est 10 % ou plus sous le poids le plus haut des 60 jours d\'avant (avant : n\'importe quelle baisse, même 1 g). Pas d\'alerte pour une femelle qui vient de pondre. Le détail s\'affiche sur la fiche, dans Poids.',
@@ -5220,6 +5244,7 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '🏆 Showcase: new optional « My breeders » section to show the animals you keep (photo, genetics, Proven, link to their shared page), never a price. Tick them in My showcase or on the animal\'s sheet (Share section).',
         '📤 Share an animal\'s sheet: new button on the sheet ("Share" section) that sends a link via Facebook, Messenger or text. The buyer sees a live page with, as you choose, genetics, pedigree, price, and now the weight chart (last 12 months), the last 20 meals and recent sheds. It\'s the same link as the show QR. Handwritten notes are never shown.',
         '📋 Excel import: My reptiles › Import now accepts Excel files directly (.xlsx, .xls, .ods) as well as CSV. LOCUS finds the header row even with a title above it, recognizes more column names (FR/EN), reads genetics written the hobby way ("Super Pastel Banana 66% het Clown"), species and weight, and flags names already in your collection before importing.',
         '📉 Weight-loss alert rebuilt: it now triggers when the latest weigh-in is 10% or more below the highest weight of the previous 60 days (before: any drop, even 1 g). No alert for a female that just laid. Details show on the animal sheet, under Weight.',
@@ -13907,6 +13932,7 @@ function snakeToRow(s){
     proven: !!s.proven, proven_seasons: Array.isArray(s.provenSeasons) ? s.provenSeasons : [], // v3.82
     deceased_date: s.deceasedDate||null, deceased_note: s.deceasedNote||null, // v3.84
     show_token: s.showToken||null, show_fields: s.showFields||null, // v3.85
+    vitrine_breeder: !!s.vitrineBreeder, // v4.14
     imported_coi: s.importedCoi||null, // v3.98
     ...(function(){ try{ const c = snakeCoiInfo(s); return { coi: c.value, coi_generations: c.generations||0 }; }catch(e){ return { coi:null, coi_generations:0 }; } })() // v3.98 — calculé, lu par la vitrine/QR
   };
@@ -13923,7 +13949,7 @@ function rowToSnake(r){
     paidViaStripe: !!r.paid_via_stripe, careParams: r.care_params || {}, publicToken: r.public_token || null, feedCost: r.feed_cost!=null ? r.feed_cost : null, transferToken: r.transfer_token || null,
     shippingCarrier: r.shipping_carrier || null, shippingTracking: r.shipping_tracking || null, shippingDate: r.shipping_date || null, shippingDelivered: !!r.shipping_delivered,
     purchasePrice: r.purchase_price!=null ? r.purchase_price : null,
-    geneticsHistory: r.genetics_history||[], clutchRef: r.clutch_ref||null, loans: r.loans||[], reservation: r.reservation||null, proven: !!r.proven, provenSeasons: Array.isArray(r.proven_seasons) ? r.proven_seasons : [], deceasedDate: r.deceased_date||null, deceasedNote: r.deceased_note||null, showToken: r.show_token||null, showFields: r.show_fields||null, importedCoi: r.imported_coi||null, updatedAt: r.updated_at ? Date.parse(r.updated_at) : 0
+    geneticsHistory: r.genetics_history||[], clutchRef: r.clutch_ref||null, loans: r.loans||[], reservation: r.reservation||null, proven: !!r.proven, provenSeasons: Array.isArray(r.proven_seasons) ? r.proven_seasons : [], deceasedDate: r.deceased_date||null, deceasedNote: r.deceased_note||null, showToken: r.show_token||null, showFields: r.show_fields||null, vitrineBreeder: !!r.vitrine_breeder, importedCoi: r.imported_coi||null, updatedAt: r.updated_at ? Date.parse(r.updated_at) : 0
   };
 }
 
@@ -15286,6 +15312,7 @@ function ensureSnakeMeta(s){
   if(s.showToken===undefined) s.showToken = null; // v3.85 — jeton du QR visiteurs (distinct de publicToken)
   if(s.importedCoi===undefined) s.importedCoi = null; // v3.98
   if(s.showFields===undefined) s.showFields = null; // v3.85 — null = valeurs par défaut (tout coché)
+  if(s.vitrineBreeder===undefined) s.vitrineBreeder = false; // v4.14 — « Mes reproducteurs » sur la vitrine
   if(s.askingPrice===undefined) s.askingPrice = null;
   if(s.brumation===undefined) s.brumation = { active:false, startDate:null }; // hivernage/brumation (15 sept) — suspend les alertes de repas en retard pendant une période de repos hivernal volontaire
   if(s.buyer===undefined) s.buyer = null;
