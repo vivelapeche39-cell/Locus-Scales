@@ -1322,6 +1322,10 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <button class="sex-btn" data-v="female" data-i18n="sexFemale" onclick="setDraftSex('female')">Femelle</button>
       </div>
       <input class="draft-name" id="draft-name" data-i18n-placeholder="namePlaceholder" placeholder="Nom (ex. Rex, Luna, #042)…" autocomplete="off"/>
+      <div style="display:flex;gap:8px;align-items:center;margin:8px 18px 0;">
+        <input class="draft-name" id="draft-animal-id" style="margin:0;flex:1;width:auto;" data-i18n-placeholder="animalIdPlaceholder" placeholder="ID (facultatif, ex. BP-M-26-001)" autocomplete="off" autocapitalize="characters" maxlength="40"/>
+        <button type="button" class="sc-btn" style="font-size:14px;padding:9px 12px;white-space:nowrap;" onclick="suggestDraftAnimalId()" data-i18n="animalIdSuggestBtn">💡 Suggérer</button>
+      </div>
       <div class="pedigree-row">
         <label style="flex:1;"><span data-i18n="speciesLabel">Espèce</span>
           <select id="draft-species-select" class="pedigree-select" style="width:100%;margin-top:4px;" onchange="onDraftSpeciesChange()"></select>
@@ -2219,7 +2223,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.14';
+const APP_VERSION = '2026.09.01.4.19';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3344,8 +3348,8 @@ function toggleShowQr(id){
   if(box.style.display==='block'){ box.style.display = 'none'; return; }
   if(ensureShowToken(s)) storage.save(savedSnakes);
   const url = showUrlFor(s.showToken);
-  box.innerHTML = '<div class="qr-box"><img src="'+qrImageUrl(url, 220)+'" width="220" height="220" alt="QR '+escapeHtml(s.name)+'"/>'+
-      '<div class="qr-caption">'+(isEn?'Visitors scan this — ':'Les visiteurs scannent ceci — ')+escapeHtml(s.name)+'</div></div>'+
+  box.innerHTML = '<div class="qr-box"><img src="'+qrImageUrl(url, 220)+'" width="220" height="220" alt="QR '+escapeHtml(snakeName(s))+'"/>'+
+      '<div class="qr-caption">'+(isEn?'Visitors scan this — ':'Les visiteurs scannent ceci — ')+escapeHtml(snakeName(s))+'</div></div>'+
     '<div style="font-size:13px;color:var(--ink-dim);margin-top:8px;line-height:1.5;">'+(isEn?'Works once synced to your account (a few seconds, with a connection).':'Fonctionne une fois synchronisé à ton compte (quelques secondes, avec une connexion).')+'</div>'+
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">'+
       '<a class="sc-btn" style="font-size:14px;padding:10px 12px;text-decoration:none;" href="'+escapeHtml(url)+'" target="_blank" rel="noopener">👁 '+(isEn?'Preview':'Aperçu')+'</a>'+
@@ -3385,7 +3389,7 @@ function printShowLabels(ids){
     const price = (f.price && s.status==='forsale' && s.askingPrice!=null) ? s.askingPrice+' $' : '';
     return '<div class="lbl">'+
       '<img src="'+qrImageUrl(showUrlFor(s.showToken), 220)+'" alt=""/>'+
-      '<div class="txt"><div class="nm">'+escapeHtml(s.name)+' <span style="color:'+sexColor+';">'+sexTxt+'</span></div>'+
+      '<div class="txt"><div class="nm">'+escapeHtml(snakeName(s))+' <span style="color:'+sexColor+';">'+sexTxt+'</span></div>'+
       (genes ? '<div class="gn">'+escapeHtml(genes)+'</div>' : '')+
       (price ? '<div class="pr">'+escapeHtml(price)+'</div>' : '')+
       '<div class="sc">'+(isEn?'Scan for genetics, pedigree & feeding':'Scanne pour la génétique, le pedigree et les repas')+'</div></div></div>';
@@ -3618,7 +3622,7 @@ async function importTransferredSnake(){
   savedSnakes.push(snake);
   ensureSnakeMeta(snake);
   storage.save(savedSnakes);
-  showToast('📥 '+escapeHtml(snake.name)+(isEn?' added to your collection.':' ajouté à ta collection.')+(currentUser ? '' : (isEn?' It\'s on this device — sign in to keep it on all your devices.':' Il est sur cet appareil — connecte-toi pour le garder sur tous tes appareils.')), 'success');
+  showToast('📥 '+escapeHtml(snakeName(snake))+(isEn?' added to your collection.':' ajouté à ta collection.')+(currentUser ? '' : (isEn?' It\'s on this device — sign in to keep it on all your devices.':' Il est sur cet appareil — connecte-toi pour le garder sur tous tes appareils.')), 'success');
   finishTransferImport(snake.id);
 }
 function finishTransferImport(snakeId){
@@ -5152,10 +5156,14 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'4.14', date:'2026-10-21',
+  { version:'4.19', date:'2026-10-21',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '🗓 Import d\'historique : un fichier (ou une 2e feuille du même Excel) avec une ligne par activité — ID ou nom, date, activité (Fed, Refused, Shed, Weighed, In blue…), et au choix proie, quantité, poids, notes — ajoute les repas, refus, mues et pesées au journal de chaque animal. Même bouton d\'import, détecté tout seul. Les animaux absents de ta collection sont listés et leurs lignes ignorées; une entrée déjà présente n\'est jamais doublée, donc on peut réimporter sans risque. Les repas importés ne touchent pas au stock de proies.',
+        '📋 Import : reconnaît les titres de colonnes de Husbandry Pro (Animal ID, Common Name = espèce, Genetic Mutation, Gender, Current Weight, Date of Birth, Last Fed Date). Les dates JJ/MM ou MM/JJ sont déduites de toute la colonne (une seule date avec un jour > 12 suffit). La date du dernier repas devient un repas au journal.',
+        '📋 Import : l\'aperçu montre maintenant chaque colonne de ton fichier avec un menu pour dire ce qu\'elle contient (ou l\'ignorer). Une colonne au titre inconnu est signalée et s\'associe sans modifier le fichier. S\'il n\'y a pas de colonne nom ou ID reconnue, tu choisis laquelle au lieu de recevoir une erreur. L\'ordre des colonnes n\'a pas d\'importance.',
+        '🔖 ID animal : chaque reptile peut avoir un ID (ex. BP-M-26-C3-01 = python royal, mâle, né en 2026, ponte 3, n° 01), avec un bouton « Suggérer ». Le nom devient facultatif : une fiche peut n\'avoir qu\'un ID. L\'ID est cherchable, affiché sur la fiche, sur les étiquettes et dans l\'export d\'inventaire. L\'import Excel/CSV lit maintenant une colonne « Animal ID » (comme Husbandry Pro), même sans colonne nom.',
         '🏆 Vitrine : nouvelle section facultative « Mes reproducteurs » pour montrer les animaux que tu gardes (photo, génétique, Proven, lien vers leur fiche partagée), jamais de prix. À cocher dans Ma vitrine ou sur la fiche de l\'animal (section Partager).',
         '📤 Partager la fiche d\'un animal : nouveau bouton sur la fiche (section « Partager ») qui envoie un lien par Facebook, Messenger ou texto. L\'acheteur voit une page à jour avec, au choix, la génétique, le pedigree, le prix, et maintenant la courbe de poids (12 derniers mois), le journal des 20 derniers repas et les dernières mues. C\'est le même lien que le QR de show. Les notes écrites à la main ne sont jamais montrées.',
         '📋 Import Excel : Mes reptiles › Import accepte maintenant directement les fichiers Excel (.xlsx, .xls, .ods) en plus du CSV. LOCUS trouve la ligne d\'en-tête même s\'il y a un titre au-dessus, reconnaît plus de noms de colonnes (FR/EN), lit la génétique écrite comme dans le milieu (« Super Pastel Banana 66% het Clown »), l\'espèce, le poids, et signale les noms déjà dans ta collection avant d\'importer.',
@@ -5244,6 +5252,10 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '🗓 History import: a file (or a 2nd sheet of the same Excel) with one line per activity — ID or name, date, activity (Fed, Refused, Shed, Weighed, In blue…), and optionally prey, quantity, weight, notes — adds meals, refusals, sheds and weigh-ins to each animal\'s log. Same import button, detected automatically. Animals missing from your collection are listed and their lines skipped; an entry already there is never doubled, so re-importing is safe. Imported meals don\'t touch your feeder stock.',
+        '📋 Import: recognizes Husbandry Pro column titles (Animal ID, Common Name = species, Genetic Mutation, Gender, Current Weight, Date of Birth, Last Fed Date). DD/MM vs MM/DD dates are deduced from the whole column (one date with a day > 12 is enough). The last-fed date becomes a meal in the log.',
+        '📋 Import: the preview now shows every column of your file with a menu to say what it contains (or ignore it). A column with an unknown title is flagged and can be matched without editing the file. If no name or ID column is recognized, you pick which one instead of getting an error. Column order doesn\'t matter.',
+        '🔖 Animal ID: each reptile can have an ID (e.g. BP-M-26-C3-01 = ball python, male, born 2026, clutch 3, no. 01), with a « Suggest » button. The name becomes optional: a record can have only an ID. The ID is searchable, shown on the sheet, on labels and in the inventory export. Excel/CSV import now reads an « Animal ID » column (like Husbandry Pro), even with no name column.',
         '🏆 Showcase: new optional « My breeders » section to show the animals you keep (photo, genetics, Proven, link to their shared page), never a price. Tick them in My showcase or on the animal\'s sheet (Share section).',
         '📤 Share an animal\'s sheet: new button on the sheet ("Share" section) that sends a link via Facebook, Messenger or text. The buyer sees a live page with, as you choose, genetics, pedigree, price, and now the weight chart (last 12 months), the last 20 meals and recent sheds. It\'s the same link as the show QR. Handwritten notes are never shown.',
         '📋 Excel import: My reptiles › Import now accepts Excel files directly (.xlsx, .xls, .ods) as well as CSV. LOCUS finds the header row even with a title above it, recognizes more column names (FR/EN), reads genetics written the hobby way ("Super Pastel Banana 66% het Clown"), species and weight, and flags names already in your collection before importing.',
@@ -5619,6 +5631,7 @@ const I18N = {
     subOutils: '🛠 Outils',
     subSavaisTu: '💡 Le saviez-vous',
     subSante: '🩺 Santé',
+    animalIdPlaceholder: 'ID (facultatif, ex. BP-M-26-001)', animalIdSuggestBtn: '💡 Suggérer', // v4.16
     savaisTuIntro: 'Des faits, précisions et petites curiosités du monde reptile qui rentrent nulle part ailleurs — au fil du temps.',
     toolTempTitle: 'Convertisseur de température',
     toolTempHint: 'Entre une valeur dans l\'une ou l\'autre case — l\'autre se calcule automatiquement.',
@@ -6195,6 +6208,7 @@ const I18N = {
     subOutils: '🛠 Tools',
     subSavaisTu: '💡 Did you know?',
     subSante: '🩺 Health',
+    animalIdPlaceholder: 'ID (optional, e.g. BP-M-26-001)', animalIdSuggestBtn: '💡 Suggest', // v4.16
     savaisTuIntro: 'Facts, nuances, and little curiosities from the reptile world that don\'t really fit anywhere else — added over time.',
     toolTempTitle: 'Temperature converter',
     toolTempHint: 'Enter a value in either field — the other calculates automatically.',
@@ -8644,8 +8658,8 @@ function renderParentSelects(){
   const damSel = document.getElementById('draft-dam');
   const males = savedSnakes.filter(s=>s.id!==editingId && s.sex==='male');
   const females = savedSnakes.filter(s=>s.id!==editingId && s.sex==='female');
-  sireSel.innerHTML = '<option value="">'+(isEn?'Unknown':'Inconnu')+'</option>' + males.map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+'</option>').join('');
-  damSel.innerHTML = '<option value="">'+(isEn?'Unknown':'Inconnue')+'</option>' + females.map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+'</option>').join('');
+  sireSel.innerHTML = '<option value="">'+(isEn?'Unknown':'Inconnu')+'</option>' + males.map(s=>'<option value="'+s.id+'">'+escapeHtml(snakeName(s))+'</option>').join('');
+  damSel.innerHTML = '<option value="">'+(isEn?'Unknown':'Inconnue')+'</option>' + females.map(s=>'<option value="'+s.id+'">'+escapeHtml(snakeName(s))+'</option>').join('');
 
   const provList = document.getElementById('provenance-suggestions');
   if(provList){
@@ -8838,7 +8852,14 @@ function saveDraft(){
     return;
   }
   const nameInput = document.getElementById('draft-name');
-  const name = nameInput.value.trim() || 'Sans nom';
+  const idInput = document.getElementById('draft-animal-id');
+  const animalId = idInput ? normalizeAnimalId(idInput.value) : null; // v4.16
+  let name = nameInput.value.trim();
+  if(!name && !animalId) name = currentLang==='en' ? 'Unnamed' : 'Sans nom'; // ni nom ni ID : comme avant
+  if(animalId){
+    const clash = savedSnakes.find(x=>x.id!==editingId && x.animalId && x.animalId.toUpperCase()===animalId.toUpperCase());
+    if(clash && !confirm((currentLang==='en'?'The ID ':'L\'ID ')+animalId+(currentLang==='en'?' is already used by ':' est déjà utilisé par ')+snakeName(clash)+(currentLang==='en'?'. Save anyway?':'. Enregistrer quand même?'))) return;
+  }
   const speciesSelectVal = document.getElementById('draft-species-select').value;
   const species = speciesSelectVal==='other' ? (document.getElementById('draft-species-other').value.trim() || 'other') : speciesSelectVal;
   // La base de gènes de LOCUS couvre le python royal seulement — on n'exige un gène
@@ -8866,14 +8887,15 @@ function saveDraft(){
       if(!snake.geneticsHistory) snake.geneticsHistory = [];
       snake.geneticsHistory.push({ id:'ghist_'+Date.now(), date:localTodayStr(), from:oldGeneNames, to:newGeneNames });
     }
-    snake.name = name; snake.sex = draftSex; snake.genes = {...state.draft}; snake.sireId = sireId; snake.damId = damId; snake.birthDate = birthDate; snake.provenance = provenance; snake.purchasePrice = purchasePrice; snake.species = species;
+    snake.name = name; snake.animalId = animalId; snake.sex = draftSex; snake.genes = {...state.draft}; snake.sireId = sireId; snake.damId = damId; snake.birthDate = birthDate; snake.provenance = provenance; snake.purchasePrice = purchasePrice; snake.species = species;
     snake.preySpecies = preySpecies; snake.preySize = preySize;
     editingId = null;
   } else {
-    savedSnakes.push({ id: 'snk_'+Date.now(), name, sex: draftSex, genes: {...state.draft}, sireId, damId, birthDate, provenance, purchasePrice, species, preySpecies, preySize, preyType:'frozen' });
+    savedSnakes.push({ id: 'snk_'+Date.now(), name, animalId, sex: draftSex, genes: {...state.draft}, sireId, damId, birthDate, provenance, purchasePrice, species, preySpecies, preySize, preyType:'frozen' });
   }
   state.draft = {};
   nameInput.value = '';
+  if(idInput) idInput.value = '';
   document.getElementById('draft-provenance').value = '';
   document.getElementById('draft-purchase-price').value = '';
   document.getElementById('draft-species-select').value = 'ball_python';
@@ -8891,12 +8913,54 @@ function saveDraft(){
   document.getElementById('saved-grid').scrollIntoView({behavior:'smooth', block:'start'});
 }
 
+// v4.16 — ID animal. Nom affiché : le nom, sinon l'ID, sinon « (sans nom) ». Ne remplace jamais le nom en mémoire.
+function snakeName(s){
+  if(!s) return '';
+  if(s.name) return s.name;
+  if(s.animalId) return s.animalId;
+  if(s.animal_id) return s.animal_id;
+  return currentLang==='en' ? '(no name)' : '(sans nom)';
+}
+function normalizeAnimalId(v){ const x = String(v==null?'':v).trim().replace(/\s+/g,' ').slice(0,40); return x || null; }
+// Code d'espèce : BP python royal, puis les initiales du nom anglais (CS, LG, CG, BD…) ; codes fixes quand les initiales se confondent.
+var ANIMAL_ID_SPECIES_CODES = { ball_python:'BP', corn_snake:'CS', king_california:'CKS', king_florida:'FKS', king_mexican:'MBK', hognose:'HOG', leopard_gecko:'LG', fat_tail_gecko:'FTG', crested_gecko:'CG', gargoyle_gecko:'GG', bearded_dragon:'BD', croc_skink_red:'RES', croc_skink_white:'WES', boa_bci:'BCI', boa_bcc:'BCC', rainbow_boa:'BRB', boa_argentin:'ARB', blue_tongue_skink:'BTS', uro_nigriventris:'URN', uro_maliensis:'URM', uro_ornata:'URO', uro_aegyptia:'URE', orvet:'SW', star_tortoise:'IST', sulcata_tortoise:'SUL', leopard_tortoise:'LT', red_eared_slider:'RES2', tree_monitor_green:'GTM', tree_monitor_blue:'BTM', tree_monitor_yellow:'YTM', tree_monitor_black:'BKTM', ackie_monitor:'ACK', savannah_monitor:'SAV', black_throated_monitor:'BTH', water_monitor:'AWM', reeves_turtle:'RT', diamondback_terrapin:'DBT', mata_mata:'MM' };
+function animalIdSpeciesCode(species){
+  const sp = species || 'ball_python';
+  if(ANIMAL_ID_SPECIES_CODES[sp]) return ANIMAL_ID_SPECIES_CODES[sp];
+  const words = String(sp).replace(/[_\-]/g,' ').split(/\s+/).filter(Boolean);
+  return (words.map(w=>w[0]).join('').toUpperCase().replace(/[^A-Z]/g,'') || 'R').slice(0,3);
+}
+// Format choisi par Alex (21 oct) : Espèce-Sexe-Année-Ponte-numéro → BP-M-26-C3-01 ; sans ponte : BP-F-24-001.
+// Sexe inconnu = U. Année = naissance, sinon année d'ajout (aujourd'hui pour un nouveau). Numéro = premier libre.
+function suggestAnimalId(opts){
+  const o = opts || {};
+  const code = animalIdSpeciesCode(o.species);
+  const sx = o.sex==='male' ? 'M' : o.sex==='female' ? 'F' : 'U';
+  const yr = (o.birthDate && /^\d{4}/.test(o.birthDate)) ? String(o.birthDate).slice(2,4) : String(o.addedYear || new Date().getFullYear()).slice(2,4);
+  let clutchNo = null;
+  if(o.clutchRef){ const m = String(o.clutchRef).match(/(\d+)\s*$/); clutchNo = m ? m[1] : String(o.clutchRef).replace(/[^A-Za-z0-9]/g,'').slice(-4); }
+  const prefix = code+'-'+sx+'-'+yr+(clutchNo ? '-C'+clutchNo : '')+'-';
+  const width = clutchNo ? 2 : 3;
+  const used = new Set((o.pool || savedSnakes).filter(x=>x && x.id!==o.excludeId && x.animalId).map(x=>String(x.animalId).toUpperCase()));
+  for(let n=1; n<10000; n++){ const cand = prefix+String(n).padStart(width,'0'); if(!used.has(cand.toUpperCase())) return cand; }
+  return prefix+Date.now().toString().slice(-4);
+}
+function suggestDraftAnimalId(){
+  const sel = document.getElementById('draft-species-select');
+  const speciesVal = sel ? sel.value : 'ball_python';
+  const editing = editingId ? savedSnakes.find(x=>x.id===editingId) : null;
+  let bd = null; try{ bd = readBirthDateFromForm(); }catch(e){}
+  const id = suggestAnimalId({ species: speciesVal==='other' ? 'other' : speciesVal, sex: draftSex, birthDate: bd, clutchRef: editing ? editing.clutchRef : null, excludeId: editingId, addedYear: editing && editing.createdAt ? new Date(editing.createdAt).getFullYear() : null });
+  const el = document.getElementById('draft-animal-id');
+  if(el){ el.value = id; el.focus(); }
+}
 function editSnake(id){
   const snake = savedSnakes.find(s=>s.id===id);
   if(!snake) return;
   editingId = id;
   state.draft = {...snake.genes};
   document.getElementById('draft-name').value = snake.name;
+  document.getElementById('draft-animal-id').value = snake.animalId || ''; // v4.16
   document.getElementById('draft-provenance').value = snake.provenance || '';
   document.getElementById('draft-purchase-price').value = (snake.purchasePrice!=null) ? snake.purchasePrice : '';
   const species = snake.species || 'ball_python';
@@ -8928,6 +8992,7 @@ function duplicateSnake(id){
   editingId = null;
   state.draft = {...snake.genes};
   document.getElementById('draft-name').value = '';
+  document.getElementById('draft-animal-id').value = ''; // v4.16 — un nouvel animal = un nouvel ID
   document.getElementById('draft-provenance').value = snake.provenance || '';
   document.getElementById('draft-purchase-price').value = (snake.purchasePrice!=null) ? snake.purchasePrice : '';
   const species = snake.species || 'ball_python';
@@ -8954,6 +9019,7 @@ function cancelEdit(){
   editingId = null;
   state.draft = {};
   document.getElementById('draft-name').value = '';
+  document.getElementById('draft-animal-id').value = '';
   document.getElementById('draft-provenance').value = '';
   document.getElementById('draft-purchase-price').value = '';
   document.getElementById('draft-prey-species').value = '';
@@ -9011,7 +9077,7 @@ function openCompatibilityModal(snakeId){
   const oppositeSex = snake.sex==='male' ? 'female' : 'male';
   const candidates = savedSnakes.filter(s=>s.id!==snakeId && s.sex===oppositeSex);
   if(!candidates.length){ alert(isEn?'No reptile of the opposite sex registered to compare with.':'Aucun reptile du sexe opposé enregistré pour comparer.'); return; }
-  const options = candidates.map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+' — '+escapeHtml(summarizeGenes(s.genes))+'</option>').join('');
+  const options = candidates.map(s=>'<option value="'+s.id+'">'+escapeHtml(snakeName(s))+' — '+escapeHtml(summarizeGenes(s.genes))+'</option>').join('');
   const body =
     '<select id="compat-partner-select" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:12px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+options+'</select>'+
     '<button class="save-btn" style="width:100%;" onclick="viewCompatibility(\''+snakeId+'\')">🧬 '+(isEn?'View compatibility':'Voir la compatibilité')+'</button>';
@@ -9373,7 +9439,7 @@ function renderSavedList(){
     const batchCheckbox = batchSelectMode ? '<input type="checkbox" class="batch-select-cb" data-batch-id="'+s.id+'" '+(batchSelectedIds.has(s.id)?'checked':'')+' style="width:20px;height:20px;margin-right:8px;accent-color:var(--gold);flex-shrink:0;"/>' : '';
     if(batchSelectMode) card.classList.toggle('batch-selected', batchSelectedIds.has(s.id));
     card.innerHTML =
-      '<div class="sc-head"><span class="sc-name" style="display:flex;align-items:center;">'+batchCheckbox+thumb+escapeHtml(s.name)+'</span><span>'+sexBadge+provenBadgeHtml(s, isEn)+(isInShed(s)?'<span class="sc-status" style="background:rgba(57,135,229,.16);border:1px solid rgba(57,135,229,.45);color:#8fb8ef;">🔵 '+(isEn?'In shed':'En mue')+'</span>':'')+statusBadge+unverifiedBadge+quarantineBadge+speciesBadge+tagsBadges+'</span></div>'+
+      '<div class="sc-head"><span class="sc-name" style="display:flex;align-items:center;">'+batchCheckbox+thumb+escapeHtml(snakeName(s))+'</span><span>'+sexBadge+provenBadgeHtml(s, isEn)+(isInShed(s)?'<span class="sc-status" style="background:rgba(57,135,229,.16);border:1px solid rgba(57,135,229,.45);color:#8fb8ef;">🔵 '+(isEn?'In shed':'En mue')+'</span>':'')+statusBadge+unverifiedBadge+quarantineBadge+speciesBadge+tagsBadges+'</span></div>'+
       '<div class="sc-genes">'+summarizeGenes(s.genes)+'</div>'+
       '<div class="sc-genes" style="color:var(--sage);">📍 '+placeLabel+'</div>'+
       '<div class="sc-genes">'+weightLine+'</div>'+
@@ -9496,7 +9562,7 @@ function buildLoadMenu(sex){
         : 'Aucun reptile '+(sex==='male'?'mâle':'femelle')+' enregistré. Vas dans l\'onglet « Mes reptiles ».')+'</div>';
     } else {
       list.innerHTML = matches.map(s=>
-        '<div class="combo-opt" data-id="'+s.id+'"><span>'+escapeHtml(s.name)+'</span><span class="opt-tag">'+(s.sex==='male'?(isEn?'male':'mâle'):(isEn?'female':'femelle'))+'</span></div>'
+        '<div class="combo-opt" data-id="'+s.id+'"><span>'+escapeHtml(snakeName(s))+'</span><span class="opt-tag">'+(s.sex==='male'?(isEn?'male':'mâle'):(isEn?'female':'femelle'))+'</span></div>'
       ).join('') + dreamHtml;
     }
     list.classList.toggle('open');
@@ -9687,7 +9753,7 @@ function renderPairingPlanner(){
   wrap.innerHTML = results.slice(0,10).map(r=>{
     const pct = (r.prob*100).toFixed(2).replace(/\.00$/,'');
     return '<div class="sale-row">'+
-      '<div class="sale-name">'+escapeHtml(r.sire.name)+' × '+escapeHtml(r.dam.name)+'<small>'+pct+'% '+(isEn?'chance per egg':'de chance par œuf')+'</small></div>'+
+      '<div class="sale-name">'+escapeHtml(snakeName(r.sire))+' × '+escapeHtml(snakeName(r.dam))+'<small>'+pct+'% '+(isEn?'chance per egg':'de chance par œuf')+'</small></div>'+
       '<button class="sc-btn accent" onclick="loadPlannerPairIntoCalculator(\''+r.sire.id+'\',\''+r.dam.id+'\')">'+(isEn?'Open in calculator':'Ouvrir dans le calculateur')+'</button>'+
     '</div>';
   }).join('');
@@ -9813,8 +9879,8 @@ function computeCrossOutcomes(genesA, genesB){
 }
 // ==================== Simulateur de rêverie (10 sept) ====================
 function dreamSimParentOptionsHtml(){
-  const realOptions = savedSnakes.map(s=>'<option value="real:'+s.id+'">'+escapeHtml(s.name)+'</option>').join('');
-  const dreamOptions = dreamSnakes.map(s=>'<option value="dream:'+s.id+'">🔮 '+escapeHtml(s.name)+'</option>').join('');
+  const realOptions = savedSnakes.map(s=>'<option value="real:'+s.id+'">'+escapeHtml(snakeName(s))+'</option>').join('');
+  const dreamOptions = dreamSnakes.map(s=>'<option value="dream:'+s.id+'">🔮 '+escapeHtml(snakeName(s))+'</option>').join('');
   return realOptions+dreamOptions;
 }
 function resolveDreamSimParent(value){
@@ -9850,7 +9916,7 @@ function openDreamSimFromGoal(){
 function dreamGoalBannerHtml(){
   const isEn = currentLang==='en';
   if(!dreamGoal) return '';
-  const nm = (id)=>{ const sn = savedSnakes.find(x=>x.id===id); return sn ? escapeHtml(sn.name) : '?'; };
+  const nm = (id)=>{ const sn = savedSnakes.find(x=>x.id===id); return sn ? escapeHtml(snakeName(sn)) : '?'; };
   const targets = Object.keys(dreamGoal.copies).map(gid=>{
     const g = GENES.find(x=>x.id===gid); if(!g) return gid;
     return dreamGoal.copies[gid]===2 ? (g.type==='recessive' ? g.name+' ('+(isEn?'visual':'visuel')+')' : superName(g)) : g.name;
@@ -10147,7 +10213,7 @@ function refreshGoalPathGenes(){
 }
 function goalPathSnakeOptionsHtml(){
   return savedSnakes.filter(s=>(s.species||'ball_python')==='ball_python').map(s=>
-    '<label style="display:flex;align-items:center;gap:4px;font-size:11px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:14px;padding:4px 10px;margin:2px;"><input type="checkbox" class="goalpath-snake" value="'+s.id+'" checked style="margin:0;"/> '+escapeHtml(s.name)+'</label>'
+    '<label style="display:flex;align-items:center;gap:4px;font-size:11px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:14px;padding:4px 10px;margin:2px;"><input type="checkbox" class="goalpath-snake" value="'+s.id+'" checked style="margin:0;"/> '+escapeHtml(snakeName(s))+'</label>'
   ).join('');
 }
 function openGoalPathModal(){
@@ -10210,7 +10276,7 @@ function analyzeGoalPath(){
     const g0 = GENES.find(g=>g.id===gid);
     const shown = copies[gid]===2 ? (g0 && g0.type==='recessive' ? gname+' ('+(isEn?'visual':'visuel')+')' : superName(g0)) : gname;
     return '<div class="modal-row"><span>'+escapeHtml(shown)+'</span><span>'+(carriers.length
-      ? carriers.map(s=>escapeHtml(s.name)).join(', ')
+      ? carriers.map(s=>escapeHtml(snakeName(s))).join(', ')
       : '<span style="color:var(--rust);">'+(isEn?'nobody':'personne')+'</span>')+'</span></div>';
   }).join('');
 
@@ -11107,7 +11173,7 @@ function openBatchSaleImagesModal(){
     const price = s.askingPrice ? ' — '+escapeHtml(String(s.askingPrice))+' $' : '';
     return '<label class="modal-row" style="align-items:center;gap:10px;'+(ph?'':'opacity:.55;')+'">'+
       '<input type="checkbox" '+(ph?'':'disabled ')+(batchSale.ids.includes(s.id)?'checked ':'')+'onchange="toggleBatchSaleId(\''+s.id+'\', this.checked)"/>'+thumb+
-      '<span style="flex:1;"><b>'+escapeHtml(s.name)+'</b>'+price+'<br/><small style="color:var(--ink-dim);">'+(ph?escapeHtml(summarizeGenes(s.genes)):(isEn?'No photo — add one on its record':'Pas de photo — ajoutes-en une sur sa fiche'))+'</small></span></label>';
+      '<span style="flex:1;"><b>'+escapeHtml(snakeName(s))+'</b>'+price+'<br/><small style="color:var(--ink-dim);">'+(ph?escapeHtml(summarizeGenes(s.genes)):(isEn?'No photo — add one on its record':'Pas de photo — ajoutes-en une sur sa fiche'))+'</small></span></label>';
   }).join('') : '<p style="font-size:12px;color:var(--ink-dim);">'+t('noReptileRegistered')+'</p>';
   const chk = (key,label)=>'<label><input type="checkbox" '+(o[key]?'checked':'')+' onchange="batchSale.opts.'+key+'=this.checked;"/> '+label+'</label>';
   const body =
@@ -11302,8 +11368,8 @@ function openLogbook(id){
     : '';
   const pedigreeHtml =
     paternityUndeterminedHtml +
-    mrow(t('fatherLabel'), (sire?escapeHtml(sire.name):t('unknownFather'))+(s.paternityInferredFromLitter?' <i style="color:var(--ink-dim);font-size:10px;">('+(currentLang==='en'?'inferred from litter, not 100% certain for this baby alone':'déduit par la portée, pas 100% certain pour ce bébé seul')+')</i>':'')) +
-    mrow(t('motherLabel'), dam?escapeHtml(dam.name):t('unknownMother')) +
+    mrow(t('fatherLabel'), (sire?escapeHtml(snakeName(sire)):t('unknownFather'))+(s.paternityInferredFromLitter?' <i style="color:var(--ink-dim);font-size:10px;">('+(currentLang==='en'?'inferred from litter, not 100% certain for this baby alone':'déduit par la portée, pas 100% certain pour ce bébé seul')+')</i>':'')) +
+    mrow(t('motherLabel'), dam?escapeHtml(snakeName(dam)):t('unknownMother')) +
     mrow(t('registeredOffspring'), children.length?children.map(c=>escapeHtml(c.name)).join(', '):t('noneWord'));
   const pedigreeTreeHtml = renderPedigreeTree(id);
 
@@ -11511,6 +11577,7 @@ function openLogbook(id){
       '</div>'+
     '</div>'+
     '<div class="modal-section"><h3>'+t('identityTitle')+'</h3>'+
+      '<div class="modal-row"><span>'+(isEn?'ID':'ID')+'</span><span>'+(s.animalId ? '<b>'+escapeHtml(s.animalId)+'</b>' : '<span style="color:var(--ink-dim);">'+(isEn?'none — add one with ✏️ Edit':'aucun — ajoute-le avec ✏️ Modifier')+'</span>')+'</span></div>'+ // v4.16
       '<div class="modal-row"><span>'+t('sexLabel')+'</span><span>'+sexLbl+(!s.sex?' <button class="sc-btn accent" style="margin-left:6px;padding:3px 8px;" onclick="sexSnake(\''+id+'\')">'+t('sexBtn')+'</button>':'')+'</span></div>'+
       '<div class="modal-row"><span>'+t('geneticsLabel')+'</span><span>'+summarizeGenes(s.genes)+(!s.genesVerified?' <button class="sc-btn accent" style="margin-left:6px;padding:3px 8px;" onclick="confirmGenetics(\''+id+'\')">'+t('geneticsConfirmedBtn')+'</button>':' <span style="color:var(--sage);font-size:10.5px;">'+t('geneticsConfirmedTag')+'</span>')+'</span></div>'+
       mrow(t('locationLabel'), placeLabel) +
@@ -11835,8 +11902,8 @@ function toggleQrCode(id){
   if(!s) return;
   const box = document.getElementById('logbook-qr');
   if(box.style.display==='block'){ box.style.display='none'; return; }
-  box.innerHTML = '<div class="qr-box"><img src="'+qrImageUrl(buildQrData(s),220)+'" width="220" height="220" alt="QR Code '+escapeHtml(s.name)+'"/>'+
-    '<div class="qr-caption">'+(isEn?'Scan to open the record directly — ':"Scanner pour ouvrir directement la fiche — ")+escapeHtml(s.name)+'</div></div>';
+  box.innerHTML = '<div class="qr-box"><img src="'+qrImageUrl(buildQrData(s),220)+'" width="220" height="220" alt="QR Code '+escapeHtml(snakeName(s))+'"/>'+
+    '<div class="qr-caption">'+(isEn?'Scan to open the record directly — ':"Scanner pour ouvrir directement la fiche — ")+escapeHtml(snakeName(s))+'</div></div>';
   box.style.display = 'block';
 }
 
@@ -11890,6 +11957,7 @@ function printTubLabel(id){
   const lastWeight = s.health.weights.length ? s.health.weights[s.health.weights.length-1].value+'g' : null;
   const speciesLabel = speciesDisplayLabel(s.species); // v3.52 — nom traduit
   const lines = [];
+  if(s.animalId && s.name) lines.push('ID : '+s.animalId); // v4.16 — sans nom, l'ID est déjà le titre de l'étiquette
   if(labelFieldsPrefs.species) lines.push(speciesLabel);
   if(labelFieldsPrefs.sex) lines.push(s.sex==='male'?t('sexMale'):t('sexFemale'));
   if(labelFieldsPrefs.genetics) lines.push(summarizeGenes(s.genes));
@@ -11899,7 +11967,7 @@ function printTubLabel(id){
   const imgHtml = labelFieldsPrefs.qr ? '<img src="'+qrImageUrl(buildQrData(s), 200)+'" onload="window.print()"/>' : '';
   const win = window.open('', '_blank', 'width=420,height=520');
   win.document.write(
-    '<html><head><title>'+t('labelTitlePrefix')+' '+escapeHtml(s.name)+'</title><style>'+
+    '<html><head><title>'+t('labelTitlePrefix')+' '+escapeHtml(snakeName(s))+'</title><style>'+
     'body{font-family:Arial,sans-serif;text-align:center;padding:24px;}'+
     'img{width:200px;height:200px;}'+
     'h1{font-size:20px;margin:12px 0 4px;}'+
@@ -11907,7 +11975,7 @@ function printTubLabel(id){
     '@media print{ body{padding:0;} }'+
     '</style></head><body>'+
     imgHtml+
-    (labelFieldsPrefs.name ? '<h1>'+escapeHtml(s.name)+'</h1>' : '')+
+    (labelFieldsPrefs.name ? '<h1>'+escapeHtml(snakeName(s))+'</h1>' : '')+
     (lines.length ? '<p>'+lines.map(escapeHtml).join(' — ')+'</p>' : '')+
     '</body></html>'
   );
@@ -11939,13 +12007,13 @@ function exportSnakeSheet(id, vetMode){
       (vetMode ? '' : '<tr><td>'+t('geneticsLabel')+'</td><td>'+summarizeGenes(s.genes)+'</td></tr>')+
       '<tr><td>'+t('birthLabel')+'</td><td>'+formatBirthLabel(s.birthDate)+(s.birthDate?' ('+t('ageLabel')+' '+computeAgeLabel(s.birthDate)+')':'')+'</td></tr>'+
       (vetMode ? '' : '<tr><td>'+t('locationLabel')+'</td><td>'+placeLabel+'</td></tr>')+
-      '<tr><td>'+t('fatherLabel')+'</td><td>'+(sire?escapeHtml(sire.name):t('unknownFather'))+'</td></tr>'+
-      '<tr><td>'+t('motherLabel')+'</td><td>'+(dam?escapeHtml(dam.name):t('unknownMother'))+'</td></tr>';
+      '<tr><td>'+t('fatherLabel')+'</td><td>'+(sire?escapeHtml(snakeName(sire)):t('unknownFather'))+'</td></tr>'+
+      '<tr><td>'+t('motherLabel')+'</td><td>'+(dam?escapeHtml(snakeName(dam)):t('unknownMother'))+'</td></tr>';
   const qrHtml = vetMode ? '' : '<img src="'+qrImageUrl(buildQrData(s), 140)+'" width="120" height="120"/>';
 
   const win = window.open('', '_blank');
   win.document.write(
-    '<html><head><title>'+t(vetMode?'sheetTitlePrefixVet':'sheetTitlePrefix')+' '+escapeHtml(s.name)+'</title><style>'+
+    '<html><head><title>'+t(vetMode?'sheetTitlePrefixVet':'sheetTitlePrefix')+' '+escapeHtml(snakeName(s))+'</title><style>'+
     'body{font-family:Georgia,serif;color:#241d12;padding:36px;max-width:680px;margin:0 auto;}'+
     'h1{font-size:26px;margin:0 0 2px;border-bottom:2px solid #C9973E;padding-bottom:10px;}'+
     '.sub{font-family:Arial,sans-serif;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:24px;}'+
@@ -11957,7 +12025,7 @@ function exportSnakeSheet(id, vetMode){
     'img{border:1px solid #ddd;border-radius:14px;}'+
     '.footer{margin-top:30px;font-family:Arial,sans-serif;font-size:10px;color:#999;}'+
     '</style></head><body>'+
-    '<div class="hd"><div><h1>'+escapeHtml(s.name)+'</h1><div class="sub">'+t(vetMode?'sheetSubPrefixVet':'sheetSubPrefix')+' '+new Date().toLocaleDateString(currentLang==='en'?'en-CA':'fr-CA')+'</div></div>'+
+    '<div class="hd"><div><h1>'+escapeHtml(snakeName(s))+'</h1><div class="sub">'+t(vetMode?'sheetSubPrefixVet':'sheetSubPrefix')+' '+new Date().toLocaleDateString(currentLang==='en'?'en-CA':'fr-CA')+'</div></div>'+
     qrHtml+'</div>'+
     '<h2>'+t('identityLabel')+'</h2><table class="meta">'+identityRows+'</table>'+
     '<h2>'+t('weightHistoryLabel')+'</h2><table>'+weightsRows+'</table>'+
@@ -12131,12 +12199,12 @@ function confirmPlate(id, appetite){
   if(appetite==='none'){
     s.health.consecutiveRefusals = (s.health.consecutiveRefusals||0)+1;
     event = {date:day, type:'refused', reason:'plate', plate:true};
-    msg = '🥗 '+escapeHtml(s.name)+(isEn?' — plate not touched.':' — assiette pas touchée.');
+    msg = '🥗 '+escapeHtml(snakeName(s))+(isEn?' — plate not touched.':' — assiette pas touchée.');
   } else {
     s.health.consecutiveRefusals = 0;
     event = {date:day, type:'fed', quantity:appetite, plate:true};
     if(day===localTodayStr()) event.at = new Date().toISOString(); // v3.77
-    msg = '🥗 '+escapeHtml(s.name)+(appetite==='partial' ? (isEn?' ate some of the plate.':' a mangé un peu.') : (isEn?' ate the whole plate.':' a tout mangé.'));
+    msg = '🥗 '+escapeHtml(snakeName(s))+(appetite==='partial' ? (isEn?' ate some of the plate.':' a mangé un peu.') : (isEn?' ate the whole plate.':' a tout mangé.'));
   }
   s.health.events.push(event);
   storage.save(savedSnakes);
@@ -12196,7 +12264,7 @@ function confirmSupplement(id, kind){
   storage.save(savedSnakes);
   registerEventUndo([{snakeId:id, event}]);
   closeQuickModal();
-  showToast('💊 '+escapeHtml(s.name)+' — '+supplementKindLabel(kind)+(isEn?' noted.':' noté.'), 'success', 'undoLastLoggedEvent()');
+  showToast('💊 '+escapeHtml(snakeName(s))+' — '+supplementKindLabel(kind)+(isEn?' noted.':' noté.'), 'success', 'undoLastLoggedEvent()');
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
   if(document.getElementById('view-dash').style.display!=='none') renderDashboard();
 }
@@ -12225,7 +12293,7 @@ function confirmFed(id, quantity){
   try{ renderDefrostList(); }catch(e){}
   closeQuickModal();
   const countTag = preyCount>1 ? (isEn?' ('+preyCount+' prey)':' ('+preyCount+' proies)') : '';
-  showToast('🍽 '+escapeHtml(s.name)+(isEn?' ate':' a mangé')+(quantity==='partial'?(isEn?' (partial).':' (partiellement).'):'.')+countTag+stockMsg, 'success', 'undoLastLoggedEvent()');
+  showToast('🍽 '+escapeHtml(snakeName(s))+(isEn?' ate':' a mangé')+(quantity==='partial'?(isEn?' (partial).':' (partiellement).'):'.')+countTag+stockMsg, 'success', 'undoLastLoggedEvent()');
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
   renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderFirstSnakeTip();
   if(document.getElementById('view-dash').style.display!=='none') renderDashboard();
@@ -12447,7 +12515,7 @@ function confirmShed(id){
   registerEventUndo([{snakeId:id, event}]);
   closeQuickModal();
   const shedHint = shedPredictionHint(s);
-  showToast('✨ '+escapeHtml(s.name)+(isEn?' shed — ':' a mué — ')+shedQualityLabel(quality)+(shedHint?'<br/><small>'+shedHint+'</small>':''), quality==='complete'?'success':undefined, 'undoLastLoggedEvent()');
+  showToast('✨ '+escapeHtml(snakeName(s))+(isEn?' shed — ':' a mué — ')+shedQualityLabel(quality)+(shedHint?'<br/><small>'+shedHint+'</small>':''), quality==='complete'?'success':undefined, 'undoLastLoggedEvent()');
   renderFirstSnakeTip();
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
 }
@@ -12489,7 +12557,7 @@ function logInShed(id){
   s.health.events.push(event);
   storage.save(savedSnakes);
   registerEventUndo([{snakeId:id, event}]);
-  showToast('🔵 '+escapeHtml(s.name)+(isEn?' — in shed. Refusals won\'t be flagged until « Shed ».':' — en mue. Les refus ne seront pas signalés jusqu\'à « A mué ».'), 'success', 'undoLastLoggedEvent()');
+  showToast('🔵 '+escapeHtml(snakeName(s))+(isEn?' — in shed. Refusals won\'t be flagged until « Shed ».':' — en mue. Les refus ne seront pas signalés jusqu\'à « A mué ».'), 'success', 'undoLastLoggedEvent()');
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
   try{ renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderSavedList(); }catch(e){}
 }
@@ -12565,7 +12633,7 @@ function logRefusedInShed(id){
   if(evs.some(ev=>ev.stockDraw)){ saveElevage(); try{ renderDefrostList(); renderFeederStockList(); }catch(e){} }
   storage.save(savedSnakes);
   registerEventUndo(evs.map(ev=>({ snakeId:id, event:ev })));
-  showToast('🔵 '+escapeHtml(s.name)+(isEn?' — refused because of the shed. No alert, run kept.':' — refus à cause de la mue. Pas d\'alerte, série conservée.'), 'success', 'undoLastLoggedEvent()');
+  showToast('🔵 '+escapeHtml(snakeName(s))+(isEn?' — refused because of the shed. No alert, run kept.':' — refus à cause de la mue. Pas d\'alerte, série conservée.'), 'success', 'undoLastLoggedEvent()');
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
   try{ renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderSavedList(); }catch(e){}
 }
@@ -12578,7 +12646,7 @@ function logSkippedMeal(id){
   s.health.events.push(event);
   storage.save(savedSnakes);
   registerEventUndo([{snakeId:id, event}]);
-  showToast('⏭ '+escapeHtml(s.name)+(isEn?' — meal skipped on purpose (not a refusal).':' — repas sauté volontairement (pas un refus).'), 'success', 'undoLastLoggedEvent()');
+  showToast('⏭ '+escapeHtml(snakeName(s))+(isEn?' — meal skipped on purpose (not a refusal).':' — repas sauté volontairement (pas un refus).'), 'success', 'undoLastLoggedEvent()');
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
   try{ renderRackGrid(); renderTerrariumList(); renderTourGrid(); }catch(e){}
 }
@@ -12589,7 +12657,7 @@ function openEditEventModal(id, idx){
   const e = s.health.events[idx];
   const canType = EDITABLE_EVENT_TYPES.includes(e.type);
   const inp = 'width:100%;font-size:16px;padding:10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);margin-bottom:12px;';
-  showQuickModal('✏️ '+(isEn?'Edit entry — ':'Modifier l\'entrée — ')+escapeHtml(s.name),
+  showQuickModal('✏️ '+(isEn?'Edit entry — ':'Modifier l\'entrée — ')+escapeHtml(snakeName(s)),
     '<p style="font-size:14px;color:var(--ink);margin:0 0 12px;">'+eventLabelFor(e)+' — '+escapeHtml(e.date)+'</p>'+
     '<label style="display:block;font-size:13px;color:var(--ink-dim);margin-bottom:5px;">Date</label>'+
     '<input type="date" id="ee-date" max="'+localTodayStr()+'" value="'+escapeHtml(e.date)+'" style="'+inp+'"/>'+
@@ -12645,7 +12713,7 @@ function openAddPastEventModal(id){
   if(!s) return;
   const inp = 'width:100%;font-size:16px;padding:10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);margin-bottom:12px;';
   const yesterday = (function(){ const d = new Date(); d.setDate(d.getDate()-1); return ymdLocal(d); })();
-  showQuickModal('＋ '+(isEn?'Past entry — ':'Entrée passée — ')+escapeHtml(s.name),
+  showQuickModal('＋ '+(isEn?'Past entry — ':'Entrée passée — ')+escapeHtml(snakeName(s)),
     '<label style="display:block;font-size:13px;color:var(--ink-dim);margin-bottom:5px;">Date</label>'+
     '<input type="date" id="pe-date" max="'+localTodayStr()+'" value="'+yesterday+'" style="'+inp+'"/>'+
     '<label style="display:block;font-size:13px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'What happened':'Ce qui s\'est passé')+'</label>'+
@@ -12777,7 +12845,7 @@ function confirmRefused(id){
   registerEventUndo([{snakeId:id, event}]);
   try{ renderDefrostList(); }catch(e){}
   closeQuickModal();
-  showToast('⚠ '+(isEn?'Refusal noted for ':'Refus noté pour ')+escapeHtml(s.name)+' — '+refusalReasonLabel(reason)+(lostPrey?(isEn?' (prey lost).':' (proie perdue).'):'.')+stockMsg, undefined, 'undoLastLoggedEvent()');
+  showToast('⚠ '+(isEn?'Refusal noted for ':'Refus noté pour ')+escapeHtml(snakeName(s))+' — '+refusalReasonLabel(reason)+(lostPrey?(isEn?' (prey lost).':' (proie perdue).'):'.')+stockMsg, undefined, 'undoLastLoggedEvent()');
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
   renderRackGrid(); renderTerrariumList(); renderTourGrid();
 }
@@ -12925,7 +12993,7 @@ function quickLogDefecation(id){
   const entry = { id:'def_'+Date.now(), date:localTodayStr(), note:'' };
   s.health.defecations.push(entry);
   storage.save(savedSnakes);
-  showToast('💩 '+(isEn?'Logged for ':'Noté pour ')+escapeHtml(s.name)+'.', 'success', "undoDefecations(['"+id+"|"+entry.id+"'])");
+  showToast('💩 '+(isEn?'Logged for ':'Noté pour ')+escapeHtml(snakeName(s))+'.', 'success', "undoDefecations(['"+id+"|"+entry.id+"'])");
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
 }
 function undoDefecations(pairs){
@@ -13246,8 +13314,8 @@ function spPrepChecks(femaleId, maleId){
     const w = lastWeight(s);
     const min = MIN_BREEDING_WEIGHT[sex];
     const dW = daysSinceLastWeigh(s);
-    if(w===null) out.push({ ok:false, txt:escapeHtml(s.name)+' — '+(isEn?'never weighed':'jamais pesé'+(sex==='female'?'e':'')) });
-    else out.push({ ok:w>=min, txt:escapeHtml(s.name)+' — '+w+' g '+(w>=min?'✓':(isEn?'(under '+min+' g)':'(sous '+min+' g)'))+(dW!=null&&dW>14?(isEn?' · weighed '+dW+'d ago':' · pesé'+(sex==='female'?'e':'')+' il y a '+dW+' j'):'') });
+    if(w===null) out.push({ ok:false, txt:escapeHtml(snakeName(s))+' — '+(isEn?'never weighed':'jamais pesé'+(sex==='female'?'e':'')) });
+    else out.push({ ok:w>=min, txt:escapeHtml(snakeName(s))+' — '+w+' g '+(w>=min?'✓':(isEn?'(under '+min+' g)':'(sous '+min+' g)'))+(dW!=null&&dW>14?(isEn?' · weighed '+dW+'d ago':' · pesé'+(sex==='female'?'e':'')+' il y a '+dW+' j'):'') });
   });
   return out;
 }
@@ -13413,7 +13481,7 @@ function renderSeasonPlans(){
     html += '<div class="timeline-card" style="margin-bottom:14px;">'+
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">'+
         '<div><div style="font-size:15px;font-weight:700;color:var(--ink);">'+escapeHtml(plan.name||'')+'</div>'+
-        '<div style="font-size:12px;color:var(--ink-dim);">♂ '+(male?escapeHtml(male.name):'?')+' · '+(plan.nightsTogether||3)+(isEn?' nights together · ':' nuits ensemble · ')+(plan.restDays||0)+(isEn?' days of rest':' jours de repos')+
+        '<div style="font-size:12px;color:var(--ink-dim);">♂ '+(male?escapeHtml(snakeName(male)):'?')+' · '+(plan.nightsTogether||3)+(isEn?' nights together · ':' nuits ensemble · ')+(plan.restDays||0)+(isEn?' days of rest':' jours de repos')+
           (plan.endDate?' · '+(isEn?'until ':'jusqu\'au ')+spFmt(plan.endDate):'')+'</div></div>'+
         '<div style="display:flex;gap:6px;"><button class="sc-btn" onclick="openSeasonPlanModal(\''+plan.id+'\')">✏️</button><button class="sc-btn danger" onclick="deleteSeasonPlan(\''+plan.id+'\')">🗑</button></div>'+
       '</div>'+
@@ -13913,7 +13981,8 @@ async function synchroniserAvecServeur(){
 // Convertit une fiche reptile locale (camelCase) vers les colonnes de la table `snakes` (snake_case).
 function snakeToRow(s){
   return {
-    id: s.id, user_id: currentUser.id, name: s.name, sex: s.sex||null,
+    id: s.id, user_id: currentUser.id, name: (typeof s.name==='string' ? s.name : ''), sex: s.sex||null,
+    animal_id: s.animalId||null, // v4.16
     genes: s.genes||{}, genes_verified: !!s.genesVerified,
     sire_id: s.sireId||null, dam_id: s.damId||null, birth_date: s.birthDate||null,
     provenance: s.provenance||null, status: s.status||'kept',
@@ -13939,7 +14008,7 @@ function snakeToRow(s){
 }
 function rowToSnake(r){
   return {
-    id: r.id, name: r.name, sex: r.sex, genes: r.genes||{}, genesVerified: r.genes_verified,
+    id: r.id, name: r.name||'', animalId: r.animal_id||null, sex: r.sex, genes: r.genes||{}, genesVerified: r.genes_verified,
     sireId: r.sire_id, damId: r.dam_id, birthDate: r.birth_date, provenance: r.provenance,
     status: r.status, health: r.health||{}, placement: r.placement||{}, photos: r.photos||[],
     feedingIntervalDays: r.feeding_interval_days, preySpecies: r.prey_species, preySize: r.prey_size, preyType: r.prey_type || 'frozen',
@@ -14586,13 +14655,15 @@ function normalizeHeaderKey(str){
 const CSV_COLUMN_ALIASES = {
   name: ['nom','name','nom du reptile','reptile name','animal','animal name','nom de l\'animal','serpent','snake','nom/id','id/nom'],
   sex: ['sexe','sex','gender','genre','sexe (m/f)','sex (m/f)'],
-  genes: ['genes','gene','genetique','genetics','morph','morphs','morphe','traits','genetic'],
+  genes: ['genes','gene','genetique','genetics','morph','morphs','morphe','traits','genetic','genetic mutation','genetic mutations','mutation','mutations','genotype','phenotype'],
   birthDate: ['date de naissance','birth date','dob','naissance','date naissance','date of birth','hatch date','eclosion','date d\'eclosion','ne le','hatched'],
   provenance: ['provenance','source','eleveur','breeder','origine','origin'],
   purchasePrice: ['prix d\'achat','prix achat','purchase price','cost','cout','paid','paye'],
-  species: ['espece','species','type d\'animal','animal type'],
+  species: ['espece','species','type d\'animal','animal type','common name','nom commun','scientific name','nom scientifique'], // v4.18 — Husbandry Pro : « Common Name » = l'espèce, pas le nom de l'animal
   askingPrice: ['prix demande','prix','asking price','price','prix de vente','sale price'],
-  weight: ['poids','poids (g)','weight','weight (g)','masse','dernier poids','last weight','poids actuel','current weight'], // v4.12
+  animalId: ['id','animal id','animal_id','animalid','id animal','id de l\'animal','identifiant','# id','#','tag','tag id','code'], // v4.16
+  weight: ['poids','poids (g)','weight','weight (g)','masse','dernier poids','last weight','poids actuel','current weight','current weight (g)','weight (grams)'], // v4.12
+  lastFed: ['dernier repas','date du dernier repas','last fed','last fed date','last feeding','last meal','date last fed'], // v4.18
   weightDate: ['date de pesee','date pesee','date du poids','weigh date','weight date','date of weight','derniere pesee','last weigh-in'], // v4.12
 };
 function mapCsvHeaders(headerRow){
@@ -14623,7 +14694,7 @@ var pendingGenericImportMeta = null;
 function importCellStr(v){ return v==null ? '' : String(v).trim(); }
 // Date d'import : jamais deviner un format ambigu (03/04/2026). Acceptés : vraie date Excel (nombre
 // de série), AAAA-MM-JJ, AAAA-MM, AAAA, et JJ/MM/AAAA ou MM/JJ/AAAA seulement si un des deux > 12.
-function normalizeImportDate(v){
+function normalizeImportDate(v, order){ // v4.18 — order 'dmy'/'mdy' déduit de toute la colonne
   if(v==null || v==='') return { value:null, ambiguous:false };
   if(typeof v==='number'){
     if(Number.isInteger(v) && v>=1900 && v<=2100) return { value:String(v), ambiguous:false };
@@ -14645,6 +14716,8 @@ function normalizeImportDate(v){
     if(a>12 && b<=12) return { value: m[3]+'-'+String(b).padStart(2,'0')+'-'+String(a).padStart(2,'0'), ambiguous:false };
     if(b>12 && a<=12) return { value: m[3]+'-'+String(a).padStart(2,'0')+'-'+String(b).padStart(2,'0'), ambiguous:false };
     if(a===b && a<=12) return { value: m[3]+'-'+String(a).padStart(2,'0')+'-'+String(b).padStart(2,'0'), ambiguous:false };
+    if(order==='mdy') return { value: m[3]+'-'+String(a).padStart(2,'0')+'-'+String(b).padStart(2,'0'), ambiguous:false };
+    if(order==='dmy') return { value: m[3]+'-'+String(b).padStart(2,'0')+'-'+String(a).padStart(2,'0'), ambiguous:false };
   }
   return { value:null, ambiguous:true };
 }
@@ -14661,7 +14734,7 @@ function matchImportSpecies(raw){
 // python royal avec le bon statut. Plus long nom d'abord (Black Pastel avant Pastel). Les mots non
 // reconnus sont rendus pour l'aperçu. Toujours marqué « à vérifier » (genesVerified:false).
 // Raccourcis du milieu, seulement quand ils ne sont pas ambigus (« Axanthic » seul = 5 lignées différentes → pas d'alias).
-var IMPORT_GENE_ALIASES = { hypo:['hypo','hypomelanistic','ghost'], yellowbelly:['yb'], orangedream:['od'], piebald:['pied'], mojave:['mojo'], desertghost:['dg'], highintensityod:['hi od','high intensity orange dream'], lavenderalbino:['lavender','lav albino'], spotnose:['spot nose'] };
+var IMPORT_GENE_ALIASES = { hypo:['hypo','hypomelanistic','ghost'], yellowbelly:['yb','yellow belly'], orangedream:['od'], piebald:['pied'], mojave:['mojo'], desertghost:['dg'], highintensityod:['hi od','high intensity orange dream'], lavenderalbino:['lavender','lav albino'], spotnose:['spot nose'], lg_tremper:['tremper','tremper albino'], lg_bell:['bell','bell albino'], lg_rainwater:['rainwater','rainwater albino','las vegas albino','las vegas'], lg_murphy:['murphy'], lg_wy:['w y','white and yellow'] }; // v4.15 — gecko léopard : noms courts du milieu
 function importGeneNorm(str){ return String(str||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[|,;\/+&()\[\]]/g,' ').replace(/\s+/g,' ').trim(); }
 function importGeneVariants(species){
   const sp = species || 'ball_python';
@@ -14713,11 +14786,8 @@ function readImportFileAsRows(file, done){
       let wb;
       try{ wb = XLSX.read(new Uint8Array(reader.result), { type:'array', cellDates:false }); }
       catch(err){ alert(isEn?'Could not read this Excel file.':'Impossible de lire ce fichier Excel.'); return; }
-      // Première feuille qui contient une colonne « nom » (sinon la première feuille)
-      const sheets = wb.SheetNames.map(n=>({ n, rows: XLSX.utils.sheet_to_json(wb.Sheets[n], { header:1, raw:true, defval:'' }) }));
-      const withName = sheets.find(sh=>sh.rows.slice(0,10).some(r=>mapCsvHeaders((r||[]).map(importCellStr)).name!==undefined));
-      const pick = withName || sheets[0];
-      done(pick ? pick.rows : [], { sheet: pick ? pick.n : null, sheets: wb.SheetNames.length });
+      // v4.19 — toutes les feuilles : une liste d'animaux ET un historique peuvent être dans le même fichier
+      done(wb.SheetNames.map(n=>({ n, rows: XLSX.utils.sheet_to_json(wb.Sheets[n], { header:1, raw:true, defval:'' }) })), { isExcel:true });
     } else {
       const text = String(reader.result||'').replace(/^﻿/,'');
       const lines = text.split(/\r?\n/).filter(l=>l.trim()!=='');
@@ -14725,7 +14795,7 @@ function readImportFileAsRows(file, done){
       // délimiteur détecté sur la ligne la plus « remplie » des 10 premières (une ligne de titre ne doit pas fausser)
       const sample = lines.slice(0,10).reduce((a,l)=>l.length>a.length?l:a, lines[0]);
       const delim = detectCsvDelimiter(sample);
-      done(lines.map(l=>parseCsvLine(l, delim)), null);
+      done([{ n:file.name||'CSV', rows: lines.map(l=>parseCsvLine(l, delim)) }], { isExcel:false });
     }
   };
   if(isExcel) reader.readAsArrayBuffer(file); else reader.readAsText(file);
@@ -14733,38 +14803,306 @@ function readImportFileAsRows(file, done){
 document.getElementById('generic-csv-file-input').addEventListener('change', (e)=>{
   const file = e.target.files[0];
   if(!file) return;
-  readImportFileAsRows(file, (rows, meta)=>{ genericImportFromRows(rows, meta); e.target.value = ''; });
+  readImportFileAsRows(file, (sheets, meta)=>{ routeImportSheets(sheets, meta); e.target.value = ''; });
 });
+// ==================== v4.19 — import d'un HISTORIQUE (journal) ====================
+// Une ligne par activité : ID ou nom + date + activité (Fed / Refused / Shed / Weighed…), et au choix
+// proie, poids, quantité, notes. Détecté tout seul par le même bouton d'import (feuille séparée du même
+// Excel, ou fichier séparé). Décisions d'Alex (21 oct) : animal introuvable = lignes ignorées et listées
+// (option A) ; une activité déjà présente (même animal, même date, même type) n'est jamais ajoutée deux fois.
+var LOG_COLUMN_ALIASES = {
+  animalId: CSV_COLUMN_ALIASES.animalId,
+  name: CSV_COLUMN_ALIASES.name,
+  date: ['date','activity date','event date','date de l\'activite','date activite','date de l\'evenement','jour','day','date fed','feeding date','log date','record date','date/time','datetime'],
+  activity: ['activity','activite','type','event','evenement','action','activity type','type d\'activite','log type','record type','event type','type d\'evenement'],
+  prey: ['prey','proie','feeder','feeder item','feeder type','food','nourriture','item','prey item','food item','prey type'],
+  quantity: ['qty','quantity','quantite','nombre','count','nb'],
+  weight: CSV_COLUMN_ALIASES.weight,
+  notes: ['notes','note','remarque','remarques','comment','comments','details','detail']
+};
+var LOG_FIELD_ORDER = ['animalId','name','date','activity','prey','quantity','weight','notes'];
+function logFieldLabel(f, isEn){
+  const L = { animalId:['ID','ID'], name:['Nom','Name'], date:['Date','Date'], activity:['Activité','Activity'], prey:['Proie','Prey'], quantity:['Quantité','Quantity'], weight:['Poids (g)','Weight (g)'], notes:['Notes','Notes'] };
+  return L[f] ? L[f][isEn?1:0] : f;
+}
+function mapLogHeaders(headerRow){
+  const map = {};
+  headerRow.forEach((h,i)=>{
+    const norm = normalizeHeaderKey(h);
+    for(const field in LOG_COLUMN_ALIASES){
+      if(map[field]===undefined && LOG_COLUMN_ALIASES[field].some(a=>normalizeHeaderKey(a)===norm)){ map[field] = i; break; }
+    }
+  });
+  return map;
+}
+function isLogSheet(rows){
+  for(let i=0;i<Math.min(10,(rows||[]).length);i++){
+    const m = mapLogHeaders((rows[i]||[]).map(importCellStr));
+    if((m.animalId!==undefined || m.name!==undefined) && m.date!==undefined && m.activity!==undefined) return true;
+  }
+  return false;
+}
+// Texte d'activité → type LOCUS. L'ordre compte : « refused feeding » est un refus, « en mue » n'est pas une mue terminée.
+function mapLogActivity(raw){
+  const x = ' '+normalizeHeaderKey(raw).replace(/[^a-z0-9' ]/g,' ').replace(/\s+/g,' ')+' ';
+  if(!x.trim()) return null;
+  if(/ (refus|refused|refuse|reject|rejected|declin|declined|no eat|did not eat|didn t eat|not eaten|regurg)/.test(x)) return /regurg/.test(x) ? null : 'refused';
+  if(/ (skip|skipped|saute|passe son tour)/.test(x)) return 'skipped';
+  if(/ (in blue|blue|opaque|pre shed|preshed|en mue|bleu)/.test(x)) return 'inshed';
+  if(/ (shed|sheds|shedding|mue|mué|a mue|ecdysis)/.test(x)) return 'shed';
+  if(/ (weigh|weighed|weighing|weight|pesee|pese|poids)/.test(x)) return 'weight';
+  if(/ (fed|feed|feeding|ate|eat|eaten|meal|repas|nourri|mange|a mange)/.test(x)) return 'fed';
+  return null;
+}
+function logShedQuality(raw){
+  const x = normalizeHeaderKey(raw);
+  if(/incomplet|stuck|partial|retained|bad/.test(x)) return 'incomplete';
+  if(/piece|morceau/.test(x)) return 'pieces';
+  if(/complet|complete|perfect|full|good|one piece|bon/.test(x)) return 'complete';
+  return undefined;
+}
+// Proie en texte libre (« Rat small (F/T) », « souris adulte vivante ») → espèce, grosseur et vivant/congelé connus de LOCUS.
+function parseLogPrey(raw){
+  const x = normalizeHeaderKey(raw);
+  if(!x) return {};
+  const out = {};
+  const words = { mouse:['mouse','mice','souris'], rat:['rat','rats'], asf:['asf','african soft fur'], gerbil:['gerbil','gerbille'], rabbit:['rabbit','lapin'], guineapig:['guinea pig','cochon d\'inde'], cricket:['cricket','grillon'], dubia:['dubia'] };
+  Object.keys(words).some(k=>{ if(PREY_TYPES[k] && words[k].some(w=>new RegExp('(^|[^a-z])'+w+'([^a-z]|$)').test(x))){ out.preySpecies = k; return true; } return false; });
+  if(out.preySpecies && PREY_TYPES[out.preySpecies]){
+    const sz = PREY_TYPES[out.preySpecies].sizes.slice().sort((a,b)=>b.length-a.length).find(z=>new RegExp('(^|[^a-z])'+normalizeHeaderKey(z).replace(/[-]/g,'[- ]?')+'([^a-z]|$)').test(x));
+    if(sz) out.preySize = sz;
+  }
+  if(/(^|[^a-z])(f\/t|ft|frozen|thawed|decongel|congel)/.test(x)) out.preyType = 'frozen';
+  else if(/(^|[^a-z])(live|vivant|vivante)([^a-z]|$)/.test(x)) out.preyType = 'live';
+  return out;
+}
+var pendingLogImport = null;
+var pendingLogAfterAnimals = null; // feuille d'historique à traiter juste après l'import des animaux du même fichier
+function logImportFromRows(rows){
+  const isEn = currentLang==='en';
+  rows = (rows||[]).filter(r=>Array.isArray(r) && r.some(c=>importCellStr(c)!==''));
+  if(!rows.length){ alert(isEn?'Empty file.':'Fichier vide.'); return; }
+  let hIdx = -1, colMap = {};
+  for(let i=0;i<Math.min(10,rows.length);i++){ const m = mapLogHeaders(rows[i].map(importCellStr)); if(m.date!==undefined && m.activity!==undefined){ hIdx = i; colMap = m; break; } }
+  if(hIdx<0){ hIdx = 0; colMap = mapLogHeaders(rows[0].map(importCellStr)); }
+  const width = rows.reduce((a,r)=>Math.max(a, r.length), 0);
+  const headerRow = Array.from({ length: width }, (_, i)=>importCellStr(rows[hIdx][i]));
+  pendingLogImport = { rows, hIdx, colMap, headerRow };
+  rebuildLogImport();
+  renderLogImportPreview();
+}
+function rebuildLogImport(){
+  const m = pendingLogImport; if(!m) return;
+  const cm = m.colMap;
+  const raw = (cols,f)=> cm[f]!==undefined ? cols[cm[f]] : '';
+  const str = (cols,f)=> importCellStr(raw(cols,f));
+  const dataRows = m.rows.slice(m.hIdx+1);
+  const order = importDateOrder(dataRows, cm.date);
+  m.dateOrder = order;
+  const byId = {}, byName = {};
+  savedSnakes.forEach(s=>{ if(s.animalId) byId[String(s.animalId).toUpperCase()] = s; if(s.name) byName[normalizeHeaderKey(s.name)] = s; });
+  const items = [], unknownAnimals = {}, unknownActs = {};
+  let noDate = 0, ambiguous = 0, dupes = 0;
+  const seen = new Set();
+  const ready = (cm.animalId!==undefined || cm.name!==undefined) && cm.date!==undefined && cm.activity!==undefined;
+  m.ready = ready;
+  if(ready) dataRows.forEach(cols=>{
+    const idv = normalizeAnimalId(str(cols,'animalId'));
+    const nm = str(cols,'name');
+    if(!idv && !nm) return;
+    const snake = (idv && byId[idv.toUpperCase()]) || (nm && byName[normalizeHeaderKey(nm)]) || null;
+    const label = idv || nm;
+    const act = mapLogActivity(str(cols,'activity'));
+    const d = normalizeImportDate(raw(cols,'date'), order);
+    if(!snake){ unknownAnimals[label] = (unknownAnimals[label]||0)+1; return; }
+    if(!act){ const a = str(cols,'activity') || '?'; unknownActs[a] = (unknownActs[a]||0)+1; return; }
+    if(!d.value || d.value.length!==10){ if(d.ambiguous) ambiguous++; else noDate++; return; }
+    const wRaw = raw(cols,'weight');
+    const wNum = typeof wRaw==='number' ? wRaw : parseFloat(importCellStr(wRaw).replace(/\s/g,'').replace(',','.').replace(/[^0-9.]/g,''));
+    const it = { snake, type:act, date:d.value, note: str(cols,'notes') || null };
+    if(act==='fed'){ Object.assign(it, parseLogPrey(str(cols,'prey'))); const q = parseInt(str(cols,'quantity'),10); if(q>1) it.preyCount = q; }
+    if(act==='shed') it.quality = logShedQuality(str(cols,'activity')+' '+str(cols,'notes'));
+    if(act==='weight'){ if(!(wNum>0)){ noDate++; return; } it.value = Math.round(wNum*10)/10; }
+    // Doublon : même animal, même date, même type (pesée : même valeur aussi) — dans LOCUS ou plus haut dans le fichier
+    const key = snake.id+'|'+act+'|'+d.value+(act==='weight'?'|'+it.value:'');
+    const h = snake.health || {};
+    const exists = act==='weight'
+      ? (h.weights||[]).some(w=>w && w.date===d.value && Number(w.value)===it.value)
+      : (h.events||[]).some(e=>e && e.type===act && e.date===d.value);
+    if(exists || seen.has(key)){ dupes++; return; }
+    seen.add(key);
+    items.push(it);
+    // Un poids noté sur une ligne de repas compte aussi comme pesée
+    if(act!=='weight' && wNum>0){
+      const wk = snake.id+'|weight|'+d.value+'|'+(Math.round(wNum*10)/10);
+      if(!seen.has(wk) && !(h.weights||[]).some(w=>w && w.date===d.value && Number(w.value)===Math.round(wNum*10)/10)){ seen.add(wk); items.push({ snake, type:'weight', date:d.value, value:Math.round(wNum*10)/10 }); }
+    }
+  });
+  Object.assign(m, { items, unknownAnimals, unknownActs, noDate, ambiguous, dupes });
+}
+function setLogImportColumn(colIdx, field){
+  const m = pendingLogImport; if(!m) return;
+  Object.keys(m.colMap).forEach(f=>{ if(m.colMap[f]===colIdx) delete m.colMap[f]; });
+  if(field){ delete m.colMap[field]; m.colMap[field] = colIdx; }
+  rebuildLogImport();
+  renderLogImportPreview();
+}
+function renderLogImportPreview(){
+  const isEn = currentLang==='en';
+  const m = pendingLogImport; if(!m) return;
+  const p = (txt, color)=>'<p style="font-size:14px;line-height:1.45;margin:8px 0;color:'+(color||'var(--ink)')+';">'+txt+'</p>';
+  const typeLbl = { fed:isEn?'meals':'repas', refused:isEn?'refusals':'refus', shed:isEn?'sheds':'mues', inshed:isEn?'« in shed »':'« en mue »', skipped:isEn?'skipped meals':'repas sautés', weight:isEn?'weigh-ins':'pesées' };
+  const counts = {}; (m.items||[]).forEach(it=>{ counts[it.type] = (counts[it.type]||0)+1; });
+  const animals = new Set((m.items||[]).map(it=>it.snake.id)).size;
+  const unk = Object.keys(m.unknownAnimals||{});
+  const unkActs = Object.keys(m.unknownActs||{});
+  const firstData = m.rows[m.hIdx+1] || [];
+  const fieldOf = {}; Object.keys(m.colMap).forEach(f=>{ fieldOf[m.colMap[f]] = f; });
+  const colsHtml = m.headerRow.map((h,i)=>{
+    const sample = importCellStr(firstData[i]);
+    if(!h && !sample) return '';
+    const f = fieldOf[i];
+    return '<div style="padding:8px 0;border-bottom:1px solid var(--line);">'+
+      '<div style="font-size:14.5px;color:var(--ink);"><b>« '+escapeHtml(h || (isEn?'(no title)':'(sans titre)'))+' »</b>'+(sample ? ' <span style="font-size:13px;color:var(--ink-dim);">'+(isEn?'e.g. ':'ex. ')+escapeHtml(sample.slice(0,40))+'</span>' : '')+'</div>'+
+      '<select onchange="setLogImportColumn('+i+', this.value)" style="width:100%;margin-top:5px;font-size:16px;padding:8px;background:var(--bg-panel-2);border:1px solid '+(f?'var(--sage)':'var(--gold)')+';border-radius:8px;color:var(--ink);">'+
+        '<option value="">'+(f ? (isEn?'— Ignore this column —':'— Ignorer cette colonne —') : (isEn?'⚠ Not recognized — ignored':'⚠ Non reconnue — ignorée'))+'</option>'+
+        LOG_FIELD_ORDER.map(k=>'<option value="'+k+'"'+(f===k?' selected':'')+'>'+escapeHtml(logFieldLabel(k, isEn))+'</option>').join('')+
+      '</select></div>';
+  }).join('');
+  const total = (m.items||[]).length;
+  const body =
+    p('🗓 <b>'+(isEn?'History file detected':'Fichier d\'historique détecté')+'</b> — '+(isEn?'one line per activity, added to each animal\'s log.':'une ligne par activité, ajoutée au journal de chaque animal.'))+
+    (!m.ready ? '<div style="background:rgba(212,175,55,.14);border:1px solid var(--gold);border-radius:10px;padding:10px 12px;margin:6px 0 10px;font-size:15px;line-height:1.45;color:var(--ink);">⚠ '+(isEn?'Choose below which columns are the <b>ID or name</b>, the <b>date</b> and the <b>activity</b>.':'Choisis plus bas quelles colonnes sont l\'<b>ID ou le nom</b>, la <b>date</b> et l\'<b>activité</b>.')+'</div>' : '')+
+    (m.ready ? p('<b>'+total+'</b> '+(isEn?'entr(ies) for ':'entrée(s) pour ')+'<b>'+animals+'</b> '+(isEn?'animal(s)':'animal(s)')+(total ? ' : '+Object.keys(counts).map(k=>counts[k]+' '+typeLbl[k]).join(', ') : '')+'.') : '')+
+    (m.dupes ? p('↺ '+(isEn?m.dupes+' already in LOCUS (same animal, date and type) — not added twice.':m.dupes+' déjà dans LOCUS (même animal, même date, même type) — pas ajoutée(s) deux fois.'), 'var(--ink-dim)') : '')+
+    (unk.length ? p('⚠ '+(isEn?'Not in your collection — these lines are ignored: ':'Absents de ta collection — ces lignes sont ignorées : ')+'<b>'+escapeHtml(unk.slice(0,12).map(k=>k+' ('+m.unknownAnimals[k]+')').join(', '))+(unk.length>12?' +'+(unk.length-12):'')+'</b>'+(isEn?'. Import those animals first (or fix the ID), then re-import this file — nothing will be doubled.':'. Importe d\'abord ces animaux (ou corrige l\'ID), puis réimporte ce fichier — rien ne sera doublé.'), 'var(--gold)') : '')+
+    (unkActs.length ? p('⚠ '+(isEn?'Activities not recognized (ignored): ':'Activités non reconnues (ignorées) : ')+'<b>'+escapeHtml(unkActs.slice(0,10).map(k=>'« '+k+' » ('+m.unknownActs[k]+')').join(', '))+'</b>', 'var(--gold)') : '')+
+    (m.ambiguous ? p('⚠ '+(isEn?m.ambiguous+' line(s) ignored: ambiguous date (e.g. 03/04/2026). Use YYYY-MM-DD.':m.ambiguous+' ligne(s) ignorée(s) : date ambiguë (ex. 03/04/2026). Utilise AAAA-MM-JJ.'), 'var(--gold)') : '')+
+    (m.noDate ? p('⚠ '+(isEn?m.noDate+' line(s) ignored: missing date (or weigh-in without a weight).':m.noDate+' ligne(s) ignorée(s) : date manquante (ou pesée sans poids).'), 'var(--gold)') : '')+
+    (m.dateOrder ? p('📅 '+(m.dateOrder==='mdy'?(isEn?'Dates read as month/day/year (deduced from the column).':'Dates lues comme mois/jour/année (déduit de la colonne).'):(isEn?'Dates read as day/month/year (deduced from the column).':'Dates lues comme jour/mois/année (déduit de la colonne).')), 'var(--ink-dim)') : '')+
+    p(isEn?'Imported meals don\'t take anything from your feeder stock.':'Les repas importés ne retirent rien de ton stock de proies.', 'var(--ink-dim)')+
+    '<details'+(!m.ready ? ' open' : '')+' style="margin:10px 0;border:1px solid var(--line);border-radius:10px;padding:8px 12px;">'+
+      '<summary style="font-size:15px;font-weight:600;color:var(--sage);cursor:pointer;">'+(isEn?'Columns of your file':'Colonnes de ton fichier')+'</summary>'+colsHtml+
+    '</details>'+
+    '<button class="save-btn" style="width:100%;margin-top:14px;font-size:16px;padding:12px;" '+(m.ready && total?'':'disabled')+' onclick="confirmLogImport()">✅ '+(isEn?'Add '+total+' entr(ies)':'Ajouter '+total+' entrée(s)')+'</button>'+
+    '<button class="sc-btn" style="width:100%;margin-top:6px;font-size:15px;padding:10px;" onclick="pendingLogImport=null; closeQuickModal();">'+(isEn?'Cancel':'Annuler')+'</button>';
+  showQuickModal(isEn?'History import preview':'Aperçu de l\'import d\'historique', body);
+}
+function confirmLogImport(){
+  const isEn = currentLang==='en';
+  const m = pendingLogImport; if(!m || !m.items) return;
+  const base = Date.now();
+  const touched = new Set();
+  m.items.forEach((it, i)=>{
+    const s = it.snake; ensureSnakeMeta(s);
+    if(it.type==='weight'){ s.health.weights.push({ date: it.date, value: it.value }); }
+    else {
+      const ev = { id:'ev_log_'+base+'_'+i, type: it.type, date: it.date };
+      ['preySpecies','preySize','preyType','preyCount','quality','note'].forEach(k=>{ if(it[k]!=null && it[k]!=='') ev[k] = it[k]; });
+      s.health.events.push(ev);
+    }
+    touched.add(s);
+  });
+  touched.forEach(s=>{
+    s.health.weights.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+    s.health.events.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+    try{ recomputeConsecutiveRefusals(s); }catch(e){}
+    s.updatedAt = Date.now();
+  });
+  const n = m.items.length;
+  pendingLogImport = null;
+  storage.save(savedSnakes);
+  renderSavedList();
+  closeQuickModal();
+  showToast('🗓 '+n+' '+(isEn?'entr(ies) added to '+touched.size+' animal(s).':'entrée(s) ajoutée(s) à '+touched.size+' animal(s).'), 'success');
+}
+// Aiguillage d'un fichier : liste d'animaux, historique, ou les deux (2 feuilles du même Excel → animaux d'abord).
+function routeImportSheets(sheets, meta){
+  const isEn = currentLang==='en';
+  const nonEmpty = (sheets||[]).filter(sh=>(sh.rows||[]).some(r=>Array.isArray(r) && r.some(c=>importCellStr(c)!=='')));
+  if(!nonEmpty.length){ alert(isEn?'Empty file.':'Fichier vide.'); return; }
+  const logs = nonEmpty.filter(sh=>isLogSheet(sh.rows));
+  const lists = nonEmpty.filter(sh=>!logs.includes(sh) && sh.rows.slice(0,10).some(r=>{ const mm = mapCsvHeaders((r||[]).map(importCellStr)); return mm.name!==undefined || mm.animalId!==undefined; }));
+  if(lists.length){
+    pendingLogAfterAnimals = logs.length ? logs[0].rows : null;
+    genericImportFromRows(lists[0].rows, { sheet: meta && meta.isExcel ? lists[0].n : null, sheets: nonEmpty.length, hasLog: !!logs.length });
+  } else if(logs.length){
+    pendingLogAfterAnimals = null;
+    logImportFromRows(logs[0].rows);
+  } else {
+    pendingLogAfterAnimals = null;
+    genericImportFromRows(nonEmpty[0].rows, { sheet: meta && meta.isExcel ? nonEmpty[0].n : null, sheets: nonEmpty.length });
+  }
+}
+// v4.17 — l'aperçu montre CHAQUE colonne du fichier avec un menu pour l'associer (ou l'ignorer) :
+// une colonne au titre inconnu (« Morph », « Hatch »…) s'associe sans toucher au fichier. Si aucune
+// colonne nom/ID n'est reconnue, on demande laquelle au lieu d'un message d'erreur. L'ordre des
+// colonnes n'a jamais compté : tout passe par les titres (ou par le choix fait ici).
+var IMPORT_FIELD_ORDER = ['animalId','name','sex','species','genes','birthDate','weight','weightDate','lastFed','provenance','purchasePrice','askingPrice'];
+function importFieldLabel(f, isEn){
+  const L = { animalId:['ID','ID'], name:['Nom','Name'], sex:['Sexe','Sex'], species:['Espèce','Species'], genes:['Génétique','Genetics'], birthDate:['Date de naissance','Birth date'], weight:['Poids (g)','Weight (g)'], weightDate:['Date de pesée','Weigh date'], lastFed:['Dernier repas (date)','Last fed (date)'], provenance:['Provenance','Provenance'], purchasePrice:['Prix d\'achat','Purchase price'], askingPrice:['Prix demandé','Asking price'] };
+  return L[f] ? L[f][isEn?1:0] : f;
+}
 function genericImportFromRows(rows, meta){
   const isEn = currentLang==='en';
   rows = (rows||[]).filter(r=>Array.isArray(r) && r.some(c=>importCellStr(c)!==''));
   if(!rows.length){ alert(isEn?'Empty file.':'Fichier vide.'); return; }
   let hIdx = -1, colMap = null;
-  for(let i=0;i<Math.min(10,rows.length);i++){ const m = mapCsvHeaders(rows[i].map(importCellStr)); if(m.name!==undefined){ hIdx = i; colMap = m; break; } }
-  if(hIdx<0){ alert(isEn?'Could not find a "name" column — the first rows of your sheet need a header such as "Name" or "Nom".':'Impossible de trouver une colonne « nom » — les premières lignes de ta feuille doivent avoir un en-tête comme « Nom » ou « Name ».'); return; }
-  const headerRow = rows[hIdx].map(importCellStr);
+  for(let i=0;i<Math.min(10,rows.length);i++){ const mm = mapCsvHeaders(rows[i].map(importCellStr)); if(mm.name!==undefined || mm.animalId!==undefined){ hIdx = i; colMap = mm; break; } }
+  if(hIdx<0){
+    // Aucune colonne nom/ID reconnue : on prend la première ligne « titre » (au moins 2 cases remplies) et on laisse choisir
+    hIdx = rows.findIndex((r,i)=>i<10 && r.filter(c=>importCellStr(c)!=='').length>=2);
+    if(hIdx<0) hIdx = 0;
+    colMap = mapCsvHeaders(rows[hIdx].map(importCellStr));
+  }
+  const width = rows.reduce((a,r)=>Math.max(a, r.length), 0);
+  const headerRow = Array.from({ length: width }, (_, i)=>importCellStr(rows[hIdx][i]));
+  pendingGenericImportMeta = { rows, hIdx, colMap, headerRow, ambiguousDates:0, emptyRows:0, sheet: meta && meta.sheet, sheets: meta && meta.sheets, hasLog: !!(meta && meta.hasLog), importDupes:false };
+  rebuildGenericImportRows();
+  renderGenericCsvPreview();
+}
+// v4.18 — une colonne de dates JJ/MM ou MM/JJ : si UNE seule date de la colonne a un jour > 12, on connaît
+// l'ordre de toute la colonne (fichiers américains comme Husbandry Pro = MM/JJ). Si la colonne se contredit, on ne devine pas.
+function importDateOrder(rows, colIdx){
+  if(colIdx===undefined) return null;
+  let dmy = false, mdy = false;
+  rows.forEach(cols=>{ const m = importCellStr(cols[colIdx]).match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/); if(!m) return; if(+m[1]>12) dmy = true; if(+m[2]>12) mdy = true; });
+  return (dmy && !mdy) ? 'dmy' : (mdy && !dmy) ? 'mdy' : null;
+}
+function rebuildGenericImportRows(){
+  const m = pendingGenericImportMeta; if(!m) return;
+  const colMap = m.colMap;
   const raw = (cols,f)=> colMap[f]!==undefined ? cols[colMap[f]] : '';
   const str = (cols,f)=> importCellStr(raw(cols,f));
   const num = (cols,f)=>{ const v = raw(cols,f); if(typeof v==='number') return v; const s2 = importCellStr(v).replace(/\s/g,'').replace(',','.').replace(/[^0-9.]/g,''); return s2 ? parseFloat(s2) : null; };
-  const existing = new Set(savedSnakes.map(s=>normalizeHeaderKey(s.name||'')));
+  const existing = new Set(savedSnakes.map(s=>normalizeHeaderKey(s.name||'')).filter(Boolean));
+  const existingIds = new Set(savedSnakes.map(s=>String(s.animalId||'').toUpperCase()).filter(Boolean)); // v4.16
   const seen = new Set();
-  let ambiguousDates = 0;
-  pendingGenericCsvRows = rows.slice(hIdx+1).map(cols=>{
+  let ambiguousDates = 0, emptyRows = 0;
+  const dataRows = m.rows.slice(m.hIdx+1);
+  const ord = { birthDate: importDateOrder(dataRows, colMap.birthDate), weightDate: importDateOrder(dataRows, colMap.weightDate), lastFed: importDateOrder(dataRows, colMap.lastFed) };
+  m.dateOrders = ord;
+  if(colMap.name===undefined && colMap.animalId===undefined){ pendingGenericCsvRows = []; m.ambiguousDates = 0; m.emptyRows = 0; return; }
+  pendingGenericCsvRows = m.rows.slice(m.hIdx+1).map(cols=>{
     const name = str(cols,'name');
-    if(!name) return null;
+    const animalId = normalizeAnimalId(str(cols,'animalId')); // v4.16
+    if(!name && !animalId){ emptyRows++; return null; }
     const sexRaw = normalizeHeaderKey(str(cols,'sex'));
-    const bd = normalizeImportDate(raw(cols,'birthDate'));
+    const bd = normalizeImportDate(raw(cols,'birthDate'), ord.birthDate);
     if(bd.ambiguous) ambiguousDates++;
-    const wd = normalizeImportDate(raw(cols,'weightDate'));
+    const wd = normalizeImportDate(raw(cols,'weightDate'), ord.weightDate);
     if(wd.ambiguous) ambiguousDates++;
+    const lf = normalizeImportDate(raw(cols,'lastFed'), ord.lastFed); // v4.18
+    if(lf.ambiguous) ambiguousDates++;
     const sp = matchImportSpecies(str(cols,'species'));
     const parsed = hasGenetics(sp.id) ? parseImportGenes(str(cols,'genes'), sp.id) : { genes:{}, unknown: str(cols,'genes') ? [str(cols,'genes')] : [] };
-    const key = normalizeHeaderKey(name);
-    const dupe = existing.has(key) || seen.has(key);
+    // v4.16 — doublon : par ID quand il y en a un (deux « Rex » avec des ID différents sont deux animaux), sinon par nom
+    const key = animalId ? 'id:'+animalId.toUpperCase() : 'n:'+normalizeHeaderKey(name);
+    const dupe = (animalId ? existingIds.has(animalId.toUpperCase()) : existing.has(normalizeHeaderKey(name))) || seen.has(key);
     seen.add(key);
     const weight = num(cols,'weight');
     return {
-      name: name.slice(0,80),
+      name: name.slice(0,80), animalId,
       sex: /^(f|femelle|female|0\.1)/.test(sexRaw) ? 'female' : /^(m|male|1\.0)/.test(sexRaw) ? 'male' : null,
       genes: parsed.genes, unknownGenes: parsed.unknown, genesRaw: str(cols,'genes'),
       birthDate: bd.value,
@@ -14772,50 +15110,78 @@ function genericImportFromRows(rows, meta){
       purchasePrice: num(cols,'purchasePrice'),
       species: sp.id, speciesKnown: sp.known,
       askingPrice: num(cols,'askingPrice'),
-      notes: str(cols,'notes') || null,
       weight: weight && weight>0 ? Math.round(weight*10)/10 : null,
       weightDate: wd.value && wd.value.length===10 ? wd.value : null,
+      lastFed: lf.value && lf.value.length===10 ? lf.value : null,
       dupe
     };
   }).filter(Boolean);
-  if(!pendingGenericCsvRows.length){ alert(isEn?'No valid row found (the name column is empty?).':'Aucune ligne valide trouvée (colonne nom vide ?).'); return; }
-  pendingGenericImportMeta = { colMap, headerRow, ambiguousDates, sheet: meta && meta.sheet, sheets: meta && meta.sheets, importDupes:false };
+  m.ambiguousDates = ambiguousDates; m.emptyRows = emptyRows;
+}
+// Choix fait dans le menu d'une colonne : une colonne = un champ, un champ = une colonne.
+function setImportColumn(colIdx, field){
+  const m = pendingGenericImportMeta; if(!m) return;
+  Object.keys(m.colMap).forEach(f=>{ if(m.colMap[f]===colIdx) delete m.colMap[f]; });
+  if(field){ delete m.colMap[field]; m.colMap[field] = colIdx; }
+  rebuildGenericImportRows();
   renderGenericCsvPreview();
 }
 function renderGenericCsvPreview(){
   const isEn = currentLang==='en';
   const m = pendingGenericImportMeta; if(!m) return;
-  const labels = { name:isEn?'name':'nom', sex:isEn?'sex':'sexe', genes:isEn?'genetics':'génétique', birthDate:isEn?'birth date':'naissance', provenance:'provenance', purchasePrice:isEn?'purchase price':'prix d\'achat', species:isEn?'species':'espèce', askingPrice:isEn?'asking price':'prix demandé', notes:'notes', weight:isEn?'weight':'poids', weightDate:isEn?'weigh date':'date de pesée' };
-  const detected = Object.keys(m.colMap).map(f=>'<b>'+(labels[f]||f)+'</b> ← « '+escapeHtml(m.headerRow[m.colMap[f]])+' »').join('<br>');
   const rowsAll = pendingGenericCsvRows;
+  const hasKey = m.colMap.name!==undefined || m.colMap.animalId!==undefined;
   const dupes = rowsAll.filter(r=>r.dupe).length;
   const toImport = rowsAll.filter(r=>m.importDupes || !r.dupe);
   const unknownSp = [...new Set(rowsAll.filter(r=>!r.speciesKnown).map(r=>r.species))];
   const withUnknownGenes = rowsAll.filter(r=>r.unknownGenes && r.unknownGenes.length).length;
   const weightsNoDate = rowsAll.filter(r=>r.weight && !r.weightDate).length;
   const p = (txt, color)=>'<p style="font-size:14px;line-height:1.45;margin:8px 0;color:'+(color||'var(--ink)')+';">'+txt+'</p>';
+  const firstData = m.rows[m.hIdx+1] || [];
+  const fieldOf = {}; Object.keys(m.colMap).forEach(f=>{ fieldOf[m.colMap[f]] = f; });
+  const unmatched = m.headerRow.map((h,i)=>({ h, i })).filter(x=>fieldOf[x.i]===undefined && (x.h || importCellStr(firstData[x.i])));
+  const colsHtml = m.headerRow.map((h,i)=>{
+    const sample = importCellStr(firstData[i]);
+    if(!h && !sample) return '';
+    const f = fieldOf[i];
+    return '<div style="padding:8px 0;border-bottom:1px solid var(--line);">'+
+      '<div style="font-size:14.5px;color:var(--ink);"><b>« '+escapeHtml(h || (isEn?'(no title)':'(sans titre)'))+' »</b>'+(sample ? ' <span style="font-size:13px;color:var(--ink-dim);">'+(isEn?'e.g. ':'ex. ')+escapeHtml(sample.slice(0,40))+'</span>' : '')+'</div>'+
+      '<select onchange="setImportColumn('+i+', this.value)" style="width:100%;margin-top:5px;font-size:16px;padding:8px;background:var(--bg-panel-2);border:1px solid '+(f?'var(--sage)':'var(--gold)')+';border-radius:8px;color:var(--ink);">'+
+        '<option value="">'+(f ? (isEn?'— Ignore this column —':'— Ignorer cette colonne —') : (isEn?'⚠ Not recognized — ignored':'⚠ Non reconnue — ignorée'))+'</option>'+
+        IMPORT_FIELD_ORDER.map(k=>'<option value="'+k+'"'+(f===k?' selected':'')+'>'+escapeHtml(importFieldLabel(k, isEn))+(m.colMap[k]!==undefined && m.colMap[k]!==i ? (isEn?' (replaces « ':' (remplace « ')+escapeHtml(m.headerRow[m.colMap[k]]||'?')+' »)' : '')+'</option>').join('')+
+      '</select></div>';
+  }).join('');
   const previewRows = rowsAll.slice(0,8).map(r=>{
     const g = Object.keys(r.genes).length ? summarizeGenes(r.genes) : (r.genesRaw ? escapeHtml(r.genesRaw) : '');
     return '<div style="padding:8px 0;border-bottom:1px solid var(--line);font-size:14.5px;'+(r.dupe && !m.importDupes?'opacity:.5;':'')+'">'+
-      '<div><b>'+escapeHtml(r.name)+'</b> <span style="color:var(--ink-dim);font-size:13px;">'+(r.sex==='male'?'♂':r.sex==='female'?'♀':'?')+' · '+escapeHtml(speciesDisplayLabel(r.species, isEn))+(r.birthDate?' · '+escapeHtml(r.birthDate):'')+(r.weight?' · '+r.weight+' g':'')+'</span>'+(r.dupe?' <span style="color:var(--gold);font-size:13px;">'+(isEn?'(already in your collection)':'(déjà dans ta collection)')+'</span>':'')+'</div>'+
+      '<div><b>'+escapeHtml(r.name || r.animalId)+'</b>'+(r.name && r.animalId ? ' <span style="font-size:13px;color:var(--ink-dim);">'+escapeHtml(r.animalId)+'</span>' : '')+' <span style="color:var(--ink-dim);font-size:13px;">'+(r.sex==='male'?'♂':r.sex==='female'?'♀':'?')+' · '+escapeHtml(speciesDisplayLabel(r.species, isEn))+(r.birthDate?' · '+escapeHtml(r.birthDate):'')+(r.weight?' · '+r.weight+' g':'')+'</span>'+(r.dupe?' <span style="color:var(--gold);font-size:13px;">'+(isEn?'(already in your collection)':'(déjà dans ta collection)')+'</span>':'')+'</div>'+
       (g ? '<div style="font-size:13.5px;color:var(--ink-dim);margin-top:2px;">'+g+'</div>' : '')+
       (r.unknownGenes && r.unknownGenes.length ? '<div style="font-size:13px;color:var(--gold);margin-top:2px;">⚠ '+(isEn?'Not recognized: ':'Non reconnu : ')+escapeHtml(r.unknownGenes.join(', '))+'</div>' : '')+
     '</div>';
   }).join('');
   const body =
-    (m.sheet ? p((isEn?'Sheet read: ':'Feuille lue : ')+'<b>'+escapeHtml(m.sheet)+'</b>'+(m.sheets>1?(isEn?' ('+m.sheets+' sheets in the file — the first one with a name column)':' ('+m.sheets+' feuilles dans le fichier — la première avec une colonne nom)'):''), 'var(--ink-dim)') : '')+
-    p((isEn?'Columns recognized:':'Colonnes reconnues :')+'<br>'+detected)+
-    p('<b>'+toImport.length+'</b> '+(isEn?'reptile(s) will be added.':'reptile(s) seront ajouté(s).'))+
-    (dupes ? '<label style="display:flex;gap:8px;align-items:center;font-size:14px;margin:6px 0;"><input type="checkbox" '+(m.importDupes?'checked':'')+' onchange="pendingGenericImportMeta.importDupes=this.checked; renderGenericCsvPreview();" style="width:20px;height:20px;"> '+(isEn?dupes+' name(s) already in your collection — import them anyway':dupes+' nom(s) déjà dans ta collection — les importer quand même')+'</label>' : '')+
+    (m.hasLog ? p('🗓 '+(isEn?'A history sheet (meals, sheds, weigh-ins) was also found — it will be offered right after the animals.':'Une feuille d\'historique (repas, mues, pesées) a aussi été trouvée — elle sera proposée juste après les animaux.'), 'var(--sage)') : '')+
+    (m.sheet ? p((isEn?'Sheet read: ':'Feuille lue : ')+'<b>'+escapeHtml(m.sheet)+'</b>'+(m.sheets>1?(isEn?' ('+m.sheets+' sheets in the file — the first one with a name or ID column)':' ('+m.sheets+' feuilles dans le fichier — la première avec une colonne nom ou ID)'):''), 'var(--ink-dim)') : '')+
+    (!hasKey ? '<div style="background:rgba(212,175,55,.14);border:1px solid var(--gold);border-radius:10px;padding:10px 12px;margin:6px 0 10px;font-size:15px;line-height:1.45;color:var(--ink);">⚠ <b>'+(isEn?'LOCUS didn\'t find a name or ID column.':'LOCUS n\'a pas trouvé de colonne nom ou ID.')+'</b><br>'+(isEn?'Below, choose « Name » or « ID » for the right column (at least one is required).':'Plus bas, choisis « Nom » ou « ID » pour la bonne colonne (au moins un des deux est obligatoire).')+'</div>' : '')+
+    (hasKey ? p('<b>'+toImport.length+'</b> '+(isEn?'reptile(s) will be added.':'reptile(s) seront ajouté(s).')+(m.emptyRows ? ' <span style="color:var(--ink-dim);font-size:13px;">('+m.emptyRows+(isEn?' row(s) with neither name nor ID skipped)':' ligne(s) sans nom ni ID ignorée(s))')+'</span>' : '')) : '')+
+    (unmatched.length && hasKey ? p('⚠ '+(isEn?unmatched.length+' column(s) not recognized and ignored: ':unmatched.length+' colonne(s) non reconnue(s), donc ignorée(s) : ')+'<b>'+escapeHtml(unmatched.map(x=>x.h||'?').join(', '))+'</b>'+(isEn?' — choose a field for them below if needed.':' — choisis-leur un champ plus bas si besoin.'), 'var(--gold)') : '')+
+    (dupes ? '<label style="display:flex;gap:8px;align-items:center;font-size:14px;margin:6px 0;"><input type="checkbox" '+(m.importDupes?'checked':'')+' onchange="pendingGenericImportMeta.importDupes=this.checked; renderGenericCsvPreview();" style="width:20px;height:20px;"> '+(isEn?dupes+' animal(s) already in your collection (same ID, or same name when there is no ID) — import them anyway':dupes+' animal(s) déjà dans ta collection (même ID, ou même nom s\'il n\'y a pas d\'ID) — les importer quand même')+'</label>' : '')+
     (withUnknownGenes ? p('⚠ '+(isEn?withUnknownGenes+' animal(s) have words in the genetics that LOCUS doesn\'t recognize — they\'re skipped; you can fix the genetics on the sheet after.':withUnknownGenes+' animal(s) ont des mots dans la génétique que LOCUS ne reconnaît pas — ils sont ignorés; tu pourras corriger la génétique sur la fiche ensuite.'), 'var(--gold)') : '')+
     (unknownSp.length ? p('⚠ '+(isEn?'Species not recognized (kept as written): ':'Espèce non reconnue (gardée telle quelle) : ')+escapeHtml(unknownSp.join(', ')), 'var(--gold)') : '')+
     (m.ambiguousDates ? p('⚠ '+(isEn?m.ambiguousDates+' date(s) left empty because the format is ambiguous (e.g. 03/04/2026 could be March 4 or April 3). Use YYYY-MM-DD or a real Excel date.':m.ambiguousDates+' date(s) laissée(s) vide(s) parce que le format est ambigu (ex. 03/04/2026 = 3 avril ou 4 mars ?). Utilise AAAA-MM-JJ ou une vraie date Excel.'), 'var(--gold)') : '')+
+    ((m.dateOrders && Object.values(m.dateOrders).some(Boolean)) ? p('📅 '+Object.keys(m.dateOrders).filter(k=>m.dateOrders[k]).map(k=>importFieldLabel(k, isEn)+' : '+(m.dateOrders[k]==='mdy'?(isEn?'read as month/day/year':'lu comme mois/jour/année'):(isEn?'read as day/month/year':'lu comme jour/mois/année'))).join(' · ')+(isEn?' (deduced from the column).':' (déduit de la colonne).'), 'var(--ink-dim)') : '')+
+    (rowsAll.some(r=>r.lastFed) ? p('🍽 '+(isEn?'The last-fed date becomes a meal in each animal\'s log.':'La date du dernier repas devient un repas dans le journal de chaque animal.'), 'var(--ink-dim)') : '')+
     (weightsNoDate ? p('⚖ '+(isEn?weightsNoDate+' weight(s) without a date will be recorded as today\'s weigh-in.':weightsNoDate+' poids sans date seront notés comme une pesée d\'aujourd\'hui.'), 'var(--ink-dim)') : '')+
-    p(isEn?'Genetics are marked "To verify" until you confirm them.':'La génétique est marquée « À vérifier » jusqu\'à ce que tu la confirmes.', 'var(--ink-dim)')+
-    '<div style="margin-top:6px;">'+previewRows+'</div>'+
-    (rowsAll.length>8 ? '<div style="font-size:13.5px;color:var(--ink-dim);padding:6px 0;">+'+(rowsAll.length-8)+' '+(isEn?'more':'de plus')+'</div>' : '')+
-    '<button class="save-btn" style="width:100%;margin-top:14px;font-size:16px;padding:12px;" '+(toImport.length?'':'disabled')+' onclick="confirmGenericCsvImport()">✅ '+(isEn?'Import '+toImport.length+' reptile(s)':'Importer '+toImport.length+' reptile(s)')+'</button>'+
-    '<button class="sc-btn" style="width:100%;margin-top:6px;font-size:15px;padding:10px;" onclick="pendingGenericCsvRows=[]; pendingGenericImportMeta=null; closeQuickModal();">'+(isEn?'Cancel':'Annuler')+'</button>';
+    '<details'+((!hasKey || unmatched.length) ? ' open' : '')+' style="margin:10px 0;border:1px solid var(--line);border-radius:10px;padding:8px 12px;">'+
+      '<summary style="font-size:15px;font-weight:600;color:var(--sage);cursor:pointer;">'+(isEn?'Columns of your file':'Colonnes de ton fichier')+' ('+Object.keys(m.colMap).length+'/'+m.headerRow.filter((h,i)=>h || importCellStr(firstData[i])).length+(isEn?' used':' utilisées')+')</summary>'+
+      '<div style="font-size:13px;color:var(--ink-dim);margin:6px 0 2px;">'+(isEn?'Column order doesn\'t matter. Change a menu to tell LOCUS what a column contains.':'L\'ordre des colonnes n\'a pas d\'importance. Change un menu pour dire à LOCUS ce que contient une colonne.')+'</div>'+
+      colsHtml+
+    '</details>'+
+    (hasKey ? p(isEn?'Genetics are marked "To verify" until you confirm them.':'La génétique est marquée « À vérifier » jusqu\'à ce que tu la confirmes.', 'var(--ink-dim)')+
+      '<div style="margin-top:6px;">'+previewRows+'</div>'+
+      (rowsAll.length>8 ? '<div style="font-size:13.5px;color:var(--ink-dim);padding:6px 0;">+'+(rowsAll.length-8)+' '+(isEn?'more':'de plus')+'</div>' : '') : '')+
+    '<button class="save-btn" style="width:100%;margin-top:14px;font-size:16px;padding:12px;" '+(hasKey && toImport.length?'':'disabled')+' onclick="confirmGenericCsvImport()">✅ '+(isEn?'Import '+toImport.length+' reptile(s)':'Importer '+toImport.length+' reptile(s)')+'</button>'+
+    '<button class="sc-btn" style="width:100%;margin-top:6px;font-size:15px;padding:10px;" onclick="pendingGenericCsvRows=[]; pendingGenericImportMeta=null; pendingLogAfterAnimals=null; closeQuickModal();">'+(isEn?'Cancel':'Annuler')+'</button>';
   showQuickModal((isEn?'Import preview':'Aperçu de l\'import'), body);
 }
 function confirmGenericCsvImport(){
@@ -14827,12 +15193,12 @@ function confirmGenericCsvImport(){
   pendingGenericCsvRows.filter(r=>m.importDupes || !r.dupe).forEach((r, i)=>{
     const snake = {
       id:'snk_'+base+'_'+i+'_'+Math.random().toString(36).slice(2,6),
-      name:r.name, sex:r.sex, genes:r.genes||{}, genesVerified:false, sireId:null, damId:null,
+      name:r.name||'', animalId:r.animalId||null, sex:r.sex, genes:r.genes||{}, genesVerified:false, sireId:null, damId:null,
       birthDate:r.birthDate||null, provenance:r.provenance,
       purchasePrice:r.purchasePrice, species:r.species||'ball_python',
       askingPrice:r.askingPrice, notes:r.notes||undefined,
       status:'kept', createdAt: base+i,
-      health:{ events:[], weights: r.weight ? [{ date: r.weightDate || today, value: r.weight }] : [], lengths:[] }
+      health:{ events: r.lastFed ? [{ id:'ev_imp_'+base+'_'+i, type:'fed', date:r.lastFed }] : [], weights: r.weight ? [{ date: r.weightDate || today, value: r.weight }] : [], lengths:[] }
     };
     if(!snake.notes) delete snake.notes;
     savedSnakes.push(snake);
@@ -14845,6 +15211,7 @@ function confirmGenericCsvImport(){
   renderSavedList();
   closeQuickModal();
   showToast('📋 '+added+' '+(isEn?'reptile(s) imported.':'reptile(s) importé(s).'), 'success');
+  if(pendingLogAfterAnimals){ const lg = pendingLogAfterAnimals; pendingLogAfterAnimals = null; setTimeout(()=>logImportFromRows(lg), 400); } // v4.19 — l'historique du même fichier, maintenant que les animaux existent
 }
 
 /* ==================== Import MorphMarket (Animal Manager export) ==================== */
@@ -15286,11 +15653,13 @@ function renderPedigreeTree(snakeId){
   '</div>';
   return '<div id="ped-wrap-'+escapeHtml(String(snakeId))+'">'+genPicker+'<div class="pedigree-tree'+(PEDIGREE_GENERATIONS>=5?' ped-wide':'')+'">'+
     colsHtml+
-    '<div class="ped-col ped-col-self"><div class="ped-node ped-self">'+escapeHtml(tree.snake.name)+'</div></div>'+
+    '<div class="ped-col ped-col-self"><div class="ped-node ped-self">'+escapeHtml(snakeName(tree.snake))+'</div></div>'+
   '</div>'+inbreedingWarning+'</div>';
 }
 
 function ensureSnakeMeta(s){
+  if(typeof s.name!=='string') s.name = s.name==null ? '' : String(s.name); // v4.16 — nom facultatif (ID seul possible)
+  if(s.animalId===undefined) s.animalId = null; // v4.16 — ID animal (ex. BP-M-26-C3-01)
   if(!s.placement) s.placement = { mode:'terrarium', row:null, tub:null };
   if(s.placement.mode==='rack' && !s.placement.rackId) s.placement.rackId = racks[0] ? racks[0].id : 'rack_1'; // migration ancien format
   // terrariumId (31 août) : avant, mode:'terrarium' était une simple étiquette sans terrarium nommé
@@ -15530,7 +15899,7 @@ function addProvenSeason(id){
   storage.save(savedSnakes);
   openLogbook(id);
   renderSavedList();
-  showToast('✅ '+escapeHtml(s.name)+' — Proven '+provenSeasonLabel({year, eggs, live:speciesIsLiveBearer(s)}, isEn), 'success');
+  showToast('✅ '+escapeHtml(snakeName(s))+' — Proven '+provenSeasonLabel({year, eggs, live:speciesIsLiveBearer(s)}, isEn), 'success');
 }
 function removeProvenSeason(id, seasonId){
   const s = savedSnakes.find(x=>x.id===id);
@@ -18405,7 +18774,8 @@ var elevageSearchTerm = '';
 function matchesSearch(s, term){
   if(!term) return true;
   const q = term.toLowerCase();
-  if(s.name.toLowerCase().includes(q)) return true;
+  if(String(s.name||'').toLowerCase().includes(q)) return true;
+  if(s.animalId && String(s.animalId).toLowerCase().includes(q)) return true; // v4.16
   if(s.provenance && s.provenance.toLowerCase().includes(q)) return true;
   return Object.keys(s.genes).some(gid=>{
     if(isFreewayKey(gid)) return freewayLabel(freewayLocusFromKey(gid)).toLowerCase().includes(q);
@@ -18468,10 +18838,10 @@ function renderRackGrid(){
         cell.className = 'tub' + (snake?'':' empty') + feedCls + searchCls;
         if(snake){
           cell.setAttribute('data-tooltip', snakeTooltip(snake));
-          cell.innerHTML = '<button class="tub-remove" title="'+t('removeFromTubTitle')+'" aria-label="'+t('removeFromTubAria')+escapeHtml(snake.name)+t('fromTubSuffix')+'">✕</button>'+
+          cell.innerHTML = '<button class="tub-remove" title="'+t('removeFromTubTitle')+'" aria-label="'+t('removeFromTubAria')+escapeHtml(snakeName(snake))+t('fromTubSuffix')+'">✕</button>'+
             '<button class="tub-remove" style="right:22px;" title="'+(isEn?'Cleaning':'Nettoyage')+'">🧹</button>'+
             '<button class="tub-remove" style="right:44px;" title="'+(isEn?'Water change':'Changement d\'eau')+'">💧</button>'+
-            '<div class="tub-name">'+escapeHtml(snake.name)+'</div><div class="tub-tag">'+(snake.sex==='male'?'♂':'♀')+'</div>';
+            '<div class="tub-name">'+escapeHtml(snakeName(snake))+'</div><div class="tub-tag">'+(snake.sex==='male'?'♂':'♀')+'</div>';
           cell.addEventListener('click', ()=>openLogbook(snake.id));
           cell.querySelector('.tub-remove').addEventListener('click', (e)=>{ e.stopPropagation(); unassignTub(rack.id,row,t2); });
           cell.querySelectorAll('.tub-remove')[1].addEventListener('click', (e)=>{ e.stopPropagation(); openSingleTubCleaningModal(rack.id, row, t2); });
@@ -19643,7 +20013,7 @@ function openAssignAnimalModal(terrariumId){
   if(terrariumOccupants(terrariumId).length >= terrariumCapacity(te)){ alert(isEn?'This terrarium is already full.':'Ce terrarium est déjà plein.'); return; }
   const candidates = savedSnakes.filter(s=>{ ensureSnakeMeta(s); return !(s.placement.mode==='terrarium' && s.placement.terrariumId===terrariumId); });
   if(!candidates.length){ alert(isEn?'No other reptile available.':'Aucun autre reptile disponible.'); return; }
-  const optionsHtml = candidates.map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+' ('+(s.sex==='male'?'♂':'♀')+')</option>').join('');
+  const optionsHtml = candidates.map(s=>'<option value="'+s.id+'">'+escapeHtml(snakeName(s))+' ('+(s.sex==='male'?'♂':'♀')+')</option>').join('');
   const body =
     '<select id="te-assign-select" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:12px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+optionsHtml+'</select>'+
     '<button class="sc-btn accent" style="width:100%;" onclick="confirmAssignAnimal(\''+terrariumId+'\')">'+(isEn?'Assign':'Assigner')+'</button>';
@@ -19746,7 +20116,7 @@ function renderTerrariumList(){
     unassigned.forEach(s=>{
       const row = document.createElement('div');
       row.className = 'terra-occupant';
-      row.innerHTML = '<span class="terra-occupant-name" data-open="'+s.id+'">'+escapeHtml(s.name)+' ('+(s.sex==='male'?'♂':'♀')+')</span>'+
+      row.innerHTML = '<span class="terra-occupant-name" data-open="'+s.id+'">'+escapeHtml(snakeName(s))+' ('+(s.sex==='male'?'♂':'♀')+')</span>'+
         '<span class="terra-occupant-actions"><button class="sc-btn" data-move="'+s.id+'">'+(isEn?'Assign':'Assigner')+'</button></span>';
       card.appendChild(row);
     });
@@ -19863,7 +20233,7 @@ function renderTerrariumList(){
           const row = document.createElement('div');
           row.className = 'terra-occupant feed-'+feedingStatus(s);
           row.setAttribute('data-tooltip', snakeTooltip(s));
-          row.innerHTML = '<span class="terra-occupant-name" data-open="'+s.id+'">'+escapeHtml(s.name)+' ('+(s.sex==='male'?'♂':'♀')+')</span>'+
+          row.innerHTML = '<span class="terra-occupant-name" data-open="'+s.id+'">'+escapeHtml(snakeName(s))+' ('+(s.sex==='male'?'♂':'♀')+')</span>'+
             '<span class="terra-occupant-actions">'+
               '<button class="sc-btn" data-move="'+s.id+'">↔</button>'+
               '<button class="sc-btn danger" data-unassign="'+s.id+'">✕</button>'+
@@ -20054,7 +20424,7 @@ function renderTourGrid(){
             if(isInShed(snake)) tag = (tag ? tag+' · ' : '')+'🔵'; // v3.90 — en mue
             cell.setAttribute('data-tooltip', snakeTooltip(snake));
           }
-          cell.innerHTML = (snake ? '<div class="tub-name">'+escapeHtml(snake.name)+'</div><div class="tub-tag">'+tag+'</div>' : (isEn?'Tub ':'Bac ')+tubIdx+(isEn?' — empty':' — vide')) + alertIcon
+          cell.innerHTML = (snake ? '<div class="tub-name">'+escapeHtml(snakeName(snake))+'</div><div class="tub-tag">'+tag+'</div>' : (isEn?'Tub ':'Bac ')+tubIdx+(isEn?' — empty':' — vide')) + alertIcon
             + (snake ? '<span class="tub-prey" data-preytoggle="'+snake.id+'" title="'+(isEn?'Tap to switch live/frozen':'Toucher pour changer vivant/décongelé')+'">'+(snake.preyType==='live'?'🐭':'❄️')+'</span>' : '');
           if(snake){
             cell.addEventListener('click', ()=>{ tourSelection.has(key) ? tourSelection.delete(key) : tourSelection.add(key); renderTourGrid(); });
@@ -20142,7 +20512,7 @@ function renderTourTerrariums(){
       var chipTag = feedingStatus(s)!=='green' ? (chipDsf!==null ? (isEn?' — '+chipDsf+'d':' — '+chipDsf+'j') : (isEn?' — never fed':' — jamais nourri')) : '';
       var chipHl = handlingHoursLeft(s); if(chipHl>0) chipTag += ' · 🤚'+chipHl+'h'; // v3.77
       if(isInShed(s)) chipTag += ' · 🔵'; // v3.90 — en mue
-      chip.innerHTML = '<span>'+escapeHtml(s.name)+' ('+(s.sex==='male'?'♂':'♀')+')'+chipTag+alertIcon+'</span>'+
+      chip.innerHTML = '<span>'+escapeHtml(snakeName(s))+' ('+(s.sex==='male'?'♂':'♀')+')'+chipTag+alertIcon+'</span>'+
         '<span class="tc-prey" data-preytoggle="'+s.id+'" title="'+(isEn?'Tap to switch live/frozen':'Toucher pour changer vivant/décongelé')+'">'+(s.preyType==='live'?'🐭':'❄️')+'</span>';
       chip.querySelector('.tc-prey').addEventListener('click', (ev)=>{ ev.stopPropagation(); toggleTourPreyType(s.id); });
       chip.addEventListener('click', ()=>{ tourSelection.has(key) ? tourSelection.delete(key) : tourSelection.add(key); renderTourGrid(); });
@@ -20194,7 +20564,7 @@ function toggleTourPreyType(id){
   ensureSnakeMeta(snake);
   snake.preyType = (snake.preyType==='live') ? 'frozen' : 'live';
   storage.save(savedSnakes);
-  showToast((snake.preyType==='live' ? '🐭 ' : '❄️ ')+escapeHtml(snake.name)+' — '+(isEn?(snake.preyType==='live'?'live prey':'frozen-thawed prey'):(snake.preyType==='live'?'proie vivante':'proie décongelée')));
+  showToast((snake.preyType==='live' ? '🐭 ' : '❄️ ')+escapeHtml(snakeName(snake))+' — '+(isEn?(snake.preyType==='live'?'live prey':'frozen-thawed prey'):(snake.preyType==='live'?'proie vivante':'proie décongelée')));
   renderTourGrid();
 }
 
@@ -20400,16 +20770,16 @@ function renderHealthAlerts(){
   let html = '';
   if(urgent.length){
     html += '<div class="health-alert-bar">🚨 <b>'+urgent.length+(isEn?' reptile(s)</b> need priority attention: ':' reptile(s)</b> à surveiller en priorité : ')+
-      urgent.map(x=> escapeHtml(x.s.name)+' ('+x.risk.signals.map(sig=>sig.label).join(', ')+')').join(', ')+'</div>';
+      urgent.map(x=> escapeHtml(snakeName(x.s))+' ('+x.risk.signals.map(sig=>sig.label).join(', ')+')').join(', ')+'</div>';
   }
   if(watch.length){
     html += '<div class="health-alert-bar" style="background:rgba(216,187,70,.14);border-color:var(--gold);"><span>⚠ <b style="color:var(--gold);">'+watch.length+(isEn?' reptile(s)</b> to watch: ':' reptile(s)</b> à surveiller : ')+
-      watch.map(x=> escapeHtml(x.s.name)+' ('+x.risk.signals[0].label+')').join(', ')+'</span></div>';
+      watch.map(x=> escapeHtml(snakeName(x.s))+' ('+x.risk.signals[0].label+')').join(', ')+'</span></div>';
   }
   const weighList = savedSnakes.map(s=>({ s, why:weighReminderReason(s) })).filter(x=>x.why);
   if(weighList.length){
     html += '<div style="font-size:12px;color:var(--ink-dim);margin:2px 0 10px;padding:6px 10px;border-left:2px solid var(--line);">⚖️ '+
-      (isEn?'Weigh reminder: ':'Rappel de pesée : ')+weighList.map(x=>'<b style="color:var(--ink);">'+escapeHtml(x.s.name)+'</b> ('+x.why+')').join(', ')+'</div>';
+      (isEn?'Weigh reminder: ':'Rappel de pesée : ')+weighList.map(x=>'<b style="color:var(--ink);">'+escapeHtml(snakeName(x.s))+'</b> ('+x.why+')').join(', ')+'</div>';
   }
   wrap.innerHTML = html;
 }
@@ -20421,8 +20791,8 @@ function renderPairingForm(){
   const femaleSel = document.getElementById('pairing-female');
   const males = savedSnakes.filter(s=>s.sex==='male');
   const females = savedSnakes.filter(s=>s.sex==='female');
-  maleSel.innerHTML = males.length ? males.map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+'</option>').join('') : '<option value="">'+(isEn?'No male registered':'Aucun mâle enregistré')+'</option>';
-  femaleSel.innerHTML = females.length ? females.map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+'</option>').join('') : '<option value="">'+(isEn?'No female registered':'Aucune femelle enregistrée')+'</option>';
+  maleSel.innerHTML = males.length ? males.map(s=>'<option value="'+s.id+'">'+escapeHtml(snakeName(s))+'</option>').join('') : '<option value="">'+(isEn?'No male registered':'Aucun mâle enregistré')+'</option>';
+  femaleSel.innerHTML = females.length ? females.map(s=>'<option value="'+s.id+'">'+escapeHtml(snakeName(s))+'</option>').join('') : '<option value="">'+(isEn?'No female registered':'Aucune femelle enregistrée')+'</option>';
   if(!document.getElementById('pairing-date').value) document.getElementById('pairing-date').valueAsDate = new Date();
   const projectSel = document.getElementById('pairing-project');
   if(projectSel) projectSel.innerHTML = '<option value="">'+(isEn?'No project':'Aucun projet')+'</option>'+projects.map(p=>'<option value="'+p.id+'">'+escapeHtml(p.name)+'</option>').join('');
@@ -20511,7 +20881,7 @@ function renderProjects(){
     const pairingsHtml = linkedPairings.length ? linkedPairings.map(p=>{
       const male = savedSnakes.find(s=>s.id===p.maleId);
       const female = savedSnakes.find(s=>s.id===p.femaleId);
-      return '<div class="modal-row"><span>🐍 '+(male?escapeHtml(male.name):'?')+' × '+(female?escapeHtml(female.name):'?')+'</span><span>'+(p.pairedDate||'?')+'</span></div>';
+      return '<div class="modal-row"><span>🐍 '+(male?escapeHtml(snakeName(male)):'?')+' × '+(female?escapeHtml(snakeName(female)):'?')+'</span><span>'+(p.pairedDate||'?')+'</span></div>';
     }).join('') : '<div class="modal-row"><span>'+(isEn?'No pairing linked yet':'Aucun accouplement lié pour l\'instant')+'</span></div>';
     const folderId = 'folder-proj-'+proj.id;
     const existing = document.getElementById(folderId);
@@ -21803,8 +22173,8 @@ function renderClutchForm(){
   const damSel = document.getElementById('clutch-dam');
   const males = savedSnakes.filter(s=>s.sex==='male');
   const females = savedSnakes.filter(s=>s.sex==='female');
-  sireSel.innerHTML = males.length ? males.map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+'</option>').join('') : '<option value="">'+(isEn?'No male registered':'Aucun mâle enregistré')+'</option>';
-  damSel.innerHTML = females.length ? females.map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+'</option>').join('') : '<option value="">'+(isEn?'No female registered':'Aucune femelle enregistrée')+'</option>';
+  sireSel.innerHTML = males.length ? males.map(s=>'<option value="'+s.id+'">'+escapeHtml(snakeName(s))+'</option>').join('') : '<option value="">'+(isEn?'No male registered':'Aucun mâle enregistré')+'</option>';
+  damSel.innerHTML = females.length ? females.map(s=>'<option value="'+s.id+'">'+escapeHtml(snakeName(s))+'</option>').join('') : '<option value="">'+(isEn?'No female registered':'Aucune femelle enregistrée')+'</option>';
   if(!document.getElementById('clutch-laydate').value) document.getElementById('clutch-laydate').valueAsDate = new Date();
   updateClutchReproductionFields();
 }
@@ -21891,7 +22261,7 @@ function renderPairingROI(){
   relevant.forEach(p=>{
     const male = savedSnakes.find(s=>s.id===p.maleId);
     const female = savedSnakes.find(s=>s.id===p.femaleId);
-    const names = (male?escapeHtml(male.name):'?')+' × '+(female?escapeHtml(female.name):'?');
+    const names = (male?escapeHtml(snakeName(male)):'?')+' × '+(female?escapeHtml(snakeName(female)):'?');
     const r = computePairingROI(p);
     const row = document.createElement('div');
     row.className = 'sale-row';
@@ -22086,8 +22456,8 @@ function renderClutches(){
       (!c.hatched ? '<div class="clutch-progress"><div class="clutch-progress-bar" style="width:'+pct+'%;"></div></div><div class="clutch-mood">'+mood.tone+'</div>' : '')+
       '<div class="clutch-ref">'+c.ref+'</div>'+
       '<div class="clutch-body">'+
-        mrow(t('fatherLabel'), sire?escapeHtml(sire.name):'?') +
-        mrow(t('motherLabel'), dam?escapeHtml(dam.name):'?') +
+        mrow(t('fatherLabel'), sire?escapeHtml(snakeName(sire)):'?') +
+        mrow(t('motherLabel'), dam?escapeHtml(snakeName(dam)):'?') +
         countRowHtml +
         mrow(isOvo?(isEn?'Post-ov. shed':'Mue post-ov.'):t('layDateLabel'), c.layDate) +
         mrow(isOvo?(isEn?'Expected birth':'Mise bas prévue'):t('expectedHatchLabel'), c.hatchDate+' (+'+(c.incubationDays||60)+'j)') +
@@ -22854,7 +23224,7 @@ function statsLineChart(o){
 function statsChartFrame(o, svgHtml, rows, header){
   const isEn = currentLang==='en';
   const legend = (o.series && o.series.length>1)
-    ? '<div style="display:flex;gap:14px;flex-wrap:wrap;margin:0 0 8px;font-size:14px;color:var(--ink);">'+o.series.map(s=>'<span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:12px;height:12px;border-radius:3px;background:'+s.color+';display:inline-block;"></span>'+escapeHtml(s.name)+'</span>').join('')+'</div>' : '';
+    ? '<div style="display:flex;gap:14px;flex-wrap:wrap;margin:0 0 8px;font-size:14px;color:var(--ink);">'+o.series.map(s=>'<span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:12px;height:12px;border-radius:3px;background:'+s.color+';display:inline-block;"></span>'+escapeHtml(snakeName(s))+'</span>').join('')+'</div>' : '';
   const prefs = o.id ? loadStatsChartPrefs() : null;
   const isFav = !!(prefs && prefs.fav.includes(o.id));
   const tools = o.id ? '<div style="display:flex;gap:6px;flex-shrink:0;">'+
@@ -23711,7 +24081,7 @@ function renderStatsView(){
     const ws = withW.find(s=>s.id===statsWeightSnakeId);
     const weightSel = '<div style="margin:0 0 8px;"><label style="font-size:14px;color:var(--ink-dim);">'+(isEn?'Animal: ':'Animal : ')+
       '<select onchange="statsWeightSnakeId=this.value; renderStatsView();" style="font-size:16px;padding:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
-      (withW.length ? withW.map(s=>'<option value="'+escapeHtml(s.id)+'"'+(s.id===statsWeightSnakeId?' selected':'')+'>'+escapeHtml(s.name)+(isActiveSnake(s)?'':' ('+saleStatusLabel(s.status)+')')+'</option>').join('') : '<option>—</option>')+
+      (withW.length ? withW.map(s=>'<option value="'+escapeHtml(s.id)+'"'+(s.id===statsWeightSnakeId?' selected':'')+'>'+escapeHtml(snakeName(s))+(isActiveSnake(s)?'':' ('+saleStatusLabel(s.status)+')')+'</option>').join('') : '<option>—</option>')+
       '</select></label></div>';
     charts.push({ id:'weight', html: statsLineChart({ id:'weight', pre: weightSel, title: ws ? (isEn?'Weight — ':'Poids — ')+ws.name : (isEn?'Weight':'Poids'), color: STATS_COLORS.blue,
       points: ws ? ws.health.weights.map(w=>({ date:w.date, value:Number(w.value) })) : [], fmt:v=>Math.round(v)+' g', xName: 'Date', yName: isEn?'Weight':'Poids',
@@ -24007,7 +24377,7 @@ function openDeceasedModal(id){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
   const isEn = currentLang==='en';
-  showQuickModal('🕊 '+escapeHtml(s.name),
+  showQuickModal('🕊 '+escapeHtml(snakeName(s)),
     '<p style="font-size:14px;color:var(--ink-dim);margin:0 0 14px;line-height:1.5;">'+(isEn
       ? 'Its record moves to Memorial. Nothing is deleted: photos, history and genetics stay, and it stays in its offspring\'s pedigree. Its tub or terrarium is freed.'
       : 'Sa fiche passe dans le Mémorial. Rien n\'est supprimé : photos, historique et génétique restent, et il reste dans le pedigree de ses descendants. Son bac ou terrarium est libéré.')+'</p>'+
@@ -24039,7 +24409,7 @@ function confirmDeceased(id){
   try{ renderRackGrid(); renderTerrariumList(); renderTourGrid(); }catch(e){}
   try{ if(document.getElementById('view-dash').style.display!=='none') renderDashboard(); }catch(e){}
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
-  showToast('🕊 '+escapeHtml(s.name)+' — '+(isEn?'moved to Memorial.':'placé dans le Mémorial.'), 'success');
+  showToast('🕊 '+escapeHtml(snakeName(s))+' — '+(isEn?'moved to Memorial.':'placé dans le Mémorial.'), 'success');
 }
 
 // Réservation avec acompte — vrai trou trouvé (4 sept) : le statut "réservé" existait déjà mais ne
@@ -24452,7 +24822,7 @@ function renderMmBulkExportPanel(){
   }
   const rows = eligible.map(s=>{
     const hasPhoto = !!(s.photos && s.photos.length);
-    return '<div class="modal-row"><span><input type="checkbox" class="mm-bulk-check" data-id="'+s.id+'" checked style="margin-right:8px;"/>'+escapeHtml(s.name)+'</span><span>'+(hasPhoto?'📷':'<span style="color:var(--rust);">'+(isEn?'no photo':'aucune photo')+'</span>')+'</span></div>';
+    return '<div class="modal-row"><span><input type="checkbox" class="mm-bulk-check" data-id="'+s.id+'" checked style="margin-right:8px;"/>'+escapeHtml(snakeName(s))+'</span><span>'+(hasPhoto?'📷':'<span style="color:var(--rust);">'+(isEn?'no photo':'aucune photo')+'</span>')+'</span></div>';
   }).join('');
   wrap.innerHTML = '<div class="community-folder" id="folder-mm-bulk">'+
     '<button class="community-folder-header" onclick="toggleCommunityFolder(\'folder-mm-bulk\')">'+
@@ -24797,7 +25167,7 @@ function renderClientsView(){
         '<div class="client-total">'+total.toLocaleString('fr-CA')+' $</div>'+
       '</div>'+
       '<div class="client-purchases">'+data.sales.map(s=>
-        '<div class="client-purchase-row"><span>'+escapeHtml(s.name)+' — '+summarizeGenes(s.genes)+'</span><span>'+(s.soldDate||'?')+' · '+(s.soldPrice||0)+' $</span></div>'
+        '<div class="client-purchase-row"><span>'+escapeHtml(snakeName(s))+' — '+summarizeGenes(s.genes)+'</span><span>'+(s.soldDate||'?')+' · '+(s.soldPrice||0)+' $</span></div>'
       ).join('')+'</div>'+
       (record && record.notes ? '<div class="client-notes">📝 '+escapeHtml(record.notes)+'</div>' : '')+
       (record && (record.email||record.phone) ? '<div class="client-contact">'+(record.email?'✉ '+escapeHtml(record.email)+' ':'')+(record.phone?'📞 '+escapeHtml(record.phone):'')+'</div>' : '')+
@@ -24890,7 +25260,7 @@ function renderSalesView(){
     const card = document.createElement('div');
     card.className = 'mini-animal-card';
     card.innerHTML =
-      '<div class="mac-name">'+escapeHtml(s.name)+'</div>'+
+      '<div class="mac-name">'+escapeHtml(snakeName(s))+'</div>'+
       '<span class="sc-status '+s.status+'" style="align-self:flex-start;">'+saleStatusLabel(s.status)+'</span>'+
       '<div class="mac-sub">'+priceTxt+'</div>'+
       '<button class="sc-btn accent" data-act="open" data-id="'+s.id+'">'+t('ficheBtn')+'</button>'+
@@ -25570,7 +25940,8 @@ function runGlobalSearch(term){
   if(q.length<2){ resultsWrap.style.display='none'; resultsWrap.innerHTML=''; return; }
 
   const snakeMatches = savedSnakes.filter(s=>{
-    if(s.name.toLowerCase().includes(q)) return true;
+    if(String(s.name||'').toLowerCase().includes(q)) return true;
+    if(s.animalId && String(s.animalId).toLowerCase().includes(q)) return true; // v4.16
     if(s.provenance && s.provenance.toLowerCase().includes(q)) return true;
     if(s.buyer && s.buyer.toLowerCase().includes(q)) return true;
     if(s.species && s.species!=='ball_python' && speciesDisplayLabel(s.species).toLowerCase().includes(q)) return true;
@@ -25594,7 +25965,7 @@ function runGlobalSearch(term){
     html += '<div class="gsr-group">'+(isEn?'Reptiles':'Reptiles')+'</div>';
     snakeMatches.forEach(s=>{
       const speciesTag = (s.species && s.species!=='ball_python') ? ' — 🦎 '+escapeHtml(speciesDisplayLabel(s.species)) : '';
-      html += '<div class="gsr-item" onclick="closeGlobalSearch(); openLogbook(\''+s.id+'\');"><span class="gsr-icon">🐍</span><div><b>'+escapeHtml(s.name)+'</b><small>'+summarizeGenes(s.genes)+speciesTag+'</small></div></div>';
+      html += '<div class="gsr-item" onclick="closeGlobalSearch(); openLogbook(\''+s.id+'\');"><span class="gsr-icon">🐍</span><div><b>'+escapeHtml(snakeName(s))+'</b><small>'+summarizeGenes(s.genes)+speciesTag+'</small></div></div>';
     });
   }
   if(clientMatches.length){
@@ -26030,8 +26401,8 @@ function exportInventoryExcel(){
   const isEn = currentLang==='en';
   savedSnakes.forEach(ensureSnakeMeta);
   const headerRow = isEn
-    ? ['Name','Sex','Species','Genetics','Birth date','Status','Last weight (g)','Provenance','Purchase price ($)','Asking/Sold price ($)','Location']
-    : ['Nom','Sexe','Espèce','Génétique','Date de naissance','Statut','Dernier poids (g)','Provenance','Prix d\'achat ($)','Prix demandé/vendu ($)','Emplacement'];
+    ? ['ID','Name','Sex','Species','Genetics','Birth date','Status','Last weight (g)','Provenance','Purchase price ($)','Asking/Sold price ($)','Location']
+    : ['ID','Nom','Sexe','Espèce','Génétique','Date de naissance','Statut','Dernier poids (g)','Provenance','Prix d\'achat ($)','Prix demandé/vendu ($)','Emplacement'];
   const statusLabel = s => s.status==='deceased' ? (isEn?'Deceased':'Décédé') : s.status==='sold' ? (isEn?'Sold':'Vendu') : s.status==='reserved' ? (isEn?'Reserved':'Réservé') : s.status==='forsale' ? (isEn?'Available':'Disponible') : (isEn?'Not for sale':'Pas à vendre');
   const locationLabel = s => {
     if(s.placement.mode==='rack'){
@@ -26045,7 +26416,7 @@ function exportInventoryExcel(){
     const lastWeight = s.health.weights.length ? s.health.weights[s.health.weights.length-1].value : '';
     const speciesLabel = speciesDisplayLabel(s.species); // v3.52 — nom traduit
     return [
-      s.name, s.sex==='male'?(isEn?'Male':'Mâle'):(isEn?'Female':'Femelle'), speciesLabel,
+      s.animalId||'', s.name, s.sex==='male'?(isEn?'Male':'Mâle'):(isEn?'Female':'Femelle'), speciesLabel,
       summarizeGenes(s.genes), s.birthDate||'', statusLabel(s), lastWeight,
       s.provenance||'', s.purchasePrice!=null?s.purchasePrice:'',
       s.status==='sold'?(s.soldPrice!=null?s.soldPrice:''):(s.askingPrice!=null?s.askingPrice:''),
@@ -26054,7 +26425,7 @@ function exportInventoryExcel(){
   });
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet([headerRow, ...rows]);
-  ws['!cols'] = [{wch:16},{wch:8},{wch:16},{wch:28},{wch:13},{wch:12},{wch:12},{wch:20},{wch:12},{wch:16},{wch:20}];
+  ws['!cols'] = [{wch:14},{wch:16},{wch:8},{wch:16},{wch:28},{wch:13},{wch:12},{wch:12},{wch:20},{wch:12},{wch:16},{wch:20}];
   XLSX.utils.book_append_sheet(wb, ws, isEn?'Inventory':'Inventaire');
   XLSX.writeFile(wb, (isEn?'LOCUS-Scales-inventory-':'LOCUS-Scales-inventaire-')+localTodayStr()+'.xlsx');
 }
@@ -26076,7 +26447,7 @@ function exportInventoryPdf(){
   };
   const rows = [...savedSnakes].sort((a,b)=>a.name.localeCompare(b.name)).map(s=>{
     const speciesLabel = speciesDisplayLabel(s.species); // v3.52 — nom traduit
-    return '<tr><td>'+escapeHtml(s.name)+'</td><td>'+(s.sex==='male'?t('sexMale'):s.sex==='female'?t('sexFemale'):t('sexUnknown'))+'</td><td>'+escapeHtml(speciesLabel)+'</td><td>'+summarizeGenes(s.genes)+'</td><td>'+statusLabel(s)+'</td><td>'+escapeHtml(locationLabel(s))+'</td></tr>';
+    return '<tr><td>'+escapeHtml(snakeName(s))+'</td><td>'+(s.sex==='male'?t('sexMale'):s.sex==='female'?t('sexFemale'):t('sexUnknown'))+'</td><td>'+escapeHtml(speciesLabel)+'</td><td>'+summarizeGenes(s.genes)+'</td><td>'+statusLabel(s)+'</td><td>'+escapeHtml(locationLabel(s))+'</td></tr>';
   }).join('');
   const win = window.open('', '_blank');
   win.document.write(
@@ -26112,7 +26483,7 @@ function renderAcquisitionCostsList(){
     const row = document.createElement('div');
     row.className = 'sale-row';
     row.innerHTML =
-      '<div class="sale-name">'+escapeHtml(s.name)+'<small>'+(s.sex==='male'?(isEn?'Male':'Mâle'):s.sex==='female'?(isEn?'Female':'Femelle'):'?')+'</small></div>'+
+      '<div class="sale-name">'+escapeHtml(snakeName(s))+'<small>'+(s.sex==='male'?(isEn?'Male':'Mâle'):s.sex==='female'?(isEn?'Female':'Femelle'):'?')+'</small></div>'+
       '<span><input type="number" class="price-input" style="width:90px;" value="'+(s.purchasePrice!=null?s.purchasePrice:'')+'" placeholder="0" onchange="setPurchasePrice(\''+s.id+'\', this.value)"/> $</span>';
     wrap.appendChild(row);
   });
@@ -26237,7 +26608,7 @@ function generateInvoicePdf(id){
   const docTitle = isSold ? (isEn?'Invoice':'Facture') : (isEn?'Deposit Receipt':'Reçu d\'acompte');
   const win = window.open('', '_blank');
   win.document.write(
-    '<html><head><title>'+docTitle+' — '+escapeHtml(s.name)+'</title><style>'+
+    '<html><head><title>'+docTitle+' — '+escapeHtml(snakeName(s))+'</title><style>'+
     'body{font-family:Georgia,serif;color:#241d12;padding:36px;max-width:640px;margin:0 auto;}'+
     'h1{font-size:24px;margin:0 0 4px;border-bottom:2px solid #C9973E;padding-bottom:10px;}'+
     '.sub{font-family:Arial,sans-serif;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:20px;}'+
@@ -26252,7 +26623,7 @@ function generateInvoicePdf(id){
     '<div class="sub">'+(isEn?'Date: ':'Date : ')+docDate+'</div>'+
     '<div class="parties"><div><b>'+(isEn?'Seller':'Vendeur')+'</b><br/>'+escapeHtml(sellerName)+'</div><div style="text-align:right;"><b>'+(isEn?'Buyer':'Acheteur')+'</b><br/>'+escapeHtml(buyerName)+'</div></div>'+
     '<table><tr><th>'+(isEn?'Item':'Article')+'</th><th>'+(isEn?'Details':'Détails')+'</th><th style="text-align:right;">'+(isEn?'Amount':'Montant')+'</th></tr>'+
-    '<tr><td>'+escapeHtml(s.name)+'</td><td>'+escapeHtml(speciesLabel)+' — '+summarizeGenes(s.genes)+'</td><td style="text-align:right;">'+total.toFixed(2)+' $</td></tr>'+
+    '<tr><td>'+escapeHtml(snakeName(s))+'</td><td>'+escapeHtml(speciesLabel)+' — '+summarizeGenes(s.genes)+'</td><td style="text-align:right;">'+total.toFixed(2)+' $</td></tr>'+
     (!isSold ? '<tr><td colspan="2">'+(isEn?'Deposit received':'Acompte reçu')+'</td><td style="text-align:right;">−'+deposit.toFixed(2)+' $</td></tr>' : '')+
     '<tr class="totalrow"><td colspan="2">'+(isSold?(isEn?'Total paid':'Total payé'):(isEn?'Balance due':'Solde dû'))+'</td><td style="text-align:right;">'+(isSold?total.toFixed(2):balance.toFixed(2))+' $</td></tr>'+
     '</table>'+
@@ -26304,7 +26675,7 @@ function renderFiscalView(){
     const row = document.createElement('div');
     row.className = 'sale-row';
     row.innerHTML =
-      '<div class="sale-name">'+escapeHtml(s.name)+'<small>'+s.soldDate+' '+t('soldToShort')+' '+escapeHtml(s.buyer||'?')+'</small></div>'+
+      '<div class="sale-name">'+escapeHtml(snakeName(s))+'<small>'+s.soldDate+' '+t('soldToShort')+' '+escapeHtml(s.buyer||'?')+'</small></div>'+
       '<div class="sale-price">'+(s.soldPrice||0)+' $</div>';
     salesWrap.appendChild(row);
   });
@@ -26354,7 +26725,7 @@ function renderValeurView(){
     const isEn = currentLang==='en';
     const source = val===0 ? '' : (s.askingPrice ? '' : ' <small style="color:var(--ink-dim);">('+(isEn?'purchase price':'prix d\'achat')+')</small>');
     row.innerHTML =
-      '<div class="sale-name">'+escapeHtml(s.name)+'<small>'+summarizeGenes(s.genes)+'</small></div>'+
+      '<div class="sale-name">'+escapeHtml(snakeName(s))+'<small>'+summarizeGenes(s.genes)+'</small></div>'+
       '<div class="sale-price">'+(val>0 ? val+' $'+source : '<span style="color:var(--ink-dim);">'+t('priceNotSet')+'</span>')+'</div>';
     wrap.appendChild(row);
   });
@@ -26365,7 +26736,7 @@ function exportValueReport(){
   savedSnakes.forEach(ensureSnakeMeta);
   const total = savedSnakes.reduce((a,s)=>a+estimatedSnakeValue(s),0);
   const rows = [...savedSnakes].sort((a,b)=>estimatedSnakeValue(b)-estimatedSnakeValue(a)).map(s=>
-    '<tr><td>'+escapeHtml(s.name)+'</td><td>'+(s.sex==='male'?t('sexMale'):s.sex==='female'?t('sexFemale'):t('sexUnknown'))+'</td><td>'+summarizeGenes(s.genes)+'</td><td>'+(estimatedSnakeValue(s)?estimatedSnakeValue(s)+' $':'—')+'</td></tr>'
+    '<tr><td>'+escapeHtml(snakeName(s))+'</td><td>'+(s.sex==='male'?t('sexMale'):s.sex==='female'?t('sexFemale'):t('sexUnknown'))+'</td><td>'+summarizeGenes(s.genes)+'</td><td>'+(estimatedSnakeValue(s)?estimatedSnakeValue(s)+' $':'—')+'</td></tr>'
   ).join('');
   const win = window.open('', '_blank');
   win.document.write(
@@ -26540,8 +26911,8 @@ function renderLockModePairingSelects(){
   if(!maleSel || !femaleSel) return;
   const males = savedSnakes.filter(s=>s.sex==='male');
   const females = savedSnakes.filter(s=>s.sex==='female');
-  maleSel.innerHTML = males.length ? males.map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+'</option>').join('') : '<option value="">'+(isEn?'No male registered':'Aucun mâle enregistré')+'</option>';
-  femaleSel.innerHTML = females.length ? females.map(s=>'<option value="'+s.id+'">'+escapeHtml(s.name)+'</option>').join('') : '<option value="">'+(isEn?'No female registered':'Aucune femelle enregistrée')+'</option>';
+  maleSel.innerHTML = males.length ? males.map(s=>'<option value="'+s.id+'">'+escapeHtml(snakeName(s))+'</option>').join('') : '<option value="">'+(isEn?'No male registered':'Aucun mâle enregistré')+'</option>';
+  femaleSel.innerHTML = females.length ? females.map(s=>'<option value="'+s.id+'">'+escapeHtml(snakeName(s))+'</option>').join('') : '<option value="">'+(isEn?'No female registered':'Aucune femelle enregistrée')+'</option>';
 }
 function quickAddPairingFromLockMode(){
   const isEn = currentLang==='en';
@@ -26695,7 +27066,7 @@ function renderLastYearReference(){
   const pairingRows = [...lastYearPairings].sort((a,b)=>a.pairedDate.localeCompare(b.pairedDate)).map(p=>{
     const male = savedSnakes.find(s=>s.id===p.maleId);
     const female = savedSnakes.find(s=>s.id===p.femaleId);
-    const names = (male?escapeHtml(male.name):'?')+' × '+(female?escapeHtml(female.name):'?');
+    const names = (male?escapeHtml(snakeName(male)):'?')+' × '+(female?escapeHtml(snakeName(female)):'?');
     const coolingPart = p.coolingDate ? ' — ❄️ '+p.coolingDate : '';
     return '<div class="modal-row"><span>🐍 '+names+'</span><span>'+p.pairedDate+coolingPart+'</span></div>';
   }).join('');
@@ -26703,7 +27074,7 @@ function renderLastYearReference(){
   const clutchRows = [...lastYearClutches].sort((a,b)=>a.layDate.localeCompare(b.layDate)).map(c=>{
     const sire = savedSnakes.find(s=>s.id===c.sireId);
     const dam = savedSnakes.find(s=>s.id===c.damId);
-    const names = (sire?escapeHtml(sire.name):'?')+' × '+(dam?escapeHtml(dam.name):'?');
+    const names = (sire?escapeHtml(snakeName(sire)):'?')+' × '+(dam?escapeHtml(snakeName(dam)):'?');
     const hatchPart = c.hatched ? ' — 🐣 '+(isEn?'hatched ':'éclos le ')+c.hatchDate : ' — '+(isEn?'expected ':'prévue le ')+c.hatchDate;
     return '<div class="modal-row"><span>🥚 '+names+' ('+c.ref+')</span><span>'+c.layDate+hatchPart+'</span></div>';
   }).join('');
@@ -26904,7 +27275,7 @@ function renderTimeline(){
         : '<button class="sc-btn accent" data-act="mkclutch" data-id="'+p.id+'">'+(isOvoPairing?'🐣':'🥚')+' '+(isOvoPairing?(currentLang==='en'?'Create the litter from this pairing':'Créer la portée depuis cet accouplement'):(currentLang==='en'?'Create the clutch from this pairing':'Créer la ponte depuis cet accouplement'))+'</button>')+
     '</div>';
     card.innerHTML =
-      '<div class="timeline-head"><span class="timeline-title">'+(male?escapeHtml(male.name):'?')+' × '+(female?escapeHtml(female.name):'?')+'</span>'+
+      '<div class="timeline-head"><span class="timeline-title">'+(male?escapeHtml(snakeName(male)):'?')+' × '+(female?escapeHtml(snakeName(female)):'?')+'</span>'+
       '<span><button class="ovul-toggle'+(p.ovulationConfirmed?' active':'')+'" data-act="ovul" data-id="'+p.id+'">'+(p.ovulationConfirmed?t('ovulationConfirmedBtn'):t('confirmOvulationBtn'))+'</button> '+
       '<button class="sc-btn danger" data-act="del" data-id="'+p.id+'">'+t('deleteBtn')+'</button></span></div>'+
       (p.coolingDate ? '<div style="font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:6px;">❄️ '+t('coolingDateLabel')+' '+p.coolingDate+'</div>' : '')+
