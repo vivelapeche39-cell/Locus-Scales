@@ -2089,9 +2089,9 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   </div>
 
   <div class="reg-card">
-    <div class="reg-card-head"><span class="reg-flag">📋</span><h3 data-i18n="genericCsvTitle">Import CSV générique (n'importe quelle collection)</h3></div>
+    <div class="reg-card-head"><span class="reg-flag">📋</span><h3 data-i18n="genericCsvTitle">Import Excel ou CSV (n'importe quelle collection)</h3></div>
     <p data-i18n="genericCsvDesc">Tu viens d'un autre outil (Excel, une autre app, un tableau maison) ? Exporte ta collection en CSV avec des en-têtes (nom, sexe, gènes, date de naissance, provenance, prix d'achat…) — LOCUS reconnaît les en-têtes courants automatiquement et te montre un aperçu avant de confirmer quoi que ce soit.</p>
-    <input type="file" id="generic-csv-file-input" accept=".csv,text/csv" style="display:none;"/>
+    <input type="file" id="generic-csv-file-input" accept=".xlsx,.xls,.xlsm,.ods,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none;"/>
     <div class="reg-links">
       <button class="sc-btn accent" onclick="if(requireAuthOrPrompt()) document.getElementById('generic-csv-file-input').click()">📋 <span data-i18n="genericCsvBtn">Choisir un fichier CSV (avec en-têtes)</span></button>
     </div>
@@ -2219,7 +2219,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.11';
+const APP_VERSION = '2026.09.01.4.12';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5058,10 +5058,12 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'4.11', date:'2026-10-20',
+  { version:'4.12', date:'2026-10-21',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '📋 Import Excel : Mes reptiles › Import accepte maintenant directement les fichiers Excel (.xlsx, .xls, .ods) en plus du CSV. LOCUS trouve la ligne d\'en-tête même s\'il y a un titre au-dessus, reconnaît plus de noms de colonnes (FR/EN), lit la génétique écrite comme dans le milieu (« Super Pastel Banana 66% het Clown »), l\'espèce, le poids, et signale les noms déjà dans ta collection avant d\'importer.',
+        '📉 Alerte de perte de poids refaite : elle sonne quand la dernière pesée est 10 % ou plus sous le poids le plus haut des 60 jours d\'avant (avant : n\'importe quelle baisse, même 1 g). Pas d\'alerte pour une femelle qui vient de pondre. Le détail s\'affiche sur la fiche, dans Poids.',
         '🩺 Nouveau : Utilitaire › Santé — un guide pour 8 problèmes de santé courants (infection respiratoire, nidovirus, acariens, stomatite, mue difficile, brûlures et dermatite, régurgitation, IBD) : signes, quoi faire en attendant, quand voir un vétérinaire, prévention et sources. Ne remplace pas un vétérinaire et ne donne jamais de dose de médicament.',
         '🏆 Trophées : une vitrine en haut montre maintenant tous tes trophées gagnés en médailles dorées. L\'ancienneté se calcule à partir de ton arrivée dans LOCUS (création du compte ou 1er animal ajouté) — les entrées antidatées ne comptent plus pour ce trophée.',
         '🤫 5 nouveaux trophées cachés à découvrir… indice : un bac propre ne le reste jamais longtemps.',
@@ -5146,6 +5148,8 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '📋 Excel import: My reptiles › Import now accepts Excel files directly (.xlsx, .xls, .ods) as well as CSV. LOCUS finds the header row even with a title above it, recognizes more column names (FR/EN), reads genetics written the hobby way ("Super Pastel Banana 66% het Clown"), species and weight, and flags names already in your collection before importing.',
+        '📉 Weight-loss alert rebuilt: it now triggers when the latest weigh-in is 10% or more below the highest weight of the previous 60 days (before: any drop, even 1 g). No alert for a female that just laid. Details show on the animal sheet, under Weight.',
         '🩺 New: Utility › Health — a guide to 8 common health problems (respiratory infection, nidovirus, mites, stomatitis, stuck shed, burns and dermatitis, regurgitation, IBD): signs, what to do while waiting, when to see a vet, prevention and sources. It doesn\'t replace a vet and never gives medication doses.',
         '🏆 Trophies: a showcase at the top now displays all the trophies you\'ve earned as gold medals. Seniority is now counted from when you joined LOCUS (account created or 1st animal added) — back-dated entries no longer count toward it.',
         '🤫 5 new hidden trophies to discover… hint: a clean tub never stays clean for long.',
@@ -5748,9 +5752,9 @@ const I18N = {
     exportCsvTitle: 'Import CSV (onboarding rapide)',
     exportCsvDescPrefix: 'Ajoute plusieurs reptiles d\'un coup depuis un fichier CSV. Format attendu par ligne : ',
     exportCsvBtn: '📑 Choisir un fichier CSV',
-    genericCsvTitle: 'Import CSV générique (n\'importe quelle collection)',
-    genericCsvDesc: 'Tu viens d\'un autre outil (Excel, une autre app, un tableau maison) ? Exporte ta collection en CSV avec des en-têtes (nom, sexe, gènes, date de naissance, provenance, prix d\'achat…) — LOCUS reconnaît les en-têtes courants automatiquement et te montre un aperçu avant de confirmer quoi que ce soit.',
-    genericCsvBtn: 'Choisir un fichier CSV (avec en-têtes)',
+    genericCsvTitle: 'Import Excel ou CSV (n\'importe quelle collection)',
+    genericCsvDesc: 'Tu viens d\'une feuille Excel, d\'une autre app ou d\'un tableau maison ? Choisis directement ton fichier Excel (.xlsx) ou CSV. LOCUS reconnaît les en-têtes courants (nom, sexe, génétique, date de naissance, espèce, poids, provenance, prix…) et te montre un aperçu avant de confirmer quoi que ce soit.',
+    genericCsvBtn: 'Choisir un fichier Excel ou CSV',
     exportValueReportTitle: 'Rapport de valeur (assurance)',
     exportValueReportDesc: "Déjà disponible dans l'onglet Valeur — génère un document imprimable/PDF de tout ton inventaire avec valeur estimée.",
     exportValueReportLink: '→ Aller à l\'onglet Valeur',
@@ -6324,9 +6328,9 @@ const I18N = {
     exportCsvTitle: 'CSV import (quick onboarding)',
     exportCsvDescPrefix: 'Add several reptiles at once from a CSV file. Expected format per line: ',
     exportCsvBtn: '📑 Choose a CSV file',
-    genericCsvTitle: 'Generic CSV import (any collection)',
-    genericCsvDesc: 'Coming from another tool (Excel, another app, a homemade spreadsheet)? Export your collection as CSV with headers (name, sex, genes, birth date, provenance, purchase price…) — LOCUS recognizes common headers automatically and shows you a preview before confirming anything.',
-    genericCsvBtn: 'Choose a CSV file (with headers)',
+    genericCsvTitle: 'Excel or CSV import (any collection)',
+    genericCsvDesc: 'Coming from an Excel sheet, another app or a homemade spreadsheet? Pick your Excel (.xlsx) or CSV file directly. LOCUS recognizes common headers (name, sex, genetics, birth date, species, weight, provenance, price…) and shows you a preview before confirming anything.',
+    genericCsvBtn: 'Choose an Excel or CSV file',
     exportValueReportTitle: 'Value report (insurance)',
     exportValueReportDesc: "Already available in the Value tab — generates a printable/PDF document of your whole inventory with estimated value.",
     exportValueReportLink: '→ Go to the Value tab',
@@ -11489,7 +11493,7 @@ function openLogbook(id){
       [...s.geneticNotes].sort((a,b)=>b.date.localeCompare(a.date)).map(n=>'<div class="modal-row" style="align-items:flex-start;"><span style="font-size:11.5px;line-height:1.5;">'+escapeHtml(n.text)+'<br/><small style="color:var(--ink-dim);">'+n.date+'</small></span></div>').join('')+
     '</div>' : '')+
     breedingPerformanceHtml(s)+
-    '<div class="modal-section"><h3>'+t('weightHistoryTitle')+'</h3>'+weightSparklineSvg(s.health.weights)+weightsHtml+growthCompareHtml+growthTrendHtml+siblingGrowthHtml(s)+'</div>'+
+    '<div class="modal-section"><h3>'+t('weightHistoryTitle')+'</h3>'+weightSparklineSvg(s.health.weights)+weightDropNoteHtml(s)+weightsHtml+growthCompareHtml+growthTrendHtml+siblingGrowthHtml(s)+'</div>'+
     '<div class="modal-section"><h3>'+t('lengthHistoryTitle')+'</h3>'+lengthsHtml+'</div>'+
     '<div class="modal-section"><h3>'+t('vetJournalTitle')+'</h3>'+
       '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">'+
@@ -14478,25 +14482,26 @@ function parseCsvLine(line, delim){
   return result.map(v=>v.trim());
 }
 function normalizeHeaderKey(str){
-  return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  return String(str==null?'':str).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[:*]+\s*$/,'').replace(/\s+/g,' ').trim(); // v4.12 — « Nom : », espaces doubles
 }
 const CSV_COLUMN_ALIASES = {
-  name: ['nom','name','nom du reptile','reptile name'],
-  sex: ['sexe','sex'],
-  genes: ['genes','gene','genetique','genetics','morph','morphs'],
-  birthDate: ['date de naissance','birth date','dob','naissance','date naissance'],
-  provenance: ['provenance','source','eleveur','breeder'],
-  purchasePrice: ['prix d\'achat','prix achat','purchase price','cost','cout'],
-  species: ['espece','species'],
-  askingPrice: ['prix demande','prix','asking price','price'],
-  notes: ['notes','note','remarques','comment','comments'],
+  name: ['nom','name','nom du reptile','reptile name','animal','animal name','nom de l\'animal','serpent','snake','nom/id','id/nom'],
+  sex: ['sexe','sex','gender','genre','sexe (m/f)','sex (m/f)'],
+  genes: ['genes','gene','genetique','genetics','morph','morphs','morphe','traits','genetic'],
+  birthDate: ['date de naissance','birth date','dob','naissance','date naissance','date of birth','hatch date','eclosion','date d\'eclosion','ne le','hatched'],
+  provenance: ['provenance','source','eleveur','breeder','origine','origin'],
+  purchasePrice: ['prix d\'achat','prix achat','purchase price','cost','cout','paid','paye'],
+  species: ['espece','species','type d\'animal','animal type'],
+  askingPrice: ['prix demande','prix','asking price','price','prix de vente','sale price'],
+  weight: ['poids','poids (g)','weight','weight (g)','masse','dernier poids','last weight','poids actuel','current weight'], // v4.12
+  weightDate: ['date de pesee','date pesee','date du poids','weigh date','weight date','date of weight','derniere pesee','last weigh-in'], // v4.12
 };
 function mapCsvHeaders(headerRow){
   const map = {};
   headerRow.forEach((h,i)=>{
     const norm = normalizeHeaderKey(h);
     for(const field in CSV_COLUMN_ALIASES){
-      if(CSV_COLUMN_ALIASES[field].some(alias=>normalizeHeaderKey(alias)===norm)) map[field] = i;
+      if(map[field]===undefined && CSV_COLUMN_ALIASES[field].some(alias=>normalizeHeaderKey(alias)===norm)) map[field] = i; // v4.12 — 1re colonne gagne
     }
   });
   return map;
@@ -14511,75 +14516,233 @@ function normalizeCsvDate(str){
   return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
 }
 var pendingGenericCsvRows = [];
+var pendingGenericImportMeta = null;
+// v4.12 — import Excel (.xlsx/.xls/.ods) ET CSV par le même chemin (gratuit, choix d'Alex du 21 oct).
+// Les deux formats deviennent un tableau de lignes, puis genericImportFromRows() fait le reste :
+// ligne d'en-tête cherchée dans les 10 premières lignes (les feuilles Excel ont souvent un titre
+// au-dessus), colonnes reconnues FR/EN, aperçu avant de créer quoi que ce soit.
+function importCellStr(v){ return v==null ? '' : String(v).trim(); }
+// Date d'import : jamais deviner un format ambigu (03/04/2026). Acceptés : vraie date Excel (nombre
+// de série), AAAA-MM-JJ, AAAA-MM, AAAA, et JJ/MM/AAAA ou MM/JJ/AAAA seulement si un des deux > 12.
+function normalizeImportDate(v){
+  if(v==null || v==='') return { value:null, ambiguous:false };
+  if(typeof v==='number'){
+    if(Number.isInteger(v) && v>=1900 && v<=2100) return { value:String(v), ambiguous:false };
+    if(v>20000 && v<80000 && typeof XLSX!=='undefined' && XLSX.SSF && XLSX.SSF.parse_date_code){
+      const dc = XLSX.SSF.parse_date_code(v);
+      if(dc && dc.y) return { value: dc.y+'-'+String(dc.m).padStart(2,'0')+'-'+String(dc.d).padStart(2,'0'), ambiguous:false };
+    }
+    return { value:null, ambiguous:true };
+  }
+  const str = String(v).trim();
+  let m = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T ].*)?$/);
+  if(m) return { value: m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0'), ambiguous:false };
+  m = str.match(/^(\d{4})[-\/](\d{1,2})$/);
+  if(m && +m[2]>=1 && +m[2]<=12) return { value: m[1]+'-'+m[2].padStart(2,'0'), ambiguous:false };
+  if(/^\d{4}$/.test(str)) return { value:str, ambiguous:false };
+  m = str.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);
+  if(m){
+    const a = +m[1], b = +m[2];
+    if(a>12 && b<=12) return { value: m[3]+'-'+String(b).padStart(2,'0')+'-'+String(a).padStart(2,'0'), ambiguous:false };
+    if(b>12 && a<=12) return { value: m[3]+'-'+String(a).padStart(2,'0')+'-'+String(b).padStart(2,'0'), ambiguous:false };
+    if(a===b && a<=12) return { value: m[3]+'-'+String(a).padStart(2,'0')+'-'+String(b).padStart(2,'0'), ambiguous:false };
+  }
+  return { value:null, ambiguous:true };
+}
+// Espèce en texte libre → id LOCUS (nom FR, EN, latin ou id). Vide = python royal. Non reconnue = texte gardé tel quel.
+function matchImportSpecies(raw){
+  const norm = normalizeHeaderKey(raw||'');
+  if(!norm) return { id:'ball_python', known:true };
+  if(['python royal','ball python','royal python','python regius','ball','python','ball_python','bp'].includes(norm)) return { id:'ball_python', known:true };
+  const ref = SPECIES_REFERENCE.find(sp=>[sp.id, sp.nameFr, sp.nameEn, sp.nameLatin].filter(Boolean).some(x=>normalizeHeaderKey(String(x).replace(/_/g,' '))===norm.replace(/_/g,' ')));
+  if(ref) return { id:ref.id, known:true };
+  return { id:String(raw).trim().slice(0,60), known:false };
+}
+// Génétique en texte libre (« Super Pastel Banana 66% het Clown », « Pastel | Enchi », « Ivory »…) → gènes
+// python royal avec le bon statut. Plus long nom d'abord (Black Pastel avant Pastel). Les mots non
+// reconnus sont rendus pour l'aperçu. Toujours marqué « à vérifier » (genesVerified:false).
+// Raccourcis du milieu, seulement quand ils ne sont pas ambigus (« Axanthic » seul = 5 lignées différentes → pas d'alias).
+var IMPORT_GENE_ALIASES = { hypo:['hypo','hypomelanistic','ghost'], yellowbelly:['yb'], orangedream:['od'], piebald:['pied'], mojave:['mojo'], desertghost:['dg'], highintensityod:['hi od','high intensity orange dream'], lavenderalbino:['lavender','lav albino'], spotnose:['spot nose'] };
+function importGeneNorm(str){ return String(str||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[|,;\/+&()\[\]]/g,' ').replace(/\s+/g,' ').trim(); }
+function importGeneVariants(species){
+  const sp = species || 'ball_python';
+  const list = [];
+  const pool = GENES.filter(g=>geneSpecies(g)===sp);
+  const partCount = {};
+  const partsOf = g=>{ const m = g.name.match(/^(.*?)\s*\((.*)\)\s*$/); if(m) return [m[1], m[2]]; if(g.name.includes('/')) return g.name.split('/'); return []; };
+  pool.forEach(g=>partsOf(g).forEach(pt=>{ const k = importGeneNorm(pt); if(k) partCount[k] = (partCount[k]||0)+1; }));
+  pool.forEach(g=>{
+    const add = (n, sup)=>{ const k = importGeneNorm(n); if(k && !list.some(x=>x.n===k)) list.push({ g, n:k, sup }); };
+    add(g.name, false);
+    if(g.superLabel) add(g.superLabel, true);
+    partsOf(g).forEach(pt=>{ const k = importGeneNorm(pt); if(k && partCount[k]===1 && !pool.some(o=>o!==g && importGeneNorm(o.name)===k)) add(pt, false); });
+    if(g.name==='Daddy Gene') add('Daddy', false);
+    (IMPORT_GENE_ALIASES[g.id]||[]).forEach(a=>add(a, false));
+  });
+  return list.sort((a,b)=>b.n.length-a.n.length);
+}
+// Génétique en texte libre (« Super Pastel Banana 66% het Clown », « Pastel | Enchi », « Ivory », « pos het Pied »…)
+// → gènes de l'espèce avec le bon statut. Plus long nom d'abord (Black Pastel avant Pastel). Les mots non
+// reconnus sont rendus pour l'aperçu. Toujours marqué « à vérifier » (genesVerified:false).
+function parseImportGenes(text, species){
+  const genes = {};
+  if(!text) return { genes, unknown:[] };
+  let work = ' '+importGeneNorm(text)+' ';
+  const esc = x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  importGeneVariants(species).forEach(({ g, n, sup })=>{
+    const re = new RegExp(' (?:(\\d{2,3}) ?% ?)?((?:pos(?:sible)?|ph) )?(het )?(super )?'+esc(n)+'(?= )','g');
+    work = work.replace(re, (all, pct, pos, het, sp)=>{
+      if(genes[g.id]) return ' ';
+      let status;
+      if(g.type==='unknown') status = 'present';
+      else if(g.type==='recessive') status = (het || pct || pos) ? 'het' : 'visual';
+      else status = (sup || sp) ? 'homo' : 'single';
+      genes[g.id] = (pct || pos) ? { status, possible:true, percent: pct ? Number(pct) : null } : status;
+      return '  ';
+    });
+  });
+  const stop = ['het','super','pos','possible','ph','normal','classic','and','et','dh','th','qh','pdh','male','female','m','f','%'];
+  const unknown = work.split(' ').map(w=>w.trim()).filter(w=>w && !stop.includes(w) && !/^\d+%?$/.test(w));
+  return { genes, unknown };
+}
+function readImportFileAsRows(file, done){
+  const isEn = currentLang==='en';
+  const isExcel = /\.(xlsx|xlsm|xls|ods)$/i.test(file.name||'');
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    if(isExcel){
+      let wb;
+      try{ wb = XLSX.read(new Uint8Array(reader.result), { type:'array', cellDates:false }); }
+      catch(err){ alert(isEn?'Could not read this Excel file.':'Impossible de lire ce fichier Excel.'); return; }
+      // Première feuille qui contient une colonne « nom » (sinon la première feuille)
+      const sheets = wb.SheetNames.map(n=>({ n, rows: XLSX.utils.sheet_to_json(wb.Sheets[n], { header:1, raw:true, defval:'' }) }));
+      const withName = sheets.find(sh=>sh.rows.slice(0,10).some(r=>mapCsvHeaders((r||[]).map(importCellStr)).name!==undefined));
+      const pick = withName || sheets[0];
+      done(pick ? pick.rows : [], { sheet: pick ? pick.n : null, sheets: wb.SheetNames.length });
+    } else {
+      const text = String(reader.result||'').replace(/^﻿/,'');
+      const lines = text.split(/\r?\n/).filter(l=>l.trim()!=='');
+      if(!lines.length){ done([], null); return; }
+      // délimiteur détecté sur la ligne la plus « remplie » des 10 premières (une ligne de titre ne doit pas fausser)
+      const sample = lines.slice(0,10).reduce((a,l)=>l.length>a.length?l:a, lines[0]);
+      const delim = detectCsvDelimiter(sample);
+      done(lines.map(l=>parseCsvLine(l, delim)), null);
+    }
+  };
+  if(isExcel) reader.readAsArrayBuffer(file); else reader.readAsText(file);
+}
 document.getElementById('generic-csv-file-input').addEventListener('change', (e)=>{
   const file = e.target.files[0];
   if(!file) return;
-  const isEn = currentLang==='en';
-  const reader = new FileReader();
-  reader.onload = ()=>{
-    const rawLines = reader.result.split(/\r?\n/).filter(l=>l.trim()!=='');
-    if(!rawLines.length){ alert(isEn?'Empty file.':'Fichier vide.'); e.target.value=''; return; }
-    const delim = detectCsvDelimiter(rawLines[0]);
-    const headerRow = parseCsvLine(rawLines[0], delim);
-    const colMap = mapCsvHeaders(headerRow);
-    if(colMap.name===undefined){ alert(isEn?'Could not find a "name" column — check your CSV headers.':'Impossible de trouver une colonne "nom" — vérifie les en-têtes de ton CSV.'); e.target.value=''; return; }
-    const get = (cols,f) => colMap[f]!==undefined ? (cols[colMap[f]]||'').trim() : '';
-    pendingGenericCsvRows = rawLines.slice(1).map(line=>parseCsvLine(line, delim)).map(cols=>{
-      const sexRaw = get(cols,'sex');
-      const priceRaw = get(cols,'purchasePrice').replace(',','.').replace(/[^0-9.]/g,'');
-      const askRaw = get(cols,'askingPrice').replace(',','.').replace(/[^0-9.]/g,'');
-      return {
-        name: get(cols,'name'),
-        sex: /^f/i.test(sexRaw) ? 'female' : /^m/i.test(sexRaw) ? 'male' : null,
-        genesRaw: get(cols,'genes'),
-        birthDate: normalizeCsvDate(get(cols,'birthDate')),
-        provenance: get(cols,'provenance') || null,
-        purchasePrice: priceRaw ? parseFloat(priceRaw) : null,
-        species: get(cols,'species') || null,
-        askingPrice: askRaw ? parseFloat(askRaw) : null,
-        notes: get(cols,'notes') || null,
-      };
-    }).filter(r=>r.name);
-    if(!pendingGenericCsvRows.length){ alert(isEn?'No valid row found (missing name column values?).':'Aucune ligne valide trouvée (colonne nom vide ?).'); e.target.value=''; return; }
-    renderGenericCsvPreview(colMap, headerRow);
-    e.target.value = '';
-  };
-  reader.readAsText(file);
+  readImportFileAsRows(file, (rows, meta)=>{ genericImportFromRows(rows, meta); e.target.value = ''; });
 });
-function renderGenericCsvPreview(colMap, headerRow){
+function genericImportFromRows(rows, meta){
   const isEn = currentLang==='en';
-  const detected = Object.keys(colMap).map(f=>f+' → "'+escapeHtml(headerRow[colMap[f]])+'"').join(', ');
-  const previewRows = pendingGenericCsvRows.slice(0,5).map(r=>
-    '<div class="modal-row"><span>'+escapeHtml(r.name)+'</span><span style="font-size:10px;color:var(--ink-dim);">'+(r.sex||'?')+(r.birthDate?' · '+r.birthDate:'')+(r.purchasePrice!=null?' · '+r.purchasePrice+'$':'')+'</span></div>'
-  ).join('');
+  rows = (rows||[]).filter(r=>Array.isArray(r) && r.some(c=>importCellStr(c)!==''));
+  if(!rows.length){ alert(isEn?'Empty file.':'Fichier vide.'); return; }
+  let hIdx = -1, colMap = null;
+  for(let i=0;i<Math.min(10,rows.length);i++){ const m = mapCsvHeaders(rows[i].map(importCellStr)); if(m.name!==undefined){ hIdx = i; colMap = m; break; } }
+  if(hIdx<0){ alert(isEn?'Could not find a "name" column — the first rows of your sheet need a header such as "Name" or "Nom".':'Impossible de trouver une colonne « nom » — les premières lignes de ta feuille doivent avoir un en-tête comme « Nom » ou « Name ».'); return; }
+  const headerRow = rows[hIdx].map(importCellStr);
+  const raw = (cols,f)=> colMap[f]!==undefined ? cols[colMap[f]] : '';
+  const str = (cols,f)=> importCellStr(raw(cols,f));
+  const num = (cols,f)=>{ const v = raw(cols,f); if(typeof v==='number') return v; const s2 = importCellStr(v).replace(/\s/g,'').replace(',','.').replace(/[^0-9.]/g,''); return s2 ? parseFloat(s2) : null; };
+  const existing = new Set(savedSnakes.map(s=>normalizeHeaderKey(s.name||'')));
+  const seen = new Set();
+  let ambiguousDates = 0;
+  pendingGenericCsvRows = rows.slice(hIdx+1).map(cols=>{
+    const name = str(cols,'name');
+    if(!name) return null;
+    const sexRaw = normalizeHeaderKey(str(cols,'sex'));
+    const bd = normalizeImportDate(raw(cols,'birthDate'));
+    if(bd.ambiguous) ambiguousDates++;
+    const wd = normalizeImportDate(raw(cols,'weightDate'));
+    if(wd.ambiguous) ambiguousDates++;
+    const sp = matchImportSpecies(str(cols,'species'));
+    const parsed = hasGenetics(sp.id) ? parseImportGenes(str(cols,'genes'), sp.id) : { genes:{}, unknown: str(cols,'genes') ? [str(cols,'genes')] : [] };
+    const key = normalizeHeaderKey(name);
+    const dupe = existing.has(key) || seen.has(key);
+    seen.add(key);
+    const weight = num(cols,'weight');
+    return {
+      name: name.slice(0,80),
+      sex: /^(f|femelle|female|0\.1)/.test(sexRaw) ? 'female' : /^(m|male|1\.0)/.test(sexRaw) ? 'male' : null,
+      genes: parsed.genes, unknownGenes: parsed.unknown, genesRaw: str(cols,'genes'),
+      birthDate: bd.value,
+      provenance: str(cols,'provenance') || null,
+      purchasePrice: num(cols,'purchasePrice'),
+      species: sp.id, speciesKnown: sp.known,
+      askingPrice: num(cols,'askingPrice'),
+      notes: str(cols,'notes') || null,
+      weight: weight && weight>0 ? Math.round(weight*10)/10 : null,
+      weightDate: wd.value && wd.value.length===10 ? wd.value : null,
+      dupe
+    };
+  }).filter(Boolean);
+  if(!pendingGenericCsvRows.length){ alert(isEn?'No valid row found (the name column is empty?).':'Aucune ligne valide trouvée (colonne nom vide ?).'); return; }
+  pendingGenericImportMeta = { colMap, headerRow, ambiguousDates, sheet: meta && meta.sheet, sheets: meta && meta.sheets, importDupes:false };
+  renderGenericCsvPreview();
+}
+function renderGenericCsvPreview(){
+  const isEn = currentLang==='en';
+  const m = pendingGenericImportMeta; if(!m) return;
+  const labels = { name:isEn?'name':'nom', sex:isEn?'sex':'sexe', genes:isEn?'genetics':'génétique', birthDate:isEn?'birth date':'naissance', provenance:'provenance', purchasePrice:isEn?'purchase price':'prix d\'achat', species:isEn?'species':'espèce', askingPrice:isEn?'asking price':'prix demandé', notes:'notes', weight:isEn?'weight':'poids', weightDate:isEn?'weigh date':'date de pesée' };
+  const detected = Object.keys(m.colMap).map(f=>'<b>'+(labels[f]||f)+'</b> ← « '+escapeHtml(m.headerRow[m.colMap[f]])+' »').join('<br>');
+  const rowsAll = pendingGenericCsvRows;
+  const dupes = rowsAll.filter(r=>r.dupe).length;
+  const toImport = rowsAll.filter(r=>m.importDupes || !r.dupe);
+  const unknownSp = [...new Set(rowsAll.filter(r=>!r.speciesKnown).map(r=>r.species))];
+  const withUnknownGenes = rowsAll.filter(r=>r.unknownGenes && r.unknownGenes.length).length;
+  const weightsNoDate = rowsAll.filter(r=>r.weight && !r.weightDate).length;
+  const p = (txt, color)=>'<p style="font-size:14px;line-height:1.45;margin:8px 0;color:'+(color||'var(--ink)')+';">'+txt+'</p>';
+  const previewRows = rowsAll.slice(0,8).map(r=>{
+    const g = Object.keys(r.genes).length ? summarizeGenes(r.genes) : (r.genesRaw ? escapeHtml(r.genesRaw) : '');
+    return '<div style="padding:8px 0;border-bottom:1px solid var(--line);font-size:14.5px;'+(r.dupe && !m.importDupes?'opacity:.5;':'')+'">'+
+      '<div><b>'+escapeHtml(r.name)+'</b> <span style="color:var(--ink-dim);font-size:13px;">'+(r.sex==='male'?'♂':r.sex==='female'?'♀':'?')+' · '+escapeHtml(speciesDisplayLabel(r.species, isEn))+(r.birthDate?' · '+escapeHtml(r.birthDate):'')+(r.weight?' · '+r.weight+' g':'')+'</span>'+(r.dupe?' <span style="color:var(--gold);font-size:13px;">'+(isEn?'(already in your collection)':'(déjà dans ta collection)')+'</span>':'')+'</div>'+
+      (g ? '<div style="font-size:13.5px;color:var(--ink-dim);margin-top:2px;">'+g+'</div>' : '')+
+      (r.unknownGenes && r.unknownGenes.length ? '<div style="font-size:13px;color:var(--gold);margin-top:2px;">⚠ '+(isEn?'Not recognized: ':'Non reconnu : ')+escapeHtml(r.unknownGenes.join(', '))+'</div>' : '')+
+    '</div>';
+  }).join('');
   const body =
-    '<p style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Columns detected: ':'Colonnes détectées : ')+(detected||(isEn?'name only':'nom seulement'))+'</p>'+
-    '<p style="font-size:13px;margin:10px 0;font-weight:600;">'+pendingGenericCsvRows.length+' '+(isEn?'reptile(s) ready to import. Preview of the first 5:':'reptile(s) prêt(s) à importer. Aperçu des 5 premiers :')+'</p>'+
-    previewRows+
-    (pendingGenericCsvRows.length>5 ? '<div style="font-size:10.5px;color:var(--ink-dim);padding:6px 4px;">+'+(pendingGenericCsvRows.length-5)+' '+(isEn?'more':'de plus')+'</div>' : '')+
-    '<button class="save-btn" style="width:100%;margin-top:14px;" onclick="confirmGenericCsvImport()">✅ '+(isEn?'Confirm import':'Confirmer l\'import')+'</button>'+
-    '<button class="sc-btn" style="width:100%;margin-top:6px;" onclick="pendingGenericCsvRows=[]; closeQuickModal();">'+(isEn?'Cancel':'Annuler')+'</button>';
-  showQuickModal((isEn?'CSV import preview':'Aperçu de l\'import CSV'), body);
+    (m.sheet ? p((isEn?'Sheet read: ':'Feuille lue : ')+'<b>'+escapeHtml(m.sheet)+'</b>'+(m.sheets>1?(isEn?' ('+m.sheets+' sheets in the file — the first one with a name column)':' ('+m.sheets+' feuilles dans le fichier — la première avec une colonne nom)'):''), 'var(--ink-dim)') : '')+
+    p((isEn?'Columns recognized:':'Colonnes reconnues :')+'<br>'+detected)+
+    p('<b>'+toImport.length+'</b> '+(isEn?'reptile(s) will be added.':'reptile(s) seront ajouté(s).'))+
+    (dupes ? '<label style="display:flex;gap:8px;align-items:center;font-size:14px;margin:6px 0;"><input type="checkbox" '+(m.importDupes?'checked':'')+' onchange="pendingGenericImportMeta.importDupes=this.checked; renderGenericCsvPreview();" style="width:20px;height:20px;"> '+(isEn?dupes+' name(s) already in your collection — import them anyway':dupes+' nom(s) déjà dans ta collection — les importer quand même')+'</label>' : '')+
+    (withUnknownGenes ? p('⚠ '+(isEn?withUnknownGenes+' animal(s) have words in the genetics that LOCUS doesn\'t recognize — they\'re skipped; you can fix the genetics on the sheet after.':withUnknownGenes+' animal(s) ont des mots dans la génétique que LOCUS ne reconnaît pas — ils sont ignorés; tu pourras corriger la génétique sur la fiche ensuite.'), 'var(--gold)') : '')+
+    (unknownSp.length ? p('⚠ '+(isEn?'Species not recognized (kept as written): ':'Espèce non reconnue (gardée telle quelle) : ')+escapeHtml(unknownSp.join(', ')), 'var(--gold)') : '')+
+    (m.ambiguousDates ? p('⚠ '+(isEn?m.ambiguousDates+' date(s) left empty because the format is ambiguous (e.g. 03/04/2026 could be March 4 or April 3). Use YYYY-MM-DD or a real Excel date.':m.ambiguousDates+' date(s) laissée(s) vide(s) parce que le format est ambigu (ex. 03/04/2026 = 3 avril ou 4 mars ?). Utilise AAAA-MM-JJ ou une vraie date Excel.'), 'var(--gold)') : '')+
+    (weightsNoDate ? p('⚖ '+(isEn?weightsNoDate+' weight(s) without a date will be recorded as today\'s weigh-in.':weightsNoDate+' poids sans date seront notés comme une pesée d\'aujourd\'hui.'), 'var(--ink-dim)') : '')+
+    p(isEn?'Genetics are marked "To verify" until you confirm them.':'La génétique est marquée « À vérifier » jusqu\'à ce que tu la confirmes.', 'var(--ink-dim)')+
+    '<div style="margin-top:6px;">'+previewRows+'</div>'+
+    (rowsAll.length>8 ? '<div style="font-size:13.5px;color:var(--ink-dim);padding:6px 0;">+'+(rowsAll.length-8)+' '+(isEn?'more':'de plus')+'</div>' : '')+
+    '<button class="save-btn" style="width:100%;margin-top:14px;font-size:16px;padding:12px;" '+(toImport.length?'':'disabled')+' onclick="confirmGenericCsvImport()">✅ '+(isEn?'Import '+toImport.length+' reptile(s)':'Importer '+toImport.length+' reptile(s)')+'</button>'+
+    '<button class="sc-btn" style="width:100%;margin-top:6px;font-size:15px;padding:10px;" onclick="pendingGenericCsvRows=[]; pendingGenericImportMeta=null; closeQuickModal();">'+(isEn?'Cancel':'Annuler')+'</button>';
+  showQuickModal((isEn?'Import preview':'Aperçu de l\'import'), body);
 }
 function confirmGenericCsvImport(){
   const isEn = currentLang==='en';
+  const m = pendingGenericImportMeta || { importDupes:false };
+  const today = localTodayStr();
+  const base = Date.now();
   let added = 0;
-  pendingGenericCsvRows.forEach(r=>{
-    const genes = {};
-    (r.genesRaw||'').split(/[|,]/).map(g=>g.trim()).filter(Boolean).forEach(gname=>{
-      const g = GENES.find(x=>geneSpecies(x)==='ball_python' && x.name.toLowerCase()===gname.toLowerCase());
-      if(g) genes[g.id] = defaultStatus(g);
-    });
-    savedSnakes.push({
-      id:'snk_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
-      name:r.name, sex:r.sex, genes, sireId:null, damId:null,
+  pendingGenericCsvRows.filter(r=>m.importDupes || !r.dupe).forEach((r, i)=>{
+    const snake = {
+      id:'snk_'+base+'_'+i+'_'+Math.random().toString(36).slice(2,6),
+      name:r.name, sex:r.sex, genes:r.genes||{}, genesVerified:false, sireId:null, damId:null,
       birthDate:r.birthDate||null, provenance:r.provenance,
       purchasePrice:r.purchasePrice, species:r.species||'ball_python',
-      askingPrice:r.askingPrice
-    });
+      askingPrice:r.askingPrice, notes:r.notes||undefined,
+      status:'kept', createdAt: base+i,
+      health:{ events:[], weights: r.weight ? [{ date: r.weightDate || today, value: r.weight }] : [], lengths:[] }
+    };
+    if(!snake.notes) delete snake.notes;
+    savedSnakes.push(snake);
+    ensureSnakeMeta(snake);
     added++;
   });
   pendingGenericCsvRows = [];
+  pendingGenericImportMeta = null;
+  storage.save(savedSnakes);
   renderSavedList();
   closeQuickModal();
   showToast('📋 '+added+' '+(isEn?'reptile(s) imported.':'reptile(s) importé(s).'), 'success');
@@ -15295,9 +15458,43 @@ function snakeAt(rackId,row,tub){
   return savedSnakes.find(s=>{ ensureSnakeMeta(s); return s.placement.mode==='rack' && s.placement.rackId===rackId && s.placement.row===row && s.placement.tub===tub; });
 }
 function getRack(rackId){ return racks.find(r=>r.id===rackId); }
+// v4.12 — vraie alerte de perte de poids (gratuit, règle choisie par Alex le 21 oct) : la dernière
+// pesée (par DATE, pas par ordre d'entrée) est au moins 10 % sous le poids le plus haut des 60 jours
+// d'avant. Comparer au plus haut évite la fausse alerte d'un repas digéré (une proie ≈ 10 % du
+// serpent). Pas d'alerte pour une femelle qui a pondu dans les 60 jours avant cette pesée (perte
+// normale) : weightDropInfo renvoie alors postLay:true pour l'afficher en note sur la fiche.
+// Avant v4.12 : n'importe quelle baisse vs l'avant-dernière entrée (même 1 g) sonnait.
+var WEIGHT_DROP_PCT = 10, WEIGHT_DROP_WINDOW_DAYS = 60;
+function weightDropInfo(s){
+  if(!s || !s.health || !Array.isArray(s.health.weights)) return null;
+  const ws = s.health.weights.filter(w=>w && w.date && Number(w.value)>0).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  if(ws.length<2) return null;
+  const last = ws[ws.length-1];
+  const from = addDays(last.date, -WEIGHT_DROP_WINDOW_DAYS);
+  const prior = ws.slice(0,-1).filter(w=>w.date>=from && w.date<last.date);
+  if(!prior.length) return null;
+  const peakW = prior.reduce((a,w)=>Number(w.value)>Number(a.value)?w:a, prior[0]);
+  const peak = Number(peakW.value), lastV = Number(last.value);
+  const pct = Math.round((peak-lastV)/peak*1000)/10;
+  if(pct < WEIGHT_DROP_PCT) return null;
+  const postLay = s.sex==='female' && (clutches||[]).some(c=>c && c.damId===s.id && c.layDate && c.layDate>=from && c.layDate<=last.date);
+  return { pct, peak, peakDate: peakW.date, last: lastV, lastDate: last.date, postLay };
+}
 function weightDropping(s){
-  const w = s.health.weights;
-  return w.length>=2 && w[w.length-1].value < w[w.length-2].value;
+  const d = weightDropInfo(s);
+  return !!(d && !d.postLay);
+}
+function weightDropNoteHtml(s){
+  const d = weightDropInfo(s);
+  if(!d) return '';
+  const isEn = currentLang==='en';
+  const pctTxt = isEn ? String(d.pct) : String(d.pct).replace('.',',');
+  if(d.postLay) return '<p class="husbandry-health-note" style="margin-top:8px;font-size:14px;">🥚 '+(isEn
+    ? 'Down '+pctTxt+'% since '+escapeHtml(d.peakDate)+' ('+d.peak+' g → '+d.last+' g) — normal weight loss after laying, no alert.'
+    : 'Baisse de '+pctTxt+' % depuis le '+escapeHtml(d.peakDate)+' ('+d.peak+' g → '+d.last+' g) — perte normale après la ponte, pas d\'alerte.')+'</p>';
+  return '<div style="margin-top:8px;padding:10px 12px;border:1px solid var(--rust);border-radius:10px;background:linear-gradient(rgba(200,70,50,.14),rgba(200,70,50,.14)),var(--bg-panel);font-size:14.5px;line-height:1.45;color:var(--ink);">📉 <b>'+(isEn?'Weight loss: −'+pctTxt+'%':'Perte de poids : −'+pctTxt+' %')+'</b><br>'+(isEn
+    ? d.peak+' g on '+escapeHtml(d.peakDate)+' → '+d.last+' g on '+escapeHtml(d.lastDate)+'. A loss of 10% or more in under 2 months is worth a closer look; if it continues, see a vet (see Utility › Health).'
+    : d.peak+' g le '+escapeHtml(d.peakDate)+' → '+d.last+' g le '+escapeHtml(d.lastDate)+'. Une perte de 10 % ou plus en moins de 2 mois mérite qu\'on s\'y attarde; si ça continue, consulte un vétérinaire (voir Utilitaire › Santé).')+'</div>';
 }
 
 // Prédit la prochaine mue à partir de l'intervalle moyen entre les mues déjà enregistrées —
@@ -20055,7 +20252,7 @@ function healthRiskAssessment(s){
   const isEn = currentLang==='en';
   const signals = [];
   if(isFeedingFlagged(s)) signals.push({ type:'feeding', label:isEn?daysSinceLastFed(s)+'d without a meal':daysSinceLastFed(s)+'j sans repas' });
-  if(weightDropping(s)) signals.push({ type:'weight', label:isEn?'weight loss':'perte de poids' });
+  if(weightDropping(s)){ const wd = weightDropInfo(s); signals.push({ type:'weight', label:isEn?'weight loss −'+wd.pct+'%':'perte de poids −'+String(wd.pct).replace('.',',')+' %' }); } // v4.12
   const shedQ = lastShedQuality(s);
   // v3.52 — chez les lézards (et tortues), muer en morceaux est normal : seule « incomplète »
   // (peau restée collée) compte. Chez les serpents, « en morceaux » reste un signal.
@@ -22713,7 +22910,7 @@ function hasVisualRecessive(s){
     const g = (typeof GENES!=='undefined') ? GENES.find(x=>x.id===gid) : null;
     if(!g || g.type!=='recessive') return false;
     const n = normalizeGeneEntry(genes[gid]);
-    return n.status==='homo' && !n.possible;
+    return (n.status==='visual' || n.status==='homo') && !n.possible; // v4.12 — un récessif visuel est stocké 'visual'
   });
 }
 // Série de repas réussis : repas consécutifs sans refus entre les deux (par animal). Retourne le record
