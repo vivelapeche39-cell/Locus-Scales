@@ -2212,7 +2212,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.34';
+const APP_VERSION = '2026.09.01.4.35';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5223,6 +5223,19 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.35', date:'2026-10-21',
+    title:{ fr:'Import : historique dans une case et corrections', en:'Import: single-cell history and fixes' },
+    changes:{
+      fr:[
+        '🗓 Import : les colonnes d\'historique où tout est dans une seule case (« Feeding History », « Shed History », « Weight History », ex. « 2026-10-01: Rat small, 2026-10-08: Refused ») sont maintenant lues. Chaque date trouvée devient un repas, un refus, une mue ou une pesée dans le journal de l\'animal, proposés dans un 2e aperçu juste après les animaux. Une entrée déjà présente n\'est jamais ajoutée deux fois, et une entrée sans date est signalée.',
+        '🛠️ Import, corrections après test : « femel » est reconnu comme Femelle; « 05/2022 » est lu comme mai 2022; le nom latin abrégé (« P.regius », « E. macularius ») est reconnu; les émojis et les « ?? » dans la génétique ne bloquent plus la lecture (« Super💥Blast »); « 100% het » est un het sûr, alors que « poss », « probable » ou « maybe » dans la case rendent le het possible; « Inconnu/Unknown » n\'est plus listé comme gène non reconnu; un poids sous 25 g pour un python royal est signalé (unité oubliée ?) et gardé tel quel; les noms ambigus comme BEL ne sont plus listés comme « traduits ».'
+      ],
+      en:[
+        '🗓 Import: history columns where everything is in a single cell (« Feeding History », « Shed History », « Weight History », e.g. « 2026-10-01: Rat small, 2026-10-08: Refused ») are now read. Each date found becomes a meal, refusal, shed or weigh-in in the animal\'s log, offered in a 2nd preview right after the animals. An entry already there is never added twice, and an entry without a date is flagged.',
+        '🛠️ Import, fixes after testing: « femel » is recognized as Female; « 05/2022 » is read as May 2022; abbreviated Latin names (« P.regius », « E. macularius ») are recognized; emojis and « ?? » in genetics no longer block reading (« Super💥Blast »); « 100% het » is a sure het, while « poss », « probable » or « maybe » in the cell make the het possible; « Inconnu/Unknown » is no longer listed as an unrecognized gene; a weight under 25 g for a ball python is flagged (forgotten unit?) and kept as is; ambiguous names like BEL are no longer listed as « translated ».'
+      ]
+    }
+  },
   { version:'4.34', date:'2026-10-21',
     title:{ fr:'Import de documents Word', en:'Word document import' },
     changes:{
@@ -14886,6 +14899,8 @@ function normalizeImportDate(v, order){ // v4.18 — order 'dmy'/'mdy' déduit d
   if(m) return importYmd(+m[1], +m[2], +m[3]);
   m = str.match(/^(\d{4})[-\/](\d{1,2})$/);
   if(m) return (+m[2]>=1 && +m[2]<=12) ? { value: m[1]+'-'+m[2].padStart(2,'0'), ambiguous:false } : { value:null, ambiguous:false, invalid:true };
+  m = str.match(/^(\d{1,2})[-\/.](\d{4})$/); // v4.34 — « 05/2022 » = mai 2022
+  if(m){ if(!(+m[1]>=1 && +m[1]<=12)) return { value:null, ambiguous:false, invalid:true }; const v = m[2]+'-'+m[1].padStart(2,'0'); return v > localTodayStr().slice(0,7) ? { value:null, ambiguous:false, invalid:true, future:true } : { value:v, ambiguous:false }; }
   if(/^\d{4}$/.test(str)) return (+str>=1900 && +str<=new Date().getFullYear()) ? { value:str, ambiguous:false } : { value:null, ambiguous:false, invalid:true, future: +str>new Date().getFullYear() };
   m = str.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4}|\d{2})(?:[T ].*)?$/);
   if(m){
@@ -14922,6 +14937,8 @@ function matchImportSpecies(raw){
   let norm = normalizeHeaderKey(raw||'').replace(/[-_]+/g,' ').replace(/\s+/g,' ').trim(); // v4.30 — « Ball-Python »
   norm = norm.replace(/0/g,'o'); // « Pyth0n »
   if(['regius','p regius','p. regius','python regius','royal','royal python','ball'].includes(norm)) norm = 'ball python';
+  { const ab = norm.match(/^([a-z])\s*\.\s*([a-z]+)$/); // v4.34 — nom latin abrégé : « P.regius », « E. macularius »
+    if(ab){ if(ab[1]==='p' && ab[2]==='regius') norm = 'ball python'; else { const hit = SPECIES_REFERENCE.find(sp=>{ const w = normalizeHeaderKey(sp.nameLatin||'').split(' '); return w[0] && w[0][0]===ab[1] && w[1]===ab[2]; }); if(hit) return { id:hit.id, known:true }; } } }
   if(['ball pythons','pythons royaux','royal pythons','pythons'].includes(norm)) norm = 'ball python'; // v4.23 — MorphMarket écrit « Ball Pythons »
   const SHORT = { 'corn':'corn_snake','corns':'corn_snake','couleuvre des bles':'corn_snake','serpent des bles':'corn_snake','hognose snake':'hognose','western hognose':'hognose','hoggie':'hognose','leo':'leopard_gecko','leos':'leopard_gecko','leopard':'leopard_gecko','gecko leopard':'leopard_gecko','crestie':'crested_gecko','cresties':'crested_gecko','crested':'crested_gecko','gargoyle':'gargoyle_gecko','fat tail':'fat_tail_gecko','fat tailed gecko':'fat_tail_gecko','african fat tail':'fat_tail_gecko','beardie':'bearded_dragon','beardies':'bearded_dragon','pogona':'bearded_dragon','blue tongue':'blue_tongue_skink','bts':'blue_tongue_skink','blue tongued skink':'blue_tongue_skink','bci':'boa_bci','bcc':'boa_bcc','brb':'rainbow_boa','rainbow boa':'rainbow_boa','ackie':'ackie_monitor','sulcata':'sulcata_tortoise','res':'red_eared_slider','california king':'king_california','cal king':'king_california','florida king':'king_florida','mexican black king':'king_mexican','mbk':'king_mexican' }; // v4.29
   if(SHORT[norm]) return { id:SHORT[norm], known:true };
@@ -15016,7 +15033,10 @@ function importStatusRank(st){ const v = (st && typeof st==='object') ? st.statu
 function parseImportGenes(text, species){
   const genes = {};
   if(!text) return { genes, unknown:[] };
-  let work = ' '+importGeneNorm(text)+' ';
+  // v4.34 — émojis et ?!* retirés (« Super💥Blast », « 100%?? »)
+  let work = ' '+importGeneNorm(String(text).replace(/[\p{Extended_Pictographic}\u200d\ufe0f]/gu,' ').replace(/[?!*]+/g,' '))+' ';
+  // « poss », « probable », « maybe » dans la case = les het de cette case sont possibles (jamais affirmés)
+  const doubtful = /(^| )(poss|possible|probable|prob|maybe|likely|peut etre)( |$)/.test(work);
   const esc = x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
   // v4.31 — noms de combos d'abord (le plus long en premier : « killer queen bee » avant « queen bee »)
   const fromCombos = {}, combos = [];
@@ -15032,14 +15052,15 @@ function parseImportGenes(text, species){
   }
   const variants = importGeneVariants(species);
   const pass = ()=> variants.forEach(({ g, n, sup })=>{
-    const re = new RegExp(' (?:(\\d{2,3}) ?% ?)?((?:pos(?:sible)?|ph) )?(het )?(super )?'+esc(n)+'(?= )','g');
+    const re = new RegExp(' (?:(\\d{2,3}) ?% ?)?((?:pos(?:s|sible)?|prob(?:able)?|ph) )?(het )?(super )?'+esc(n)+'(?= )','g');
     work = work.replace(re, (all, pct, pos, het, sp)=>{
       if(genes[g.id]) return ' ';
       let status;
       if(g.type==='unknown') status = 'present';
       else if(g.type==='recessive') status = (het || pct || pos) ? 'het' : 'visual';
       else status = (sup || sp) ? 'homo' : 'single';
-      genes[g.id] = (pct || pos) ? { status, possible:true, percent: pct ? Number(pct) : null } : status;
+      const unsure = (pct && Number(pct)<100) || pos || (doubtful && status==='het'); // v4.34 — « 100% het » = het prouvé
+      genes[g.id] = unsure ? { status, possible:true, percent: pct && Number(pct)<100 ? Number(pct) : null } : status;
       return '  ';
     });
   });
@@ -15053,7 +15074,7 @@ function parseImportGenes(text, species){
     if(ids.length===1){ work = work.replace(new RegExp(' '+esc(w)+'(?= )'), ' '+hits[0].n); fixes.push({ from:w, to:hits[0].g.name }); }
   });
   if(fixes.length) pass();
-  const stop = ['het','super','pos','possible','ph','normal','classic','and','et','dh','th','qh','pdh','male','female','m','f','%'];
+  const stop = ['het','super','pos','poss','possible','probable','prob','maybe','likely','peut','etre','unknown','inconnu','unk','tbd','ph','normal','classic','and','et','dh','th','qh','pdh','male','female','m','f','%'];
   const unknown = work.split(' ').map(w=>w.trim()).filter(w=>w && !stop.includes(w) && !/^\d+%?$/.test(w));
   Object.keys(fromCombos).forEach(id=>{ if(importStatusRank(fromCombos[id]) > importStatusRank(genes[id])) genes[id] = fromCombos[id]; }); // ex. « Bumblebee Super Pastel » → Pastel super
   return { genes, unknown, combos, fixes };
@@ -15465,6 +15486,7 @@ var pendingLogImport = null;
 var pendingLogAfterAnimals = null; // feuille d'historique à traiter juste après l'import des animaux du même fichier
 function logImportFromRows(rows){
   const isEn = currentLang==='en';
+  const fromPacked = !!(rows && rows.__packed); // v4.35 — lignes tirées des colonnes « Shed History » : « Shed » = vraie mue, rien à demander
   rows = (rows||[]).filter(r=>Array.isArray(r) && r.some(c=>importCellStr(c)!==''));
   if(!rows.length){ alert(isEn?'Empty file.':'Fichier vide.'); return; }
   let hIdx = -1, colMap = {};
@@ -15474,7 +15496,7 @@ function logImportFromRows(rows){
   if(hIdx<0){ hIdx = 0; colMap = mapLogHeaders(rows[0].map(importCellStr)); }
   const width = rows.reduce((a,r)=>Math.max(a, r.length), 0);
   const headerRow = Array.from({ length: width }, (_, i)=>importCellStr(rows[hIdx][i]));
-  pendingLogImport = { rows, hIdx, colMap, headerRow };
+  pendingLogImport = { rows, hIdx, colMap, headerRow, fromPacked };
   rebuildLogImport();
   renderLogImportPreview();
 }
@@ -15500,7 +15522,7 @@ function rebuildLogImport(){
   // On demande à la personne au lieu de deviner (m.shedMeaning : null tant qu'elle n'a pas répondu).
   if(ready){
     const acts = new Set(dataRows.map(cols=>mapLogActivity(str(cols,'activity'))).filter(Boolean));
-    m.shedAmbiguous = acts.has('shed') && (acts.has('fed') || acts.has('refused'));
+    m.shedAmbiguous = !m.fromPacked && acts.has('shed') && (acts.has('fed') || acts.has('refused'));
     m.shedExamples = [...new Set(dataRows.filter(cols=>mapLogActivity(str(cols,'activity'))==='shed').map(cols=>str(cols,'activity')))].slice(0,3);
   } else m.shedAmbiguous = false;
   if(ready) dataRows.forEach(cols=>{
@@ -15583,7 +15605,8 @@ function renderLogImportPreview(){
       '</div></div>' : '';
   const body =
     shedQ+
-    p('🗓 <b>'+(isEn?'History file detected':'Fichier d\'historique détecté')+'</b> — '+(isEn?'one line per activity, added to each animal\'s log.':'une ligne par activité, ajoutée au journal de chaque animal.'))+
+    (m.fromPacked ? p('🗓 <b>'+(isEn?'History from your file\'s columns':'Historique tiré des colonnes de ton fichier')+'</b> — '+(isEn?'each date found in a cell becomes one entry in the animal\'s log.':'chaque date trouvée dans une case devient une entrée dans le journal de l\'animal.'))
+      : p('🗓 <b>'+(isEn?'History file detected':'Fichier d\'historique détecté')+'</b> — '+(isEn?'one line per activity, added to each animal\'s log.':'une ligne par activité, ajoutée au journal de chaque animal.')))+
     (!m.ready ? '<div style="background:rgba(212,175,55,.14);border:1px solid var(--gold);border-radius:10px;padding:10px 12px;margin:6px 0 10px;font-size:15px;line-height:1.45;color:var(--ink);">⚠ '+(isEn?'Choose below which columns are the <b>ID or name</b>, the <b>date</b> and the <b>activity</b>.':'Choisis plus bas quelles colonnes sont l\'<b>ID ou le nom</b>, la <b>date</b> et l\'<b>activité</b>.')+'</div>' : '')+
     (m.ready ? p('<b>'+total+'</b> '+(isEn?'entr(ies) for ':'entrée(s) pour ')+'<b>'+animals+'</b> '+(isEn?'animal(s)':'animal(s)')+(total ? ' : '+Object.keys(counts).map(k=>counts[k]+' '+typeLbl[k]).join(', ') : '')+'.') : '')+
     (m.dupes ? p('↺ '+(isEn?m.dupes+' already in LOCUS (same animal, date and type) — not added twice.':m.dupes+' déjà dans LOCUS (même animal, même date, même type) — pas ajoutée(s) deux fois.'), 'var(--ink-dim)') : '')+
@@ -15647,6 +15670,70 @@ function importSourceOf(sh){
   return null;
 }
 // Aiguillage d'un fichier : liste d'animaux, historique, ou les deux (2 feuilles du même Excel → animaux d'abord).
+// ==================== v4.35 — historique « entassé » dans une case ====================
+// Fichier d'animaux avec des colonnes « Feeding History », « Shed History », « Weight History » où chaque case
+// contient plusieurs entrées (« 2026-10-01: Rat small, 2026-10-08: Refused »). Chaque entrée devient une ligne
+// d'historique ordinaire, traitée par logImportFromRows juste après les animaux (mêmes règles : doublons, aperçu).
+function packedHistoryKind(h){
+  const x = normalizeHeaderKey(h||'');
+  if(!/(history|historique|log|journal|records?|suivi)/.test(x)) return null;
+  if(/(shed|mue|molt|moult)/.test(x)) return 'shed';
+  if(/(weight|poids|pesee|weigh)/.test(x)) return 'weight';
+  if(/(feed|feeding|meal|repas|nourri|alimentation|food)/.test(x)) return 'feed';
+  return null;
+}
+function packedHistoryCols(headerRow){
+  const out = [];
+  (headerRow||[]).forEach((h,i)=>{ const k = packedHistoryKind(importCellStr(h)); if(k) out.push({ i, kind:k, h:importCellStr(h) }); });
+  return out;
+}
+var PACKED_DATE_RE = /(\d{4}[-\/.]\d{1,2}[-\/.]\d{1,2}|\d{1,2}[-\/.]\d{1,2}[-\/.]\d{2,4})/g;
+function splitPackedHistoryCell(cell){
+  const txt = importCellStr(cell);
+  if(!txt || importIsBlankish(txt)) return [];
+  const hits = []; let mm; PACKED_DATE_RE.lastIndex = 0;
+  while((mm = PACKED_DATE_RE.exec(txt))) hits.push({ at: mm.index, date: mm[1], end: mm.index+mm[1].length });
+  if(!hits.length) return [{ date:'', text: txt }]; // aucune date : signalé par l'étape historique
+  const clean = x=>x.replace(/^[\s:=\-–—>)\]]+/,'').replace(/[\s,;|\/(\[]+$/,'').trim();
+  const out = [];
+  const before = clean(txt.slice(0, hits[0].at)); // « Bad shed (2026-09-12) » : texte avant la date
+  hits.forEach((h,k)=>{
+    let t = clean(txt.slice(h.end, k+1<hits.length ? hits[k+1].at : txt.length));
+    if(!t && k===0 && before) t = before;
+    out.push({ date: h.date, text: t });
+  });
+  return out;
+}
+function packedHistoryToLogRows(rows, hIdx, colMap, packed){
+  const head = ['ID','Name','Date','Activity','Prey','Weight (g)','Notes'];
+  const out = [head];
+  rows.slice(hIdx+1).forEach(r=>{
+    if(!Array.isArray(r)) return;
+    const idv = colMap.animalId!==undefined ? importCellStr(r[colMap.animalId]) : '';
+    const nm = colMap.name!==undefined ? importCellStr(r[colMap.name]) : '';
+    if(!idv && !nm) return;
+    packed.forEach(pc=>{
+      splitPackedHistoryCell(r[pc.i]).forEach(en=>{
+        let act, prey = '', w = '', note = '';
+        if(pc.kind==='shed'){ const a = mapLogActivity(en.text); act = a==='inshed' ? en.text : 'Shed'; note = en.text; }
+        else if(pc.kind==='weight'){ act = 'Weighed'; w = en.text; }
+        else {
+          const a = mapLogActivity(en.text);
+          if(a){ act = en.text; prey = a==='fed' ? en.text : ''; }
+          else if(parseLogPrey(en.text).preySpecies){ act = 'Fed'; prey = en.text; }
+          else act = en.text || '?';
+          note = '';
+        }
+        const row = [idv, nm, en.date, act, prey, w, note];
+        row.__line = r.__line;
+        out.push(row);
+      });
+    });
+  });
+  if(out.length<2) return null;
+  out.__packed = true;
+  return out;
+}
 function routeImportSheets(sheets, meta){
   const isEn = currentLang==='en';
   (sheets||[]).forEach(sh=>(sh.rows||[]).forEach((r,i)=>{ if(Array.isArray(r)) r.__line = i+1; })); // v4.28 — vrai numéro de ligne du fichier, pour les messages
@@ -15680,7 +15767,22 @@ function routeImportSheets(sheets, meta){
   }
   if(lists.length){
     pendingLogAfterAnimals = logs.length ? logs[0].rows : null;
-    genericImportFromRows(lists[0].rows, { sheet: meta && meta.isExcel ? lists[0].n : null, sheets: nonEmpty.length, hasLog: !!logs.length, source: importSourceOf(lists[0]) });
+    // v4.35 — historique entassé dans des cases (« Feeding History »…) : proposé juste après les animaux
+    let packedInfo = null;
+    if(!logs.length){
+      const lr = lists[0].rows;
+      let hI = -1, cm = null;
+      for(let i=0;i<Math.min(10,lr.length);i++){ const mm = mapCsvHeaders((lr[i]||[]).map(importCellStr)); if(mm.name!==undefined || mm.animalId!==undefined){ hI = i; cm = mm; break; } }
+      if(hI>=0){
+        const used = new Set(Object.values(cm));
+        const packed = packedHistoryCols(lr[hI]).filter(pc=>!used.has(pc.i));
+        if(packed.length){
+          const logRows = packedHistoryToLogRows(lr, hI, cm, packed);
+          if(logRows){ pendingLogAfterAnimals = logRows; packedInfo = { cols: packed.map(pc=>pc.i), names: packed.map(pc=>pc.h), count: logRows.length-1 }; }
+        }
+      }
+    }
+    genericImportFromRows(lists[0].rows, { sheet: meta && meta.isExcel ? lists[0].n : null, sheets: nonEmpty.length, hasLog: !!logs.length || !!packedInfo, packed: packedInfo, source: importSourceOf(lists[0]) });
   } else if(logs.length){
     pendingLogAfterAnimals = null;
     logImportFromRows(logs[0].rows);
@@ -15719,7 +15821,7 @@ function genericImportFromRows(rows, meta){
   const width = rows.reduce((a,r)=>Math.max(a, r.length), 0);
   const headerRow = Array.from({ length: width }, (_, i)=> headerless ? (isEn?'Column ':'Colonne ')+(i+1) : importCellStr(rows[hIdx][i]));
   if(meta && meta.combined){ ['status','weight','weightDate','lastFed','notes','lastFedPrey','lastShed','lastShedQuality'].forEach(f=>delete colMap[f]); } // v4.26 — ces colonnes vont dans l'historique
-  pendingGenericImportMeta = { rows, hIdx, colMap, headerRow, headerless, ambiguousDates:0, emptyRows:0, sheet: meta && meta.sheet, sheets: meta && meta.sheets, hasLog: !!(meta && meta.hasLog), combined: !!(meta && meta.combined), totalLines: meta && meta.totalLines, source: meta && meta.source, importDupes:false, pick:null, picking:false };
+  pendingGenericImportMeta = { rows, hIdx, colMap, headerRow, headerless, ambiguousDates:0, emptyRows:0, sheet: meta && meta.sheet, sheets: meta && meta.sheets, hasLog: !!(meta && meta.hasLog), packed: (meta && meta.packed) || null, combined: !!(meta && meta.combined), totalLines: meta && meta.totalLines, source: meta && meta.source, importDupes:false, pick:null, picking:false };
   rebuildGenericImportRows();
   renderGenericCsvPreview();
 }
@@ -15753,6 +15855,7 @@ function importDateOrder(rows, colIdx){
 function importSexOf(raw){
   const x = normalizeHeaderKey(raw).replace(/[.\s]+$/,'');
   if(/^(f|fem|femelle|female|femme|0\.1|0,1|♀)$/.test(x)) return 'female';
+  if(/^(femel|femell|femele|femal|feme|femmelle)$/.test(x)) return 'female'; // v4.34 — « femel » (2 lettres de différence)
   if(/^(m|male|masc|1\.0|1,0|♂)$/.test(x)) return 'male';
   // v4.30 — fautes de frappe courtes : « MALEE », « femal », « femelel »
   if(x.length>=4 && x.length<=9){ if(importLev(x,'female')<=1 || importLev(x,'femelle')<=1) return 'female'; if(importLev(x,'male')<=1) return 'male'; }
@@ -15826,7 +15929,7 @@ function rebuildGenericImportRows(){
   let ambiguousDates = 0, emptyRows = 0;
   const invalidDates = []; // v4.22 — { val, who, field }
   const isEn = currentLang==='en';
-  const anomalies = { weight:[], sex:[], speciesEmpty:[], fixed:[], combos:[] }; // v4.28 — valeurs illisibles signalées, jamais avalées en silence
+  const anomalies = { weight:[], weightLow:[], sex:[], speciesEmpty:[], fixed:[], combos:[] }; // v4.28 — valeurs illisibles signalées, jamais avalées en silence
   const dataRows = m.rows.slice(m.hIdx+1);
   const wUnit = colMap.weight!==undefined ? importHeaderUnit(m.headerRow[colMap.weight]) : null; // v4.29
   const ord = { birthDate: importDateOrder(dataRows, colMap.birthDate), weightDate: importDateOrder(dataRows, colMap.weightDate), lastFed: importDateOrder(dataRows, colMap.lastFed), lastShed: importDateOrder(dataRows, colMap.lastShed), acquired: importDateOrder(dataRows, colMap.acquired) };
@@ -15863,6 +15966,7 @@ function rebuildGenericImportRows(){
     seen.add(key);
     let weight = importWeightGrams(raw(cols,'weight'), wUnit); // v4.29 — unités et séparateurs
     if(!(weight>0)) weight = null; // v4.28 — un poids négatif ou illisible n'est jamais pris
+    if(weight && weight<25 && sp.id==='ball_python') anomalies.weightLow.push({ val: str(cols,'weight'), who, line }); // v4.34 — 1 g pour un python royal : unité probablement oubliée (kg ?), gardé mais signalé
     const st = matchImportStatus(str(cols,'status')); // v4.20
     return {
       name: name.slice(0,80), animalId,
@@ -15953,6 +16057,7 @@ function renderGenericCsvPreview(){
   const firstData = m.rows[m.hIdx+1] || [];
   const fieldOf = {}; Object.keys(m.colMap).forEach(f=>{ fieldOf[m.colMap[f]] = f; });
   const logCols = m.combined ? new Set(Object.values(mapLogHeaders(m.headerRow))) : new Set(); // v4.28 — en mode mixte, ces colonnes servent à l'étape historique
+  if(m.packed) m.packed.cols.forEach(i=>logCols.add(i)); // v4.35 — colonnes d'historique entassé : lues à l'étape historique
   const unmatched = m.headerRow.map((h,i)=>({ h, i })).filter(x=>fieldOf[x.i]===undefined && !logCols.has(x.i) && (x.h || importCellStr(firstData[x.i])));
   const colsHtml = m.headerRow.map((h,i)=>{
     const sample = importCellStr(firstData[i]);
@@ -15987,7 +16092,8 @@ function renderGenericCsvPreview(){
           '<button class="sc-btn'+(m.picking?'':' accent')+'" style="font-size:14px;padding:8px 12px;" onclick="toggleImportPicking(false)">'+(isEn?'The first '+slots:'Les '+slots+' premiers')+'</button>'+
           '<button class="sc-btn'+(m.picking?' accent':'')+'" style="font-size:14px;padding:8px 12px;" onclick="toggleImportPicking(true)">'+(isEn?'Choose which ones':'Choisir lesquels')+'</button>'+
         '</div></div>' : '')+
-    (m.hasLog && !m.combined ? p('🗓 '+(isEn?'A history sheet (meals, sheds, weigh-ins) was also found — it will be offered right after the animals.':'Une feuille d\'historique (repas, mues, pesées) a aussi été trouvée — elle sera proposée juste après les animaux.'), 'var(--sage)') : '')+
+    (m.packed ? p('🗓 '+(isEn?'History found in the column(s) ':'Historique trouvé dans la ou les colonnes ')+'<b>'+escapeHtml(m.packed.names.map(x=>'« '+x+' »').join(', '))+'</b>'+(isEn?': '+m.packed.count+' entry(ies) (meals, sheds, weigh-ins), offered right after the animals for you to check.':' : '+m.packed.count+' entrée(s) (repas, mues, pesées), proposée(s) juste après les animaux pour que tu les vérifies.'), 'var(--sage)') : '')+
+    (m.hasLog && !m.combined && !m.packed ? p('🗓 '+(isEn?'A history sheet (meals, sheds, weigh-ins) was also found — it will be offered right after the animals.':'Une feuille d\'historique (repas, mues, pesées) a aussi été trouvée — elle sera proposée juste après les animaux.'), 'var(--sage)') : '')+
     (m.sheet ? p((isEn?'Sheet read: ':'Feuille lue : ')+'<b>'+escapeHtml(m.sheet)+'</b>'+(m.sheets>1?(isEn?' ('+m.sheets+' sheets in the file — the first one with a name or ID column)':' ('+m.sheets+' feuilles dans le fichier — la première avec une colonne nom ou ID)'):''), 'var(--ink-dim)') : '')+
     (!hasKey ? '<div style="background:rgba(212,175,55,.14);border:1px solid var(--gold);border-radius:10px;padding:10px 12px;margin:6px 0 10px;font-size:15px;line-height:1.45;color:var(--ink);">⚠ <b>'+(isEn?'LOCUS didn\'t find a name or ID column.':'LOCUS n\'a pas trouvé de colonne nom ou ID.')+'</b><br>'+(isEn?'Below, choose « Name » or « ID » for the right column (at least one is required).':'Plus bas, choisis « Nom » ou « ID » pour la bonne colonne (au moins un des deux est obligatoire).')+'</div>' : '')+
     (hasKey ? p('<b>'+toImport.length+'</b> '+(isEn?'reptile(s) will be added.':'reptile(s) seront ajouté(s).')+(m.emptyRows ? ' <span style="color:var(--ink-dim);font-size:13px;">('+m.emptyRows+(isEn?' row(s) with neither name nor ID skipped)':' ligne(s) sans nom ni ID ignorée(s))')+'</span>' : '')) : '')+
@@ -16011,11 +16117,12 @@ function renderGenericCsvPreview(){
       const a = m.anomalies || {}; let h = '';
       const ex = (arr, fmt)=> escapeHtml(arr.slice(0,6).map(fmt).join(', '))+(arr.length>6?' +'+(arr.length-6):'');
       if((a.weight||[]).length) h += p('⛔ '+(isEn?a.weight.length+' unreadable or impossible weight(s), ignored: ':a.weight.length+' poids illisible(s) ou impossible(s), ignoré(s) : ')+'<b>'+ex(a.weight, x=>(isEn?'line ':'ligne ')+x.line+' « '+x.val+' »')+'</b>', 'var(--rust)');
+      if((a.weightLow||[]).length) h += p('⚠ '+(isEn?a.weightLow.length+' very low weight(s) for a ball python (under 25 g) — check the unit, kept as is: ':a.weightLow.length+' poids très bas pour un python royal (moins de 25 g) — vérifie l\'unité, gardé(s) tel(s) quel(s) : ')+'<b>'+ex(a.weightLow, x=>(isEn?'line ':'ligne ')+x.line+' « '+x.val+' »')+'</b>', 'var(--gold)');
       if((a.fixed||[]).length) h += p('✏️ '+(isEn?a.fixed.length+' typo(s) corrected — check them: ':a.fixed.length+' faute(s) de frappe corrigée(s) — vérifie : ')+'<b>'+ex(a.fixed, x=>(isEn?'line ':'ligne ')+x.line+' « '+x.val+' » → '+x.to)+'</b>', 'var(--sage)');
       if((a.combos||[]).length){ // v4.31 — noms de combos traduits
-        const uniq = []; a.combos.forEach(x=>{ if(!uniq.some(u=>u.val===x.val)) uniq.push(x); });
-        h += p('🧬 '+(isEn?a.combos.length+' combo name(s) translated into genes: ':a.combos.length+' nom(s) de combo traduit(s) en gènes : ')+'<b>'+ex(uniq, x=>'« '+(x.val.length<=3 ? x.val.toUpperCase() : x.val.replace(/\b\w/g,ch=>ch.toUpperCase()))+' » → '+x.to)+'</b>', 'var(--sage)');
-        [...new Set(a.combos.map(x=>x.note).filter(Boolean))].forEach(k=>{ const nt = IMPORT_COMBO_NOTES[k]; if(nt) h += p('⚠ '+escapeHtml(nt[isEn?1:0])+' '+ex(a.combos.filter(x=>x.note===k), x=>(isEn?'line ':'ligne ')+x.line), 'var(--gold)'); });
+        const uniq = []; a.combos.forEach(x=>{ if(x.to!=='—' && !uniq.some(u=>u.val===x.val)) uniq.push(x); }); // v4.34 — les noms ambigus (BEL) sont dans l'avertissement plus bas, pas « traduits en — »
+        if(uniq.length) h += p('🧬 '+(isEn?uniq.length+' combo name(s) translated into genes: ':uniq.length+' nom(s) de combo traduit(s) en gènes : ')+'<b>'+ex(uniq, x=>'« '+(x.val.length<=3 ? x.val.toUpperCase() : x.val.replace(/\b\w/g,ch=>ch.toUpperCase()))+' » → '+x.to)+'</b>', 'var(--sage)');
+        [...new Set(a.combos.map(x=>x.note).filter(Boolean))].forEach(k=>{ const nt = IMPORT_COMBO_NOTES[k]; if(nt) h += p('⚠ '+escapeHtml(nt[isEn?1:0])+' '+ex([...new Set(a.combos.filter(x=>x.note===k).map(x=>x.line))], ln=>(isEn?'line ':'ligne ')+ln), 'var(--gold)'); });
       }
       if((a.sex||[]).length) h += p('⚠ '+(isEn?a.sex.length+' sex value(s) not recognized, left « unknown »: ':a.sex.length+' sexe(s) non reconnu(s), laissé(s) « inconnu » : ')+'<b>'+ex(a.sex, x=>(isEn?'line ':'ligne ')+x.line+' « '+x.val+' »')+'</b>', 'var(--gold)');
       if((a.speciesEmpty||[]).length) h += p('⚠ '+(isEn?a.speciesEmpty.length+' animal(s) with no species, set to Ball python: ':a.speciesEmpty.length+' animal(s) sans espèce, mis en Python royal : ')+'<b>'+ex(a.speciesEmpty, x=>(isEn?'line ':'ligne ')+x.line+' ('+x.who+')')+'</b>', 'var(--gold)');
