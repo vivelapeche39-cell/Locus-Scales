@@ -2219,7 +2219,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.12';
+const APP_VERSION = '2026.09.01.4.13';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3097,6 +3097,9 @@ function showFieldDefs(){
     { k:'genetics', fr:'Génétique', en:'Genetics' },
     { k:'pedigree', fr:'Pedigree (parents + grands-parents)', en:'Pedigree (parents + grandparents)' },
     { k:'meals', fr:'Résumé des repas et dernier poids', en:'Feeding summary and last weight' },
+    { k:'weights', fr:'Historique du poids (courbe, 12 derniers mois)', en:'Weight history (chart, last 12 months)', followsMeals:true }, // v4.13
+    { k:'meal_log', fr:'Journal des repas (20 derniers)', en:'Feeding log (last 20)', followsMeals:true }, // v4.13
+    { k:'sheds', fr:'Dernières mues (date et qualité)', en:'Recent sheds (date and quality)', followsMeals:true }, // v4.13
     { k:'price', fr:'Prix demandé (seulement si « À vendre »)', en:'Asking price (only if « For sale »)' },
     { k:'coi', fr:'Consanguinité (coefficient + générations connues)', en:'Inbreeding (coefficient + known generations)', off:true } // v3.98 — décoché par défaut
   ];
@@ -3104,7 +3107,7 @@ function showFieldDefs(){
 function getShowFields(s){
   const f = (s && s.showFields && typeof s.showFields==='object') ? s.showFields : {};
   const out = {};
-  showFieldDefs().forEach(d=>{ out[d.k] = d.off ? f[d.k]===true : f[d.k]!==false; });
+  showFieldDefs().forEach(d=>{ out[d.k] = d.off ? f[d.k]===true : (d.followsMeals && f[d.k]===undefined) ? f.meals!==false : f[d.k]!==false; }); // v4.13 — les nouveaux champs suivent « repas » tant qu'on n'y a pas touché
   return out;
 }
 function showUrlFor(token){ return location.origin + location.pathname + '?show=' + encodeURIComponent(token); }
@@ -3201,6 +3204,31 @@ function showAncestorHtml(a, roleLabel, isEn, small){
           (w ? '⚖ '+(isEn?'Last weight: ':'Dernier poids : ')+w : '')+
         '</div></div>';
     }
+    // v4.13 — historique pour une vente : poids, journal des repas, mues
+    if(Array.isArray(a.weights) && a.weights.length){
+      const ws = a.weights.filter(x=>x && x.date && Number(x.value)>0);
+      html += '<div style="'+card+'">'+h2('⚖ '+(isEn?'Weight history':'Historique du poids'))+
+        (ws.length>=2 ? showWeightChartSvg(ws, isEn) : '')+
+        '<div style="margin-top:8px;">'+ws.slice().reverse().slice(0,12).map(x=>'<div style="display:flex;justify-content:space-between;font-size:15px;padding:5px 0;border-bottom:1px solid var(--line);color:var(--ink);"><span>'+escapeHtml(String(x.date))+'</span><span>'+escapeHtml(String(x.value))+' g</span></div>').join('')+'</div>'+
+        (ws.length>12 ? '<div style="font-size:13px;color:var(--ink-dim);margin-top:6px;">'+(isEn?'+'+(ws.length-12)+' older weigh-ins in the chart':'+'+(ws.length-12)+' pesées plus anciennes dans la courbe')+'</div>' : '')+
+      '</div>';
+    }
+    if(Array.isArray(a.meal_log) && a.meal_log.length){
+      const base = a.meals || {};
+      html += '<div style="'+card+'">'+h2('🍽 '+(isEn?'Feeding log':'Journal des repas'))+
+        a.meal_log.map(e=>{
+          const lbl = e.type==='fed' ? (isEn?'✅ Ate':'✅ A mangé') : e.type==='skipped' ? (isEn?'⏭ Meal skipped':'⏭ Repas sauté') : e.in_shed ? (isEn?'🔵 Refused (shed)':'🔵 Refus (mue)') : (isEn?'❌ Refused':'❌ Refus');
+          const prey = e.type==='fed' ? showPreyLabel({ prey_species: e.prey_species||base.prey_species, prey_size: e.prey_size||base.prey_size, prey_type: e.prey_type||base.prey_type }, isEn) : '';
+          return '<div style="display:flex;justify-content:space-between;gap:8px;font-size:15px;padding:6px 0;border-bottom:1px solid var(--line);color:var(--ink);"><span>'+escapeHtml(String(e.date))+'</span><span style="text-align:right;">'+lbl+(prey?'<br><span style="font-size:13px;color:var(--ink-dim);">'+escapeHtml(prey)+(Number(e.count)>1?' ×'+Number(e.count):'')+'</span>':'')+'</span></div>';
+        }).join('')+
+      '</div>';
+    }
+    if(Array.isArray(a.sheds) && a.sheds.length){
+      const ql = q=> q==='complete' ? (isEn?'complete':'complète') : q==='pieces' ? (isEn?'in pieces':'en morceaux') : q==='incomplete' ? (isEn?'incomplete':'incomplète') : '';
+      html += '<div style="'+card+'">'+h2('✨ '+(isEn?'Recent sheds':'Dernières mues'))+
+        a.sheds.map(e=>'<div style="display:flex;justify-content:space-between;font-size:15px;padding:5px 0;border-bottom:1px solid var(--line);color:var(--ink);"><span>'+escapeHtml(String(e.date))+'</span><span>'+escapeHtml(ql(e.quality))+'</span></div>').join('')+
+      '</div>';
+    }
     const contacts = vitrineContactButtonsHtml(a.links, isEn);
     if(a.seller || a.region || contacts || a.vitrine_token){
       html += '<div style="'+card+'text-align:center;">'+
@@ -3222,13 +3250,56 @@ function showAncestorHtml(a, roleLabel, isEn, small){
   });
 })();
 
+// v4.13 — courbe de poids de la page publique (pleine largeur, lisible sur cellulaire)
+function showWeightChartSvg(ws, isEn){
+  const W = 340, H = 170, padL = 58, padR = 8, padT = 12, padB = 26; // viewBox ≈ largeur réelle sur cellulaire → texte lisible
+  const vals = ws.map(x=>Number(x.value));
+  let min = Math.min(...vals), max = Math.max(...vals);
+  if(max===min){ max += 1; min -= 1; }
+  const t0 = new Date(ws[0].date+'T00:00:00').getTime(), t1 = new Date(ws[ws.length-1].date+'T00:00:00').getTime();
+  const span = (t1-t0) || 1;
+  const X = d=> padL + (new Date(d+'T00:00:00').getTime()-t0)/span*(W-padL-padR);
+  const Y = v=> padT + (1-(v-min)/(max-min))*(H-padT-padB);
+  const pts = ws.map(x=>X(x.date).toFixed(1)+','+Y(Number(x.value)).toFixed(1)).join(' ');
+  return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="'+(isEn?'Weight chart':'Courbe de poids')+'" style="display:block;">'+
+    '<line x1="'+padL+'" y1="'+Y(max)+'" x2="'+(W-padR)+'" y2="'+Y(max)+'" stroke="var(--line)"/>'+
+    '<line x1="'+padL+'" y1="'+Y(min)+'" x2="'+(W-padR)+'" y2="'+Y(min)+'" stroke="var(--line)"/>'+
+    '<text x="'+(padL-6)+'" y="'+(Y(max)+4)+'" text-anchor="end" font-size="14" fill="var(--ink-dim)">'+Math.round(max)+' g</text>'+
+    '<text x="'+(padL-6)+'" y="'+(Y(min)+4)+'" text-anchor="end" font-size="14" fill="var(--ink-dim)">'+Math.round(min)+' g</text>'+
+    '<text x="'+padL+'" y="'+(H-6)+'" font-size="14" fill="var(--ink-dim)">'+escapeHtml(ws[0].date)+'</text>'+
+    '<text x="'+(W-padR)+'" y="'+(H-6)+'" text-anchor="end" font-size="14" fill="var(--ink-dim)">'+escapeHtml(ws[ws.length-1].date)+'</text>'+
+    '<polyline points="'+pts+'" fill="none" stroke="var(--gold)" stroke-width="2.5" stroke-linejoin="round"/>'+
+    ws.map(x=>'<circle cx="'+X(x.date).toFixed(1)+'" cy="'+Y(Number(x.value)).toFixed(1)+'" r="3.5" fill="var(--gold)"/>').join('')+
+  '</svg>';
+}
+// v4.13 — « Partager cette fiche » : même lien que le QR de show, envoyé par le menu de partage
+// (Facebook, Messenger, texto…) ; sinon copié dans le presse-papiers.
+function shareShowLink(id){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  if(ensureShowToken(s)) storage.save(savedSnakes);
+  const url = showUrlFor(s.showToken);
+  const title = s.name+' — LOCUS Scales';
+  const text = isEn ? 'History of '+s.name+' (genetics, weight, meals):' : 'Historique de '+s.name+' (génétique, poids, repas) :';
+  const fallback = ()=>{
+    const done = ()=>showToast('🔗 '+(isEn?'Link copied — paste it in your post or message.':'Lien copié — colle-le dans ta publication ou ton message.'), 'success');
+    try{ if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(done, ()=>prompt(isEn?'Copy this link:':'Copie ce lien :', url)); return; } }catch(e){}
+    prompt(isEn?'Copy this link:':'Copie ce lien :', url);
+  };
+  if(navigator.share){ navigator.share({ title, text, url }).catch(err=>{ if(err && err.name!=='AbortError') fallback(); }); }
+  else fallback();
+  if(!currentUser) showToast(isEn?'Sign in so the link works for others (it needs your data synced).':'Connecte-toi pour que le lien marche chez les autres (il a besoin de tes données synchronisées).', 'error');
+}
 // Section de la fiche (côté propriétaire)
 function showQrSectionHtml(s, id){
   const isEn = currentLang==='en';
   const f = getShowFields(s);
-  return '<p style="font-size:13px;color:var(--ink-dim);margin:0 0 10px;line-height:1.5;">'+(isEn
-      ? 'A QR code for the display box at a show: visitors scan it and see what you check below. Separate from the public link.'
-      : 'Un code QR pour la boîte d\'exposition à un show : les visiteurs le scannent et voient ce que tu coches ici. Distinct du lien public.')+'</p>'+
+  return '<button class="save-btn" style="width:100%;font-size:16px;padding:12px;margin:0 0 10px;" onclick="shareShowLink(\''+id+'\')">📤 '+(isEn?'Share this animal\'s sheet':'Partager la fiche de cet animal')+'</button>'+
+    '<p style="font-size:14px;color:var(--ink-dim);margin:0 0 10px;line-height:1.5;">'+(isEn
+      ? 'A live page for a buyer (Facebook post, Messenger, text) or for visitors at a show (QR on the display box). They see only what you check below. Separate from the public link.'
+      : 'Une page à jour pour un acheteur (publication Facebook, Messenger, texto) ou pour les visiteurs d\'un show (QR sur la boîte d\'exposition). Ils voient seulement ce que tu coches ici. Distinct du lien public.')+'</p>'+
     showFieldDefs().map(d=>'<label style="display:flex;gap:10px;align-items:center;font-size:15px;padding:6px 0;cursor:pointer;"><input type="checkbox" style="width:22px;height:22px;accent-color:var(--sage);" '+(f[d.k]?'checked ':'')+'onchange="setShowField(\''+id+'\',\''+d.k+'\',this.checked)"/>'+(isEn?d.en:d.fr)+'</label>').join('')+
     '<div style="background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:4px 0 8px;">'+coiDisplayHtml(snakeCoiInfo(s), isEn, false)+'</div>'+ // v3.98
     '<div style="font-size:12px;color:var(--ink-dim);margin:4px 0 10px;">'+(isEn?'Always shown: name, sex, species, birth, photo, Proven. Never shown: buyer, purchase price, location in your racks, notes.':'Toujours affichés : nom, sexe, espèce, naissance, photo, Proven. Jamais affichés : acheteur, prix d\'achat, emplacement dans tes racks, notes.')+'</div>'+
@@ -5058,10 +5129,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'4.12', date:'2026-10-21',
+  { version:'4.13', date:'2026-10-21',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '📤 Partager la fiche d\'un animal : nouveau bouton sur la fiche (section « Partager ») qui envoie un lien par Facebook, Messenger ou texto. L\'acheteur voit une page à jour avec, au choix, la génétique, le pedigree, le prix, et maintenant la courbe de poids (12 derniers mois), le journal des 20 derniers repas et les dernières mues. C\'est le même lien que le QR de show. Les notes écrites à la main ne sont jamais montrées.',
         '📋 Import Excel : Mes reptiles › Import accepte maintenant directement les fichiers Excel (.xlsx, .xls, .ods) en plus du CSV. LOCUS trouve la ligne d\'en-tête même s\'il y a un titre au-dessus, reconnaît plus de noms de colonnes (FR/EN), lit la génétique écrite comme dans le milieu (« Super Pastel Banana 66% het Clown »), l\'espèce, le poids, et signale les noms déjà dans ta collection avant d\'importer.',
         '📉 Alerte de perte de poids refaite : elle sonne quand la dernière pesée est 10 % ou plus sous le poids le plus haut des 60 jours d\'avant (avant : n\'importe quelle baisse, même 1 g). Pas d\'alerte pour une femelle qui vient de pondre. Le détail s\'affiche sur la fiche, dans Poids.',
         '🩺 Nouveau : Utilitaire › Santé — un guide pour 8 problèmes de santé courants (infection respiratoire, nidovirus, acariens, stomatite, mue difficile, brûlures et dermatite, régurgitation, IBD) : signes, quoi faire en attendant, quand voir un vétérinaire, prévention et sources. Ne remplace pas un vétérinaire et ne donne jamais de dose de médicament.',
@@ -5148,6 +5220,7 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '📤 Share an animal\'s sheet: new button on the sheet ("Share" section) that sends a link via Facebook, Messenger or text. The buyer sees a live page with, as you choose, genetics, pedigree, price, and now the weight chart (last 12 months), the last 20 meals and recent sheds. It\'s the same link as the show QR. Handwritten notes are never shown.',
         '📋 Excel import: My reptiles › Import now accepts Excel files directly (.xlsx, .xls, .ods) as well as CSV. LOCUS finds the header row even with a title above it, recognizes more column names (FR/EN), reads genetics written the hobby way ("Super Pastel Banana 66% het Clown"), species and weight, and flags names already in your collection before importing.',
         '📉 Weight-loss alert rebuilt: it now triggers when the latest weigh-in is 10% or more below the highest weight of the previous 60 days (before: any drop, even 1 g). No alert for a female that just laid. Details show on the animal sheet, under Weight.',
         '🩺 New: Utility › Health — a guide to 8 common health problems (respiratory infection, nidovirus, mites, stomatitis, stuck shed, burns and dermatitis, regurgitation, IBD): signs, what to do while waiting, when to see a vet, prevention and sources. It doesn\'t replace a vet and never gives medication doses.',
@@ -11458,7 +11531,7 @@ function openLogbook(id){
       })()+
     '</div>'+
     '<div class="modal-section"><h3>🥚 Proven</h3>'+provenSectionHtml(s, id)+'</div>'+
-    '<div class="modal-section"><h3>🎪 '+(isEn?'Visitor QR (reptile shows)':'QR visiteurs (shows de reptiles)')+'</h3>'+showQrSectionHtml(s, id)+'</div>'+ // v3.85
+    '<div class="modal-section"><h3>📤 '+(isEn?'Share: sale link and show QR':'Partager : lien de vente et QR de show')+'</h3>'+showQrSectionHtml(s, id)+'</div>'+ // v3.85
     '<div class="modal-section"><h3>'+t('customTagsTitle')+'</h3>'+
       '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">'+
         (s.customTags.length ? s.customTags.map(tag=>
