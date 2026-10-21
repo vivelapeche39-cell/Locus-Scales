@@ -2207,7 +2207,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.25';
+const APP_VERSION = '2026.09.01.4.29';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5218,10 +5218,14 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'4.25', date:'2026-10-21',
+  { version:'4.29', date:'2026-10-21',
     title:{ fr:'Images à partager, chances de la saison et croissance', en:'Shareable images, season odds and growth' },
     changes:{
       fr:[
+        '🇬🇧 Import en anglais : beaucoup plus de titres de colonnes reconnus (Pet Name, Gender, Hatch_Date, Animal #, Acquired From, Price Paid, Feed Date, Ate?, Food Type, Qty…), même avec une unité ou un souligné (« Weight (lbs) »). Dates avec le mois en lettres (Oct 14, 2026 · 14 octobre 2026 · Sep 2025), poids en kg, lb ou oz convertis en grammes, prix « $1,200.00 », réponses Yes/No, noms courts d\'espèces (Leo, Corn, Beardie, BCI…) et abréviations de proies (XL, med, crickets).',
+        '🛡️ Import plus strict, testé avec un fichier plein de pièges : les dates dans le futur, les poids illisibles ou négatifs (« Trois-cents », -150), les quantités de proies impossibles (-5, 9999), les sexes inconnus (« Hélicoptère »), les espèces vides et les lignes sans ID ni nom sont maintenant signalés avec leur numéro de ligne au lieu d\'être ignorés en silence. Les dates avec l\'année sur 2 chiffres (25/10/26) sont comprises.',
+        '❓ Import d\'historique : quand « Mue » apparaît dans la même colonne que les repas et les refus, LOCUS te demande ce que ça veut dire (refus parce qu\'en mue, ou vraie mue) avant d\'importer, au lieu de deviner.',
+        '📋 Import : un fichier où chaque ligne est un repas ET décrit l\'animal (ID, nom, espèce, sexe, date du repas, proie, statut Accepté/Refusé/Mue, poids) est maintenant compris : les animaux sont créés une seule fois, puis chaque ligne va dans leur historique. Un ID répété dans le fichier n\'est plus confondu avec un animal déjà dans ta collection.',
         '🔐 Déconnexion : l\'appareil n\'affiche plus ta collection une fois déconnecté — elle reste en sécurité dans ton compte et revient à la reconnexion. Si des changements n\'ont pas encore été envoyés au serveur, LOCUS essaie de les envoyer d\'abord, puis te prévient avant de te déconnecter.',
         '🔐 Correctif important : se connecter à un autre compte sur le même appareil n\'affiche plus les animaux du compte précédent. Chaque appareil sait maintenant à quel compte appartiennent ses données; en changeant de compte, celles de l\'autre sont retirées de l\'appareil et celles du compte connecté sont chargées du serveur. Une copie de sécurité est gardée au nom de l\'autre compte (elle réapparaît dans ses Copies automatiques s\'il se reconnecte ici). Les copies automatiques sont séparées par compte.',
         '📥 Un seul bouton Importer : Excel, CSV, export MorphMarket, Husbandry Pro ou autre app, ancien format rapide (nom;sexe;gènes) et historique — LOCUS reconnaît le format tout seul et le dit dans l\'aperçu. L\'import MorphMarket est maintenant gratuit comme les autres. La restauration d\'une sauvegarde reste un bouton séparé (elle remplace tes données). Quand les paliers seront actifs, l\'import respectera la limite d\'animaux de ton palier : les premiers par défaut, ou tu choisis lesquels.',
@@ -5320,6 +5324,10 @@ const CHANGELOG = [
         'Génétique : noms courts partout (calculateur, rêverie, Mes chances…) — « Super Fire », « Lesser Mojave », « Fire Flame », « Super Banana », « Ivory », « Red Axanthic », « Scaleless », « Covalent », « 8 Ball », « Candino » au lieu des longs libellés.'
       ],
       en:[
+        '🇬🇧 English import: many more column titles recognized (Pet Name, Gender, Hatch_Date, Animal #, Acquired From, Price Paid, Feed Date, Ate?, Food Type, Qty…), even with a unit or underscore (« Weight (lbs) »). Dates with the month in letters (Oct 14, 2026 · Sep 2025), weights in kg, lb or oz converted to grams, prices like « $1,200.00 », Yes/No answers, short species names (Leo, Corn, Beardie, BCI…) and prey abbreviations (XL, med, crickets).',
+        '🛡️ Stricter import, tested with a file full of traps: future dates, unreadable or negative weights (« Three hundred », -150), impossible prey quantities (-5, 9999), unknown sexes, empty species and lines with neither ID nor name are now flagged with their line number instead of being silently ignored. Dates with a 2-digit year (25/10/26) are understood.',
+        '❓ History import: when « Shed » appears in the same column as meals and refusals, LOCUS asks you what it means (refused because in shed, or an actual shed) before importing, instead of guessing.',
+        '📋 Import: a file where each line is a meal AND describes the animal (ID, name, species, sex, meal date, prey, status Accepted/Refused/Shed, weight) is now understood: animals are created once, then every line goes into their history. An ID repeated in the file is no longer confused with an animal already in your collection.',
         '🔐 Sign-out: the device no longer shows your collection once signed out — it stays safe in your account and comes back when you sign in. If some changes haven\'t reached the server yet, LOCUS tries to send them first, then warns you before signing out.',
         '🔐 Important fix: signing in to another account on the same device no longer shows the previous account\'s animals. Each device now knows which account its data belongs to; when switching accounts, the other account\'s data is removed from the device and the signed-in account\'s data is loaded from the server. A safety copy is kept under the other account\'s name (it reappears in its Automatic copies if it signs in here again). Automatic copies are separated by account.',
         '📥 One Import button: Excel, CSV, MorphMarket export, Husbandry Pro or other app, the old quick format (name;sex;genes) and history — LOCUS recognizes the format by itself and says so in the preview. MorphMarket import is now free like the others. Restoring a backup stays a separate button (it replaces your data). Once tiers are active, import will respect your plan\'s animal limit: the first ones by default, or you choose which.',
@@ -14741,29 +14749,45 @@ function normalizeHeaderKey(str){
   return String(str==null?'':str).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[:*]+\s*$/,'').replace(/\s+/g,' ').trim(); // v4.12 — « Nom : », espaces doubles
 }
 const CSV_COLUMN_ALIASES = {
-  name: ['nom','name','nom du reptile','reptile name','animal','animal name','nom de l\'animal','serpent','snake','title','listing title','titre'],
+  name: ['nom','name','nom du reptile','reptile name','animal','animal name','nom de l\'animal','serpent','snake','title','listing title','titre','pet name','nickname','surnom','display name'],
   sex: ['sexe','sex','gender','genre','sexe (m/f)','sex (m/f)'],
   genes: ['genes','gene','genetique','genetics','morph','morphs','morphe','traits','genetic','genetic mutation','genetic mutations','mutation','mutations','genotype','phenotype'],
-  birthDate: ['date de naissance','birth date','dob','naissance','date naissance','date of birth','hatch date','eclosion','date d\'eclosion','ne le','hatched'],
-  provenance: ['provenance','source','eleveur','breeder','origine','origin'],
-  purchasePrice: ['prix d\'achat','prix achat','purchase price','cost','cout','paid','paye'],
+  birthDate: ['date de naissance','birth date','dob','naissance','date naissance','date of birth','hatch date','eclosion','date d\'eclosion','ne le','hatched','birthdate','birthday','born','hatch','hatchdate','date hatched','hatched on','date born','annee de naissance','birth year','year born','hatch year'],
+  provenance: ['provenance','source','eleveur','breeder','origine','origin','acquired from','purchased from','bought from','supplier','vendor','fournisseur','achete chez','produced by'],
+  purchasePrice: ['prix d\'achat','prix achat','purchase price','cost','cout','paid','paye','price paid','acquisition cost','bought for','paid price','cost price'],
   species: ['espece','species','type d\'animal','animal type','common name','nom commun','scientific name','nom scientifique','category','categorie'], // v4.18 — Husbandry Pro : « Common Name » = l'espèce, pas le nom de l'animal
-  askingPrice: ['prix demande','prix','asking price','price','prix de vente','sale price'],
-  animalId: ['id/name','name/id','id / name','id/nom','nom/id','id','animal id','animal_id','animalid','id animal','id de l\'animal','identifiant','# id','#','tag','tag id','code'], // v4.16
-  weight: ['poids','poids (g)','weight','weight (g)','masse','dernier poids','last weight','poids actuel','current weight','current weight (g)','weight (grams)'], // v4.12
-  notes: ['notes','note','remarques','remarque','comment','comments','commentaire','commentaires','details','description'], // v4.21
-  status: ['status','statut','etat','state','sale status','statut de vente','availability','disponibilite'], // v4.20
-  sire: ['sire','pere','father','male parent','parent male','sire id','id du pere','dad'], // v4.20
-  dam: ['dam','mere','mother','female parent','parent femelle','dam id','id de la mere','mom'], // v4.20
-  lastFed: ['dernier repas','date du dernier repas','last fed','last fed date','last feeding','last meal','date last fed'], // v4.18
-  weightDate: ['date de pesee','date pesee','date du poids','weigh date','weight date','date of weight','derniere pesee','last weigh-in'], // v4.12
+  askingPrice: ['prix demande','prix','asking price','price','prix de vente','sale price','list price','for sale price','selling price'],
+  animalId: ['id/name','name/id','id / name','id/nom','nom/id','id','animal id','animal_id','animalid','id animal','id de l\'animal','identifiant','# id','#','tag','tag id','code','animal #','tag #','id #','identifier','animal number','number','no','numero','reference','ref','record id','collection id'], // v4.16
+  weight: ['poids','poids (g)','poids animal','poids animal (g)','poids de l\'animal','animal weight','weight','weight (g)','masse','dernier poids','last weight','poids actuel','current weight','current weight (g)','weight (grams)','mass','body weight','latest weight','recent weight','wt'], // v4.12
+  notes: ['notes','note','remarques','remarque','comment','comments','commentaire','commentaires','details','description','remarks','memo','observations'], // v4.21
+  status: ['status','statut','etat','state','sale status','statut de vente','availability','disponibilite','animal status','inventory status'], // v4.20
+  sire: ['sire','pere','father','male parent','parent male','sire id','id du pere','dad','sire name','nom du pere'], // v4.20
+  dam: ['dam','mere','mother','female parent','parent femelle','dam id','id de la mere','mom','dam name','nom de la mere'], // v4.20
+  lastFed: ['dernier repas','date du dernier repas','last fed','last fed date','last feeding','last meal','date last fed','last feeding date','last feed','last fed on','dernier nourrissage'], // v4.18
+  weightDate: ['date de pesee','date pesee','date du poids','weigh date','weight date','date of weight','derniere pesee','last weigh-in','date weighed','weighed on','last weighed','weigh-in date'], // v4.12
 };
+// v4.29 — variantes d'un titre : « Weight (lbs) », « Hatch_Date », « Fed? » se comparent aussi sans unité, soulignés ni ponctuation
+function headerVariants(h){
+  const n = normalizeHeaderKey(h);
+  const v = new Set([n]);
+  const noParen = n.replace(/\s*[\(\[][^\)\]]*[\)\]]\s*/g,' ').replace(/\s+/g,' ').trim();
+  v.add(noParen);
+  [n, noParen].forEach(x=>{ v.add(x.replace(/[_\-.]+/g,' ').replace(/\s+/g,' ').trim()); v.add(x.replace(/[?:*#]+/g,'').trim()); v.add(x.replace(/[_\-.?:*]+/g,' ').replace(/\s+/g,' ').trim()); });
+  return [...v].filter(Boolean);
+}
 function mapCsvHeaders(headerRow){
   const map = {};
   headerRow.forEach((h,i)=>{
-    const norm = normalizeHeaderKey(h);
+    const vars = headerVariants(h);
     for(const field in CSV_COLUMN_ALIASES){
-      if(map[field]===undefined && CSV_COLUMN_ALIASES[field].some(alias=>normalizeHeaderKey(alias)===norm)) map[field] = i; // v4.12 — 1re colonne gagne
+      if(map[field]===undefined && CSV_COLUMN_ALIASES[field].some(alias=>normalizeHeaderKey(alias)===vars[0])){ map[field] = i; break; }
+    }
+  });
+  headerRow.forEach((h,i)=>{ // 2e passe : variantes (sans unité, sans soulignés…), seulement pour les colonnes encore libres
+    if(Object.values(map).includes(i)) return;
+    const vars = headerVariants(h).slice(1);
+    for(const field in CSV_COLUMN_ALIASES){
+      if(map[field]===undefined && CSV_COLUMN_ALIASES[field].some(alias=>vars.includes(normalizeHeaderKey(alias)))){ map[field] = i; break; }
     }
   });
   return map;
@@ -14792,7 +14816,12 @@ function importValidYmd(y, mo, d){
   const dt = new Date(y, mo-1, d);
   return dt.getFullYear()===y && dt.getMonth()===mo-1 && dt.getDate()===d;
 }
-function importYmd(y, mo, d){ return importValidYmd(y, mo, d) ? { value: y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0'), ambiguous:false } : { value:null, ambiguous:false, invalid:true }; }
+function importYmd(y, mo, d){
+  if(!importValidYmd(y, mo, d)) return { value:null, ambiguous:false, invalid:true };
+  const v = y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+  if(v > addDays(localTodayStr(), 1)) return { value:null, ambiguous:false, invalid:true, future:true }; // v4.28 — une date dans le futur n'est jamais acceptée
+  return { value:v, ambiguous:false };
+}
 function normalizeImportDate(v, order){ // v4.18 — order 'dmy'/'mdy' déduit de toute la colonne
   if(v==null || v==='') return { value:null, ambiguous:false };
   if(typeof v==='number'){
@@ -14809,10 +14838,12 @@ function normalizeImportDate(v, order){ // v4.18 — order 'dmy'/'mdy' déduit d
   if(m) return importYmd(+m[1], +m[2], +m[3]);
   m = str.match(/^(\d{4})[-\/](\d{1,2})$/);
   if(m) return (+m[2]>=1 && +m[2]<=12) ? { value: m[1]+'-'+m[2].padStart(2,'0'), ambiguous:false } : { value:null, ambiguous:false, invalid:true };
-  if(/^\d{4}$/.test(str)) return (+str>=1900 && +str<=2100) ? { value:str, ambiguous:false } : { value:null, ambiguous:false, invalid:true };
-  m = str.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})(?:[T ].*)?$/);
+  if(/^\d{4}$/.test(str)) return (+str>=1900 && +str<=new Date().getFullYear()) ? { value:str, ambiguous:false } : { value:null, ambiguous:false, invalid:true, future: +str>new Date().getFullYear() };
+  m = str.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4}|\d{2})(?:[T ].*)?$/);
   if(m){
-    const a = +m[1], b = +m[2], y = +m[3];
+    const a = +m[1], b = +m[2];
+    let y = +m[3];
+    if(m[3].length===2){ const yy = new Date().getFullYear()%100; y = (y <= yy+1 ? 2000 : 1900) + y; } // v4.28 — année sur 2 chiffres (25/10/26)
     if(a>12 && b>12) return { value:null, ambiguous:false, invalid:true };            // ex. 32-13-2024 : ni jour/mois ni mois/jour
     if(a>12) return importYmd(y, b, a);                                              // seul ordre possible : jour/mois
     if(b>12) return importYmd(y, a, b);                                              // seul ordre possible : mois/jour
@@ -14821,12 +14852,29 @@ function normalizeImportDate(v, order){ // v4.18 — order 'dmy'/'mdy' déduit d
     if(order==='dmy') return importYmd(y, b, a);
     return { value:null, ambiguous:true };
   }
+  // v4.29 — mois en lettres, anglais ou français : « Oct 14, 2026 », « 14 octobre 2026 », « 14-Oct-26 », « Sep 2025 »
+  const mo = importMonthFromWord(str);
+  if(mo){
+    const nums = str.replace(/(\d)(st|nd|rd|th|er)\b/gi,'$1').match(/\d+/g) || [];
+    const yr = nums.find(x=>x.length===4) || (nums.length>=2 && nums[nums.length-1].length===2 ? String((+nums[nums.length-1] <= new Date().getFullYear()%100+1 ? 2000 : 1900) + +nums[nums.length-1]) : null);
+    const day = nums.find(x=>x.length<=2 && x!==nums[nums.length-1]) || (nums.length===2 && nums[0].length<=2 && yr && nums[1].length===4 ? nums[0] : null);
+    if(yr && day) return importYmd(+yr, mo, +day);
+    if(yr && !day){ const v = yr+'-'+String(mo).padStart(2,'0'); return v > localTodayStr().slice(0,7) ? { value:null, ambiguous:false, invalid:true, future:true } : { value:v, ambiguous:false }; }
+  }
   return { value:null, ambiguous:false, invalid:true };                               // texte qui n'est pas une date
+}
+function importMonthFromWord(str){
+  const x = normalizeHeaderKey(str);
+  const M = [['jan','janv','january','janvier'],['feb','fev','fevr','february','fevrier'],['mar','mars','march'],['apr','avr','april','avril'],['may','mai'],['jun','june','juin'],['jul','july','juil','juillet'],['aug','aout','august'],['sep','sept','september','septembre'],['oct','october','octobre'],['nov','november','novembre'],['dec','december','decembre']];
+  for(let i=0;i<12;i++){ if(M[i].some(w=>new RegExp('(^|[^a-z])'+w+'\\.?([^a-z]|$)').test(x))) return i+1; }
+  return null;
 }
 // Espèce en texte libre → id LOCUS (nom FR, EN, latin ou id). Vide = python royal. Non reconnue = texte gardé tel quel.
 function matchImportSpecies(raw){
   let norm = normalizeHeaderKey(raw||'');
   if(['ball pythons','pythons royaux','royal pythons','pythons'].includes(norm)) norm = 'ball python'; // v4.23 — MorphMarket écrit « Ball Pythons »
+  const SHORT = { 'corn':'corn_snake','corns':'corn_snake','couleuvre des bles':'corn_snake','serpent des bles':'corn_snake','hognose snake':'hognose','western hognose':'hognose','hoggie':'hognose','leo':'leopard_gecko','leos':'leopard_gecko','leopard':'leopard_gecko','gecko leopard':'leopard_gecko','crestie':'crested_gecko','cresties':'crested_gecko','crested':'crested_gecko','gargoyle':'gargoyle_gecko','fat tail':'fat_tail_gecko','fat tailed gecko':'fat_tail_gecko','african fat tail':'fat_tail_gecko','beardie':'bearded_dragon','beardies':'bearded_dragon','pogona':'bearded_dragon','blue tongue':'blue_tongue_skink','bts':'blue_tongue_skink','blue tongued skink':'blue_tongue_skink','bci':'boa_bci','bcc':'boa_bcc','brb':'rainbow_boa','rainbow boa':'rainbow_boa','ackie':'ackie_monitor','sulcata':'sulcata_tortoise','res':'red_eared_slider','california king':'king_california','cal king':'king_california','florida king':'king_florida','mexican black king':'king_mexican','mbk':'king_mexican' }; // v4.29
+  if(SHORT[norm]) return { id:SHORT[norm], known:true };
   if(!norm) return { id:'ball_python', known:true };
   if(['python royal','ball python','royal python','python regius','ball','python','ball_python','bp'].includes(norm)) return { id:'ball_python', known:true };
   const ref = SPECIES_REFERENCE.find(sp=>[sp.id, sp.nameFr, sp.nameEn, sp.nameLatin].filter(Boolean).some(x=>normalizeHeaderKey(String(x).replace(/_/g,' '))===norm.replace(/_/g,' ')));
@@ -14917,12 +14965,12 @@ document.getElementById('generic-csv-file-input').addEventListener('change', (e)
 var LOG_COLUMN_ALIASES = {
   animalId: CSV_COLUMN_ALIASES.animalId,
   name: CSV_COLUMN_ALIASES.name,
-  date: ['date','activity date','event date','date de l\'activite','date activite','date de l\'evenement','jour','day','date fed','feeding date','log date','record date','date/time','datetime'],
-  activity: ['activity','activite','type','event','evenement','action','activity type','type d\'activite','log type','record type','event type','type d\'evenement'],
-  prey: ['prey','proie','feeder','feeder item','feeder type','food','nourriture','item','prey item','food item','prey type'],
-  quantity: ['qty','quantity','quantite','nombre','count','nb'],
+  date: ['date repas','date du repas','date de repas','meal date','feed date','fed date','date of feeding','feeding day','date nourrissage','date de nourrissage','date du nourrissage','date','activity date','event date','date de l\'activite','date activite','date de l\'evenement','jour','day','date fed','feeding date','log date','record date','date/time','datetime'],
+  activity: ['activity','activite','type','event','evenement','action','activity type','type d\'activite','log type','record type','event type','type d\'evenement','resultat','result','outcome','statut','status','etat','feeding result','feeding status','feed result','response','reponse','fed?','ate?','ate','fed','a mange?','nourri?'], // v4.26 — « Statut » compte seulement si ses valeurs sont des activités (voir logActivityColumnOk)
+  prey: ['proie proposee','proie offerte','offered prey','prey offered','prey given','proie donnee','prey','proie','food type','feeder size','prey size','item fed','food','meal','repas donne','type de proie','feeder','feeder item','feeder type','food','nourriture','item','prey item','food item','prey type'],
+  quantity: ['qty','quantity','quantite','nombre','count','nb','number fed','# fed','amount','how many','nombre de proies','prey count'],
   weight: CSV_COLUMN_ALIASES.weight,
-  notes: ['notes','note','remarque','remarques','comment','comments','details','detail']
+  notes: ['notes','note','remarque','remarques','comment','comments','details','detail','commentaire','commentaires']
 };
 var LOG_FIELD_ORDER = ['animalId','name','date','activity','prey','quantity','weight','notes'];
 function logFieldLabel(f, isEn){
@@ -14931,31 +14979,41 @@ function logFieldLabel(f, isEn){
 }
 function mapLogHeaders(headerRow){
   const map = {};
-  headerRow.forEach((h,i)=>{
-    const norm = normalizeHeaderKey(h);
+  [0,1].forEach(pass=>headerRow.forEach((h,i)=>{
+    if(Object.values(map).includes(i)) return;
+    const vars = pass===0 ? [normalizeHeaderKey(h)] : headerVariants(h).slice(1);
     for(const field in LOG_COLUMN_ALIASES){
-      if(map[field]===undefined && LOG_COLUMN_ALIASES[field].some(a=>normalizeHeaderKey(a)===norm)){ map[field] = i; break; }
+      if(map[field]===undefined && LOG_COLUMN_ALIASES[field].some(a=>vars.includes(normalizeHeaderKey(a)))){ map[field] = i; break; }
     }
-  });
+  }));
   return map;
 }
-function isLogSheet(rows){
+// v4.26 — une colonne « Statut » n'est une colonne d'activité que si la majorité de ses valeurs en sont (Accepté, Refusé, Mue…)
+function logActivityColumnOk(rows, hIdx, col){
+  const vals = rows.slice(hIdx+1, hIdx+41).map(r=>importCellStr((r||[])[col])).filter(Boolean);
+  if(!vals.length) return false;
+  return vals.filter(v=>mapLogActivity(v)).length >= Math.ceil(vals.length*0.5);
+}
+function logHeaderAt(rows){
   for(let i=0;i<Math.min(10,(rows||[]).length);i++){
     const m = mapLogHeaders((rows[i]||[]).map(importCellStr));
-    if((m.animalId!==undefined || m.name!==undefined) && m.date!==undefined && m.activity!==undefined) return true;
+    if((m.animalId!==undefined || m.name!==undefined) && m.date!==undefined && m.activity!==undefined && logActivityColumnOk(rows, i, m.activity)) return { i, m };
   }
-  return false;
+  return null;
 }
+function isLogSheet(rows){ return !!logHeaderAt(rows); }
 // Texte d'activité → type LOCUS. L'ordre compte : « refused feeding » est un refus, « en mue » n'est pas une mue terminée.
 function mapLogActivity(raw){
   const x = ' '+normalizeHeaderKey(raw).replace(/[^a-z0-9' ]/g,' ').replace(/\s+/g,' ')+' ';
   if(!x.trim()) return null;
-  if(/ (refus|refused|refuse|reject|rejected|declin|declined|no eat|did not eat|didn t eat|not eaten|regurg)/.test(x)) return /regurg/.test(x) ? null : 'refused';
+  if(/^ (y|yes|oui|o|true|vrai|1|x|✓) $/.test(x)) return 'fed';      // v4.29 — colonne « Ate? » / « A mangé? »
+  if(/^ (n|no|non|false|faux|0) $/.test(x)) return 'refused';
+  if(/ (refus|refused|refuse|refusal|reject|rejected|declin|declined|no eat|did not eat|didn t eat|not eaten|no feed|wouldn t eat|would not eat|uninterested|struck no eat|regurg)/.test(x)) return /regurg/.test(x) ? null : 'refused';
   if(/ (skip|skipped|saute|passe son tour)/.test(x)) return 'skipped';
   if(/ (in blue|blue|opaque|pre shed|preshed|en mue|bleu)/.test(x)) return 'inshed';
   if(/ (shed|sheds|shedding|mue|mué|a mue|ecdysis)/.test(x)) return 'shed';
   if(/ (weigh|weighed|weighing|weight|pesee|pese|poids)/.test(x)) return 'weight';
-  if(/ (fed|feed|feeding|ate|eat|eaten|meal|repas|nourri|mange|a mange)/.test(x)) return 'fed';
+  if(/ (fed|feed|feeding|ate|eat|eaten|meal|repas|nourri|mange|a mange|accepte|accepted|accept|took|pris|struck)/.test(x)) return 'fed';
   return null;
 }
 function logShedQuality(raw){
@@ -14971,9 +15029,10 @@ function parseLogPrey(raw){
   if(!x) return {};
   const out = {};
   const words = { mouse:['mouse','mice','souris'], rat:['rat','rats'], asf:['asf','african soft fur'], gerbil:['gerbil','gerbille'], rabbit:['rabbit','lapin'], guineapig:['guinea pig','cochon d\'inde'], cricket:['cricket','grillon'], dubia:['dubia'] };
-  Object.keys(words).some(k=>{ if(PREY_TYPES[k] && words[k].some(w=>new RegExp('(^|[^a-z])'+w+'([^a-z]|$)').test(x))){ out.preySpecies = k; return true; } return false; });
+  Object.keys(words).some(k=>{ if(PREY_TYPES[k] && words[k].some(w=>new RegExp('(^|[^a-z])'+w+'(s|x)?([^a-z]|$)').test(x))){ out.preySpecies = k; return true; } return false; }); // v4.29 — pluriels (crickets, rats)
   if(out.preySpecies && PREY_TYPES[out.preySpecies]){
-    const sz = PREY_TYPES[out.preySpecies].sizes.slice().sort((a,b)=>b.length-a.length).find(z=>new RegExp('(^|[^a-z])'+normalizeHeaderKey(z).replace(/[-]/g,'[- ]?')+'([^a-z]|$)').test(x));
+    const xs = x.replace(/(^|[^a-z])xl([^a-z]|$)/,'$1x-large$2').replace(/(^|[^a-z])(sm)([^a-z]|$)/,'$1small$3').replace(/(^|[^a-z])(med)([^a-z]|$)/,'$1medium$3').replace(/(^|[^a-z])(lg|lrg)([^a-z]|$)/,'$1large$3').replace(/(^|[^a-z])(adulte?s?)([^a-z]|$)/,'$1adult$3').replace(/(^|[^a-z])(rosé|rose|rosee)([^a-z]|$)/,'$1pinky$3').replace(/(^|[^a-z])sevre?e?s?([^a-z]|$)/,'$1weanling$2'); // v4.29 — abréviations et mots français
+    const sz = PREY_TYPES[out.preySpecies].sizes.slice().sort((a,b)=>b.length-a.length).find(z=>new RegExp('(^|[^a-z])'+normalizeHeaderKey(z).replace(/[-]/g,'[- ]?')+'([^a-z]|$)').test(xs));
     if(sz) out.preySize = sz;
   }
   if(/(^|[^a-z])(f\/t|ft|frozen|thawed|decongel|congel)/.test(x)) out.preyType = 'frozen';
@@ -14987,7 +15046,9 @@ function logImportFromRows(rows){
   rows = (rows||[]).filter(r=>Array.isArray(r) && r.some(c=>importCellStr(c)!==''));
   if(!rows.length){ alert(isEn?'Empty file.':'Fichier vide.'); return; }
   let hIdx = -1, colMap = {};
-  for(let i=0;i<Math.min(10,rows.length);i++){ const m = mapLogHeaders(rows[i].map(importCellStr)); if(m.date!==undefined && m.activity!==undefined){ hIdx = i; colMap = m; break; } }
+  const found = logHeaderAt(rows);
+  if(found){ hIdx = found.i; colMap = found.m; }
+  else { for(let i=0;i<Math.min(10,rows.length);i++){ const m = mapLogHeaders(rows[i].map(importCellStr)); if(m.date!==undefined && m.activity!==undefined){ hIdx = i; colMap = m; break; } } }
   if(hIdx<0){ hIdx = 0; colMap = mapLogHeaders(rows[0].map(importCellStr)); }
   const width = rows.reduce((a,r)=>Math.max(a, r.length), 0);
   const headerRow = Array.from({ length: width }, (_, i)=>importCellStr(rows[hIdx][i]));
@@ -15002,31 +15063,45 @@ function rebuildLogImport(){
   const str = (cols,f)=> importCellStr(raw(cols,f));
   const dataRows = m.rows.slice(m.hIdx+1);
   const order = importDateOrder(dataRows, cm.date);
+  const logWUnit = cm.weight!==undefined ? importHeaderUnit(m.headerRow[cm.weight]) : null; // v4.29
   m.dateOrder = order;
   const byId = {}, byName = {};
   savedSnakes.forEach(s=>{ if(s.animalId) byId[String(s.animalId).toUpperCase()] = s; if(s.name) byName[normalizeHeaderKey(s.name)] = s; });
   const items = [], unknownAnimals = {}, unknownActs = {};
   let noDate = 0, ambiguous = 0, dupes = 0;
   const invalidLog = []; // v4.22
+  const logAnoms = { qty:[], weight:[], noKey:[] }; // v4.28
   const seen = new Set();
   const ready = (cm.animalId!==undefined || cm.name!==undefined) && cm.date!==undefined && cm.activity!==undefined;
   m.ready = ready;
+  // v4.27 — « Mue » dans une colonne qui contient aussi des repas/refus : ça peut vouloir dire « refusé parce qu'en mue ».
+  // On demande à la personne au lieu de deviner (m.shedMeaning : null tant qu'elle n'a pas répondu).
+  if(ready){
+    const acts = new Set(dataRows.map(cols=>mapLogActivity(str(cols,'activity'))).filter(Boolean));
+    m.shedAmbiguous = acts.has('shed') && (acts.has('fed') || acts.has('refused'));
+    m.shedExamples = [...new Set(dataRows.filter(cols=>mapLogActivity(str(cols,'activity'))==='shed').map(cols=>str(cols,'activity')))].slice(0,3);
+  } else m.shedAmbiguous = false;
   if(ready) dataRows.forEach(cols=>{
     const idv = normalizeAnimalId(str(cols,'animalId'));
     const nm = str(cols,'name');
-    if(!idv && !nm) return;
+    if(!idv && !nm){ if(str(cols,'activity') || str(cols,'date')) logAnoms.noKey.push(cols.__line); return; }
     const snake = (idv && byId[idv.toUpperCase()]) || (nm && byName[normalizeHeaderKey(nm)]) || null;
     const label = idv || nm;
-    const act = mapLogActivity(str(cols,'activity'));
+    let act = mapLogActivity(str(cols,'activity'));
     const d = normalizeImportDate(raw(cols,'date'), order);
     if(!snake){ unknownAnimals[label] = (unknownAnimals[label]||0)+1; return; }
+    let inShedRefusal = false;
+    if(act==='shed' && m.shedAmbiguous && m.shedMeaning==='refused_shed'){ act = 'refused'; inShedRefusal = true; } // v4.27
     if(!act){ const a = str(cols,'activity') || '?'; unknownActs[a] = (unknownActs[a]||0)+1; return; }
-    if(!d.value || d.value.length!==10){ if(d.ambiguous) ambiguous++; else if(d.invalid) invalidLog.push((idv||nm)+' : '+str(cols,'date')); else noDate++; return; }
+    if(!d.value || d.value.length!==10){ if(d.ambiguous) ambiguous++; else if(d.invalid) invalidLog.push((cols.__line?(currentLang==='en'?'line ':'ligne ')+cols.__line+' ':'')+(idv||nm)+' : '+str(cols,'date')+(d.future?(currentLang==='en'?' (future)':' (dans le futur)'):'')); else noDate++; return; }
     const wRaw = raw(cols,'weight');
-    const wNum = typeof wRaw==='number' ? wRaw : parseFloat(importCellStr(wRaw).replace(/\s/g,'').replace(',','.').replace(/[^0-9.]/g,''));
+    const wTxt = importCellStr(wRaw);
+    let wNum = wTxt ? importWeightGrams(wRaw, logWUnit) : NaN; // v4.29
+    if(wTxt && !(wNum>0)){ logAnoms.weight.push((cols.__line?(currentLang==='en'?'line ':'ligne ')+cols.__line+' ':'')+'« '+wTxt+' »'); wNum = NaN; } // v4.28 — « Trois-cents », -150…
     const it = { snake, type:act, date:d.value, note: str(cols,'notes') || null };
-    if(act==='fed'){ Object.assign(it, parseLogPrey(str(cols,'prey'))); const q = parseInt(str(cols,'quantity'),10); if(q>1) it.preyCount = q; }
+    if(act==='fed'){ Object.assign(it, parseLogPrey(str(cols,'prey'))); const qt = str(cols,'quantity'); const q = /^-/.test(qt) ? -1 : parseInt((qt.match(/\d+/)||[''])[0],10); if(qt && !(q>=1 && q<=20)) logAnoms.qty.push((cols.__line?(currentLang==='en'?'line ':'ligne ')+cols.__line+' ':'')+'« '+qt+' »'); else if(q>1) it.preyCount = q; } // v4.28 — quantité hors 1 à 20 : signalée, ignorée
     if(act==='shed') it.quality = logShedQuality(str(cols,'activity')+' '+str(cols,'notes'));
+    if(inShedRefusal) it.reason = 'in_shed';
     if(act==='weight'){ if(!(wNum>0)){ noDate++; return; } it.value = Math.round(wNum*10)/10; }
     // Doublon : même animal, même date, même type (pesée : même valeur aussi) — dans LOCUS ou plus haut dans le fichier
     const key = snake.id+'|'+act+'|'+d.value+(act==='weight'?'|'+it.value:'');
@@ -15043,8 +15118,9 @@ function rebuildLogImport(){
       if(!seen.has(wk) && !(h.weights||[]).some(w=>w && w.date===d.value && Number(w.value)===Math.round(wNum*10)/10)){ seen.add(wk); items.push({ snake, type:'weight', date:d.value, value:Math.round(wNum*10)/10 }); }
     }
   });
-  Object.assign(m, { items, unknownAnimals, unknownActs, noDate, ambiguous, dupes, invalidLog });
+  Object.assign(m, { items, unknownAnimals, unknownActs, noDate, ambiguous, dupes, invalidLog, logAnoms });
 }
+function setLogShedMeaning(v){ const m = pendingLogImport; if(!m) return; m.shedMeaning = v; rebuildLogImport(); renderLogImportPreview(); } // v4.27
 function setLogImportColumn(colIdx, field){
   const m = pendingLogImport; if(!m) return;
   Object.keys(m.colMap).forEach(f=>{ if(m.colMap[f]===colIdx) delete m.colMap[f]; });
@@ -15075,13 +15151,27 @@ function renderLogImportPreview(){
       '</select></div>';
   }).join('');
   const total = (m.items||[]).length;
+  const needShedAnswer = m.shedAmbiguous && !m.shedMeaning;
+  const shedQ = m.shedAmbiguous ? '<div style="background:rgba(212,175,55,.14);border:1px solid var(--gold);border-radius:10px;padding:12px;margin:8px 0;font-size:15px;line-height:1.45;color:var(--ink);">'+
+      '❓ <b>'+(isEn?'In this file, what does « ':'Dans ce fichier, que veut dire « ')+escapeHtml((m.shedExamples||['Mue']).join(' », « '))+(isEn?' » mean?':' » ?')+'</b><br>'+
+      '<span style="font-size:13.5px;color:var(--ink-dim);">'+(isEn?'It\'s in the same column as meals and refusals, so LOCUS won\'t guess.':'C\'est dans la même colonne que les repas et les refus, alors LOCUS ne devine pas.')+'</span>'+
+      '<div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;">'+
+        '<button class="sc-btn'+(m.shedMeaning==='refused_shed'?' accent':'')+'" style="font-size:15px;padding:11px;text-align:left;" onclick="setLogShedMeaning(\'refused_shed\')">🔵 '+(isEn?'The animal refused because it was in shed → « Refused (shed) »':'L\'animal a refusé parce qu\'il était en mue → « Refus (mue) »')+'</button>'+
+        '<button class="sc-btn'+(m.shedMeaning==='shed'?' accent':'')+'" style="font-size:15px;padding:11px;text-align:left;" onclick="setLogShedMeaning(\'shed\')">✨ '+(isEn?'The animal shed its skin that day → « Shed »':'L\'animal a mué ce jour-là → « Mue »')+'</button>'+
+      '</div></div>' : '';
   const body =
+    shedQ+
     p('🗓 <b>'+(isEn?'History file detected':'Fichier d\'historique détecté')+'</b> — '+(isEn?'one line per activity, added to each animal\'s log.':'une ligne par activité, ajoutée au journal de chaque animal.'))+
     (!m.ready ? '<div style="background:rgba(212,175,55,.14);border:1px solid var(--gold);border-radius:10px;padding:10px 12px;margin:6px 0 10px;font-size:15px;line-height:1.45;color:var(--ink);">⚠ '+(isEn?'Choose below which columns are the <b>ID or name</b>, the <b>date</b> and the <b>activity</b>.':'Choisis plus bas quelles colonnes sont l\'<b>ID ou le nom</b>, la <b>date</b> et l\'<b>activité</b>.')+'</div>' : '')+
     (m.ready ? p('<b>'+total+'</b> '+(isEn?'entr(ies) for ':'entrée(s) pour ')+'<b>'+animals+'</b> '+(isEn?'animal(s)':'animal(s)')+(total ? ' : '+Object.keys(counts).map(k=>counts[k]+' '+typeLbl[k]).join(', ') : '')+'.') : '')+
     (m.dupes ? p('↺ '+(isEn?m.dupes+' already in LOCUS (same animal, date and type) — not added twice.':m.dupes+' déjà dans LOCUS (même animal, même date, même type) — pas ajoutée(s) deux fois.'), 'var(--ink-dim)') : '')+
     (unk.length ? p('⚠ '+(isEn?'Not in your collection — these lines are ignored: ':'Absents de ta collection — ces lignes sont ignorées : ')+'<b>'+escapeHtml(unk.slice(0,12).map(k=>k+' ('+m.unknownAnimals[k]+')').join(', '))+(unk.length>12?' +'+(unk.length-12):'')+'</b>'+(isEn?'. Import those animals first (or fix the ID), then re-import this file — nothing will be doubled.':'. Importe d\'abord ces animaux (ou corrige l\'ID), puis réimporte ce fichier — rien ne sera doublé.'), 'var(--gold)') : '')+
     (unkActs.length ? p('⚠ '+(isEn?'Activities not recognized (ignored): ':'Activités non reconnues (ignorées) : ')+'<b>'+escapeHtml(unkActs.slice(0,10).map(k=>'« '+k+' » ('+m.unknownActs[k]+')').join(', '))+'</b>', 'var(--gold)') : '')+
+    (function(){ const a = m.logAnoms || {}; let h = ''; const ex = arr=>escapeHtml(arr.slice(0,6).join(', '))+(arr.length>6?' +'+(arr.length-6):'');
+      if((a.qty||[]).length) h += p('⚠ '+(isEn?a.qty.length+' prey quantit(ies) impossible (outside 1 to 20) — the meal is kept, the quantity ignored: ':a.qty.length+' quantité(s) de proies impossible(s) (hors 1 à 20) — le repas est gardé, la quantité ignorée : ')+'<b>'+ex(a.qty)+'</b>', 'var(--gold)');
+      if((a.weight||[]).length) h += p('⛔ '+(isEn?a.weight.length+' unreadable or impossible weight(s), ignored: ':a.weight.length+' poids illisible(s) ou impossible(s), ignoré(s) : ')+'<b>'+ex(a.weight)+'</b>', 'var(--rust)');
+      if((a.noKey||[]).length) h += p('⚠ '+(isEn?a.noKey.length+' line(s) with neither ID nor name, ignored: line ':a.noKey.length+' ligne(s) sans ID ni nom, ignorée(s) : ligne ')+'<b>'+ex(a.noKey.map(String))+'</b>', 'var(--gold)');
+      return h; })()+
     ((m.invalidLog||[]).length ? p('⛔ '+(isEn?m.invalidLog.length+' line(s) ignored: impossible or unreadable date — ':m.invalidLog.length+' ligne(s) ignorée(s) : date impossible ou illisible — ')+'<b>'+escapeHtml(m.invalidLog.slice(0,8).join(', '))+(m.invalidLog.length>8?' +'+(m.invalidLog.length-8):'')+'</b>', 'var(--rust)') : '')+
     (m.ambiguous ? p('⚠ '+(isEn?m.ambiguous+' line(s) ignored: ambiguous date (e.g. 03/04/2026). Use YYYY-MM-DD.':m.ambiguous+' ligne(s) ignorée(s) : date ambiguë (ex. 03/04/2026). Utilise AAAA-MM-JJ.'), 'var(--gold)') : '')+
     (m.noDate ? p('⚠ '+(isEn?m.noDate+' line(s) ignored: missing date (or weigh-in without a weight).':m.noDate+' ligne(s) ignorée(s) : date manquante (ou pesée sans poids).'), 'var(--gold)') : '')+
@@ -15090,13 +15180,15 @@ function renderLogImportPreview(){
     '<details'+(!m.ready ? ' open' : '')+' style="margin:10px 0;border:1px solid var(--line);border-radius:10px;padding:8px 12px;">'+
       '<summary style="font-size:15px;font-weight:600;color:var(--sage);cursor:pointer;">'+(isEn?'Columns of your file':'Colonnes de ton fichier')+'</summary>'+colsHtml+
     '</details>'+
-    '<button class="save-btn" style="width:100%;margin-top:14px;font-size:16px;padding:12px;" '+(m.ready && total?'':'disabled')+' onclick="confirmLogImport()">✅ '+(isEn?'Add '+total+' entr(ies)':'Ajouter '+total+' entrée(s)')+'</button>'+
+    (needShedAnswer ? p('⬆ '+(isEn?'Answer the question at the top to continue.':'Réponds à la question en haut pour continuer.'), 'var(--gold)') : '')+
+    '<button class="save-btn" style="width:100%;margin-top:14px;font-size:16px;padding:12px;" '+(m.ready && total && !needShedAnswer?'':'disabled')+' onclick="confirmLogImport()">✅ '+(isEn?'Add '+total+' entr(ies)':'Ajouter '+total+' entrée(s)')+'</button>'+
     '<button class="sc-btn" style="width:100%;margin-top:6px;font-size:15px;padding:10px;" onclick="pendingLogImport=null; closeQuickModal();">'+(isEn?'Cancel':'Annuler')+'</button>';
   showQuickModal(isEn?'History import preview':'Aperçu de l\'import d\'historique', body);
 }
 function confirmLogImport(){
   const isEn = currentLang==='en';
   const m = pendingLogImport; if(!m || !m.items) return;
+  if(m.shedAmbiguous && !m.shedMeaning) return; // v4.27
   const base = Date.now();
   const touched = new Set();
   m.items.forEach((it, i)=>{
@@ -15104,8 +15196,9 @@ function confirmLogImport(){
     if(it.type==='weight'){ s.health.weights.push({ date: it.date, value: it.value }); }
     else {
       const ev = { id:'ev_log_'+base+'_'+i, type: it.type, date: it.date };
-      ['preySpecies','preySize','preyType','preyCount','quality','note'].forEach(k=>{ if(it[k]!=null && it[k]!=='') ev[k] = it[k]; });
+      ['preySpecies','preySize','preyType','preyCount','quality','note','reason'].forEach(k=>{ if(it[k]!=null && it[k]!=='') ev[k] = it[k]; });
       s.health.events.push(ev);
+      if(it.reason==='in_shed'){ try{ if(!inShedOnDate(s, it.date)) s.health.events.push({ id:'ev_log_'+base+'_'+i+'_s', type:'inshed', date: it.date }); }catch(e){} } // v4.27 — comme « Refus (mue) » dans l'app
     }
     touched.add(s);
   });
@@ -15134,6 +15227,7 @@ function importSourceOf(sh){
 // Aiguillage d'un fichier : liste d'animaux, historique, ou les deux (2 feuilles du même Excel → animaux d'abord).
 function routeImportSheets(sheets, meta){
   const isEn = currentLang==='en';
+  (sheets||[]).forEach(sh=>(sh.rows||[]).forEach((r,i)=>{ if(Array.isArray(r)) r.__line = i+1; })); // v4.28 — vrai numéro de ligne du fichier, pour les messages
   const nonEmpty = (sheets||[]).filter(sh=>(sh.rows||[]).some(r=>Array.isArray(r) && r.some(c=>importCellStr(c)!=='')));
   if(!nonEmpty.length){ alert(isEn?'Empty file.':'Fichier vide.'); return; }
   // v4.23 — ancien format rapide sans en-têtes « nom;sexe;gène1|gène2 » : on lui ajoute des titres
@@ -15147,6 +15241,21 @@ function routeImportSheets(sheets, meta){
   });
   const logs = nonEmpty.filter(sh=>isLogSheet(sh.rows));
   const lists = nonEmpty.filter(sh=>!logs.includes(sh) && sh.rows.slice(0,10).some(r=>{ const mm = mapCsvHeaders((r||[]).map(importCellStr)); return mm.name!==undefined || mm.animalId!==undefined; }));
+  // v4.26 — feuille « mixte » : une ligne par repas, mais chaque ligne décrit aussi l'animal (sexe, espèce, génétique…).
+  // On crée d'abord les animaux (1 par ID/nom, 1re ligne), puis on importe chaque ligne comme historique.
+  if(!lists.length && logs.length){
+    const lg = logs[0], hd = logHeaderAt(lg.rows);
+    const am = mapCsvHeaders((lg.rows[hd.i]||[]).map(importCellStr));
+    const describes = ['sex','species','genes','birthDate'].some(f=>am[f]!==undefined);
+    if(describes){
+      const seenKeys = new Set();
+      const keyOf = r=>{ const idv = am.animalId!==undefined ? importCellStr((r||[])[am.animalId]).toUpperCase() : ''; const nm = am.name!==undefined ? normalizeHeaderKey(importCellStr((r||[])[am.name])) : ''; return idv ? 'id:'+idv : (nm ? 'n:'+nm : ''); }; // v4.28 — sans ID, on se rabat sur le nom
+      const dedup = lg.rows.slice(0, hd.i+1).concat(lg.rows.slice(hd.i+1).filter(r=>{ const k = keyOf(r); if(!k || seenKeys.has(k)) return false; seenKeys.add(k); return true; }));
+      pendingLogAfterAnimals = lg.rows;
+      genericImportFromRows(dedup, { sheet: meta && meta.isExcel ? lg.n : null, sheets: nonEmpty.length, hasLog: true, combined: true, totalLines: lg.rows.length-hd.i-1, source: importSourceOf(lg) });
+      return;
+    }
+  }
   if(lists.length){
     pendingLogAfterAnimals = logs.length ? logs[0].rows : null;
     genericImportFromRows(lists[0].rows, { sheet: meta && meta.isExcel ? lists[0].n : null, sheets: nonEmpty.length, hasLog: !!logs.length, source: importSourceOf(lists[0]) });
@@ -15181,7 +15290,8 @@ function genericImportFromRows(rows, meta){
   }
   const width = rows.reduce((a,r)=>Math.max(a, r.length), 0);
   const headerRow = Array.from({ length: width }, (_, i)=>importCellStr(rows[hIdx][i]));
-  pendingGenericImportMeta = { rows, hIdx, colMap, headerRow, ambiguousDates:0, emptyRows:0, sheet: meta && meta.sheet, sheets: meta && meta.sheets, hasLog: !!(meta && meta.hasLog), source: meta && meta.source, importDupes:false, pick:null, picking:false };
+  if(meta && meta.combined){ ['status','weight','weightDate','lastFed','notes'].forEach(f=>delete colMap[f]); } // v4.26 — ces colonnes vont dans l'historique
+  pendingGenericImportMeta = { rows, hIdx, colMap, headerRow, ambiguousDates:0, emptyRows:0, sheet: meta && meta.sheet, sheets: meta && meta.sheets, hasLog: !!(meta && meta.hasLog), combined: !!(meta && meta.combined), totalLines: meta && meta.totalLines, source: meta && meta.source, importDupes:false, pick:null, picking:false };
   rebuildGenericImportRows();
   renderGenericCsvPreview();
 }
@@ -15190,9 +15300,45 @@ function genericImportFromRows(rows, meta){
 function importDateOrder(rows, colIdx){
   if(colIdx===undefined) return null;
   let dmy = false, mdy = false;
-  rows.forEach(cols=>{ const m = importCellStr(cols[colIdx]).match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})/); if(!m) return; const a = +m[1], b = +m[2]; if(a>31 || b>31 || (a>12 && b>12)) return; /* v4.22 — une date impossible ne fausse plus la colonne */ if(a>12) dmy = true; if(b>12) mdy = true; });
+  rows.forEach(cols=>{ const m = importCellStr(cols[colIdx]).match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4}|\d{2})(?![0-9])/); if(!m) return; const a = +m[1], b = +m[2]; if(a>31 || b>31 || (a>12 && b>12)) return; /* v4.22 — une date impossible ne fausse plus la colonne */ if(a>12) dmy = true; if(b>12) mdy = true; });
   return (dmy && !mdy) ? 'dmy' : (mdy && !dmy) ? 'mdy' : null;
 }
+// v4.28 — sexe : seulement des valeurs claires (avant, tout ce qui commençait par « m » devenait mâle, ex. « Mystère »)
+function importSexOf(raw){
+  const x = normalizeHeaderKey(raw).replace(/[.\s]+$/,'');
+  if(/^(f|fem|femelle|female|femme|0\.1|0,1|♀)$/.test(x)) return 'female';
+  if(/^(m|male|masc|1\.0|1,0|♂)$/.test(x)) return 'male';
+  return null;
+}
+// v4.29 — poids en texte : « 1,850 g », « 1 850 g », « 1,5 kg », « 3.2 lbs », « 12 oz » → grammes. Unité de l'en-tête si la valeur n'en a pas.
+function importWeightGrams(raw, headerUnit){
+  if(raw==null || raw==='') return null;
+  if(typeof raw==='number') return raw>0 ? raw*(headerUnit==='kg'?1000:headerUnit==='lb'?453.592:headerUnit==='oz'?28.3495:1) : NaN;
+  let t = String(raw).trim().toLowerCase();
+  if(!t) return null;
+  if(/^-/.test(t)) return NaN;
+  let unit = /\bkg\b|kilo/.test(t) ? 'kg' : /\blbs?\b|pound|livre/.test(t) ? 'lb' : /\boz\b|ounce|once/.test(t) ? 'oz' : /\bg\b|gr\b|gram/.test(t) ? 'g' : (headerUnit||'g');
+  let n = t.replace(/[^0-9.,\s]/g,'').trim();
+  if(!n) return NaN;
+  if(/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(n.replace(/\s/g,''))) n = n.replace(/[,\s]/g,'');            // 1,850.5
+  else if(/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(n.replace(/\s/g,''))) n = n.replace(/[.\s]/g,'').replace(',','.'); // 1.850,5
+  else n = n.replace(/\s/g,'').replace(',','.');
+  const v = parseFloat(n);
+  if(!(v>0)) return NaN;
+  return v*(unit==='kg'?1000:unit==='lb'?453.592:unit==='oz'?28.3495:1);
+}
+function importNumber(raw){
+  if(raw==null || raw==='') return null;
+  if(typeof raw==='number') return raw;
+  let n = String(raw).replace(/[^0-9.,\s-]/g,'').trim().replace(/\s/g,'');
+  if(!n || n==='-') return null;
+  if(/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(n)) n = n.replace(/,/g,'');
+  else if(/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(n)) n = n.replace(/\./g,'').replace(',','.');
+  else n = n.replace(',','.');
+  const v = parseFloat(n);
+  return isNaN(v) ? null : v;
+}
+function importHeaderUnit(h){ const x = normalizeHeaderKey(h||''); return /\bkg\b|kilo/.test(x) ? 'kg' : /\blbs?\b|pound|livre/.test(x) ? 'lb' : /\boz\b|ounce/.test(x) ? 'oz' : null; }
 // v4.20 — statut en texte libre → statut LOCUS. Breeder/Holdback/Juvenile/Pet… = gardé. Rien n'est mis en vitrine automatiquement.
 function matchImportStatus(raw){
   const x = normalizeHeaderKey(raw);
@@ -15210,13 +15356,15 @@ function rebuildGenericImportRows(){
   const colMap = m.colMap;
   const raw = (cols,f)=> colMap[f]!==undefined ? cols[colMap[f]] : '';
   const str = (cols,f)=> importCellStr(raw(cols,f));
-  const num = (cols,f)=>{ const v = raw(cols,f); if(typeof v==='number') return v; const s2 = importCellStr(v).replace(/\s/g,'').replace(',','.').replace(/[^0-9.]/g,''); return s2 ? parseFloat(s2) : null; };
+  const num = (cols,f)=>importNumber(raw(cols,f)); // v4.29 — « $1,200.00 », « 1 200,50 $ »
   const existing = new Set(savedSnakes.map(s=>normalizeHeaderKey(s.name||'')).filter(Boolean));
   const existingIds = new Set(savedSnakes.map(s=>String(s.animalId||'').toUpperCase()).filter(Boolean)); // v4.16
   const seen = new Set();
   let ambiguousDates = 0, emptyRows = 0;
   const invalidDates = []; // v4.22 — { val, who, field }
+  const anomalies = { weight:[], sex:[], speciesEmpty:[] }; // v4.28 — valeurs illisibles signalées, jamais avalées en silence
   const dataRows = m.rows.slice(m.hIdx+1);
+  const wUnit = colMap.weight!==undefined ? importHeaderUnit(m.headerRow[colMap.weight]) : null; // v4.29
   const ord = { birthDate: importDateOrder(dataRows, colMap.birthDate), weightDate: importDateOrder(dataRows, colMap.weightDate), lastFed: importDateOrder(dataRows, colMap.lastFed) };
   m.dateOrders = ord;
   if(colMap.name===undefined && colMap.animalId===undefined){ pendingGenericCsvRows = []; m.ambiguousDates = 0; m.emptyRows = 0; return; }
@@ -15231,21 +15379,27 @@ function rebuildGenericImportRows(){
     if(wd.ambiguous) ambiguousDates++;
     const lf = normalizeImportDate(raw(cols,'lastFed'), ord.lastFed); // v4.18
     if(lf.ambiguous) ambiguousDates++;
-    [['birthDate',bd],['weightDate',wd],['lastFed',lf]].forEach(([f,res])=>{ if(res.invalid) invalidDates.push({ val: str(cols,f), who: animalId || name, field: f }); }); // v4.22
+    [['birthDate',bd],['weightDate',wd],['lastFed',lf]].forEach(([f,res])=>{ if(res.invalid) invalidDates.push({ val: str(cols,f), who: animalId || name, field: f, line: cols.__line, future: !!res.future }); }); // v4.22
+    const who = animalId || name, line = cols.__line;
+    if(colMap.sex!==undefined){ const sx = str(cols,'sex'); if(sx && importSexOf(sx)===null && !/^(u|unknown|inconnu|inconnue|unsexed|non sexe|non sexee|\?|0\.0\.1|n\/a|na|-)$/.test(normalizeHeaderKey(sx))) anomalies.sex.push({ val:sx, who, line }); }
+    if(colMap.species!==undefined && !str(cols,'species')) anomalies.speciesEmpty.push({ who, line });
+    if(colMap.weight!==undefined){ const wr = str(cols,'weight'); if(wr){ const wv = importWeightGrams(raw(cols,'weight'), wUnit); if(!(wv>0) || /[a-z]{3,}/i.test(wr.replace(/\b(g|gr|grams?|grammes?|kg|kilos?|lbs?|pounds?|livres?|oz|ounces?)\b/ig,''))) anomalies.weight.push({ val:wr, who, line }); } }
     const sp = matchImportSpecies(str(cols,'species'));
     const parsed = hasGenetics(sp.id) ? parseImportGenes(str(cols,'genes'), sp.id) : { genes:{}, unknown: str(cols,'genes') ? [str(cols,'genes')] : [] };
     // v4.16 — doublon : par ID quand il y en a un (deux « Rex » avec des ID différents sont deux animaux), sinon par nom
     const key = animalId ? 'id:'+animalId.toUpperCase() : 'n:'+normalizeHeaderKey(name);
-    const dupe = (animalId ? existingIds.has(animalId.toUpperCase()) : existing.has(normalizeHeaderKey(name))) || seen.has(key);
+    const dupe = (animalId ? existingIds.has(animalId.toUpperCase()) : existing.has(normalizeHeaderKey(name)));
+    const fileDupe = seen.has(key); // v4.26 — répété dans le fichier : jamais créé deux fois
     seen.add(key);
-    const weight = num(cols,'weight');
+    let weight = importWeightGrams(raw(cols,'weight'), wUnit); // v4.29 — unités et séparateurs
+    if(!(weight>0)) weight = null; // v4.28 — un poids négatif ou illisible n'est jamais pris
     const st = matchImportStatus(str(cols,'status')); // v4.20
     return {
       name: name.slice(0,80), animalId,
       status: st.status, statusKnown: st.known, statusRaw: str(cols,'status'),
       notes: str(cols,'notes') || null, // v4.21
       sireRef: str(cols,'sire') || null, damRef: str(cols,'dam') || null, // v4.20 — liés après la création (ID ou nom, dans LOCUS ou dans le fichier)
-      sex: /^(f|femelle|female|0\.1)/.test(sexRaw) ? 'female' : /^(m|male|1\.0)/.test(sexRaw) ? 'male' : null,
+      sex: importSexOf(sexRaw),
       genes: parsed.genes, unknownGenes: parsed.unknown, genesRaw: str(cols,'genes'),
       birthDate: bd.value,
       provenance: str(cols,'provenance') || null,
@@ -15255,10 +15409,10 @@ function rebuildGenericImportRows(){
       weight: weight && weight>0 ? Math.round(weight*10)/10 : null,
       weightDate: wd.value && wd.value.length===10 ? wd.value : null,
       lastFed: lf.value && lf.value.length===10 ? lf.value : null,
-      dupe
+      dupe, fileDupe
     };
   }).filter(Boolean);
-  m.ambiguousDates = ambiguousDates; m.emptyRows = emptyRows; m.invalidDates = invalidDates;
+  m.ambiguousDates = ambiguousDates; m.emptyRows = emptyRows; m.invalidDates = invalidDates; m.anomalies = anomalies;
 }
 // Choix fait dans le menu d'une colonne : une colonne = un champ, un champ = une colonne.
 // v4.23 — limite d'animaux du palier aussi à l'import (avant : l'import passait par-dessus). null = aucune limite.
@@ -15272,7 +15426,7 @@ function importCountsTowardLimit(r){ return !['sold','deceased'].includes(r.stat
 // Lignes qui seront importées : doublons exclus (sauf si coché), puis limite du palier — les premières par défaut, ou le choix de la personne.
 function importRowsToCreate(){
   const m = pendingGenericImportMeta || {};
-  const base = pendingGenericCsvRows.map((r,i)=>({ r, i })).filter(x=>m.importDupes || !x.r.dupe);
+  const base = pendingGenericCsvRows.map((r,i)=>({ r, i })).filter(x=>!x.r.fileDupe && (m.importDupes || !x.r.dupe));
   const slots = importAnimalSlots();
   if(slots==null) return base;
   let used = 0;
@@ -15312,9 +15466,10 @@ function renderGenericCsvPreview(){
   const m = pendingGenericImportMeta; if(!m) return;
   const rowsAll = pendingGenericCsvRows;
   const hasKey = m.colMap.name!==undefined || m.colMap.animalId!==undefined;
-  const dupes = rowsAll.filter(r=>r.dupe).length;
+  const dupes = rowsAll.filter(r=>r.dupe && !r.fileDupe).length;
+  const fileDupes = rowsAll.filter(r=>r.fileDupe).length;
   const toImport = importRowsToCreate().map(x=>x.r); // v4.23 — tient compte de la limite du palier
-  const eligible = rowsAll.filter(r=>m.importDupes || !r.dupe);
+  const eligible = rowsAll.filter(r=>!r.fileDupe && (m.importDupes || !r.dupe));
   const slots = importAnimalSlots();
   const overLimit = slots!=null && eligible.filter(importCountsTowardLimit).length > slots;
   const unknownSp = [...new Set(rowsAll.filter(r=>!r.speciesKnown).map(r=>r.species))];
@@ -15323,11 +15478,13 @@ function renderGenericCsvPreview(){
   const p = (txt, color)=>'<p style="font-size:14px;line-height:1.45;margin:8px 0;color:'+(color||'var(--ink)')+';">'+txt+'</p>';
   const firstData = m.rows[m.hIdx+1] || [];
   const fieldOf = {}; Object.keys(m.colMap).forEach(f=>{ fieldOf[m.colMap[f]] = f; });
-  const unmatched = m.headerRow.map((h,i)=>({ h, i })).filter(x=>fieldOf[x.i]===undefined && (x.h || importCellStr(firstData[x.i])));
+  const logCols = m.combined ? new Set(Object.values(mapLogHeaders(m.headerRow))) : new Set(); // v4.28 — en mode mixte, ces colonnes servent à l'étape historique
+  const unmatched = m.headerRow.map((h,i)=>({ h, i })).filter(x=>fieldOf[x.i]===undefined && !logCols.has(x.i) && (x.h || importCellStr(firstData[x.i])));
   const colsHtml = m.headerRow.map((h,i)=>{
     const sample = importCellStr(firstData[i]);
     if(!h && !sample) return '';
     const f = fieldOf[i];
+    if(logCols.has(i) && f===undefined) return '<div style="padding:8px 0;border-bottom:1px solid var(--line);font-size:14.5px;color:var(--ink);"><b>« '+escapeHtml(h)+' »</b> <span style="font-size:13px;color:var(--sage);">🗓 '+(isEn?'used in the history step':'utilisée à l\'étape historique')+'</span></div>'; // v4.28
     return '<div style="padding:8px 0;border-bottom:1px solid var(--line);">'+
       '<div style="font-size:14.5px;color:var(--ink);"><b>« '+escapeHtml(h || (isEn?'(no title)':'(sans titre)'))+' »</b>'+(sample ? ' <span style="font-size:13px;color:var(--ink-dim);">'+(isEn?'e.g. ':'ex. ')+escapeHtml(sample.slice(0,40))+'</span>' : '')+'</div>'+
       '<select onchange="setImportColumn('+i+', this.value)" style="width:100%;margin-top:5px;font-size:16px;padding:8px;background:var(--bg-panel-2);border:1px solid '+(f?'var(--sage)':'var(--gold)')+';border-radius:8px;color:var(--ink);">'+
@@ -15336,9 +15493,9 @@ function renderGenericCsvPreview(){
       '</select></div>';
   }).join('');
   const pickHtml = (overLimit && m.picking) ? '<div style="max-height:320px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;padding:4px 10px;margin:6px 0;">'+
-      pendingGenericCsvRows.map((r,i)=>({ r, i })).filter(x=>m.importDupes || !x.r.dupe).map(x=>'<label style="display:flex;gap:10px;align-items:center;font-size:15px;padding:7px 0;border-bottom:1px solid var(--line);cursor:pointer;"><input type="checkbox" style="width:22px;height:22px;flex-shrink:0;accent-color:var(--sage);" '+(m.pick && m.pick.has(x.i)?'checked ':'')+(importCountsTowardLimit(x.r)?'':'checked disabled ')+'onchange="toggleImportPick('+x.i+',this.checked)"/><span><b>'+escapeHtml(x.r.name||x.r.animalId||'')+'</b>'+(x.r.name&&x.r.animalId?' <span style="font-size:13px;color:var(--ink-dim);">'+escapeHtml(x.r.animalId)+'</span>':'')+' <span style="font-size:13px;color:var(--ink-dim);">'+(Object.keys(x.r.genes||{}).length?summarizeGenes(x.r.genes):'')+'</span></span></label>').join('')+
+      pendingGenericCsvRows.map((r,i)=>({ r, i })).filter(x=>!x.r.fileDupe && (m.importDupes || !x.r.dupe)).map(x=>'<label style="display:flex;gap:10px;align-items:center;font-size:15px;padding:7px 0;border-bottom:1px solid var(--line);cursor:pointer;"><input type="checkbox" style="width:22px;height:22px;flex-shrink:0;accent-color:var(--sage);" '+(m.pick && m.pick.has(x.i)?'checked ':'')+(importCountsTowardLimit(x.r)?'':'checked disabled ')+'onchange="toggleImportPick('+x.i+',this.checked)"/><span><b>'+escapeHtml(x.r.name||x.r.animalId||'')+'</b>'+(x.r.name&&x.r.animalId?' <span style="font-size:13px;color:var(--ink-dim);">'+escapeHtml(x.r.animalId)+'</span>':'')+' <span style="font-size:13px;color:var(--ink-dim);">'+(Object.keys(x.r.genes||{}).length?summarizeGenes(x.r.genes):'')+'</span></span></label>').join('')+
     '</div>' : '';
-  const previewRows = rowsAll.slice(0,8).map(r=>{
+  const previewRows = rowsAll.filter(r=>!r.fileDupe).slice(0,8).map(r=>{
     const g = Object.keys(r.genes).length ? summarizeGenes(r.genes) : (r.genesRaw ? escapeHtml(r.genesRaw) : '');
     return '<div style="padding:8px 0;border-bottom:1px solid var(--line);font-size:14.5px;'+(r.dupe && !m.importDupes?'opacity:.5;':'')+'">'+
       '<div><b>'+escapeHtml(r.name || r.animalId)+'</b>'+(r.name && r.animalId ? ' <span style="font-size:13px;color:var(--ink-dim);">'+escapeHtml(r.animalId)+'</span>' : '')+' <span style="color:var(--ink-dim);font-size:13px;">'+(r.sex==='male'?'♂':r.sex==='female'?'♀':'?')+' · '+escapeHtml(speciesDisplayLabel(r.species, isEn))+(r.birthDate?' · '+escapeHtml(r.birthDate):'')+(r.weight?' · '+r.weight+' g':'')+'</span>'+(r.dupe?' <span style="color:var(--gold);font-size:13px;">'+(isEn?'(already in your collection)':'(déjà dans ta collection)')+'</span>':'')+'</div>'+
@@ -15356,11 +15513,13 @@ function renderGenericCsvPreview(){
           '<button class="sc-btn'+(m.picking?'':' accent')+'" style="font-size:14px;padding:8px 12px;" onclick="toggleImportPicking(false)">'+(isEn?'The first '+slots:'Les '+slots+' premiers')+'</button>'+
           '<button class="sc-btn'+(m.picking?' accent':'')+'" style="font-size:14px;padding:8px 12px;" onclick="toggleImportPicking(true)">'+(isEn?'Choose which ones':'Choisir lesquels')+'</button>'+
         '</div></div>' : '')+
-    (m.hasLog ? p('🗓 '+(isEn?'A history sheet (meals, sheds, weigh-ins) was also found — it will be offered right after the animals.':'Une feuille d\'historique (repas, mues, pesées) a aussi été trouvée — elle sera proposée juste après les animaux.'), 'var(--sage)') : '')+
+    (m.hasLog && !m.combined ? p('🗓 '+(isEn?'A history sheet (meals, sheds, weigh-ins) was also found — it will be offered right after the animals.':'Une feuille d\'historique (repas, mues, pesées) a aussi été trouvée — elle sera proposée juste après les animaux.'), 'var(--sage)') : '')+
     (m.sheet ? p((isEn?'Sheet read: ':'Feuille lue : ')+'<b>'+escapeHtml(m.sheet)+'</b>'+(m.sheets>1?(isEn?' ('+m.sheets+' sheets in the file — the first one with a name or ID column)':' ('+m.sheets+' feuilles dans le fichier — la première avec une colonne nom ou ID)'):''), 'var(--ink-dim)') : '')+
     (!hasKey ? '<div style="background:rgba(212,175,55,.14);border:1px solid var(--gold);border-radius:10px;padding:10px 12px;margin:6px 0 10px;font-size:15px;line-height:1.45;color:var(--ink);">⚠ <b>'+(isEn?'LOCUS didn\'t find a name or ID column.':'LOCUS n\'a pas trouvé de colonne nom ou ID.')+'</b><br>'+(isEn?'Below, choose « Name » or « ID » for the right column (at least one is required).':'Plus bas, choisis « Nom » ou « ID » pour la bonne colonne (au moins un des deux est obligatoire).')+'</div>' : '')+
     (hasKey ? p('<b>'+toImport.length+'</b> '+(isEn?'reptile(s) will be added.':'reptile(s) seront ajouté(s).')+(m.emptyRows ? ' <span style="color:var(--ink-dim);font-size:13px;">('+m.emptyRows+(isEn?' row(s) with neither name nor ID skipped)':' ligne(s) sans nom ni ID ignorée(s))')+'</span>' : '')) : '')+
     (unmatched.length && hasKey ? p('⚠ '+(isEn?unmatched.length+' column(s) not recognized and ignored: ':unmatched.length+' colonne(s) non reconnue(s), donc ignorée(s) : ')+'<b>'+escapeHtml(unmatched.map(x=>x.h||'?').join(', '))+'</b>'+(isEn?' — choose a field for them below if needed.':' — choisis-leur un champ plus bas si besoin.'), 'var(--gold)') : '')+
+    (m.combined ? p('🗓 '+(isEn?'Each line is a meal: '+(m.totalLines||'')+' line(s) for '+rowsAll.length+' animal(s). The animals are created first (from their first line), then every line is added to their history in the next step.':'Chaque ligne est un repas : '+(m.totalLines||'')+' ligne(s) pour '+rowsAll.length+' animal(s). Les animaux sont créés d\'abord (avec leur 1re ligne), puis chaque ligne s\'ajoute à leur historique à l\'étape suivante.'), 'var(--sage)') : '')+
+    (fileDupes ? p('↺ '+(isEn?fileDupes+' line(s) repeat an ID already higher in the file — the animal is created only once.':fileDupes+' ligne(s) répètent un ID déjà plus haut dans le fichier — l\'animal n\'est créé qu\'une fois.'), 'var(--ink-dim)') : '')+
     (dupes ? '<label style="display:flex;gap:8px;align-items:center;font-size:14px;margin:6px 0;"><input type="checkbox" '+(m.importDupes?'checked':'')+' onchange="pendingGenericImportMeta.importDupes=this.checked; renderGenericCsvPreview();" style="width:20px;height:20px;"> '+(isEn?dupes+' animal(s) already in your collection (same ID, or same name when there is no ID) — import them anyway':dupes+' animal(s) déjà dans ta collection (même ID, ou même nom s\'il n\'y a pas d\'ID) — les importer quand même')+'</label>' : '')+
     (withUnknownGenes ? p('⚠ '+(isEn?withUnknownGenes+' animal(s) have words in the genetics that LOCUS doesn\'t recognize — they\'re skipped; you can fix the genetics on the sheet after.':withUnknownGenes+' animal(s) ont des mots dans la génétique que LOCUS ne reconnaît pas — ils sont ignorés; tu pourras corriger la génétique sur la fiche ensuite.'), 'var(--gold)') : '')+
     (function(){ // v4.20 — parents
@@ -15374,7 +15533,15 @@ function renderGenericCsvPreview(){
     })()+
     (function(){ const us = [...new Set(rowsAll.filter(r=>!r.statusKnown).map(r=>r.statusRaw))]; return us.length ? p('⚠ '+(isEn?'Status not recognized, set to « Kept »: ':'Statut non reconnu, mis à « Gardé » : ')+'<b>'+escapeHtml(us.slice(0,8).join(', '))+'</b>', 'var(--gold)') : ''; })()+
     (unknownSp.length ? p('⚠ '+(isEn?'Species not recognized (kept as written): ':'Espèce non reconnue (gardée telle quelle) : ')+escapeHtml(unknownSp.join(', ')), 'var(--gold)') : '')+
-    ((m.invalidDates||[]).length ? p('⛔ '+(isEn?m.invalidDates.length+' impossible or unreadable date(s), left empty: ':m.invalidDates.length+' date(s) impossible(s) ou illisible(s), laissée(s) vide(s) : ')+'<b>'+escapeHtml(m.invalidDates.slice(0,8).map(x=>'« '+x.val+' » ('+x.who+', '+importFieldLabel(x.field, isEn).toLowerCase()+')').join(', '))+(m.invalidDates.length>8?' +'+(m.invalidDates.length-8):'')+'</b>'+(isEn?' — fix them in your file or on the sheet after the import.':' — corrige-les dans ton fichier ou sur la fiche après l\'import.'), 'var(--rust)') : '')+
+    (function(){ // v4.28 — anomalies, avec la ligne du fichier
+      const a = m.anomalies || {}; let h = '';
+      const ex = (arr, fmt)=> escapeHtml(arr.slice(0,6).map(fmt).join(', '))+(arr.length>6?' +'+(arr.length-6):'');
+      if((a.weight||[]).length) h += p('⛔ '+(isEn?a.weight.length+' unreadable or impossible weight(s), ignored: ':a.weight.length+' poids illisible(s) ou impossible(s), ignoré(s) : ')+'<b>'+ex(a.weight, x=>(isEn?'line ':'ligne ')+x.line+' « '+x.val+' »')+'</b>', 'var(--rust)');
+      if((a.sex||[]).length) h += p('⚠ '+(isEn?a.sex.length+' sex value(s) not recognized, left « unknown »: ':a.sex.length+' sexe(s) non reconnu(s), laissé(s) « inconnu » : ')+'<b>'+ex(a.sex, x=>(isEn?'line ':'ligne ')+x.line+' « '+x.val+' »')+'</b>', 'var(--gold)');
+      if((a.speciesEmpty||[]).length) h += p('⚠ '+(isEn?a.speciesEmpty.length+' animal(s) with no species, set to Ball python: ':a.speciesEmpty.length+' animal(s) sans espèce, mis en Python royal : ')+'<b>'+ex(a.speciesEmpty, x=>(isEn?'line ':'ligne ')+x.line+' ('+x.who+')')+'</b>', 'var(--gold)');
+      return h;
+    })()+
+    ((m.invalidDates||[]).length ? p('⛔ '+(isEn?m.invalidDates.length+' impossible or unreadable date(s), left empty: ':m.invalidDates.length+' date(s) impossible(s) ou illisible(s), laissée(s) vide(s) : ')+'<b>'+escapeHtml(m.invalidDates.slice(0,8).map(x=>(x.line?(isEn?'line ':'ligne ')+x.line+' ':'')+'« '+x.val+' »'+(x.future?(isEn?' (future)':' (dans le futur)'):'')+' ('+x.who+', '+importFieldLabel(x.field, isEn).toLowerCase()+')').join(', '))+(m.invalidDates.length>8?' +'+(m.invalidDates.length-8):'')+'</b>'+(isEn?' — fix them in your file or on the sheet after the import.':' — corrige-les dans ton fichier ou sur la fiche après l\'import.'), 'var(--rust)') : '')+
     (m.ambiguousDates ? p('⚠ '+(isEn?m.ambiguousDates+' date(s) left empty because the format is ambiguous (e.g. 03/04/2026 could be March 4 or April 3). Use YYYY-MM-DD or a real Excel date.':m.ambiguousDates+' date(s) laissée(s) vide(s) parce que le format est ambigu (ex. 03/04/2026 = 3 avril ou 4 mars ?). Utilise AAAA-MM-JJ ou une vraie date Excel.'), 'var(--gold)') : '')+
     ((m.dateOrders && Object.values(m.dateOrders).some(Boolean)) ? p('📅 '+Object.keys(m.dateOrders).filter(k=>m.dateOrders[k]).map(k=>importFieldLabel(k, isEn)+' : '+(m.dateOrders[k]==='mdy'?(isEn?'read as month/day/year':'lu comme mois/jour/année'):(isEn?'read as day/month/year':'lu comme jour/mois/année'))).join(' · ')+(isEn?' (deduced from the column).':' (déduit de la colonne).'), 'var(--ink-dim)') : '')+
     (rowsAll.some(r=>r.lastFed) ? p('🍽 '+(isEn?'The last-fed date becomes a meal in each animal\'s log.':'La date du dernier repas devient un repas dans le journal de chaque animal.'), 'var(--ink-dim)') : '')+
