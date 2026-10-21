@@ -2212,7 +2212,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.37';
+const APP_VERSION = '2026.09.01.4.39';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5223,6 +5223,28 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.39', date:'2026-10-21',
+    title:{ fr:'Import : espèces et prix abrégés', en:'Import: shortened species and prices' },
+    changes:{
+      fr:[
+        '🐍 Import : « Piton », « b.python », « Pyton » et autres raccourcis sont reconnus comme Python royal; « 50 bux » est lu comme 50 $.'
+      ],
+      en:[
+        '🐍 Import: « Piton », « b.python », « Pyton » and other shortcuts are recognized as Ball python; « 50 bux » is read as $50.'
+      ]
+    }
+  },
+  { version:'4.38', date:'2026-10-21',
+    title:{ fr:'Import : corrections (fichier de débutant en anglais)', en:'Import: fixes (beginner file in English)' },
+    changes:{
+      fr:[
+        '🛠️ Import : le mot « gene » (« one hidden yellow gene ») n\'est plus corrigé à tort en GeneX; « Little guy », « dude », « lady », « petit gars » sont compris comme sexe; les petits mots anglais (to, but, according, from…) ne sont plus listés comme gènes non reconnus.'
+      ],
+      en:[
+        '🛠️ Import: the word « gene » (« one hidden yellow gene ») is no longer wrongly corrected to GeneX; « Little guy », « dude », « lady », « petit gars » are understood as sex; small English words (to, but, according, from…) are no longer listed as unrecognized genes.'
+      ]
+    }
+  },
   { version:'4.37', date:'2026-10-21',
     title:{ fr:'Import : poids, prix et décès écrits en mots', en:'Import: weights, prices and deaths written in words' },
     changes:{
@@ -14969,7 +14991,8 @@ function matchImportSpecies(raw){
   if(['regius','p regius','p. regius','python regius','royal','royal python','ball'].includes(norm)) norm = 'ball python';
   { const ab = norm.match(/^([a-z])\s*\.\s*([a-z]+)$/); // v4.34 — nom latin abrégé : « P.regius », « E. macularius »
     if(ab){ if(ab[1]==='p' && ab[2]==='regius') norm = 'ball python'; else { const hit = SPECIES_REFERENCE.find(sp=>{ const w = normalizeHeaderKey(sp.nameLatin||'').split(' '); return w[0] && w[0][0]===ab[1] && w[1]===ab[2]; }); if(hit) return { id:hit.id, known:true }; } } }
-  if(['ball pythons','pythons royaux','royal pythons','pythons'].includes(norm)) norm = 'ball python'; // v4.23 — MorphMarket écrit « Ball Pythons »
+  if(['ball pythons','pythons royaux','royal pythons','pythons'].includes(norm)) norm = 'ball python'; // v4.23
+  if(['piton','pyton','pithon','b python','b.python','b. python','bpython','ball piton','ball pyton','python royale','royal piton','bp python'].includes(norm)) norm = 'ball python'; // v4.38 — raccourcis et fautes de débutant — MorphMarket écrit « Ball Pythons »
   const SHORT = { 'corn':'corn_snake','corns':'corn_snake','couleuvre des bles':'corn_snake','serpent des bles':'corn_snake','hognose snake':'hognose','western hognose':'hognose','hoggie':'hognose','leo':'leopard_gecko','leos':'leopard_gecko','leopard':'leopard_gecko','gecko leopard':'leopard_gecko','crestie':'crested_gecko','cresties':'crested_gecko','crested':'crested_gecko','gargoyle':'gargoyle_gecko','fat tail':'fat_tail_gecko','fat tailed gecko':'fat_tail_gecko','african fat tail':'fat_tail_gecko','beardie':'bearded_dragon','beardies':'bearded_dragon','pogona':'bearded_dragon','blue tongue':'blue_tongue_skink','bts':'blue_tongue_skink','blue tongued skink':'blue_tongue_skink','bci':'boa_bci','bcc':'boa_bcc','brb':'rainbow_boa','rainbow boa':'rainbow_boa','ackie':'ackie_monitor','sulcata':'sulcata_tortoise','res':'red_eared_slider','california king':'king_california','cal king':'king_california','florida king':'king_florida','mexican black king':'king_mexican','mbk':'king_mexican' }; // v4.29
   if(SHORT[norm]) return { id:SHORT[norm], known:true };
   if(!norm) return { id:'ball_python', known:true };
@@ -15098,14 +15121,14 @@ function parseImportGenes(text, species){
   // v4.32 — faute de frappe d'un mot (« Enchie », « Peid », « Pasel ») : corrigée si un seul gène est à 1 lettre près, et signalée
   const fixes = [];
   const singles = variants.filter(v=>!v.n.includes(' ') && v.n.length>=4);
-  work.split(' ').filter(w=>w.length>=4 && /^[a-z]+$/.test(w) && !['het','super','possible','normal','classic','male','female'].includes(w)).forEach(w=>{
+  work.split(' ').filter(w=>w.length>=4 && /^[a-z]+$/.test(w) && !['het','super','possible','normal','classic','male','female','gene','genes','morph','morphs','combo','combos','line','lignee','visual','visuel','proven','prouve','pretty','looks','dark','light','black','white','brown','yellow','orange','jaune','noir','noire','blanc','blanche','brun','gris','grey','gray'].includes(w)).forEach(w=>{
     const hits = singles.filter(v=>importOsa(w, v.n)<=1);
     const ids = [...new Set(hits.map(h=>h.g.id))];
     if(ids.length===1){ work = work.replace(new RegExp(' '+esc(w)+'(?= )'), ' '+hits[0].n); fixes.push({ from:w, to:hits[0].g.name }); }
   });
   if(fixes.length) pass();
   const stop = ['het','super','pos','poss','possible','probable','prob','maybe','likely','peut','etre','unknown','inconnu','unk','tbd','ph','normal','classic','and','et','dh','th','qh','pdh','male','female','m','f','%'];
-  const filler = ['ou','or','et','and','juste','just','seulement','only','de','du','des','le','la','les','un','une','a','au','aux','si','je','j','me','il','elle','est','is','the','of','with','avec','mais','but','tres','very','pas','not','sur','on','en','in']; // v4.35 — petits mots : pas des gènes (le texte complet reste dans les notes)
+  const filler = ['gene','genes','morph','to','but','looks','look','like','according','local','from','by','par','selon','que','qui','it','he','she','his','her','one','un','pour','for','ou','or','et','and','juste','just','seulement','only','de','du','des','le','la','les','un','une','a','au','aux','si','je','j','me','il','elle','est','is','the','of','with','avec','mais','but','tres','very','pas','not','sur','on','en','in']; // v4.35 — petits mots : pas des gènes (le texte complet reste dans les notes)
   const unknown = work.split(' ').map(w=>w.trim()).filter(w=>w && w.length>1 && !stop.includes(w) && !filler.includes(w) && !/^\d+%?$/.test(w));
   Object.keys(fromCombos).forEach(id=>{ if(importStatusRank(fromCombos[id]) > importStatusRank(genes[id])) genes[id] = fromCombos[id]; }); // ex. « Bumblebee Super Pastel » → Pastel super
   return { genes, unknown, combos, fixes };
@@ -15896,7 +15919,8 @@ function importSexOf(raw){
   if(/^(f|fem|femelle|female|femme|0\.1|0,1|♀)$/.test(x)) return 'female';
   if(/^(femel|femell|femele|femal|feme|femmelle)$/.test(x)) return 'female'; // v4.34 — « femel » (2 lettres de différence)
   if(/^(fille|girl|madame|mme|her|she)$/.test(x)) return 'female'; // v4.35 — mots de débutant
-  if(/^(garcon|gars|boy|monsieur|mr|him|he)$/.test(x)) return 'male';
+  if(/^(garcon|gars|boy|monsieur|mr|him|he|guy|little guy|dude|lil guy|big guy|petit gars|mon gars|little boy|petit garcon)$/.test(x)) return 'male';
+  if(/^(little girl|lady|gal|lil girl|petite fille|ma fille|princess|princesse)$/.test(x)) return 'female';
   if(/^(m|male|masc|1\.0|1,0|♂)$/.test(x)) return 'male';
   // v4.30 — fautes de frappe courtes : « MALEE », « femal », « femelel »
   if(x.length>=4 && x.length<=9){ if(importLev(x,'female')<=1 || importLev(x,'femelle')<=1) return 'female'; if(importLev(x,'male')<=1) return 'male'; }
@@ -15981,7 +16005,7 @@ function rebuildGenericImportRows(){
   const str = (cols,f)=> importCellStr(raw(cols,f));
   const num = (cols,f)=>importNumber(raw(cols,f)); // v4.29 — « $1,200.00 », « 1 200,50 $ »
   // v4.35 — prix écrit en mots (« Échange contre une console », « Virement Interac ») : pas un nombre, texte gardé dans les notes
-  const priceText = (cols,f)=>{ const v = str(cols,f); if(!v) return null; const rest = normalizeHeaderKey(v).replace(/\b(piastres?|piasses?|dollars?|bucks?|balles?|cad|usd|eur|euros?|cents?|approx|environ|env|about|around|ca|paye|payé|paid|prix|price|cout|cost|total)\b/g,'').replace(/[$€£\d.,\s:~+\-\/]/g,''); return /[a-z]{3,}/.test(rest) ? v : null; };
+  const priceText = (cols,f)=>{ const v = str(cols,f); if(!v) return null; const rest = normalizeHeaderKey(v).replace(/\b(piastres?|piasses?|dollars?|bucks?|bux|buck|balles?|cad|usd|eur|euros?|cents?|approx|environ|env|about|around|ca|paye|payé|paid|prix|price|cout|cost|total)\b/g,'').replace(/[$€£\d.,\s:~+\-\/]/g,''); return /[a-z]{3,}/.test(rest) ? v : null; };
   const priceNum = (cols,f)=> priceText(cols,f) ? null : num(cols,f);
   const existing = new Set(savedSnakes.map(s=>normalizeHeaderKey(s.name||'')).filter(Boolean));
   const existingIds = new Set(savedSnakes.map(s=>String(s.animalId||'').toUpperCase()).filter(Boolean)); // v4.16
