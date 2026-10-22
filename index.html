@@ -2212,7 +2212,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.45';
+const APP_VERSION = '2026.09.01.4.47';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5223,6 +5223,30 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.47', date:'2026-10-22',
+    title:{ fr:'Import : nettoyages et changements d\'eau', en:'Import: cleanings and water changes' },
+    changes:{
+      fr:[
+        '🧽 Import d\'historique : un « Nettoyage » ou un « Changement d\'eau » (ex. colonne « Logs Nettoyage ») va maintenant dans le journal d\'entretien du bac ou du terrarium où se trouve l\'animal, comme si tu l\'avais noté avec l\'entretien en lot. « Nettoyage complet » ou « désinfection » = nettoyage complet, sinon partiel. Une entrée déjà notée ce jour-là n\'est pas ajoutée deux fois; un animal sans place est signalé.'
+      ],
+      en:[
+        '🧽 History import: a « Cleaning » or « Water change » entry (e.g. a « Cleaning log » column) now goes in the maintenance journal of the tub or terrarium where the animal is, as if you had logged it with bulk maintenance. « Full cleaning » or « disinfection » = full cleaning, otherwise partial. An entry already logged that day isn\'t added twice; an animal without a spot is flagged.'
+      ]
+    }
+  },
+  { version:'4.46', date:'2026-10-22',
+    title:{ fr:'Import : titres et génétique mal écrits', en:'Import: misspelled titles and genetics' },
+    changes:{
+      fr:[
+        '🔤 Import : les titres de colonnes avec une faute (« Espese », « Date de naissence », « Historike Nourissage », « Phas / Morf », « Identifiant unique », « Bac Numero ») sont reconnus. Avant, une ligne de titres mal écrite n\'était pas vue comme des titres et était importée comme un animal.',
+        '🧬 Import : un gène coupé en deux (« pin, stripe ») est recollé, et un mot long à 2 lettres près est corrigé s\'il n\'y a qu\'un gène possible (« spayder » → Spider, « pinstirp » → Pinstripe). Les corrections restent listées pour vérification.'
+      ],
+      en:[
+        '🔤 Import: column titles with a typo (« Espese », « Date de naissence », « Historike Nourissage », « Phas / Morf », « Identifiant unique », « Bac Numero ») are recognized. Before, a misspelled title row wasn\'t seen as titles and was imported as an animal.',
+        '🧬 Import: a gene split in two (« pin, stripe ») is joined back, and a long word 2 letters off is corrected when only one gene fits (« spayder » → Spider, « pinstirp » → Pinstripe). Corrections are still listed for checking.'
+      ]
+    }
+  },
   { version:'4.45', date:'2026-10-22',
     title:{ fr:'Ranger ses animaux rapidement', en:'Place your animals quickly' },
     changes:{
@@ -14920,7 +14944,7 @@ function normalizeHeaderKey(str){
 const CSV_COLUMN_ALIASES = {
   name: ['nom','name','nom du reptile','reptile name','animal','animal name','nom de l\'animal','serpent','snake','title','listing title','titre','pet name','nickname','surnom','display name'],
   sex: ['sexe','sex','gender','genre','sexe (m/f)','sex (m/f)'],
-  genes: ['genes','gene','genetique','genetics','morph','morphs','morphe','traits','genetic','genetic mutation','genetic mutations','mutation','mutations','genotype','phenotype'],
+  genes: ['genes','gene','genetique','genetics','morph','morphs','morphe','traits','genetic','genetic mutation','genetic mutations','mutation','mutations','genotype','phenotype','phase','phases','phas','morf','morfs','morphes'], // v4.46 — « phase » (terme du milieu), « Morf »
   birthDate: ['date de naissance','birth date','dob','naissance','date naissance','date of birth','hatch date','eclosion','date d\'eclosion','ne le','hatched','birthdate','birthday','born','hatch','hatchdate','date hatched','hatched on','date born','annee de naissance','birth year','year born','hatch year'],
   provenance: ['provenance','source','eleveur','breeder','origine','origin','acquired from','purchased from','bought from','supplier','vendor','fournisseur','achete chez','produced by'],
   purchasePrice: ['prix d\'achat','prix achat','purchase price','cost','cout','paid','paye','price paid','acquisition cost','bought for','paid price','cost price','acquisition price','acquisition cost','purchase cost','bought price'],
@@ -14982,20 +15006,26 @@ function mapCsvHeaders(headerRow){
   });
   return map;
 }
-var IMPORT_HEADER_FILLER = ['de','du','des','la','le','les','l','d','of','the','a','actuel','actuelle','current','reptile','animal','serpent','snake','python','bp','g','gr','grammes','grams','kg','lb','lbs','info','infos','du','au'];
+var IMPORT_HEADER_FILLER = ['de','du','des','la','le','les','l','d','of','the','a','actuel','actuelle','current','reptile','animal','serpent','snake','python','bp','g','gr','grammes','grams','kg','lb','lbs','info','infos','du','au','unique','principal','principale','main','primary','officiel'];
 function importFieldFromWords(words){
   const has = w=>words.includes(w);
   // parents d'abord : « ID_Pere » est le père, pas l'ID de l'animal
   if(['pere','sire','father','dad','papa'].some(has)) return 'sire';
   if(['mere','dam','mother','mom','maman'].some(has)) return 'dam';
-  const core = words.filter(w=>!IMPORT_HEADER_FILLER.includes(w));
-  const idWords = ['id','no','numero','num','code','tag','identifiant','ref','reference','#'];
-  if(core.length && core.every(w=>idWords.includes(w))) return 'animalId';               // « ID_Reptile », « Code animal »
+  let core = words.filter(w=>!IMPORT_HEADER_FILLER.includes(w));
+  const idWords = ['id','no','numero','num','code','tag','identifiant','ref','reference','#','nombre','number','nb'];
+  if(core.length && core.every(w=>idWords.includes(w))) return 'animalId';               // « ID_Reptile », « Code animal », « Identifiant unique »
+  core = core.filter(w=>!idWords.includes(w));                                              // v4.46 — « Bac Numero » = le bac
   if(!core.length) return null;
   const joined = core.join(' ');
   for(const field in CSV_COLUMN_ALIASES){ if(CSV_COLUMN_ALIASES[field].some(a=>normalizeHeaderKey(a)===joined)) return field; }
+  // v4.46 — faute de frappe dans le titre (« Espese », « Date de naissence ») : 1 lettre près (2 pour les mots longs), un seul champ possible
+  const tol = w=> w.length>=8 ? 2 : w.length>=5 ? 1 : 0;
+  const fuzzyFields = (w, multi)=>{ const lim = tol(w); if(!lim) return []; return Object.keys(CSV_COLUMN_ALIASES).filter(f=>CSV_COLUMN_ALIASES[f].some(a=>{ const n = normalizeHeaderKey(a); return (multi || !n.includes(' ')) && Math.abs(n.length-w.length)<=lim && importOsa(w, n)<=lim; })); };
+  const fj = fuzzyFields(joined, true);
+  if(fj.length===1) return fj[0];
   // tous les mots restants veulent dire la même chose (« Morph Genetique ») → ce champ
-  const fieldsOf = w=>Object.keys(CSV_COLUMN_ALIASES).filter(f=>CSV_COLUMN_ALIASES[f].some(a=>normalizeHeaderKey(a)===w));
+  const fieldsOf = w=>{ const ex = Object.keys(CSV_COLUMN_ALIASES).filter(f=>CSV_COLUMN_ALIASES[f].some(a=>normalizeHeaderKey(a)===w)); return ex.length ? ex : fuzzyFields(w, false); };
   const sets = core.map(fieldsOf);
   if(sets.every(x=>x.length)){ const common = sets[0].filter(f=>sets.every(x=>x.includes(f))); if(common.length===1) return common[0]; }
   return null;
@@ -15220,9 +15250,15 @@ function parseImportGenes(text, species){
   pass();
   // v4.32 — faute de frappe d'un mot (« Enchie », « Peid », « Pasel ») : corrigée si un seul gène est à 1 lettre près, et signalée
   const fixes = [];
+  // v4.46 — gène coupé en deux (« pin stripe », « yellow belly ») : les deux morceaux recollés s'ils forment un gène
+  { const ws = work.split(' ').filter(Boolean); let joinedAny = false;
+    for(let i=0;i+1<ws.length;i++){ const glued = ws[i]+ws[i+1]; const hit = variants.find(v=>!v.n.includes(' ') && v.n===glued);
+      if(hit){ work = work.replace(new RegExp(' '+esc(ws[i])+' +'+esc(ws[i+1])+'(?= )'), ' '+glued); joinedAny = true; i++; } }
+    if(joinedAny) pass(); }
   const singles = variants.filter(v=>!v.n.includes(' ') && v.n.length>=4);
   work.split(' ').filter(w=>w.length>=4 && /^[a-z]+$/.test(w) && !['het','super','possible','normal','classic','male','female','gene','genes','morph','morphs','combo','combos','line','lignee','visual','visuel','proven','prouve','pretty','looks','dark','light','black','white','brown','yellow','orange','jaune','noir','noire','blanc','blanche','brun','gris','grey','gray'].includes(w)).forEach(w=>{
-    const hits = singles.filter(v=>importOsa(w, v.n)<=1);
+    let hits = singles.filter(v=>importOsa(w, v.n)<=1);
+    if(!hits.length && w.length>=7) hits = singles.filter(v=>v.n.length>=6 && Math.abs(v.n.length-w.length)<=2 && importOsa(w, v.n)<=2); // v4.46 — mot long à 2 lettres près (« spayder », « pinstirp »), seulement si un seul gène possible
     const ids = [...new Set(hits.map(h=>h.g.id))];
     if(ids.length===1){ work = work.replace(new RegExp(' '+esc(w)+'(?= )'), ' '+hits[0].n); fixes.push({ from:w, to:hits[0].g.name }); }
   });
@@ -15671,8 +15707,8 @@ function rebuildLogImport(){
   m.dateOrder = order;
   const byId = {}, byName = {};
   savedSnakes.forEach(s=>{ if(s.animalId) byId[String(s.animalId).toUpperCase()] = s; if(s.name) byName[normalizeHeaderKey(s.name)] = s; });
-  const items = [], unknownAnimals = {}, unknownActs = {};
-  let noDate = 0, ambiguous = 0, dupes = 0;
+  const items = [], unknownAnimals = {}, unknownActs = {}, maintItems = []; // v4.47
+  let noDate = 0, ambiguous = 0, dupes = 0, maintNoPlace = 0;
   const invalidLog = []; // v4.22
   const logAnoms = { qty:[], weight:[], noKey:[] }; // v4.28
   const seen = new Set();
@@ -15696,7 +15732,22 @@ function rebuildLogImport(){
     if(!snake){ unknownAnimals[label] = (unknownAnimals[label]||0)+1; return; }
     let inShedRefusal = false;
     if(act==='shed' && m.shedAmbiguous && m.shedMeaning==='refused_shed'){ act = 'refused'; inShedRefusal = true; } // v4.27
-    if(!act){ const a = str(cols,'activity') || '?'; unknownActs[a] = (unknownActs[a]||0)+1; return; }
+    if(!act){
+      // v4.47 — « Nettoyage », « Changement d'eau » : entretien du bac ou du terrarium où l'animal est placé
+      const mk = logMaintKind(str(cols,'activity'));
+      if(mk && d.value && d.value.length===10){
+        ensureSnakeMeta(snake);
+        const pl = snake.placement;
+        const placed = (pl.mode==='rack' && pl.rackId && getRack(pl.rackId)) || (pl.mode==='terrarium' && pl.terrariumId && getTerrarium(pl.terrariumId));
+        if(!placed){ maintNoPlace++; return; }
+        const mkey = (pl.mode==='rack' ? 'tub|'+pl.rackId+'|'+pl.row+'|'+pl.tub : 'te|'+pl.terrariumId)+'|'+mk+'|'+d.value;
+        if(seen.has(mkey) || logMaintExists(pl, mk, d.value)){ dupes++; return; }
+        seen.add(mkey);
+        maintItems.push({ snake, placement: JSON.parse(JSON.stringify(pl)), kind: mk, date: d.value, note: str(cols,'activity') });
+        return;
+      }
+      const a = str(cols,'activity') || '?'; unknownActs[a] = (unknownActs[a]||0)+1; return;
+    }
     if(!d.value || d.value.length!==10){ if(d.ambiguous) ambiguous++; else if(d.invalid) invalidLog.push((cols.__line?(currentLang==='en'?'line ':'ligne ')+cols.__line+' ':'')+(idv||nm)+' : '+str(cols,'date')+(d.future?(currentLang==='en'?' (future)':' (dans le futur)'):'')); else noDate++; return; }
     const wRaw = raw(cols,'weight');
     const wTxt = importCellStr(wRaw);
@@ -15723,7 +15774,7 @@ function rebuildLogImport(){
       if(!seen.has(wk) && !(h.weights||[]).some(w=>w && w.date===d.value && Number(w.value)===Math.round(wNum*10)/10)){ seen.add(wk); items.push({ snake, type:'weight', date:d.value, value:Math.round(wNum*10)/10 }); }
     }
   });
-  Object.assign(m, { items, unknownAnimals, unknownActs, noDate, ambiguous, dupes, invalidLog, logAnoms });
+  Object.assign(m, { items, unknownAnimals, unknownActs, noDate, ambiguous, dupes, invalidLog, logAnoms, maintItems, maintNoPlace });
 }
 function setLogShedMeaning(v){ const m = pendingLogImport; if(!m) return; m.shedMeaning = v; rebuildLogImport(); renderLogImportPreview(); } // v4.27
 function setLogImportColumn(colIdx, field){
@@ -15755,7 +15806,7 @@ function renderLogImportPreview(){
         LOG_FIELD_ORDER.map(k=>'<option value="'+k+'"'+(f===k?' selected':'')+'>'+escapeHtml(logFieldLabel(k, isEn))+'</option>').join('')+
       '</select></div>';
   }).join('');
-  const total = (m.items||[]).length;
+  const total = (m.items||[]).length + (m.maintItems||[]).length; // v4.47 — entretiens inclus
   const needShedAnswer = m.shedAmbiguous && !m.shedMeaning;
   const shedQ = m.shedAmbiguous ? '<div style="background:rgba(212,175,55,.14);border:1px solid var(--gold);border-radius:10px;padding:12px;margin:8px 0;font-size:15px;line-height:1.45;color:var(--ink);">'+
       '❓ <b>'+(isEn?'In this file, what does « ':'Dans ce fichier, que veut dire « ')+escapeHtml((m.shedExamples||['Mue']).join(' », « '))+(isEn?' » mean?':' » ?')+'</b><br>'+
@@ -15770,6 +15821,8 @@ function renderLogImportPreview(){
       : p('🗓 <b>'+(isEn?'History file detected':'Fichier d\'historique détecté')+'</b> — '+(isEn?'one line per activity, added to each animal\'s log.':'une ligne par activité, ajoutée au journal de chaque animal.')))+
     (!m.ready ? '<div style="background:rgba(212,175,55,.14);border:1px solid var(--gold);border-radius:10px;padding:10px 12px;margin:6px 0 10px;font-size:15px;line-height:1.45;color:var(--ink);">⚠ '+(isEn?'Choose below which columns are the <b>ID or name</b>, the <b>date</b> and the <b>activity</b>.':'Choisis plus bas quelles colonnes sont l\'<b>ID ou le nom</b>, la <b>date</b> et l\'<b>activité</b>.')+'</div>' : '')+
     (m.ready ? p('<b>'+total+'</b> '+(isEn?'entr(ies) for ':'entrée(s) pour ')+'<b>'+animals+'</b> '+(isEn?'animal(s)':'animal(s)')+(total ? ' : '+Object.keys(counts).map(k=>counts[k]+' '+typeLbl[k]).join(', ') : '')+'.') : '')+
+    ((m.maintItems||[]).length ? p('🧽 '+(isEn?m.maintItems.length+' maintenance entr(ies) (cleaning, water change) will go in the maintenance journal of the tub or terrarium where the animal is.':m.maintItems.length+' entretien(s) (nettoyage, changement d\'eau) iront dans le journal d\'entretien du bac ou du terrarium où se trouve l\'animal.'), 'var(--sage)') : '')+
+    (m.maintNoPlace ? p('⚠ '+(isEn?m.maintNoPlace+' maintenance entr(ies) ignored: the animal has no tub or terrarium yet (place it first, then re-import).':m.maintNoPlace+' entretien(s) ignoré(s) : l\'animal n\'a pas encore de bac ni de terrarium (range-le d\'abord, puis réimporte).'), 'var(--gold)') : '')+
     (m.dupes ? p('↺ '+(isEn?m.dupes+' already in LOCUS (same animal, date and type) — not added twice.':m.dupes+' déjà dans LOCUS (même animal, même date, même type) — pas ajoutée(s) deux fois.'), 'var(--ink-dim)') : '')+
     (unk.length ? p('⚠ '+(isEn?'Not in your collection — these lines are ignored: ':'Absents de ta collection — ces lignes sont ignorées : ')+'<b>'+escapeHtml(unk.slice(0,12).map(k=>k+' ('+m.unknownAnimals[k]+')').join(', '))+(unk.length>12?' +'+(unk.length-12):'')+'</b>'+(isEn?'. Import those animals first (or fix the ID), then re-import this file — nothing will be doubled.':'. Importe d\'abord ces animaux (ou corrige l\'ID), puis réimporte ce fichier — rien ne sera doublé.'), 'var(--gold)') : '')+
     (unkActs.length ? p('⚠ '+(isEn?'Activities not recognized (ignored): ':'Activités non reconnues (ignorées) : ')+'<b>'+escapeHtml(unkActs.slice(0,10).map(k=>'« '+k+' » ('+m.unknownActs[k]+')').join(', '))+'</b>', 'var(--gold)') : '')+
@@ -15814,12 +15867,37 @@ function confirmLogImport(){
     try{ recomputeConsecutiveRefusals(s); }catch(e){}
     s.updatedAt = Date.now();
   });
-  const n = m.items.length;
+  // v4.47 — entretiens vers le journal du bac / terrarium
+  (m.maintItems||[]).forEach((it, i)=>{
+    const pl = it.placement, water = it.kind==='water';
+    const id = (water?'twater_':'clean_')+base+'_imp'+i;
+    const entry = water ? { id, date: it.date } : { id, date: it.date, type: it.kind==='complete' ? 'complete' : 'partial', note: it.note||'' };
+    if(pl.mode==='rack'){ const rack = getRack(pl.rackId); if(!rack) return; const f = water ? 'tubWaterChanges' : 'tubCleanings', k2 = pl.row+'|'+pl.tub; if(!rack[f]) rack[f] = {}; if(!rack[f][k2]) rack[f][k2] = []; rack[f][k2].push(entry); }
+    else { const te = getTerrarium(pl.terrariumId); if(!te) return; const f = water ? 'waterChanges' : 'cleanings'; if(!te[f]) te[f] = []; te[f].push(entry); }
+  });
+  if((m.maintItems||[]).length){ saveElevage(); try{ renderRackGrid(); renderTerrariumList(); }catch(e){} }
+  const n = m.items.length + (m.maintItems||[]).length;
   pendingLogImport = null;
   storage.save(savedSnakes);
   renderSavedList();
   closeQuickModal();
   showToast('🗓 '+n+' '+(isEn?'entr(ies) added to '+touched.size+' animal(s).':'entrée(s) ajoutée(s) à '+touched.size+' animal(s).'), 'success');
+}
+// v4.47 — activité d'entretien lue dans un historique importé
+function logMaintKind(raw){
+  const x = ' '+normalizeHeaderKey(raw).replace(/['’]/g,' ').replace(/[^a-z ]+/g,' ').replace(/\s+/g,' ')+' ';
+  if(/ (changement d eau|change d eau|eau changee|eau change|water change|water changed|changed water|fresh water|new water|eau fraiche) /.test(x)) return 'water';
+  if(/ (nettoy|netoy|nettoi|clean|menage|desinfect|disinfect|sanitiz|lavage|lave) /.test(x.replace(/(nettoy|netoy|nettoi|clean|menage|desinfect|disinfect|sanitiz|lavage|lave)[a-z]*/g,'$1'))){
+    return / (complet|complete|full|deep|total|desinfect|disinfect|sanitiz|a fond|grand) /.test(x.replace(/(desinfect|disinfect|sanitiz)[a-z]*/g,'$1')) ? 'complete' : 'partial';
+  }
+  return null;
+}
+function logMaintExists(pl, kind, date){
+  const water = kind==='water';
+  let list = [];
+  if(pl.mode==='rack'){ const rack = getRack(pl.rackId); const f = water ? 'tubWaterChanges' : 'tubCleanings'; list = (rack && rack[f] && rack[f][pl.row+'|'+pl.tub]) || []; }
+  else { const te = getTerrarium(pl.terrariumId); list = (te && te[water ? 'waterChanges' : 'cleanings']) || []; }
+  return list.some(e=>e && e.date===date);
 }
 // v4.23 — d'où vient le fichier (seulement pour le dire dans l'aperçu : le traitement est le même)
 function importSourceOf(sh){
@@ -15837,10 +15915,13 @@ function importSourceOf(sh){
 // d'historique ordinaire, traitée par logImportFromRows juste après les animaux (mêmes règles : doublons, aperçu).
 function packedHistoryKind(h){
   const x = normalizeHeaderKey(h||'');
-  if(!/(^|[^a-z])(history|historique|log|logs|journal|records?|suivi)([^a-z]|$)/.test(x.replace(/_/g,' '))) return null; // v4.44 — mot entier (« Biologie » n'est pas un journal)
+  const hw = x.replace(/[^a-z]+/g,' ').split(' ').filter(Boolean);
+  const HIST = ['history','historique','historic','log','logs','journal','records','record','suivi','tracking'];
+  const isHist = w=> HIST.includes(w) || (w.length>=7 && HIST.some(h=>h.length>=7 && importOsa(w, h)<=2)); // v4.46 — « Historike »
+  if(!hw.some(isHist)) return null; // v4.44 — mot entier (« Biologie » n'est pas un journal)
   if(/(shed|mue|molt|moult)/.test(x)) return 'shed';
   if(/(weight|poids|pesee|weigh)/.test(x)) return 'weight';
-  if(/(feed|feeding|meal|repas|nourri|alimentation|food)/.test(x)) return 'feed';
+  if(/(feed|feeding|meal|repas|nourri|nouri|alimentation|food)/.test(x)) return 'feed';
   return 'mixed'; // v4.44 — « Historique_Suivi » : repas, mues et pesées mêlés, chaque entrée est lue pour ce qu'elle dit
 }
 function packedHistoryCols(headerRow){
@@ -16094,7 +16175,7 @@ function genericImportFromRows(rows, meta){
   rows = (rows||[]).filter(r=>Array.isArray(r) && r.some(c=>importCellStr(c)!==''));
   if(!rows.length){ alert(isEn?'Empty file.':'Fichier vide.'); return; }
   let hIdx = -1, colMap = null;
-  for(let i=0;i<Math.min(10,rows.length);i++){ const mm = mapCsvHeaders(rows[i].map(importCellStr)); if(mm.name!==undefined || mm.animalId!==undefined){ hIdx = i; colMap = mm; break; } }
+  for(let i=0;i<Math.min(10,rows.length);i++){ const mm = mapCsvHeaders(rows[i].map(importCellStr)); if(mm.name!==undefined || mm.animalId!==undefined || Object.keys(mm).length>=3){ hIdx = i; colMap = mm; break; } } // v4.46 — titres mal écrits : 3 titres compris suffisent
   let headerless = false;
   if(hIdx<0){
     // v4.33 — pas d'en-tête du tout ? On devine les colonnes d'après leur contenu (sexe, gènes, dates, poids…)
