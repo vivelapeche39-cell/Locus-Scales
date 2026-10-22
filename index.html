@@ -639,7 +639,11 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 /* Cartes Terrarium (31 août) — code couleur par statut : sage=libre (compacte), gold=occupé, rust=en accouplement. */
 /* Cartes Terrarium — passées en grille 3-de-large le 31 août, même esprit que .mini-animal-grid,
    pour rester cohérent avec le reste de l'app (Mes reptiles, Nourriture, etc.). */
-#terrarium-list{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+#terrarium-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;} /* v4.48 — au moins 4 de large */
+@media (min-width:761px){ #terrarium-list{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));} }
+.terra-unplaced-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:6px;}
+@media (min-width:761px){ .terra-unplaced-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));} }
+.terra-unplaced-grid .terra-occupant{border-top:none;margin-top:0;padding:6px;border:1px solid var(--line);border-radius:8px;}
 .terra-card{background:var(--bg-panel);border:1px solid var(--line);border-radius:10px;padding:8px 7px;display:flex;flex-direction:column;gap:4px;}
 .terra-card.status-libre{border-color:var(--sage);}
 .terra-card.status-occupe{border-color:var(--gold);}
@@ -1296,8 +1300,23 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
           <option value="price" data-i18n="sortPrice">Trier : Prix</option>
           <option value="age" data-i18n="sortAge">Trier : Âge (plus jeune d'abord)</option>
           <option value="weight" data-i18n="sortWeight">Trier : Poids</option>
+          <option value="id" data-i18n="sortIdOpt">Trier : ID</option>
+          <option value="sex" data-i18n="sortSexOpt">Trier : Sexe</option>
+          <option value="age_old" data-i18n="sortAgeOldOpt">Trier : Âge (plus vieux d'abord)</option>
+          <option value="weight_light" data-i18n="sortWeightLightOpt">Trier : Poids (plus léger d'abord)</option>
+          <option value="species" data-i18n="sortSpeciesOpt">Trier : Espèce</option>
+          <option value="genes" data-i18n="sortGenesOpt">Trier : Nombre de gènes</option>
+          <option value="place" data-i18n="sortPlaceOpt">Trier : Emplacement</option>
+          <option value="status" data-i18n="sortStatusOpt">Trier : Statut</option>
+          <option value="unverified" data-i18n="sortUnverifiedOpt">Trier : Génétique à vérifier d'abord</option>
+          <option value="acq" data-i18n="sortAcqOpt">Trier : Acquisition (plus récente d'abord)</option>
+          <option value="acq_old" data-i18n="sortAcqOldOpt">Trier : Acquisition (plus ancienne d'abord)</option>
+          <option value="provenance" data-i18n="sortProvOpt">Trier : Éleveur d'origine</option>
+          <option value="kin" data-i18n="sortKinOpt">Trier : Frères et sœurs ensemble</option>
+          <option value="breeder" data-i18n="sortBreederOpt">Trier : Reproducteurs d'abord</option>
         </select>
         <select id="mine-tag-filter" class="egg-select"></select>
+        <div id="mine-adv-filters" style="display:flex;flex-wrap:wrap;gap:6px;width:100%;"></div>
         <select id="mine-saved-filter-select" class="egg-select" onchange="if(this.value!=='') applySavedMineFilter(parseInt(this.value));"></select>
         <button class="sc-btn" onclick="const sel=document.getElementById('mine-saved-filter-select'); if(sel.value!=='') deleteSavedMineFilter(parseInt(sel.value)); else alert(currentLang==='en'?'Pick a saved filter first.':'Choisis d\'abord un filtre sauvegardé.');" title="Supprimer le filtre sélectionné" data-i18n-title="deleteSavedFilterTitle">🗑</button>
         <button class="sc-btn" onclick="saveCurrentMineFilterAsPreset()">⭐ <span data-i18n="saveFilterBtn">Sauvegarder ce filtre</span></button>
@@ -1309,6 +1328,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <button class="sc-btn" onclick="batchToggleTerrarium()">🏠 <span data-i18n="batchMoveBtn">Rack ↔ Terrarium</span></button>
         <input type="number" id="batch-price-input" class="price-input" style="width:80px;" placeholder="Prix $" min="0"/>
         <button class="sc-btn" onclick="batchSetPrice()">💰 <span data-i18n="batchPriceBtn">Prix en masse</span></button>
+        <button class="sc-btn" onclick="batchAddToGroup()">🗂 <span data-i18n="batchGroupBtn">Ajouter à un groupe</span></button>
+        <button class="sc-btn" id="batch-group-remove-btn" style="display:none;" onclick="batchRemoveFromGroup()">➖ <span data-i18n="batchGroupRemoveBtn">Retirer du groupe</span></button>
         <button class="sc-btn" onclick="batchSelectAll()"><span data-i18n="batchSelectAllBtn">Tout sélectionner</span></button>
         <button class="sc-btn danger" onclick="toggleBatchMode()">✕ <span data-i18n="batchCancelBtn">Annuler</span></button>
       </div>
@@ -2212,7 +2233,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.47';
+const APP_VERSION = '2026.09.01.4.50';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5223,6 +5244,53 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.50', date:'2026-10-22',
+    title:{ fr:'Listes en pages, Agenda masquable', en:'Paged lists, collapsible Agenda' },
+    changes:{
+      fr:[
+        '📄 Les longues listes s\'affichent maintenant par pages : Mes reptiles, Ventes, Agenda, Nourriture. Choisis 20, 40, 60, 80, 100 ou « Tout afficher » — ton choix s\'applique à toutes les listes. Boutons « ◀ Précédents » et « 20 suivants ▶ », avec la page et le nombre total.',
+        '📋 Agenda : chaque groupe (mues prévues, pesées, repas du jour, nettoyages…) a un bouton « Masquer » / « Afficher les 87 ». Un groupe plus long qu\'une page est replié au départ, pour ne plus avoir à défiler 87 mues avant d\'arriver au reste. Ton choix est retenu.',
+        '☑️ « Tout sélectionner » (sélection multiple) prend maintenant tous les animaux du filtre, pas seulement la page affichée.'
+      ],
+      en:[
+        '📄 Long lists now show in pages: My reptiles, Sales, Agenda, Food. Pick 20, 40, 60, 80, 100 or « Show all » — your choice applies to every list. « ◀ Previous » and « Next 20 ▶ » buttons, with the page and the total.',
+        '📋 Agenda: each group (expected sheds, weigh-ins, today\'s meals, cleanings…) has a « Hide » / « Show the 87 » button. A group longer than one page starts folded, so you no longer scroll through 87 sheds to reach the rest. Your choice is remembered.',
+        '☑️ « Select all » (multiple selection) now takes every animal in the filter, not just the page shown.'
+      ]
+    }
+  },
+  { version:'4.49', date:'2026-10-22',
+    title:{ fr:'Filtres avancés et groupes', en:'Advanced filters and groups' },
+    changes:{
+      fr:[
+        '⚖️ Nouveaux filtres dans Mes reptiles : poids (moins de 300 g, moins de 1000 g, 1000 g et plus, 1500 g et plus, jamais pesé), reproduction (breeders actuels — dans un pairing noté depuis moins de 12 mois —, proven, pas encore proven), éleveur d\'origine, date d\'acquisition (90 derniers jours ou par année) et parenté (petits d\'un parent, même ponte). « Sauvegarder ce filtre » garde aussi ces nouveaux choix.',
+        '↕️ Nouveaux tris : acquisition (récente ou ancienne d\'abord), éleveur d\'origine, frères et sœurs ensemble, reproducteurs d\'abord.',
+        '🗂 Groupes : crée tes propres listes d\'animaux (ex. « Projet clown ») — Sélection multiple → 🗂 Ajouter à un groupe, puis choisis le groupe dans le filtre. Synchronisés entre tes appareils. Réservé aux paliers Première ponte et Illimité après la bêta.'
+      ],
+      en:[
+        '⚖️ New filters in My reptiles: weight (under 300 g, under 1000 g, 1000 g and more, 1500 g and more, never weighed), breeding (current breeders — paired in the last 12 months —, proven, not proven yet), original breeder, acquisition date (last 90 days or by year) and family (babies of a parent, same clutch). « Save this filter » also keeps these new choices.',
+        '↕️ New sorts: acquisition (recent or oldest first), original breeder, siblings together, breeders first.',
+        '🗂 Groups: make your own lists of animals (ex. « Clown project ») — Multiple selection → 🗂 Add to a group, then pick the group in the filter. Synced between your devices. Reserved for the First Clutch and Unlimited tiers after the beta.'
+      ]
+    }
+  },
+  { version:'4.48', date:'2026-10-22',
+    title:{ fr:'Vérifier la génétique en lot, trier, aide au rangement', en:'Bulk genetics review, sorting, placement help' },
+    changes:{
+      fr:[
+        '🧬 Génétique à vérifier : un bandeau dans Mes reptiles ouvre une liste de tous les animaux dont la génétique est « À vérifier » (après un import, par exemple). Tu la fais défiler, tu corriges ceux qui en ont besoin (✏️), puis « Tout vérifier » ou « Tout vérifier sauf les cochés » (case « garder »). Recherche, tri et filtres par sexe, âge et espèce; le texte d\'origine du fichier est affiché sous chaque animal. Annuler possible.',
+        '↕️ Plus d\'options de tri dans Mes reptiles : ID, sexe, âge (plus jeune ou plus vieux d\'abord), poids (plus lourd ou plus léger d\'abord), espèce, nombre de gènes, emplacement, statut, génétique à vérifier d\'abord.',
+        '🧭 « Ranger automatiquement » devient « Aide au rangement » : une explication d\'abord (rien n\'est changé avant la confirmation), puis 5 étapes guidées avec Retour/Suivant — où (racks, terrariums, les deux), tes racks (ou en créer), comment regrouper (âge, sexe, espèce, statut, tous ensemble) et dans quel ordre (ID, nom, naissance, poids, sexe), quel groupe va où, puis un aperçu avec les premiers animaux et leur bac. L\'âge inconnu reste à classer par défaut.',
+        '🏠 Terrariums affichés 4 de large (plus sur ordinateur), et les animaux « À classer » en grille de 4 au lieu d\'une longue file, avec « tout afficher » au-delà de 24 et un bouton Aide au rangement.'
+      ],
+      en:[
+        '🧬 Genetics to verify: a banner in My reptiles opens a list of every animal whose genetics are « To verify » (after an import, for example). Scroll it, fix the ones that need it (✏️), then « Verify all » or « Verify all except the checked ones » (« keep » box). Search, sorting and filters by sex, age and species; the original text from the file is shown under each animal. Undo available.',
+        '↕️ More sort options in My reptiles: ID, sex, age (youngest or oldest first), weight (heaviest or lightest first), species, number of genes, location, status, genetics to verify first.',
+        '🧭 « Auto-place » becomes « Placement help »: an explanation first (nothing changes before you confirm), then 5 guided steps with Back/Next — where (racks, terrariums, both), your racks (or create some), how to group (age, sex, species, status, all together) and in what order (ID, name, birth, weight, sex), which group goes where, then a preview with the first animals and their tub. Unknown age stays to place by default.',
+        '🏠 Terrariums shown 4 across (more on a computer), and « To place » animals in a 4-wide grid instead of a long line, with « show all » beyond 24 and a Placement help button.'
+      ]
+    }
+  },
   { version:'4.47', date:'2026-10-22',
     title:{ fr:'Import : nettoyages et changements d\'eau', en:'Import: cleanings and water changes' },
     changes:{
@@ -6207,6 +6275,7 @@ const I18N = {
     batchMoveBtn: 'Rack ↔ Terrarium',
     batchPriceBtn: 'Prix en masse',
     batchSelectAllBtn: 'Tout sélectionner',
+    batchGroupBtn: 'Ajouter à un groupe', batchGroupRemoveBtn: 'Retirer du groupe', // v4.49
     batchCancelBtn: 'Annuler',
     postHatchTitle: 'Suivi post-éclosion (estimé)',
     firstShedEst: '1ʳᵉ mue estimée (+12j)',
@@ -6303,6 +6372,8 @@ const I18N = {
     sortPrice: 'Trier : Prix',
     sortAge: 'Trier : Âge (plus jeune d\'abord)',
     sortWeight: 'Trier : Poids',
+    sortIdOpt: 'Trier : ID', sortSexOpt: 'Trier : Sexe', sortAgeOldOpt: 'Trier : Âge (plus vieux d\'abord)', sortWeightLightOpt: 'Trier : Poids (plus léger d\'abord)', sortSpeciesOpt: 'Trier : Espèce', sortGenesOpt: 'Trier : Nombre de gènes', sortPlaceOpt: 'Trier : Emplacement', sortStatusOpt: 'Trier : Statut', sortUnverifiedOpt: 'Trier : Génétique à vérifier d\'abord', // v4.48
+    sortAcqOpt: 'Trier : Acquisition (plus récente d\'abord)', sortAcqOldOpt: 'Trier : Acquisition (plus ancienne d\'abord)', sortProvOpt: 'Trier : Éleveur d\'origine', sortKinOpt: 'Trier : Frères et sœurs ensemble', sortBreederOpt: 'Trier : Reproducteurs d\'abord', // v4.49
     mineEmptyState: '🐍 Aucun reptile enregistré — remplis la fiche ci-dessus pour ajouter ton premier reptile.',
     editReptileTitle: 'Modifier le reptile',
     saveEditBtn: 'Enregistrer les modifications',
@@ -6785,6 +6856,7 @@ const I18N = {
     batchMoveBtn: 'Rack ↔ Enclosure',
     batchPriceBtn: 'Bulk price',
     batchSelectAllBtn: 'Select all',
+    batchGroupBtn: 'Add to a group', batchGroupRemoveBtn: 'Remove from group', // v4.49
     batchCancelBtn: 'Cancel',
     postHatchTitle: 'Post-hatch tracking (estimated)',
     firstShedEst: '1st shed estimated (+12d)',
@@ -6881,6 +6953,8 @@ const I18N = {
     sortPrice: 'Sort: Price',
     sortAge: 'Sort: Age (youngest first)',
     sortWeight: 'Sort: Weight',
+    sortIdOpt: 'Sort: ID', sortSexOpt: 'Sort: Sex', sortAgeOldOpt: 'Sort: Age (oldest first)', sortWeightLightOpt: 'Sort: Weight (lightest first)', sortSpeciesOpt: 'Sort: Species', sortGenesOpt: 'Sort: Number of genes', sortPlaceOpt: 'Sort: Location', sortStatusOpt: 'Sort: Status', sortUnverifiedOpt: 'Sort: Genetics to verify first', // v4.48
+    sortAcqOpt: 'Sort: Acquisition (most recent first)', sortAcqOldOpt: 'Sort: Acquisition (oldest first)', sortProvOpt: 'Sort: Original breeder', sortKinOpt: 'Sort: Siblings together', sortBreederOpt: 'Sort: Breeders first', // v4.49
     mineEmptyState: '🐍 No reptile recorded yet — fill in the form above to add your first reptile.',
     editReptileTitle: 'Edit Reptile',
     saveEditBtn: 'Save Changes',
@@ -9445,6 +9519,8 @@ var mineStatusFilter = 'all';
 var mineSexFilter = 'all';
 var mineVerifiedFilter = 'all';
 var mineTagFilter = 'all';
+// v4.49 — filtres avancés : poids, reproduction, éleveur d'origine, acquisition, parenté, groupe
+var mineAdv = { weight:'all', breed:'all', prov:'all', acq:'all', kin:'all', group:'all' };
 var batchSelectMode = false;
 var batchSelectedIds = new Set();
 var mineSortBy = 'created';
@@ -9463,7 +9539,7 @@ function saveCurrentMineFilterAsPreset(){
   const name = prompt(isEn?'Name this filter (ex. "Females available"):':'Nomme ce filtre (ex. "Femelles disponibles") :');
   if(!name || !name.trim()) return;
   const list = loadSavedMineFilters();
-  list.push({ name:name.trim(), status:mineStatusFilter, sex:mineSexFilter, verified:mineVerifiedFilter, tag:mineTagFilter, sort:mineSortBy });
+  list.push({ name:name.trim(), status:mineStatusFilter, sex:mineSexFilter, verified:mineVerifiedFilter, tag:mineTagFilter, sort:mineSortBy, adv:Object.assign({}, mineAdv) });
   saveSavedMineFilters(list);
   renderSavedMineFilterOptions();
   showToast('⭐ '+(isEn?'Filter "':'Filtre "')+name.trim()+(isEn?'" saved.':'" sauvegardé.'), 'success');
@@ -9473,6 +9549,7 @@ function applySavedMineFilter(index){
   const preset = list[index];
   if(!preset) return;
   mineStatusFilter = preset.status; mineSexFilter = preset.sex; mineVerifiedFilter = preset.verified; mineTagFilter = preset.tag; mineSortBy = preset.sort;
+  mineAdv = Object.assign({ weight:'all', breed:'all', prov:'all', acq:'all', kin:'all', group:'all' }, preset.adv||{}); // v4.49
   document.querySelectorAll('#mine-status-filters .filter-chip').forEach(b=>b.classList.toggle('active', b.dataset.status===preset.status));
   document.querySelectorAll('#mine-sex-filters .filter-chip').forEach(b=>b.classList.toggle('active', b.dataset.sex===preset.sex));
   document.querySelectorAll('#mine-verified-filters .filter-chip').forEach(b=>b.classList.toggle('active', b.dataset.verified===preset.verified));
@@ -9498,10 +9575,214 @@ function renderSavedMineFilterOptions(){
     list.map((f,i)=>'<option value="'+i+'">'+escapeHtml(f.name)+'</option>').join('');
   sel.style.display = list.length ? '' : 'none';
 }
+
+// ==================== v4.49 — filtres avancés, parenté, reproducteurs, groupes ====================
+function snakeLastWeight(s){
+  const w = s && s.health && s.health.weights;
+  if(!w || !w.length) return null;
+  const v = Number(w[w.length-1].value);
+  return isNaN(v) ? null : v;
+}
+function activePairingsList(){ try{ return Array.isArray(pairings) ? pairings : []; }catch(e){ return []; } }
+// « Breeder actuel » = dans un pairing noté depuis moins de 12 mois (sauf « non retenu »)
+function snakeInActivePairing(s){
+  const lim = Date.now() - 365*86400000;
+  return activePairingsList().some(p=>p && (p.maleId===s.id || p.femaleId===s.id) && p.outcome!=='notSelected' && p.pairedDate && Date.parse(p.pairedDate) >= lim);
+}
+function snakeBreederRank(s){
+  const a = snakeInActivePairing(s), pr = isProvenSnake(s);
+  return a && pr ? 0 : a ? 1 : pr ? 2 : 3;
+}
+// Fratrie : même ponte si connue, sinon mêmes parents
+function snakeKinKey(s){
+  if(s.clutchRef) return 'c:'+s.clutchRef;
+  if(s.sireId || s.damId) return 'p:'+(s.sireId||'?')+'|'+(s.damId||'?');
+  return null;
+}
+function snakeGroupsActive(){ try{ return (Array.isArray(snakeGroups) ? snakeGroups : []).filter(g=>g && !g.deleted); }catch(e){ return []; } }
+function mineAdvMatch(s){
+  const a = mineAdv;
+  if(a.weight!=='all'){
+    const w = snakeLastWeight(s);
+    if(a.weight==='none'){ if(w!=null) return false; }
+    else {
+      if(w==null) return false;
+      if(a.weight==='lt300' && !(w<300)) return false;
+      if(a.weight==='lt1000' && !(w<1000)) return false;
+      if(a.weight==='gte1000' && !(w>=1000)) return false;
+      if(a.weight==='gte1500' && !(w>=1500)) return false;
+    }
+  }
+  if(a.breed!=='all'){
+    const act = snakeInActivePairing(s), pr = isProvenSnake(s);
+    if(a.breed==='active' && !act) return false;
+    if(a.breed==='proven' && !pr) return false;
+    if(a.breed==='any' && !(act||pr)) return false;
+    if(a.breed==='notproven' && pr) return false;
+  }
+  if(a.prov!=='all'){
+    if(a.prov==='__none'){ if(s.provenance) return false; }
+    else if(String(s.provenance||'').trim().toLowerCase()!==a.prov) return false;
+  }
+  if(a.acq!=='all'){
+    const d = s.acquisitionDate || '';
+    if(a.acq==='__none'){ if(d) return false; }
+    else if(a.acq==='last90'){ if(!d || Date.parse(d) < Date.now()-90*86400000) return false; }
+    else if(String(d).slice(0,4)!==a.acq) return false;
+  }
+  if(a.kin!=='all'){
+    if(a.kin.indexOf('par:')===0){ const pid = a.kin.slice(4); if(s.sireId!==pid && s.damId!==pid) return false; }
+    else if(a.kin.indexOf('cl:')===0){ if(String(s.clutchRef||'')!==a.kin.slice(3)) return false; }
+  }
+  if(a.group!=='all'){
+    const g = snakeGroupsActive().find(x=>x.id===a.group);
+    if(!g || !(g.ids||[]).includes(s.id)) return false;
+  }
+  return true;
+}
+function mineAdvSet(k, v){ mineAdv[k] = v; renderSavedList(); }
+function mineAdvReset(){ mineAdv = { weight:'all', breed:'all', prov:'all', acq:'all', kin:'all', group:'all' }; renderSavedList(); }
+function renderMineAdvFilters(){
+  const isEn = currentLang==='en';
+  const box = document.getElementById('mine-adv-filters'); if(!box) return;
+  const live = savedSnakes.filter(s=>s.status!=='deceased');
+  const sel = (k, opts)=>{
+    if(!opts.some(o=>o[0]===mineAdv[k])) mineAdv[k] = 'all';
+    return '<select class="egg-select" onchange="mineAdvSet(\''+k+'\', this.value)"'+(mineAdv[k]!=='all'?' style="border-color:var(--gold);"':'')+'>'+opts.map(o=>o[2] ? '<optgroup label="'+escapeHtml(o[1])+'"></optgroup>' : '<option value="'+escapeHtml(o[0])+'"'+(mineAdv[k]===o[0]?' selected':'')+'>'+escapeHtml(o[1])+'</option>').join('')+'</select>';
+  };
+  // éleveurs d'origine
+  const provs = {};
+  live.forEach(s=>{ const p = String(s.provenance||'').trim(); if(p){ const k = p.toLowerCase(); if(!provs[k]) provs[k] = { label:p, n:0 }; provs[k].n++; } });
+  const provOpts = [['all', isEn?'Breeder: all':'Éleveur : tous']].concat(Object.keys(provs).sort().map(k=>[k, provs[k].label+' ('+provs[k].n+')'])).concat([['__none', isEn?'No breeder noted':'Aucun éleveur noté']]);
+  // années d'acquisition
+  const years = [...new Set(live.map(s=>String(s.acquisitionDate||'').slice(0,4)).filter(y=>/^\d{4}$/.test(y)))].sort().reverse();
+  const acqOpts = [['all', isEn?'Acquired: any time':'Acquisition : toutes'], ['last90', isEn?'Acquired: last 90 days':'Acquis dans les 90 derniers jours']].concat(years.map(y=>[y, (isEn?'Acquired in ':'Acquis en ')+y])).concat([['__none', isEn?'No acquisition date':'Sans date d\'acquisition']]);
+  // parenté
+  const parentIds = [...new Set(savedSnakes.flatMap(s=>[s.sireId, s.damId]).filter(Boolean))];
+  const parents = parentIds.map(id=>savedSnakes.find(x=>x.id===id)).filter(Boolean).sort((a,b)=>String(snakeName(a)).localeCompare(String(snakeName(b)), undefined, { numeric:true }));
+  const refs = {};
+  savedSnakes.forEach(s=>{ if(s.clutchRef) refs[s.clutchRef] = (refs[s.clutchRef]||0)+1; });
+  const refKeys = Object.keys(refs).filter(r=>refs[r]>=2).sort((a,b)=>a.localeCompare(b, undefined, { numeric:true }));
+  let kinOpts = [['all', isEn?'Family: all':'Parenté : tous']];
+  if(parents.length) kinOpts = kinOpts.concat([['', isEn?'Babies of…':'Petits de…', true]]).concat(parents.map(p=>['par:'+p.id, (isEn?'Babies of ':'Petits de ')+snakeName(p)+' ('+savedSnakes.filter(x=>x.sireId===p.id||x.damId===p.id).length+')']));
+  if(refKeys.length) kinOpts = kinOpts.concat([['', isEn?'Same clutch…':'Même ponte…', true]]).concat(refKeys.map(r=>['cl:'+r, (isEn?'Clutch ':'Ponte ')+r+' ('+refs[r]+')']));
+  const groups = snakeGroupsActive();
+  const groupOpts = [['all', isEn?'Group: all':'Groupe : tous']].concat(groups.map(g=>[g.id, '🗂 '+g.name+' ('+(g.ids||[]).filter(id=>savedSnakes.some(x=>x.id===id)).length+')']));
+  const anyOn = Object.keys(mineAdv).some(k=>mineAdv[k]!=='all');
+  box.innerHTML =
+    sel('weight', [['all', isEn?'Weight: all':'Poids : tous'], ['lt300', isEn?'Under 300 g':'Moins de 300 g'], ['lt1000', isEn?'Under 1000 g':'Moins de 1000 g'], ['gte1000', isEn?'1000 g and more':'1000 g et plus'], ['gte1500', isEn?'1500 g and more':'1500 g et plus'], ['none', isEn?'Never weighed':'Jamais pesé']])+
+    sel('breed', [['all', isEn?'Breeding: all':'Reproduction : tous'], ['active', isEn?'Current breeders (paired in the last 12 months)':'Breeders actuels (pairing dans les 12 derniers mois)'], ['proven', isEn?'Proven':'Proven (prouvés)'], ['any', isEn?'Current breeders or proven':'Breeders actuels ou proven'], ['notproven', isEn?'Not proven':'Pas encore proven']])+
+    (Object.keys(provs).length ? sel('prov', provOpts) : '')+
+    sel('acq', acqOpts)+
+    (kinOpts.length>1 ? sel('kin', kinOpts) : '')+
+    sel('group', groupOpts)+
+    '<button type="button" class="sc-btn" onclick="openSnakeGroups()">🗂 '+(isEn?'Groups':'Groupes')+'</button>'+
+    (anyOn ? '<button type="button" class="sc-btn" onclick="mineAdvReset()">✕ '+(isEn?'Clear these filters':'Effacer ces filtres')+'</button>' : '');
+}
+// ---- Groupes à la main (réservé aux paliers payants après la bêta) ----
+function saveSnakeGroups(){ try{ saveElevage(); }catch(e){} }
+function openSnakeGroups(){
+  const isEn = currentLang==='en';
+  const groups = snakeGroupsActive();
+  const body = '<p style="font-size:14px;line-height:1.45;margin:4px 0 10px;">'+(isEn
+      ? 'A group is a list of animals you pick by hand (ex. « Clown project », « Holdbacks 2026 »). To add animals: <b>Multiple selection</b> → check them → <b>🗂 Add to a group</b>. Then pick the group in the « Group » filter.'
+      : 'Un groupe, c\'est une liste d\'animaux que tu choisis à la main (ex. « Projet clown », « Holdbacks 2026 »). Pour ajouter des animaux : <b>Sélection multiple</b> → coche-les → <b>🗂 Ajouter à un groupe</b>. Ensuite, choisis le groupe dans le filtre « Groupe ».')+'</p>'+
+    '<div style="font-size:12.5px;color:var(--ink-dim);margin-bottom:8px;">'+(isEn?'Reserved for the First Clutch and Unlimited tiers after the beta.':'Réservé aux paliers Première ponte et Illimité après la bêta.')+'</div>'+
+    (groups.length ? groups.map(g=>{
+      const n = (g.ids||[]).filter(id=>savedSnakes.some(x=>x.id===id)).length;
+      return '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--line);">'+
+        '<span style="flex:1;min-width:140px;font-size:15px;">🗂 <b>'+escapeHtml(g.name)+'</b> <span style="color:var(--ink-dim);font-size:13px;">('+n+')</span></span>'+
+        '<button type="button" class="sc-btn accent" onclick="mineAdv.group=\''+g.id+'\'; closeQuickModal(); renderSavedList();">'+(isEn?'Show':'Voir')+'</button>'+
+        '<button type="button" class="sc-btn" onclick="renameSnakeGroup(\''+g.id+'\')">✏️</button>'+
+        '<button type="button" class="sc-btn danger" onclick="deleteSnakeGroup(\''+g.id+'\')">🗑</button></div>';
+    }).join('') : '<div style="font-size:14px;color:var(--ink-dim);padding:6px 0;">'+(isEn?'No group yet.':'Aucun groupe pour l\'instant.')+'</div>')+
+    '<div style="display:flex;gap:6px;margin-top:12px;"><input type="text" id="snake-group-new-name" maxlength="60" placeholder="'+(isEn?'New group name':'Nom du nouveau groupe')+'" style="flex:1;font-size:16px;padding:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
+    '<button type="button" class="sc-btn accent" onclick="createSnakeGroup(document.getElementById(\'snake-group-new-name\').value, false)">+ '+(isEn?'Create':'Créer')+'</button></div>'+
+    '<button type="button" class="sc-btn" style="width:100%;margin-top:10px;" onclick="closeQuickModal()">'+(isEn?'Close':'Fermer')+'</button>';
+  showQuickModal('🗂 '+(isEn?'My groups':'Mes groupes'), body);
+}
+function createSnakeGroup(name, withSelection){
+  const isEn = currentLang==='en';
+  name = String(name||'').trim().slice(0,60);
+  if(!name){ showToast(isEn?'Give the group a name.':'Donne un nom au groupe.', 'error'); return null; }
+  if(snakeGroupsActive().some(g=>g.name.toLowerCase()===name.toLowerCase())){ showToast(isEn?'A group already has that name.':'Un groupe porte déjà ce nom.', 'error'); return null; }
+  const g = { id:'grp_'+Date.now()+'_'+Math.random().toString(36).slice(2,6), name, ids: withSelection ? [...batchSelectedIds] : [], updatedAt:Date.now(), deleted:false };
+  snakeGroups.push(g);
+  saveSnakeGroups();
+  if(withSelection){ closeQuickModal(); showToast('🗂 '+g.ids.length+(isEn?' animal(s) added to « ':' animal(s) ajouté(s) à « ')+name+' ».', 'success'); renderSavedList(); }
+  else { openSnakeGroups(); renderSavedList(); }
+  return g;
+}
+function renameSnakeGroup(id){
+  const isEn = currentLang==='en';
+  const g = snakeGroupsActive().find(x=>x.id===id); if(!g) return;
+  const name = prompt(isEn?'New name for this group:':'Nouveau nom pour ce groupe :', g.name);
+  if(!name || !name.trim()) return;
+  g.name = name.trim().slice(0,60); g.updatedAt = Date.now();
+  saveSnakeGroups(); openSnakeGroups(); renderSavedList();
+}
+function deleteSnakeGroup(id){
+  const isEn = currentLang==='en';
+  const g = snakeGroupsActive().find(x=>x.id===id); if(!g) return;
+  if(!confirm(isEn?'Delete the group « '+g.name+' »? The animals stay in your collection.':'Supprimer le groupe « '+g.name+' » ? Les animaux restent dans ta collection.')) return;
+  g.deleted = true; g.ids = []; g.updatedAt = Date.now();
+  if(mineAdv.group===id) mineAdv.group = 'all';
+  saveSnakeGroups(); openSnakeGroups(); renderSavedList();
+}
+function batchAddToGroup(){
+  const isEn = currentLang==='en';
+  const n = batchSelectedIds.size;
+  if(!n){ showToast(isEn?'Check at least one animal first.':'Coche au moins un animal d\'abord.', 'error'); return; }
+  const groups = snakeGroupsActive();
+  const body = '<p style="font-size:15px;margin:4px 0 10px;">'+(isEn?'Add the '+n+' selected animal(s) to:':'Ajouter les '+n+' animal(s) sélectionné(s) à :')+'</p>'+
+    groups.map(g=>'<button type="button" class="sc-btn" style="width:100%;margin-bottom:6px;font-size:15px;text-align:left;" onclick="batchAddToGroupId(\''+g.id+'\')">🗂 '+escapeHtml(g.name)+'</button>').join('')+
+    '<div style="display:flex;gap:6px;margin-top:8px;"><input type="text" id="snake-group-batch-name" maxlength="60" placeholder="'+(isEn?'…or a new group':'…ou un nouveau groupe')+'" style="flex:1;font-size:16px;padding:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
+    '<button type="button" class="sc-btn accent" onclick="createSnakeGroup(document.getElementById(\'snake-group-batch-name\').value, true)">+ '+(isEn?'Create':'Créer')+'</button></div>'+
+    '<button type="button" class="sc-btn" style="width:100%;margin-top:10px;" onclick="closeQuickModal()">'+(isEn?'Cancel':'Annuler')+'</button>';
+  showQuickModal('🗂 '+(isEn?'Add to a group':'Ajouter à un groupe'), body);
+}
+function batchAddToGroupId(id){
+  const isEn = currentLang==='en';
+  const g = snakeGroupsActive().find(x=>x.id===id); if(!g) return;
+  const before = (g.ids||[]).length;
+  g.ids = [...new Set((g.ids||[]).concat([...batchSelectedIds]))]; g.updatedAt = Date.now();
+  saveSnakeGroups(); closeQuickModal(); renderSavedList();
+  showToast('🗂 '+(g.ids.length-before)+(isEn?' animal(s) added to « ':' animal(s) ajouté(s) à « ')+g.name+' ».', 'success');
+}
+function batchRemoveFromGroup(){
+  const isEn = currentLang==='en';
+  const g = snakeGroupsActive().find(x=>x.id===mineAdv.group); if(!g) return;
+  const before = (g.ids||[]).length;
+  g.ids = (g.ids||[]).filter(id=>!batchSelectedIds.has(id)); g.updatedAt = Date.now();
+  saveSnakeGroups(); renderSavedList(); renderBatchActionBar();
+  showToast('🗂 '+(before-g.ids.length)+(isEn?' animal(s) removed from « ':' animal(s) retiré(s) de « ')+g.name+' ».', 'success');
+}
 var dashSpeciesFilter = 'all'; // filtre par espèce sur le dashboard — utile seulement si plusieurs espèces cohabitent
 
 function sortSnakes(list, sortBy){
   const arr = [...list];
+  // v4.48 — plus d'options de tri (le tri par nom reste le tri par défaut à égalité)
+  const nm = s=>normalizeHeaderKey(snakeName(s));
+  const lastW = s=>(s.health && s.health.weights && s.health.weights.length) ? Number(s.health.weights[s.health.weights.length-1].value) : null;
+  const byName = (a,b)=>nm(a).localeCompare(nm(b), undefined, { numeric:true });
+  const ext = {
+    id: (a,b)=>String(a.animalId||'~'+snakeName(a)).localeCompare(String(b.animalId||'~'+snakeName(b)), undefined, { numeric:true, sensitivity:'base' }),
+    sex: (a,b)=>({female:0,male:1}[a.sex]??2) - ({female:0,male:1}[b.sex]??2) || byName(a,b),
+    age_old: (a,b)=>(a.birthDate||'9999').localeCompare(b.birthDate||'9999') || byName(a,b),
+    weight_light: (a,b)=>((lastW(a)??1e9) - (lastW(b)??1e9)) || byName(a,b),
+    species: (a,b)=>speciesDisplayLabel(a.species||'ball_python').localeCompare(speciesDisplayLabel(b.species||'ball_python')) || byName(a,b),
+    genes: (a,b)=>Object.keys(b.genes||{}).length - Object.keys(a.genes||{}).length || byName(a,b),
+    place: (a,b)=>{ const pa = placementCode(a), pb = placementCode(b); return (!pa)-(!pb) || pa.localeCompare(pb, undefined, { numeric:true }) || byName(a,b); },
+    status: (a,b)=>({kept:0,forsale:1,reserved:2,sold:3,deceased:4}[a.status]??5) - ({kept:0,forsale:1,reserved:2,sold:3,deceased:4}[b.status]??5) || byName(a,b),
+    unverified: (a,b)=>(a.genesVerified?1:0)-(b.genesVerified?1:0) || byName(a,b),
+    // v4.49 — acquisition, éleveur d'origine, fratrie, reproducteurs
+    acq: (a,b)=>(!a.acquisitionDate)-(!b.acquisitionDate) || String(b.acquisitionDate||'').localeCompare(String(a.acquisitionDate||'')) || byName(a,b),
+    acq_old: (a,b)=>(!a.acquisitionDate)-(!b.acquisitionDate) || String(a.acquisitionDate||'').localeCompare(String(b.acquisitionDate||'')) || byName(a,b),
+    provenance: (a,b)=>(!a.provenance)-(!b.provenance) || String(a.provenance||'').localeCompare(String(b.provenance||''), undefined, { sensitivity:'base' }) || byName(a,b),
+    kin: (a,b)=>{ const ka = snakeKinKey(a), kb = snakeKinKey(b); return (!ka)-(!kb) || String(ka||'').localeCompare(String(kb||''), undefined, { numeric:true }) || String(a.birthDate||'').localeCompare(String(b.birthDate||'')) || byName(a,b); },
+    breeder: (a,b)=>snakeBreederRank(a)-snakeBreederRank(b) || byName(a,b)
+  };
+  if(ext[sortBy]){ arr.sort(ext[sortBy]); return arr; }
   if(sortBy==='created') arr.sort((a,b)=> (b.createdAt||0) - (a.createdAt||0) );
   else if(sortBy==='price') arr.sort((a,b)=> (b.status==='sold'?(b.soldPrice||0):(b.askingPrice||0)) - (a.status==='sold'?(a.soldPrice||0):(a.askingPrice||0)) );
   else if(sortBy==='age') arr.sort((a,b)=> (b.birthDate||'').localeCompare(a.birthDate||'') );
@@ -9510,7 +9791,7 @@ function sortSnakes(list, sortBy){
     const wb = b.health.weights.length ? b.health.weights[b.health.weights.length-1].value : -1;
     return wb-wa;
   });
-  else arr.sort((a,b)=>a.name.localeCompare(b.name));
+  else arr.sort((a,b)=>String(snakeName(a)).localeCompare(String(snakeName(b)), undefined, { numeric:true })); // v4.48 — nom vide accepté
   return arr;
 }
 
@@ -9580,11 +9861,13 @@ function renderBatchActionBar(){
   bar.style.display = 'flex';
   const label = document.getElementById('batch-count-label');
   if(label) label.textContent = batchSelectedIds.size+' '+(isEn?'selected':'sélectionné(s)');
+  const rm = document.getElementById('batch-group-remove-btn'); if(rm) rm.style.display = (mineAdv.group!=='all') ? '' : 'none'; // v4.49
 }
 function batchSelectAll(){
   const grid = document.getElementById('saved-grid');
   if(!grid) return;
   grid.querySelectorAll('.batch-select-cb').forEach(cb=>{ cb.checked = true; batchSelectedIds.add(cb.dataset.batchId); });
+  (window.__mineVisibleIds||[]).forEach(id=>batchSelectedIds.add(id)); // v4.50 — toutes les pages du filtre, pas juste la page affichée
   grid.querySelectorAll('.saved-card').forEach(c=>c.classList.add('batch-selected'));
   renderBatchActionBar();
 }
@@ -9653,6 +9936,98 @@ function batchSetPrice(){
   renderSalesView();
 }
 
+// ==================== v4.48 — revue de la génétique « à vérifier » (après un import) ====================
+// L'éleveur parcourt la liste, corrige ce qui doit l'être (✏️ ouvre la fiche), puis « Tout vérifier »
+// ou « Tout vérifier sauf ceux cochés ». Tri, filtres et recherche comme dans la collection.
+var geneReview = null;
+var SORT_CHOICES = [
+  ['created',['Plus récent ajouté','Most recently added']], ['id',['ID','ID']], ['name',['Nom','Name']],
+  ['sex',['Sexe (femelles, mâles, inconnus)','Sex (females, males, unknown)']], ['age',['Âge : plus jeune d\'abord','Age: youngest first']], ['age_old',['Âge : plus vieux d\'abord','Age: oldest first']],
+  ['weight',['Poids : plus lourd d\'abord','Weight: heaviest first']], ['weight_light',['Poids : plus léger d\'abord','Weight: lightest first']],
+  ['species',['Espèce','Species']], ['genes',['Nombre de gènes','Number of genes']], ['place',['Emplacement (rack, bac)','Location (rack, tub)']],
+  ['status',['Statut (gardé, à vendre…)','Status (kept, for sale…)']], ['price',['Prix','Price']], ['unverified',['Génétique à vérifier d\'abord','Genetics to verify first']],
+  ['acq',['Acquisition : plus récente d\'abord','Acquisition: most recent first']], ['acq_old',['Acquisition : plus ancienne d\'abord','Acquisition: oldest first']],
+  ['provenance',['Éleveur d\'origine','Original breeder']], ['kin',['Frères et sœurs ensemble','Siblings together']], ['breeder',['Reproducteurs d\'abord','Breeders first']]
+];
+function geneReviewList(){
+  const g = geneReview;
+  let list = savedSnakes.filter(s=>{ ensureSnakeMeta(s); return !s.genesVerified && s.status!=='deceased'; });
+  if(g.q) list = list.filter(s=>matchesSearch(s, g.q) || normalizeHeaderKey(s.notes||'').includes(normalizeHeaderKey(g.q)));
+  if(g.sex!=='all') list = list.filter(s=> g.sex==='unknown' ? !s.sex : s.sex===g.sex);
+  if(g.age!=='all') list = list.filter(s=>placeAgeGroup(s)===g.age);
+  if(g.species!=='all') list = list.filter(s=>(s.species||'ball_python')===g.species);
+  return sortSnakes(list, g.sort);
+}
+function openGeneReview(){
+  geneReview = { q:'', sex:'all', age:'all', species:'all', sort:'id', keep:new Set() };
+  renderGeneReview();
+}
+function geneReviewSet(k, v){ geneReview[k] = v; renderGeneReview(); }
+function geneReviewToggleKeep(id, on){ if(on) geneReview.keep.add(id); else geneReview.keep.delete(id); renderGeneReviewButtons(); }
+function renderGeneReviewButtons(){
+  const isEn = currentLang==='en';
+  const el = document.getElementById('gene-review-buttons'); if(!el) return;
+  const list = geneReviewList(), keepN = list.filter(s=>geneReview.keep.has(s.id)).length;
+  el.innerHTML =
+    '<button type="button" class="save-btn" style="width:100%;font-size:16px;padding:12px;" '+(list.length?'':'disabled')+' onclick="geneReviewApply(false)">✅ '+(isEn?'Mark all '+list.length+' shown as verified':'Tout vérifier ('+list.length+' affiché'+(list.length>1?'s':'')+')')+'</button>'+
+    (keepN ? '<button type="button" class="save-btn" style="width:100%;font-size:16px;padding:12px;margin-top:6px;background:var(--sage);" onclick="geneReviewApply(true)">✅ '+(isEn?'Verify all except the '+keepN+' checked ('+(list.length-keepN)+')':'Tout vérifier sauf les '+keepN+' coché'+(keepN>1?'s':'')+' ('+(list.length-keepN)+')')+'</button>' : '')+
+    '<button type="button" class="sc-btn" style="width:100%;margin-top:6px;" onclick="geneReview=null;closeQuickModal();">'+(isEn?'Close':'Fermer')+'</button>';
+}
+function renderGeneReview(){
+  const isEn = currentLang==='en';
+  const g = geneReview;
+  const all = savedSnakes.filter(s=>{ ensureSnakeMeta(s); return !s.genesVerified && s.status!=='deceased'; });
+  const list = geneReviewList();
+  const sel = (k, opts)=>'<select onchange="geneReviewSet(\''+k+'\', this.value)" style="flex:1;min-width:120px;font-size:16px;padding:7px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+opts.map(o=>'<option value="'+o[0]+'"'+(g[k]===o[0]?' selected':'')+'>'+escapeHtml(o[1])+'</option>').join('')+'</select>';
+  const speciesIn = [...new Set(all.map(s=>s.species||'ball_python'))];
+  const fileGenes = s=>{ const m = String(s.notes||'').match(/(?:Génétique dans le fichier|Genetics in the file) : ([^\n]+)/); return m ? m[1] : ''; };
+  let body = '<p style="font-size:14px;line-height:1.45;margin:4px 0 8px;">'+(isEn
+      ? '<b>'+all.length+'</b> animal(s) have genetics marked « To verify » (imported or born from a cross). Scroll, fix the ones that need it with ✏️, then verify them all at once. Check « keep » on those you\'re not sure about yet.'
+      : '<b>'+all.length+'</b> animal(s) ont une génétique « À vérifier » (importée ou issue d\'un croisement). Fais défiler, corrige ceux qui en ont besoin avec ✏️, puis vérifie-les tous d\'un coup. Coche « garder » ceux dont tu n\'es pas encore sûr.')+'</p>'+
+    '<input type="search" value="'+escapeHtml(g.q)+'" placeholder="🔎 '+(isEn?'Search name, ID, gene…':'Rechercher nom, ID, gène…')+'" oninput="geneReview.q=this.value; clearTimeout(window.__grT); window.__grT=setTimeout(renderGeneReview, 350);" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:6px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">'+
+      sel('sort', SORT_CHOICES.filter(c=>c[0]!=='unverified').map(c=>[c[0], (isEn?'Sort: ':'Trier : ')+c[1][isEn?1:0]]))+
+      sel('sex', [['all',isEn?'All sexes':'Tous les sexes'],['female',isEn?'Females':'Femelles'],['male',isEn?'Males':'Mâles'],['unknown',isEn?'Unknown sex':'Sexe inconnu']])+
+      sel('age', [['all',isEn?'All ages':'Tous les âges'],['baby',placeGroupLabel('baby',isEn)],['juvenile',placeGroupLabel('juvenile',isEn)],['adult',placeGroupLabel('adult',isEn)],['unknown',placeGroupLabel('unknown',isEn)]])+
+      (speciesIn.length>1 ? sel('species', [['all',isEn?'All species':'Toutes les espèces']].concat(speciesIn.map(sp=>[sp, speciesDisplayLabel(sp, isEn)]))) : '')+
+    '</div>'+
+    '<div style="font-size:13px;color:var(--ink-dim);margin-bottom:4px;">'+list.length+(isEn?' shown':' affiché(s)')+(list.length!==all.length?(isEn?' of ':' sur ')+all.length:'')+'</div>'+
+    '<div style="max-height:52vh;overflow-y:auto;border:1px solid var(--line);border-radius:10px;padding:2px 8px;">'+
+    (list.length ? list.map(s=>{
+      const fg = fileGenes(s);
+      return '<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line);">'+
+        '<label style="display:flex;flex-direction:column;align-items:center;font-size:10.5px;color:var(--ink-dim);min-width:46px;"><input type="checkbox" style="width:22px;height:22px;"'+(g.keep.has(s.id)?' checked':'')+' onchange="geneReviewToggleKeep(\''+s.id+'\', this.checked)"/>'+(isEn?'keep':'garder')+'</label>'+
+        '<div style="flex:1;min-width:0;"><div style="font-size:14.5px;"><b>'+escapeHtml(snakeName(s))+'</b>'+(s.name && s.animalId ? ' <span style="font-size:12px;color:var(--ink-dim);">'+escapeHtml(s.animalId)+'</span>' : '')+' <span style="color:var(--ink-dim);font-size:12.5px;">'+(s.sex==='male'?'♂':s.sex==='female'?'♀':'?')+' · '+escapeHtml(speciesDisplayLabel(s.species, isEn))+(s.birthDate?' · '+escapeHtml(s.birthDate):'')+'</span></div>'+
+          '<div style="font-size:14px;color:var(--sage);">'+(Object.keys(s.genes||{}).length ? escapeHtml(summarizeGenes(s.genes)) : (isEn?'Normal / no gene':'Normal / aucun gène'))+'</div>'+
+          (fg ? '<div style="font-size:12.5px;color:var(--gold);">'+(isEn?'In the file: ':'Dans le fichier : ')+escapeHtml(fg)+'</div>' : '')+'</div>'+
+        '<div style="display:flex;flex-direction:column;gap:4px;"><button type="button" class="sc-btn" title="'+(isEn?'Edit':'Modifier')+'" onclick="closeQuickModal(); openLogbook(\''+s.id+'\');">✏️</button>'+
+        '<button type="button" class="sc-btn accent" title="'+(isEn?'Verified':'Vérifiée')+'" onclick="geneReviewVerifyOne(\''+s.id+'\')">✓</button></div></div>';
+    }).join('') : '<div style="padding:14px 0;font-size:14px;color:var(--ink-dim);">'+(all.length ? (isEn?'No animal matches these filters.':'Aucun animal ne correspond à ces filtres.') : (isEn?'Everything is verified. 🎉':'Tout est vérifié. 🎉'))+'</div>')+
+    '</div><div id="gene-review-buttons" style="margin-top:10px;"></div>';
+  showQuickModal('🧬 '+(isEn?'Genetics to verify':'Génétique à vérifier'), body);
+  renderGeneReviewButtons();
+}
+function geneReviewVerifyOne(id){
+  const s = savedSnakes.find(x=>x.id===id); if(!s) return;
+  s.genesVerified = true; s.updatedAt = Date.now();
+  storage.save(savedSnakes); renderSavedList(); renderGeneReview();
+}
+function geneReviewApply(exceptChecked){
+  const isEn = currentLang==='en';
+  const list = geneReviewList().filter(s=>!(exceptChecked && geneReview.keep.has(s.id)));
+  if(!list.length) return;
+  const ids = list.map(s=>s.id);
+  list.forEach(s=>{ s.genesVerified = true; s.updatedAt = Date.now(); });
+  storage.save(savedSnakes); renderSavedList();
+  window.__geneReviewUndo = ids;
+  renderGeneReview();
+  showToast('🧬 '+list.length+(isEn?' genetics marked verified.':' génétique(s) marquée(s) vérifiée(s).'), 'success', 'geneReviewUndo()');
+}
+function geneReviewUndo(){
+  const ids = window.__geneReviewUndo || []; window.__geneReviewUndo = null;
+  ids.forEach(id=>{ const s = savedSnakes.find(x=>x.id===id); if(s){ s.genesVerified = false; s.updatedAt = Date.now(); } });
+  storage.save(savedSnakes); renderSavedList(); if(geneReview) renderGeneReview();
+}
 function renderSavedList(){
   const isEn = currentLang==='en';
   savedSnakes.forEach(ensureSnakeMeta);
@@ -9668,6 +10043,7 @@ function renderSavedList(){
   if(mineSexFilter!=='all') visible = visible.filter(s=> mineSexFilter==='unknown' ? !s.sex : s.sex===mineSexFilter);
   if(mineVerifiedFilter!=='all') visible = visible.filter(s=> mineVerifiedFilter==='unverified' ? !s.genesVerified : s.genesVerified);
   if(mineTagFilter!=='all') visible = visible.filter(s=> (s.customTags||[]).includes(mineTagFilter));
+  visible = visible.filter(mineAdvMatch); // v4.49
   visible = sortSnakes(visible, mineSortBy);
   // Remplit le filtre par étiquette avec l'union de toutes les étiquettes actuellement en usage
   // (liste ouverte, pas prédéfinie — reflète ce que l'éleveur a réellement tapé).
@@ -9681,6 +10057,7 @@ function renderSavedList(){
     mineTagFilter = tagFilterEl.value;
   }
   renderSavedMineFilterOptions();
+  try{ renderMineAdvFilters(); }catch(e){}
   if(savedSnakes.length===0){
     grid.innerHTML = '<div class="empty">'+t('mineEmptyState')+'</div>';
     return;
@@ -9690,7 +10067,19 @@ function renderSavedList(){
     return;
   }
   grid.innerHTML = '';
-  visible.forEach(s=>{
+  // v4.48 — génétique à vérifier : un bandeau ouvre la revue en lot
+  const toVerify = savedSnakes.filter(s=>!s.genesVerified && s.status!=='deceased').length;
+  if(toVerify){
+    const ban = document.createElement('div');
+    ban.style.cssText = 'grid-column:1 / -1;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 12px;border:1px dashed var(--gold);border-radius:10px;';
+    ban.innerHTML = '<span style="flex:1;min-width:160px;font-size:14px;color:var(--ink);">🧬 '+toVerify+(isEn?' genetics to verify.':' génétique(s) à vérifier.')+'</span><button type="button" class="sc-btn accent" onclick="openGeneReview()">'+(isEn?'Review them':'Les vérifier')+'</button>';
+    grid.appendChild(ban);
+  }
+  // v4.50 — pages de 20/40/60/80/100 ou tout (choix gardé pour toutes les listes)
+  window.__mineVisibleIds = visible.map(s=>s.id);
+  const minePg = pagerSlice('mine', visible, renderSavedList, JSON.stringify([mineSearchTerm, mineStatusFilter, mineSexFilter, mineVerifiedFilter, mineTagFilter, mineSortBy, mineAdv]));
+  if(minePg.top) grid.insertAdjacentHTML('beforeend', minePg.top);
+  minePg.items.forEach(s=>{
     ensureSnakeMeta(s);
     const card = document.createElement('div');
     card.className = 'saved-card';
@@ -9733,6 +10122,7 @@ function renderSavedList(){
       '</div>';
     grid.appendChild(card);
   });
+  if(minePg.bottom) grid.insertAdjacentHTML('beforeend', minePg.bottom);
   grid.querySelectorAll('.sc-btn:not([disabled])').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const act = btn.dataset.act, id = btn.dataset.id;
@@ -11135,6 +11525,92 @@ function escapeHtml(str){
 // Mini-carte animale réutilisable (30 août) — utilisée dans toute liste où chaque ligne représente
 // UN reptile précis (proie non renseignée, à vendre, mue/pesée à faire...). subline peut contenir
 // du HTML déjà échappé ; name est échappé ici pour éviter de le faire à chaque appel.
+
+// ==================== v4.50 — pages de 20/40/60/80/100 (ou tout) partout, groupes de l'Agenda masquables ====================
+// Choix d'affichage personnel → localStorage (repli en mémoire si bloqué), comme les filtres sauvegardés.
+var LIST_PAGE_SIZE_KEY = 'locus_list_page_size_v1';
+var LIST_PAGE_SIZES = [20,40,60,80,100,0]; // 0 = tout afficher
+var __listPageSizeMem = null;
+var __pagerPage = {}, __pagerSig = {}, __pagerRender = {};
+function listPageSize(){
+  if(__listPageSizeMem!=null) return __listPageSizeMem;
+  try{ const v = parseInt(localStorage.getItem(LIST_PAGE_SIZE_KEY), 10); if(LIST_PAGE_SIZES.includes(v)) return v; }catch(e){}
+  return 20;
+}
+function setListPageSize(v){
+  v = parseInt(v, 10); if(!LIST_PAGE_SIZES.includes(v)) return;
+  __listPageSizeMem = v;
+  try{ localStorage.setItem(LIST_PAGE_SIZE_KEY, String(v)); }catch(e){}
+  __pagerPage = {};
+  rerenderPagedLists();
+}
+function rerenderPagedLists(){
+  const done = new Set();
+  Object.keys(__pagerRender).forEach(k=>{ const fn = __pagerRender[k]; if(fn && !done.has(fn)){ done.add(fn); try{ fn(); }catch(e){} } });
+}
+function pagerSizeSelectHtml(){
+  const isEn = currentLang==='en', cur = listPageSize();
+  return '<select class="egg-select" style="font-size:15px;" onchange="setListPageSize(this.value)" aria-label="'+(isEn?'Items per page':'Éléments par page')+'">'+
+    LIST_PAGE_SIZES.map(v=>'<option value="'+v+'"'+(v===cur?' selected':'')+'>'+(v ? (isEn?'Show '+v:'Afficher '+v) : (isEn?'Show all':'Tout afficher'))+'</option>').join('')+'</select>';
+}
+// Coupe une liste en pages. Retourne { items, top, bottom } — top/bottom : barres à insérer avant/après.
+function pagerSlice(key, list, rerender, sig){
+  const isEn = currentLang==='en';
+  if(rerender) __pagerRender[key] = rerender;
+  if(sig!==undefined){ if(__pagerSig[key]!==sig) __pagerPage[key] = 0; __pagerSig[key] = sig; }
+  const n = list.length, size = listPageSize();
+  const wrap = (inner, extra)=>'<div class="list-pager" data-pager="'+key+'"'+(extra||'')+' style="grid-column:1 / -1;display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:6px 0;">'+inner+'</div>';
+  if(n<=20) return { items:list, top:'', bottom:'' };
+  if(!size || n<=size){ __pagerPage[key] = 0; return { items:list, top:'', bottom:wrap('<span style="flex:1;font-size:14px;color:var(--ink-dim);">'+n+(isEn?' shown':' affiché(s)')+'</span>'+pagerSizeSelectHtml()) }; }
+  const pages = Math.ceil(n/size);
+  let pg = Math.min(Math.max(__pagerPage[key]||0, 0), pages-1);
+  __pagerPage[key] = pg;
+  const from = pg*size, to = Math.min(n, from+size);
+  const info = (isEn?'Page ':'Page ')+(pg+1)+'/'+pages+' — '+(from+1)+'–'+to+(isEn?' of ':' sur ')+n;
+  const prev = '<button type="button" class="sc-btn" style="font-size:15px;padding:8px 12px;"'+(pg>0?'':' disabled')+' onclick="pagerGo(\''+key+'\', -1)">◀ '+(isEn?'Previous':'Précédents')+'</button>';
+  const next = '<button type="button" class="sc-btn accent" style="font-size:15px;padding:8px 12px;"'+(pg<pages-1?'':' disabled')+' onclick="pagerGo(\''+key+'\', 1)">'+(isEn?'Next '+Math.min(size, n-to):(Math.min(size, n-to)+' suivants'))+' ▶</button>';
+  return {
+    items: list.slice(from, to),
+    top: wrap('<span style="font-size:14px;color:var(--ink-dim);">'+info+'</span>', ' data-pager-top="1"'),
+    bottom: wrap(prev+'<span style="flex:1;text-align:center;font-size:14px;color:var(--ink-dim);min-width:110px;">'+info+'</span>'+(pg<pages-1?next:'')+pagerSizeSelectHtml())
+  };
+}
+function pagerGo(key, delta){
+  __pagerPage[key] = (__pagerPage[key]||0) + delta;
+  const fn = __pagerRender[key]; if(fn) fn();
+  const top = document.querySelector('[data-pager="'+key+'"][data-pager-top]');
+  if(top){ try{ top.scrollIntoView({ block:'start', behavior:'smooth' }); }catch(e){ top.scrollIntoView(); } }
+}
+// Agenda : chaque groupe peut être masqué (« Afficher les 87 ») — choix retenu sur l'appareil.
+var AGENDA_COLLAPSE_KEY = 'locus_agenda_collapsed_v1';
+var __agendaCollapsedMem = null;
+function agendaCollapsedState(){
+  if(__agendaCollapsedMem) return __agendaCollapsedMem;
+  try{ __agendaCollapsedMem = JSON.parse(localStorage.getItem(AGENDA_COLLAPSE_KEY)||'{}') || {}; }catch(e){ __agendaCollapsedMem = {}; }
+  return __agendaCollapsedMem;
+}
+function toggleAgendaGroup(key){
+  const st = agendaCollapsedState();
+  const el = document.querySelector('[data-agenda-group="'+key+'"]');
+  st[key] = !(el && el.dataset.collapsed==='1');
+  // les groupes de repas sont datés : on oublie ceux des jours passés
+  const today = localTodayStr();
+  Object.keys(st).forEach(k=>{ if(k.indexOf('feed_')===0 && k.slice(5) < addDays(today,-30)) delete st[k]; });
+  try{ localStorage.setItem(AGENDA_COLLAPSE_KEY, JSON.stringify(st)); }catch(e){}
+  try{ renderDashboard(); }catch(e){}
+}
+function agendaGroupHtml(key, label, list, wrapClass, itemFn){
+  const isEn = currentLang==='en';
+  const n = (list||[]).length; if(!n) return '';
+  const st = agendaCollapsedState(), size = listPageSize();
+  const collapsed = Object.prototype.hasOwnProperty.call(st, key) ? !!st[key] : !!(size && n>size);
+  const head = '<div class="feed-day-label" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="flex:1;min-width:150px;">'+label+' — '+n+'</span>'+
+    '<button type="button" class="sc-btn'+(collapsed?' accent':'')+'" style="font-size:14px;padding:7px 12px;" onclick="toggleAgendaGroup(\''+key+'\')">'+
+      (collapsed ? (isEn?'Show the '+n+' ▾':'Afficher les '+n+' ▾') : (isEn?'Hide ▴':'Masquer ▴'))+'</button></div>';
+  if(collapsed) return '<div class="feed-day-group" data-agenda-group="'+key+'" data-collapsed="1">'+head+'</div>';
+  const pg = pagerSlice('ag_'+key, list, renderDashboard);
+  return '<div class="feed-day-group" data-agenda-group="'+key+'" data-collapsed="0">'+head+pg.top+'<div class="'+wrapClass+'">'+pg.items.map(itemFn).join('')+'</div>'+pg.bottom+'</div>';
+}
 function miniAnimalCardHtml(name, sublineHtml, actionHtml){
   return '<div class="mini-animal-card"><div class="mac-name">'+escapeHtml(name)+'</div>'+
     (sublineHtml ? '<div class="mac-sub">'+sublineHtml+'</div>' : '')+
@@ -13425,7 +13901,7 @@ function saveElevage(){
   trackLocalChanges('expenses', expenses);
   trackLocalChanges('customers', customers);
   try{
-    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, feederStockLive, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, feederPrices, rodentPriorityBins, rodentRacks, rodentGoal, dreamSnakes, seasonPlans }));
+    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, feederStockLive, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, feederPrices, rodentPriorityBins, rodentRacks, rodentGoal, dreamSnakes, seasonPlans, snakeGroups }));
     storageWriteFailed = false;
   }catch(e){
     console.warn('LOCUS: écriture élevage impossible', e);
@@ -13476,6 +13952,8 @@ var rodentGoal = elevageData.rodentGoal || { unit:'females', target:null, mode:'
 // calculateur existant), plus sireId/damId qui peuvent pointer vers un vrai reptile OU un autre
 // bébé rêve — c'est ça qui permet d'enchaîner les générations hypothétiques.
 var dreamSnakes = elevageData.dreamSnakes || [];
+// v4.49 — groupes faits à la main ({id, name, ids:[], updatedAt, deleted}) — synchronisés via app_state.snake_groups
+var snakeGroups = Array.isArray(elevageData.snakeGroups) ? elevageData.snakeGroups : [];
 // ==================== Plan de saison (v3.40 — Première ponte + Illimité) ====================
 // Demandé par Alex : préparer ses pairings d'avance (Kara ~24 oct, Angela début nov) avec rappels
 // dans l'Agenda. Un plan = 1 mâle + ses femelles prévues + un rythme (nuits ensemble / jours de
@@ -14444,7 +14922,7 @@ async function pushAllUserData(forceAll){
         else markPushed('customers', [[cu.id, custSig]]);
       }
     }
-    var stRes = await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock, feeder_stock_live: feederStockLive, todos, genetic_ambiguities: geneticAmbiguities, rodent_bins: rodentBins, rodent_expenses: rodentExpenses, rodent_value_per_unit: rodentValuePerUnit, feeder_prices: feederPrices, rodent_priority_bins: rodentPriorityBins, rodent_racks: rodentRacks, rodent_goal: rodentGoal, dream_snakes: dreamSnakes, season_plans: seasonPlans });
+    var stRes = await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock, feeder_stock_live: feederStockLive, todos, genetic_ambiguities: geneticAmbiguities, rodent_bins: rodentBins, rodent_expenses: rodentExpenses, rodent_value_per_unit: rodentValuePerUnit, feeder_prices: feederPrices, rodent_priority_bins: rodentPriorityBins, rodent_racks: rodentRacks, rodent_goal: rodentGoal, dream_snakes: dreamSnakes, season_plans: seasonPlans, snake_groups: snakeGroups });
     if(stRes && stRes.error){ allOk = false; console.warn('LOCUS: envoi échoué (app_state)', stRes.error); }
     else saveAppStatePushedAt(Date.now());
     var profile = loadProfile();
@@ -14570,6 +15048,7 @@ async function pullAllUserData(){
     if(stateRes.data && stateRes.data.rodent_goal && remoteAppStateWins) rodentGoal = stateRes.data.rodent_goal;
     if(stateRes.data && stateRes.data.dream_snakes && remoteAppStateWins) dreamSnakes = stateRes.data.dream_snakes;
     if(stateRes.data && stateRes.data.season_plans) seasonPlans = mergeById(seasonPlans, stateRes.data.season_plans);
+    if(stateRes.data && Array.isArray(stateRes.data.snake_groups)) snakeGroups = mergeById(snakeGroups, stateRes.data.snake_groups); // v4.49
     if(stateRes.data && stateRes.data.feeder_stock && remoteAppStateWins) feederStock = stateRes.data.feeder_stock;
     if(stateRes.data && stateRes.data.feeder_stock_live && remoteAppStateWins) feederStockLive = stateRes.data.feeder_stock_live;
     if(stateRes.data && stateRes.data.dismissed_banners){
@@ -16608,7 +17087,7 @@ function confirmGenericCsvImport(){
   renderSavedList();
   try{ renderRackGrid(); renderTerrariumList(); }catch(e){}
   closeQuickModal();
-  showToast('📋 '+added+' '+(isEn?'reptile(s) imported.':'reptile(s) importé(s).')+(placedN ? ' 📍 '+placedN+(isEn?' placed.':' placé(s).') : '')+(stillUnplaced ? (isEn?' '+stillUnplaced+' to place: Racks & Terrariums → 📦 Auto-place.':' '+stillUnplaced+' à classer : Racks & Terrariums → 📦 Ranger automatiquement.') : ''), 'success');
+  showToast('📋 '+added+' '+(isEn?'reptile(s) imported.':'reptile(s) importé(s).')+(placedN ? ' 📍 '+placedN+(isEn?' placed.':' placé(s).') : '')+(stillUnplaced ? (isEn?' '+stillUnplaced+' to place: Racks & Terrariums → 🧭 Placement help.':' '+stillUnplaced+' à classer : Racks & Terrariums → 📦 Aide au rangement.') : ''), 'success');
   if(pendingLogAfterAnimals){ const lg = pendingLogAfterAnimals; pendingLogAfterAnimals = null; setTimeout(()=>logImportFromRows(lg), 400); } // v4.19 — l'historique du même fichier, maintenant que les animaux existent
 }
 
@@ -17915,11 +18394,11 @@ function renderFoodView(){
   missingWrap.className = withoutPrey.length ? 'mini-animal-grid' : '';
   missingWrap.innerHTML = withoutPrey.length===0
     ? '<div class="empty">✅ '+(isEn?'All reptiles with a meal due have their prey filled in.':'Tous les reptiles avec un repas prévu ont leur proie renseignée.')+'</div>'
-    : withoutPrey.map(s=>miniAnimalCardHtml(
-        s.name,
+    : (function(){ const pg = pagerSlice('preymissing', withoutPrey, renderFoodView); return pg.top+pg.items.map(s=>miniAnimalCardHtml( // v4.50
+        snakeName(s),
         (isEn?'Meal due ':'Repas prévu le ')+nextFeedingDate(s),
         '<button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">'+t('fillPreyBtn')+'</button>'
-      )).join('');
+      )).join('')+pg.bottom; })();
 
   renderFeederStockList();
   renderFeederStockSpeciesOptions();
@@ -20488,7 +20967,7 @@ function renderMaintBar(){
   const unplacedN = savedSnakes.filter(s=>snakeIsUnplaced(s) && snakeIsActiveForPlacement(s)).length;
   if(unplacedN && maintMode!=='move') html += '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;padding:8px 10px;border:1px dashed var(--gold);border-radius:10px;">'+
     '<span style="font-size:14px;color:var(--ink);flex:1;min-width:160px;">📦 '+unplacedN+(isEn?' animal(s) to place.':' animal(s) à classer.')+'</span>'+
-    '<button type="button" class="sc-btn accent" onclick="openAutoPlaceModal()">'+(isEn?'Auto-place…':'Ranger automatiquement…')+'</button>'+
+    '<button type="button" class="sc-btn accent" onclick="openAutoPlaceModal()">🧭 '+(isEn?'Placement help…':'Aide au rangement…')+'</button>'+
     '<button type="button" class="sc-btn" onclick="setMaintMode(\'move\')">🔀 '+(isEn?'One by one':'Un par un')+'</button></div>';
   if(maintMode){
     const today = localTodayStr();
@@ -20648,26 +21127,47 @@ function movePanelHtml(isEn){
       (unplaced.length>60 ? '<span class="tour-count" style="flex:0 0 auto;">+'+(unplaced.length-60)+'</span>' : '')+
     '</div>';
   }
-  h += '<button type="button" class="sc-btn accent" onclick="openAutoPlaceModal()">📦 '+(isEn?'Auto-place…':'Ranger automatiquement…')+'</button>';
+  h += '<button type="button" class="sc-btn accent" onclick="openAutoPlaceModal()">🧭 '+(isEn?'Placement help…':'Aide au rangement…')+'</button>';
   if(placeUndo) h += '<button type="button" class="sc-btn" onclick="undoPlacement()">↩ '+(isEn?'Undo last':'Annuler le dernier')+'</button>';
   return h;
 }
-// ---------- Rangement automatique ----------
+// ---------- Aide au rangement (v4.45, refaite en étapes guidées v4.48) ----------
 var autoPlace = null;
 function openAutoPlaceModal(){
   const isEn = currentLang==='en';
   const unplaced = savedSnakes.filter(s=>snakeIsUnplaced(s) && snakeIsActiveForPlacement(s));
   if(!unplaced.length){ showToast(isEn?'No animal to place — everyone already has a spot.':'Aucun animal à classer — tout le monde a déjà sa place.', 'info'); return; }
-  autoPlace = { where:null, map:{}, sort:'id', newRacks:{ count:1, rows:4, tubs:8, prefix:'Rack', perGroup:false } };
+  autoPlace = { step:0, where:null, groupBy:'age', map:{}, sort:'id', newRacks:{ count:1, rows:4, tubs:8, prefix:'Rack', perGroup:false } };
   renderAutoPlaceModal();
 }
+var PLACE_GROUP_BY = {
+  age: { fr:'Par âge (bébés, juvéniles, adultes)', en:'By age (babies, juveniles, adults)', of: s=>placeAgeGroup(s), keys:['baby','juvenile','adult','unknown'] },
+  sex: { fr:'Par sexe (femelles, mâles, inconnus)', en:'By sex (females, males, unknown)', of: s=>s.sex==='female'?'female':s.sex==='male'?'male':'sexunknown', keys:['female','male','sexunknown'] },
+  species: { fr:'Par espèce', en:'By species', of: s=>'sp:'+(s.species||'ball_python'), keys:null },
+  status: { fr:'Par statut (gardés, à vendre, réservés)', en:'By status (kept, for sale, reserved)', of: s=>'st:'+(s.status||'kept'), keys:['st:kept','st:forsale','st:reserved'] },
+  none: { fr:'Tous ensemble (sans groupe)', en:'All together (no groups)', of: ()=>'all', keys:['all'] }
+};
+function placeGroupName(k, isEn){
+  if(['baby','juvenile','adult','unknown'].includes(k)) return placeGroupLabel(k, isEn);
+  if(k==='female') return isEn?'♀ Females':'♀ Femelles';
+  if(k==='male') return isEn?'♂ Males':'♂ Mâles';
+  if(k==='sexunknown') return isEn?'? Unknown sex':'? Sexe inconnu';
+  if(k==='all') return isEn?'All the animals':'Tous les animaux';
+  if(k.indexOf('sp:')===0) return speciesDisplayLabel(k.slice(3), isEn);
+  if(k.indexOf('st:')===0) return ({ kept:['Gardés','Kept'], forsale:['À vendre','For sale'], reserved:['Réservés','Reserved'] })[k.slice(3)] ? ({ kept:['Gardés','Kept'], forsale:['À vendre','For sale'], reserved:['Réservés','Reserved'] })[k.slice(3)][isEn?1:0] : k.slice(3);
+  return k;
+}
 function autoPlaceGroups(){
-  const g = { baby:[], juvenile:[], adult:[], unknown:[] };
-  savedSnakes.filter(s=>snakeIsUnplaced(s) && snakeIsActiveForPlacement(s)).forEach(s=>g[placeAgeGroup(s)].push(s));
+  const gb = PLACE_GROUP_BY[autoPlace.groupBy] || PLACE_GROUP_BY.age;
+  const g = {};
+  (gb.keys||[]).forEach(k=>{ g[k] = []; });
+  savedSnakes.filter(s=>snakeIsUnplaced(s) && snakeIsActiveForPlacement(s)).forEach(s=>{ const k = gb.of(s); (g[k] = g[k]||[]).push(s); });
   return g;
 }
+function autoPlaceGroupKeys(groups){ return Object.keys(groups).filter(k=>groups[k].length); }
 function autoPlaceSorted(list){
   const by = autoPlace.sort;
+  if(by==='weight' || by==='sex') return sortSnakes(list, by==='weight' ? 'weight_light' : 'sex');
   const key = s=> by==='name' ? normalizeHeaderKey(snakeName(s)) : by==='birth' ? String(s.birthDate||'9999') : String(s.animalId||snakeName(s)).toUpperCase();
   return list.slice().sort((a,b)=>key(a).localeCompare(key(b), undefined, { numeric:true }));
 }
@@ -20677,88 +21177,115 @@ function autoPlaceDestOptions(isEn){
   if(autoPlace.where!=='rack') opts.push({ v:'terra', l:(isEn?'Empty terrariums':'Terrariums vides')+' ('+freeTerrariums().length+')' });
   return opts;
 }
-// Plan : qui va où, sans rien modifier (sert à l'aperçu ET à la confirmation)
 function autoPlacePlan(){
   const groups = autoPlaceGroups();
   const free = {}; racks.forEach(r=>{ free[r.id] = rackFreeTubs(r); });
   let terraFree = freeTerrariums().slice();
   const moves = [], left = [], perDest = {};
-  PLACE_GROUPS.forEach(g=>{
+  autoPlaceGroupKeys(groups).forEach(g=>{
     const dest = autoPlace.map[g] || '';
     autoPlaceSorted(groups[g]).forEach(s=>{
-      if(!dest){ return; }
-      perDest[dest] = perDest[dest] || { need:0, placed:0 };
+      if(!dest) return;
+      perDest[dest] = perDest[dest] || { need:0, placed:0, sample:[] };
       perDest[dest].need++;
-      if(dest.indexOf('rack|')===0){
-        const id = dest.slice(5), spot = (free[id]||[]).shift();
-        if(spot){ moves.push({ s, placement:{ mode:'rack', rackId:id, row:spot.row, tub:spot.tub } }); perDest[dest].placed++; }
-        else left.push(s);
-      } else if(dest==='terra'){
-        const te = terraFree.shift();
-        if(te){ moves.push({ s, placement:{ mode:'terrarium', terrariumId:te.id } }); perDest[dest].placed++; }
-        else left.push(s);
-      }
+      let pl = null;
+      if(dest.indexOf('rack|')===0){ const id = dest.slice(5), spot = (free[id]||[]).shift(); if(spot) pl = { mode:'rack', rackId:id, row:spot.row, tub:spot.tub }; }
+      else if(dest==='terra'){ const te = terraFree.shift(); if(te) pl = { mode:'terrarium', terrariumId:te.id }; }
+      if(pl){ moves.push({ s, placement:pl }); perDest[dest].placed++; if(perDest[dest].sample.length<4) perDest[dest].sample.push(snakeName(s)+' → '+(pl.mode==='rack' ? ((getRack(pl.rackId)||{}).name+'-R'+pl.row+'-B'+pl.tub) : (getTerrarium(pl.terrariumId)||{}).name)); }
+      else left.push(s);
     });
   });
   return { groups, moves, left, perDest };
 }
+function autoPlaceDefaultMap(){
+  const g = autoPlaceGroups(), keys = autoPlaceGroupKeys(g); autoPlace.map = {};
+  const rk = autoPlace.where==='terra' ? [] : racks.filter(r=>rackFreeTubs(r).length);
+  const words = { baby:['bebe','baby','babies','nouveau','hatch'], juvenile:['juv','sub'], adult:['adult','reprod','breeder'], female:['femel','female','fem'], male:['male','mal'] };
+  keys.forEach((k, i)=>{
+    if(k==='unknown' || k==='sexunknown'){ autoPlace.map[k] = ''; return; } // v4.48 — âge/sexe inconnu : laissé à classer par défaut (l'éleveur choisit)
+    const byName = words[k] ? rk.find(r=>words[k].some(w=>normalizeHeaderKey(r.name).includes(w))) : null;
+    const r = byName || rk[Math.min(i, rk.length-1)];
+    autoPlace.map[k] = r ? 'rack|'+r.id : (autoPlace.where!=='rack' ? 'terra' : '');
+  });
+}
+function autoPlaceGo(step){ autoPlace.step = step; if(step===3) autoPlaceDefaultMapIfEmpty(); renderAutoPlaceModal(); }
+function autoPlaceDefaultMapIfEmpty(){ const keys = autoPlaceGroupKeys(autoPlaceGroups()); if(!keys.some(k=>autoPlace.map[k]!==undefined)) autoPlaceDefaultMap(); }
 function renderAutoPlaceModal(){
   const isEn = currentLang==='en';
   const ap = autoPlace;
-  const btn = (on, onclick, label)=>'<button type="button" class="tour-action-btn" onclick="'+onclick+'" style="padding:9px 12px;'+(on?'background:var(--gold);color:#1a1409;border-color:var(--gold);font-weight:bold;':'')+'">'+label+'</button>';
-  const sect = (title, inner)=>'<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0;"><div style="font-size:15px;font-weight:600;color:var(--gold);margin-bottom:8px;">'+title+'</div>'+inner+'</div>';
+  const btn = (on, onclick, label)=>'<button type="button" class="tour-action-btn" onclick="'+onclick+'" style="padding:10px 12px;text-align:left;'+(on?'background:var(--gold);color:#1a1409;border-color:var(--gold);font-weight:bold;':'')+'">'+(on?'✓ ':'')+label+'</button>';
   const groups = autoPlaceGroups();
-  const total = PLACE_GROUPS.reduce((a,g)=>a+groups[g].length, 0);
-  let body = '<p style="font-size:14px;margin:4px 0 8px;">'+total+(isEn?' animal(s) to place.':' animal(s) à classer.')+'</p>';
-  body += sect(isEn?'1. Where?':'1. Où les ranger ?', '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+
-    btn(ap.where==='rack', "autoPlaceSet('where','rack')", '🗄 Racks')+btn(ap.where==='terra', "autoPlaceSet('where','terra')", '🏠 Terrariums')+btn(ap.where==='both', "autoPlaceSet('where','both')", isEn?'Both':'Les deux')+'</div>');
-  if(!ap.where){ showQuickModal('📦 '+(isEn?'Auto-place':'Rangement automatique'), body); return; }
-  if(ap.where!=='terra'){
+  const total = Object.values(groups).reduce((a,l)=>a+l.length, 0);
+  const steps = isEn ? ['Where','Racks','Groups & order','Who goes where','Preview'] : ['Où','Racks','Groupes et ordre','Qui va où','Aperçu'];
+  const head = ap.step ? '<div style="font-size:12.5px;color:var(--ink-dim);margin-bottom:8px;">'+(isEn?'Step ':'Étape ')+ap.step+(isEn?' of ':' sur ')+'5 — <b style="color:var(--gold);">'+steps[ap.step-1]+'</b></div>' : '';
+  const nav = (back, next, nextOk, nextLabel)=>'<div style="display:flex;gap:8px;margin-top:12px;">'+
+    (back!=null ? '<button type="button" class="sc-btn" style="flex:1;padding:11px;" onclick="autoPlaceGo('+back+')">◀ '+(isEn?'Back':'Retour')+'</button>' : '')+
+    (next!=null ? '<button type="button" class="save-btn" style="flex:2;padding:11px;font-size:16px;" '+(nextOk?'':'disabled')+' onclick="autoPlaceGo('+next+')">'+(nextLabel||((isEn?'Next':'Suivant')+' ▶'))+'</button>' : '')+'</div>';
+  const tip = txt=>'<div style="font-size:13.5px;line-height:1.45;color:var(--ink);background:rgba(124,131,99,.12);border-radius:8px;padding:8px 10px;margin:6px 0;">💡 '+txt+'</div>';
+  let body = head;
+  if(ap.step===0){
+    body += '<p style="font-size:15px;line-height:1.5;margin:4px 0 8px;">'+(isEn
+      ? '<b>'+total+'</b> animal(s) don\'t have a tub or terrarium yet. This helper <b>suggests</b> a spot for each one, in 5 short steps:'
+      : '<b>'+total+'</b> animal(s) n\'ont pas encore de bac ni de terrarium. Cette aide te <b>propose</b> une place pour chacun, en 5 petites étapes :')+'</p>'+
+      '<ol style="font-size:14.5px;line-height:1.6;margin:0 0 8px 20px;padding:0;">'+(isEn
+      ? '<li>Choose where: racks, terrariums or both.</li><li>Check your racks, or create them (how many, rows, tubs).</li><li>Choose how to group them (by age, sex, species…) and in what order.</li><li>Say which group goes in which rack.</li><li>Look at the preview: who goes in which tub.</li>'
+      : '<li>Tu choisis où : racks, terrariums ou les deux.</li><li>Tu vérifies tes racks, ou tu les crées (combien, rangées, bacs).</li><li>Tu choisis comment les regrouper (par âge, sexe, espèce…) et dans quel ordre.</li><li>Tu dis quel groupe va dans quel rack.</li><li>Tu regardes l\'aperçu : qui va dans quel bac.</li>')+'</ol>'+
+      tip(isEn?'<b>Nothing is changed before you confirm</b> at the end, and an Undo button lets you go back right after. You can always move an animal later with « Place / move » (2 taps).':'<b>Rien n\'est changé avant que tu confirmes</b> à la fin, et un bouton Annuler permet de revenir en arrière juste après. Tu pourras toujours déplacer un animal ensuite avec « Placer / déplacer » (2 touchers).')+
+      nav(null, 1, true, isEn?'Start ▶':'Commencer ▶');
+  } else if(ap.step===1){
+    body += '<p style="font-size:14.5px;margin:4px 0 8px;">'+(isEn?'Where do you want to put them?':'Où veux-tu les mettre ?')+'</p><div style="display:flex;flex-direction:column;gap:8px;">'+
+      btn(ap.where==='rack', "autoPlace.where='rack';autoPlace.map={};renderAutoPlaceModal()", '🗄 '+(isEn?'In racks (tubs)':'Dans des racks (bacs)'))+
+      btn(ap.where==='terra', "autoPlace.where='terra';autoPlace.map={};renderAutoPlaceModal()", '🏠 '+(isEn?'In terrariums (one animal each)':'Dans des terrariums (un animal par terrarium)'))+
+      btn(ap.where==='both', "autoPlace.where='both';autoPlace.map={};renderAutoPlaceModal()", '🗄🏠 '+(isEn?'Both — I\'ll choose per group':'Les deux — je choisirai par groupe'))+'</div>'+
+      tip(isEn?'Most keepers use racks for babies and juveniles, and terrariums for a few adults.':'Souvent : des racks pour les bébés et juvéniles, des terrariums pour quelques adultes.')+
+      nav(0, ap.where==='terra' ? 3 : 2, !!ap.where);
+  } else if(ap.step===2){
     const nr = ap.newRacks;
-    const rackList = racks.map(r=>'<div style="font-size:13.5px;padding:3px 0;">🗄 <b>'+escapeHtml(r.name)+'</b> — '+r.rows.length+(isEn?' row(s), ':' rangée(s), ')+rackTubCount(r)+(isEn?' tubs, ':' bacs, ')+'<b>'+rackFreeTubs(r).length+'</b>'+(isEn?' free':' libres')+'</div>').join('');
     const num = (id, val, min, max)=>'<input type="number" id="'+id+'" value="'+val+'" min="'+min+'" max="'+max+'" style="width:64px;font-size:16px;padding:6px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>';
-    body += sect(isEn?'2. Your racks':'2. Tes racks', rackList+
-      '<div style="margin-top:8px;font-size:13.5px;line-height:2.1;">➕ '+(isEn?'Create ':'Créer ')+num('ap-nr-count', nr.count, 1, 20)+(isEn?' rack(s) of ':' rack(s) de ')+num('ap-nr-rows', nr.rows, 1, 30)+(isEn?' rows × ':' rangées × ')+num('ap-nr-tubs', nr.tubs, 1, 30)+(isEn?' tubs':' bacs')+
-      '<br>'+(isEn?'Name: ':'Nom : ')+'<input type="text" id="ap-nr-prefix" value="'+escapeHtml(nr.prefix)+'" style="width:130px;font-size:16px;padding:6px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
-      ' <label style="font-size:13px;"><input type="checkbox" id="ap-nr-pergroup"'+(nr.perGroup?' checked':'')+'/> '+(isEn?'one rack per age group (Babies, Juveniles, Adults)':'un rack par groupe d\'âge (Bébés, Juvéniles, Adultes)')+'</label></div>'+
-      '<button type="button" class="sc-btn" style="margin-top:6px;" onclick="autoPlaceCreateRacks()">➕ '+(isEn?'Create these racks':'Créer ces racks')+'</button>');
+    const freeTot = racks.reduce((a,r)=>a+rackFreeTubs(r).length, 0);
+    body += '<p style="font-size:14.5px;margin:4px 0 6px;">'+(isEn?'Your racks right now:':'Tes racks en ce moment :')+'</p>'+
+      (racks.length ? racks.map(r=>'<div style="font-size:14px;padding:3px 0;">🗄 <b>'+escapeHtml(r.name)+'</b> — '+r.rows.length+(isEn?' row(s), ':' rangée(s), ')+rackTubCount(r)+(isEn?' tubs, ':' bacs, ')+'<b>'+rackFreeTubs(r).length+'</b>'+(isEn?' free':' libres')+'</div>').join('') : '<div style="font-size:14px;color:var(--ink-dim);">'+(isEn?'No rack yet.':'Aucun rack pour l\'instant.')+'</div>')+
+      (freeTot < total ? tip(isEn?'You have <b>'+freeTot+'</b> free tubs for <b>'+total+'</b> animals. Create racks below (they can be renamed and adjusted later in Racks & Terrariums).':'Tu as <b>'+freeTot+'</b> bacs libres pour <b>'+total+'</b> animaux. Crée des racks ci-dessous (tu pourras les renommer et les ajuster ensuite dans Racks & Terrariums).') : tip(isEn?'You have enough free tubs. You can still create more racks if you want.':'Tu as assez de bacs libres. Tu peux quand même créer d\'autres racks si tu veux.'))+
+      '<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:6px;font-size:14px;line-height:2.2;">➕ <b>'+(isEn?'Create racks':'Créer des racks')+'</b><br>'+
+        num('ap-nr-count', nr.count, 1, 20)+(isEn?' rack(s) of ':' rack(s) de ')+num('ap-nr-rows', nr.rows, 1, 30)+(isEn?' rows × ':' rangées × ')+num('ap-nr-tubs', nr.tubs, 1, 30)+(isEn?' tubs':' bacs')+
+        '<br>'+(isEn?'Name: ':'Nom : ')+'<input type="text" id="ap-nr-prefix" value="'+escapeHtml(nr.prefix)+'" style="width:130px;font-size:16px;padding:6px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
+        '<br><label style="font-size:13.5px;line-height:1.4;"><input type="checkbox" id="ap-nr-pergroup"'+(nr.perGroup?' checked':'')+'/> '+(isEn?'one rack per age group (Babies, Juveniles, Adults)':'un rack par groupe d\'âge (Bébés, Juvéniles, Adultes)')+'</label><br>'+
+        '<button type="button" class="sc-btn" onclick="autoPlaceCreateRacks()">➕ '+(isEn?'Create these racks':'Créer ces racks')+'</button></div>'+
+      nav(1, 3, racks.length>0 || ap.where==='both');
+  } else if(ap.step===3){
+    body += '<p style="font-size:14.5px;margin:4px 0 6px;">'+(isEn?'How do you want to group them?':'Comment veux-tu les regrouper ?')+'</p><div style="display:flex;flex-direction:column;gap:6px;">'+
+      Object.keys(PLACE_GROUP_BY).map(k=>btn(ap.groupBy===k, "autoPlace.groupBy='"+k+"';autoPlaceDefaultMap();renderAutoPlaceModal()", PLACE_GROUP_BY[k][isEn?'en':'fr'])).join('')+'</div>'+
+      (ap.groupBy==='age' ? tip(isEn?'Age comes from the birth date (baby < 6 months, juvenile < 18 months — 12 for hognose and bearded dragon). Without a date, ball pythons are grouped by weight (< 300 g, < 1000 g).':'L\'âge vient de la date de naissance (bébé < 6 mois, juvénile < 18 mois — 12 pour le hognose et le dragon barbu). Sans date, les pythons royaux sont classés selon le poids (< 300 g, < 1000 g).') : '')+
+      '<p style="font-size:14.5px;margin:10px 0 6px;">'+(isEn?'In what order in the tubs?':'Dans quel ordre dans les bacs ?')+'</p><div style="display:flex;gap:6px;flex-wrap:wrap;">'+
+      [['id','ID'],['name',isEn?'Name':'Nom'],['birth',isEn?'Birth date':'Naissance'],['weight',isEn?'Weight':'Poids'],['sex',isEn?'Sex':'Sexe']].map(o=>btn(ap.sort===o[0], "autoPlace.sort='"+o[0]+"';renderAutoPlaceModal()", o[1])).join('')+'</div>'+
+      '<div style="font-size:13.5px;margin-top:8px;">'+autoPlaceGroupKeys(groups).map(k=>placeGroupName(k, isEn)+' : <b>'+groups[k].length+'</b>').join(' · ')+'</div>'+
+      nav(ap.where==='terra' ? 1 : 2, 4, true);
+  } else if(ap.step===4){
+    const opts = autoPlaceDestOptions(isEn);
+    body += '<p style="font-size:14.5px;margin:4px 0 6px;">'+(isEn?'Which group goes where?':'Quel groupe va où ?')+'</p>'+
+      autoPlaceGroupKeys(groups).map(g=>{ const v = ap.map[g] || '';
+        return '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid var(--line);"><span style="min-width:150px;font-size:14.5px;">'+escapeHtml(placeGroupName(g, isEn))+' <b>('+groups[g].length+')</b></span>'+
+        '<select onchange="autoPlace.map[\''+g+'\']=this.value;renderAutoPlaceModal();" style="flex:1;min-width:160px;font-size:16px;padding:7px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+        opts.map(o=>'<option value="'+o.v+'"'+(o.v===v?' selected':'')+'>'+escapeHtml(o.l)+'</option>').join('')+'</select></div>'; }).join('')+
+      tip(isEn?'Several groups can share the same rack: they fill it one after the other. « Leave to place » keeps them aside for later.':'Plusieurs groupes peuvent aller dans le même rack : ils le remplissent l\'un après l\'autre. « Laisser à classer » les garde de côté pour plus tard.')+
+      nav(3, 5, Object.values(ap.map).some(Boolean));
+  } else {
+    const plan = autoPlacePlan();
+    const lines = Object.keys(plan.perDest).map(d=>{
+      const pd = plan.perDest[d], name = d==='terra' ? (isEn?'Empty terrariums':'Terrariums vides') : (getRack(d.slice(5))||{}).name;
+      const short = pd.need - pd.placed;
+      return '<div style="padding:6px 0;border-bottom:1px solid var(--line);"><div style="font-size:14.5px;color:'+(short?'var(--gold)':'var(--sage)')+';">'+(short?'⚠ ':'✓ ')+'<b>'+escapeHtml(name||'?')+'</b> : '+pd.placed+'/'+pd.need+(short ? (isEn?' — '+short+' won\'t fit, they stay to place':' — il manque '+short+' place(s), ils restent à classer') : '')+'</div>'+
+        '<div style="font-size:12.5px;color:var(--ink-dim);">'+escapeHtml(pd.sample.join(' · '))+(pd.placed>pd.sample.length?' …':'')+'</div></div>';
+    }).join('');
+    body += (lines || '<div style="font-size:14px;color:var(--ink-dim);">'+(isEn?'Nothing to place with these choices.':'Rien à ranger avec ces choix.')+'</div>')+
+      tip(isEn?'After confirming, an <b>Undo</b> button appears for a few seconds. You can also move any animal later with « Place / move ».':'Après la confirmation, un bouton <b>Annuler</b> apparaît quelques secondes. Tu pourras aussi déplacer n\'importe quel animal ensuite avec « Placer / déplacer ».')+
+      '<div style="display:flex;gap:8px;margin-top:12px;"><button type="button" class="sc-btn" style="flex:1;padding:11px;" onclick="autoPlaceGo(4)">◀ '+(isEn?'Back':'Retour')+'</button>'+
+      '<button type="button" class="save-btn" style="flex:2;font-size:16px;padding:11px;" '+(plan.moves.length?'':'disabled')+' onclick="confirmAutoPlace()">✅ '+(isEn?'Place '+plan.moves.length+' animal(s)':'Ranger '+plan.moves.length+' animal(s)')+'</button></div>';
   }
-  const opts = autoPlaceDestOptions(isEn);
-  const rows = PLACE_GROUPS.filter(g=>groups[g].length).map(g=>{
-    const v = ap.map[g] || '';
-    return '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:5px 0;"><span style="min-width:150px;font-size:14px;">'+placeGroupLabel(g, isEn)+' <b>('+groups[g].length+')</b></span>'+
-      '<select onchange="autoPlace.map[\''+g+'\']=this.value;renderAutoPlaceModal();" style="flex:1;min-width:160px;font-size:16px;padding:7px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
-      opts.map(o=>'<option value="'+o.v+'"'+(o.v===v?' selected':'')+'>'+escapeHtml(o.l)+'</option>').join('')+'</select></div>';
-  }).join('');
-  body += sect((ap.where==='terra'?'2. ':'3. ')+(isEn?'Who goes where':'Qui va où'), rows+
-    '<div style="font-size:12.5px;color:var(--ink-dim);margin-top:4px;">'+(isEn?'Age from the birth date (baby < 6 months, juvenile < 18 months — 12 for hognose and bearded dragon); without a date, ball pythons are grouped by weight (< 300 g, < 1000 g).':'Âge selon la date de naissance (bébé < 6 mois, juvénile < 18 mois — 12 pour le hognose et le dragon barbu); sans date, les pythons royaux sont classés selon le poids (< 300 g, < 1000 g).')+'</div>'+
-    '<div style="margin-top:8px;font-size:13.5px;">'+(isEn?'Order in the tubs: ':'Ordre dans les bacs : ')+
-    ['id','name','birth'].map(k=>btn(ap.sort===k, "autoPlaceSet('sort','"+k+"')", k==='id'?'ID':k==='name'?(isEn?'Name':'Nom'):(isEn?'Birth date':'Naissance'))).join(' ')+'</div>');
-  const plan = autoPlacePlan();
-  const lines = Object.keys(plan.perDest).map(d=>{
-    const pd = plan.perDest[d], name = d==='terra' ? (isEn?'Empty terrariums':'Terrariums vides') : (getRack(d.slice(5))||{}).name;
-    const short = pd.need - pd.placed;
-    return '<div style="font-size:14px;padding:2px 0;color:'+(short?'var(--gold)':'var(--sage)')+';">'+(short?'⚠ ':'✓ ')+escapeHtml(name||'?')+' : '+pd.placed+'/'+pd.need+(short ? (isEn?' — '+short+' won\'t fit, they stay to place':' — il en manque '+short+', ils restent à classer') : '')+'</div>';
-  }).join('');
-  body += sect(isEn?'Preview':'Aperçu', lines || '<div style="font-size:13.5px;color:var(--ink-dim);">'+(isEn?'Choose a destination for at least one group.':'Choisis une destination pour au moins un groupe.')+'</div>');
-  body += '<button type="button" class="save-btn" style="width:100%;font-size:16px;padding:12px;" '+(plan.moves.length?'':'disabled')+' onclick="confirmAutoPlace()">✅ '+(isEn?'Place '+plan.moves.length+' animal(s)':'Ranger '+plan.moves.length+' animal(s)')+'</button>'+
-    '<button type="button" class="sc-btn" style="width:100%;margin-top:6px;" onclick="autoPlace=null;closeQuickModal();">'+(isEn?'Cancel':'Annuler')+'</button>';
-  showQuickModal('📦 '+(isEn?'Auto-place':'Rangement automatique'), body);
+  body += '<button type="button" class="sc-btn" style="width:100%;margin-top:8px;" onclick="autoPlace=null;closeQuickModal();">'+(isEn?'Cancel':'Annuler')+'</button>';
+  showQuickModal('🧭 '+(isEn?'Placement help':'Aide au rangement'), body);
 }
-function autoPlaceSet(k, v){
-  autoPlace[k] = v;
-  if(k==='where'){ // destinations par défaut : un rack par groupe dans l'ordre, sinon les terrariums
-    const g = autoPlaceGroups(); autoPlace.map = {};
-    const rk = v==='terra' ? [] : racks.filter(r=>rackFreeTubs(r).length);
-    const named = (grp, words)=>rk.find(r=>words.some(w=>normalizeHeaderKey(r.name).includes(w)));
-    ['baby','juvenile','adult'].forEach((grp, i)=>{ if(!g[grp].length) return;
-      const byName = named(grp, grp==='baby'?['bebe','baby','babies','nouveau']:grp==='juvenile'?['juv','sub']:['adult','reprod','breeder']);
-      const r = byName || rk[Math.min(i, rk.length-1)];
-      autoPlace.map[grp] = r ? 'rack|'+r.id : (v!=='rack' ? 'terra' : '');
-    });
-  }
-  renderAutoPlaceModal();
-}
+function autoPlaceSet(k, v){ autoPlace[k] = v; if(k==='where'){ autoPlace.map = {}; autoPlaceDefaultMap(); } renderAutoPlaceModal(); }
 function autoPlaceCreateRacks(){
   const isEn = currentLang==='en';
   const val = (id, d, min, max)=>{ const n = parseInt((document.getElementById(id)||{}).value, 10); return isNaN(n) ? d : Math.max(min, Math.min(max, n)); };
@@ -20776,10 +21303,10 @@ function autoPlaceCreateRacks(){
     racks.push(r); created.push(r);
   }
   autoPlace.createdRacks = (autoPlace.createdRacks||[]).concat(created.map(r=>r.id));
+  if(nr.perGroup) autoPlace.groupBy = 'age';
+  autoPlaceDefaultMap();
   saveElevage();
   try{ renderRackGrid(); }catch(e){}
-  if(nr.perGroup){ const ids = created.map(r=>'rack|'+r.id); autoPlace.map.baby = ids[0]; autoPlace.map.juvenile = ids[1]; autoPlace.map.adult = ids[2]; }
-  else if(autoPlace.where){ autoPlaceSet('where', autoPlace.where); return; }
   showToast('➕ '+created.length+(isEn?' rack(s) created.':' rack(s) créé(s).'), 'success');
   renderAutoPlaceModal();
 }
@@ -21801,13 +22328,30 @@ function renderTerrariumList(){
     card.style.borderStyle = 'dashed';
     card.innerHTML = '<div class="terra-card-head"><span style="font-weight:700;font-size:12px;">⚠ '+(isEn?'To assign':'À classer')+'</span></div>'+
       '<p class="terra-empty-note">'+(isEn?'These reptiles aren\'t linked to a terrarium yet.':'Ces reptiles ne sont pas encore rattachés à un terrarium.')+'</p>';
-    unassigned.forEach(s=>{
+    // v4.48 — en grille (plusieurs de large) au lieu d'une longue file; les 24 premiers, puis « tout afficher »
+    const gridU = document.createElement('div');
+    gridU.className = 'terra-unplaced-grid';
+    const showAllU = !!window.__terraUnplacedAll;
+    unassigned.slice(0, showAllU ? unassigned.length : 24).forEach(s=>{
       const row = document.createElement('div');
       row.className = 'terra-occupant';
-      row.innerHTML = '<span class="terra-occupant-name" data-open="'+s.id+'">'+escapeHtml(snakeName(s))+' ('+(s.sex==='male'?'♂':'♀')+')</span>'+
+      row.innerHTML = '<span class="terra-occupant-name" data-open="'+s.id+'">'+escapeHtml(snakeName(s))+' ('+(s.sex==='male'?'♂':s.sex==='female'?'♀':'?')+')</span>'+
         '<span class="terra-occupant-actions"><button class="sc-btn" data-move="'+s.id+'">'+(isEn?'Assign':'Assigner')+'</button></span>';
-      card.appendChild(row);
+      gridU.appendChild(row);
     });
+    card.appendChild(gridU);
+    if(unassigned.length>24){
+      const more = document.createElement('button');
+      more.className = 'sc-btn'; more.style.marginTop = '6px';
+      more.textContent = showAllU ? (isEn?'▲ Show less':'▲ Afficher moins') : ('▼ +'+(unassigned.length-24)+(isEn?' more — show all':' de plus — tout afficher'));
+      more.addEventListener('click', ()=>{ window.__terraUnplacedAll = !showAllU; renderTerrariumList(); });
+      card.appendChild(more);
+    }
+    const helpBtn = document.createElement('button');
+    helpBtn.className = 'sc-btn accent'; helpBtn.style.marginTop = '6px';
+    helpBtn.textContent = '🧭 '+(isEn?'Placement help':'Aide au rangement');
+    helpBtn.addEventListener('click', ()=>openAutoPlaceModal());
+    card.appendChild(helpBtn);
     wrap.appendChild(card);
   }
 
@@ -25538,7 +26082,7 @@ function scheduleMilestoneCheck(){
         const en = currentLang==='en';
         const names = fresh.slice(0,3).map(m=>'« '+m.title+' »').join(', ')+(fresh.length>3 ? (en?' and '+(fresh.length-3)+' more':' et '+(fresh.length-3)+' autre(s)') : '');
         const hiddenFound = fresh.some(m=>String(m.id).startsWith('h_'));
-        showToast('🎉🏆 '+(en?(fresh.length>1?'Trophies unlocked! ':'Trophy unlocked! '):(fresh.length>1?'Trophées débloqués! ':'Trophée débloqué! '))+names+(hiddenFound?(en?' 🤫 (hidden trophy!)':' 🤫 (trophée caché!)'):'')+'<br/><small>'+(en?'See ☰ › Statistics › Trophies':'Voir ☰ › Statistiques › Trophées')+'</small>', 'hatch');
+        showToast('🎉🏆 '+(en?(fresh.length>1?'Trophies unlocked! ':'Trophy unlocked! '):(fresh.length>1?'Trophées débloqués! ':'Trophée débloqué! '))+names+(hiddenFound?(en?' 🤫 (hidden trophy!)':' 🤫 (trophée caché!)'):'')+' — '+(en?'See ☰ › Statistics › Trophies':'Voir ☰ › Statistiques › Trophées'), 'hatch'); // v4.48 — le toast affiche du texte, pas du HTML (« <br/><small> » apparaissait)
       }
     }catch(e){}
   }, 2500);
@@ -26941,7 +27485,9 @@ function renderSalesView(){
   const wrap = document.getElementById('sales-list');
   wrap.className = list.length ? 'mini-animal-grid' : '';
   wrap.innerHTML = list.length ? '' : '<div class="empty">'+t('noReptileCategory')+'</div>';
-  list.forEach(s=>{
+  const salesPg = pagerSlice('sales', list, renderSalesView, salesStatusFilter+'|'+salesSortBy); // v4.50
+  if(salesPg.top) wrap.insertAdjacentHTML('beforeend', salesPg.top);
+  salesPg.items.forEach(s=>{
     const priceTxt = s.status==='sold'
       ? (s.soldPrice ? s.soldPrice+t('soldToLabel')+escapeHtml(s.buyer||'?')+')' : t('soldPriceUnknown'))
       : (s.askingPrice ? s.askingPrice+t('askedPriceSuffix') : t('noPriceSet'));
@@ -26957,9 +27503,10 @@ function renderSalesView(){
         '<option value="listing">'+t('annonceBtn')+'</option>'+
         (s.listingUrl ? '' : '<option value="link">'+t('linkMorphMarketBtn')+'</option>')+
       '</select>'+
-      (s.listingUrl ? '<a class="sc-btn" style="width:100%;text-align:center;margin-top:3px;" href="'+s.listingUrl+'" target="_blank" rel="noopener">'+t('viewMorphMarketBtn')+'</a>' : '');
+      (s.listingUrl ? '<a class="sc-btn" style="width:100%;text-align:center;margin-top:3px;" href="'+escapeHtml(/^https?:\/\//i.test(s.listingUrl)?s.listingUrl:'https://'+s.listingUrl)+'" target="_blank" rel="noopener">'+t('viewMorphMarketBtn')+'</a>' : ''); // v4.50 — lien échappé
     wrap.appendChild(card);
   });
+  if(salesPg.bottom) wrap.insertAdjacentHTML('beforeend', salesPg.bottom);
   wrap.querySelectorAll('.sc-more-select').forEach(sel=>{
     sel.addEventListener('change', ()=>{
       const act = sel.value, id = sel.dataset.id;
@@ -27478,56 +28025,42 @@ function renderDashboard(){
     todayWrap.innerHTML = '<div class="empty">🎉 '+(isEn?'Nothing needs special attention right now.':'Rien de particulier à surveiller pour l\'instant.')+'</div>';
   } else {
     const todayS = spToday();
+    // v4.50 — chaque groupe se masque/s'affiche et se pagine (20/40/60/80/100/tout)
+    const viewBtn = (icon, onclick)=>'<button class="sc-btn accent" onclick="'+onclick+'">'+icon+' '+(isEn?'View':'Voir')+'</button>';
+    const cleanItems = terraCleanOverdueF.map(te=>({ te })).concat(rackTubsOverdueF.map(x=>({ x })));
     todayWrap.innerHTML =
-      (maleStatusF.length ? '<div class="feed-day-group"><div class="feed-day-label">♂ '+(isEn?'Breeding males':'Mâles en reproduction')+' — '+maleStatusF.length+'</div><div class="sale-list">'+
-        maleStatusF.map(m=>{
+      agendaGroupHtml('male', '♂ '+(isEn?'Breeding males':'Mâles en reproduction'), maleStatusF, 'sale-list', m=>{
           let txt;
           if(m.together.length) txt = '🤝 '+m.together.map(x=>(isEn?'with ':'avec ')+escapeHtml(spSnakeName(x.p.femaleId))+' '+(isEn?'for ':'depuis ')+spDaysBetween(x.since,todayS)+(isEn?' d':' j')).join(', ');
           else if(m.restSince) txt = '😴 '+(isEn?'resting for ':'en repos depuis ')+spDaysBetween(m.restSince,todayS)+(isEn?' d':' j');
           else txt = '😴 '+(isEn?'not paired yet':'pas encore en accouplement');
           if(m.next && !m.together.length){ const dn = spDaysBetween(todayS, m.next.start); txt += ' — '+(isEn?'next: ':'prochaine : ')+escapeHtml(spSnakeName(m.next.femaleId))+' '+spFmt(m.next.start)+(dn>=0?' ('+(isEn?'in ':'dans ')+dn+(isEn?' d)':' j)'):' ('+(isEn?'late':'en retard')+')'); }
           return '<div class="sale-row"><div class="sale-name">♂ '+escapeHtml(spSnakeName(m.maleId))+'<small>'+txt+'</small></div><button class="sc-btn accent" onclick="showTab(\'incubation\'); showReproSubtab(\'lockmode\');">🔒 '+(isEn?'Lock mode':'Mode Verrou')+'</button></div>';
-        }).join('')+
-      '</div></div>' : '')+
-      (seasonRemindersF.length ? '<div class="feed-day-group"><div class="feed-day-label">🗓️ '+(isEn?'Planned pairings':'Pairings prévus')+' — '+seasonRemindersF.length+'</div><div class="sale-list">'+
-        seasonRemindersF.map(r=>{
+        })+
+      agendaGroupHtml('season', '🗓️ '+(isEn?'Planned pairings':'Pairings prévus'), seasonRemindersF, 'sale-list', r=>{
           const d = r.days;
           const when = d<0 ? (isEn?'late by '+(-d)+'d':'en retard de '+(-d)+' j') : d===0 ? (isEn?'today':'aujourd\'hui') : d===1 ? (isEn?'tomorrow':'demain') : (isEn?'in '+d+' days':'dans '+d+' jours');
           const prep = d>=2 ? spPrepChecks(r.se.femaleId, r.plan.maleId).filter(c=>!c.ok).map(c=>c.txt).join(' · ') : '';
           return '<div class="sale-row"><div class="sale-name">♀ '+escapeHtml(spSnakeName(r.se.femaleId))+' × ♂ '+escapeHtml(spSnakeName(r.plan.maleId))+
             '<small>'+when+' ('+spFmt(r.se.start)+')'+(prep?' — ⚖ '+(isEn?'to check: ':'à vérifier : ')+prep:(d>=2?' — '+(isEn?'weigh both before the pairing':'pèse les deux avant le pairing'):''))+'</small></div>'+
             '<button class="sc-btn accent" onclick="showTab(\'incubation\'); showReproSubtab(\'calendar\');">🗓️ '+(isEn?'View':'Voir')+'</button></div>';
-        }).join('')+
-      '</div></div>' : '')+
-      (shedSoonF.length ? '<div class="feed-day-group"><div class="feed-day-label">🐍 '+(isEn?'Shed expected soon':'Mue prévue bientôt')+' — '+shedSoonF.length+'</div><div class="mini-animal-grid">'+
-        shedSoonF.map(x=>miniAnimalCardHtml(x.snake.name, '~'+x.date, '<button class="sc-btn accent" onclick="openLogbook(\''+x.snake.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button>')).join('')+
-      '</div></div>' : '')+
-      (supplementDueF.length ? '<div class="feed-day-group"><div class="feed-day-label">💊 '+(isEn?'Supplements due':'Suppléments à donner')+' — '+supplementDueF.length+'</div><div class="mini-animal-grid">'+
-        supplementDueF.slice(0,10).map(x=>miniAnimalCardHtml(x.s.name, x.due.days==null?(isEn?'never logged':'jamais noté'):(isEn?x.due.days+'d ago':'il y a '+x.due.days+' j'),
-          '<button class="save-btn" onclick="logAction(\''+x.s.id+'\',\'supplement\')">💊 '+(isEn?'Log':'Noter')+'</button>')).join('')+
-      '</div></div>' : '')+
-      (weighDueF.length ? '<div class="feed-day-group"><div class="feed-day-label">⚖ '+(isEn?'Weigh-in due':'Pesée à faire')+' — '+weighDueF.length+'</div><div class="mini-animal-grid">'+
-        weighDueF.slice(0,10).map(s=>{ const d = daysSinceLastWeigh(s); return miniAnimalCardHtml(s.name, (d===null?(isEn?'never weighed':'jamais pesé'):(isEn?d+'d ago':'il y a '+d+'j')),
+        })+
+      agendaGroupHtml('shed', '🐍 '+(isEn?'Shed expected soon':'Mue prévue bientôt'), shedSoonF, 'mini-animal-grid', x=>
+        miniAnimalCardHtml(snakeName(x.snake), '~'+x.date, '<button class="sc-btn accent" onclick="openLogbook(\''+x.snake.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button>'))+
+      agendaGroupHtml('supp', '💊 '+(isEn?'Supplements due':'Suppléments à donner'), supplementDueF, 'mini-animal-grid', x=>
+        miniAnimalCardHtml(snakeName(x.s), x.due.days==null?(isEn?'never logged':'jamais noté'):(isEn?x.due.days+'d ago':'il y a '+x.due.days+' j'),
+          '<button class="save-btn" onclick="logAction(\''+x.s.id+'\',\'supplement\')">💊 '+(isEn?'Log':'Noter')+'</button>'))+
+      agendaGroupHtml('weigh', '⚖ '+(isEn?'Weigh-in due':'Pesée à faire'), weighDueF, 'mini-animal-grid', s=>{ const d = daysSinceLastWeigh(s); return miniAnimalCardHtml(snakeName(s), (d===null?(isEn?'never weighed':'jamais pesé'):(isEn?d+'d ago':'il y a '+d+'j')),
           '<button class="save-btn" onclick="logAction(\''+s.id+'\',\'weigh\')">⚖ '+(isEn?'Weigh':'Peser')+'</button>'+
-          '<button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button>'); }).join('')+
-        (weighDueF.length>10 ? '<div style="font-size:10.5px;color:var(--ink-dim);padding:6px 4px;">'+(isEn?'+'+(weighDueF.length-10)+' more':'+'+(weighDueF.length-10)+' de plus')+'</div>' : '')+
-      '</div></div>' : '')+
-      (clutchesToCheckF.length ? '<div class="feed-day-group"><div class="feed-day-label">🥚 '+(isEn?'Clutches to watch closely':'Pontes à surveiller de près')+' — '+clutchesToCheckF.length+'</div><div class="sale-list">'+
-        clutchesToCheckF.map(c=>{ const d = Math.floor((new Date(c.hatchDate+'T00:00:00').getTime() - Date.now()) / 86400000); return '<div class="sale-row"><div class="sale-name">'+escapeHtml(c.ref)+'<small>'+(d>=0?(isEn?'hatch in '+d+'d':'éclosion dans '+d+'j'):(isEn?Math.abs(d)+'d overdue':'+'+Math.abs(d)+'j de retard'))+'</small></div><button class="sc-btn accent" onclick="showTab(\'incubation\')">🥚 '+(isEn?'View':'Voir')+'</button></div>'; }).join('')+
-      '</div></div>' : '')+
-      ((terraCleanOverdueF.length||rackTubsOverdueF.length) ? '<div class="feed-day-group"><div class="feed-day-label">🧹 '+(isEn?'Cleaning overdue':'Nettoyage en retard')+' — '+(terraCleanOverdueF.length+rackTubsOverdueF.length)+'</div><div class="sale-list">'+
-        terraCleanOverdueF.map(te=>'<div class="sale-row"><div class="sale-name">'+escapeHtml(te.name)+'</div><button class="sc-btn accent" onclick="showTab(\'elevage\'); showSubtab(\'racks\');">🧹 '+(isEn?'View':'Voir')+'</button></div>').join('')+
-        rackTubsOverdueF.slice(0,5).map(x=>'<div class="sale-row"><div class="sale-name">'+escapeHtml(x.rack.name)+' — '+(isEn?'Tub ':'Bac ')+x.key.split('|')[1]+'</div><button class="sc-btn accent" onclick="showTab(\'elevage\'); showSubtab(\'racks\');">🧹 '+(isEn?'View':'Voir')+'</button></div>').join('')+
-      '</div></div>' : '')+
-      (uvbOverdueF.length ? '<div class="feed-day-group"><div class="feed-day-label">☀️ '+(isEn?'UVB replacement overdue':'Remplacement UVB dépassé')+' — '+uvbOverdueF.length+'</div><div class="sale-list">'+
-        uvbOverdueF.map(te=>'<div class="sale-row"><div class="sale-name">'+escapeHtml(te.name)+'<small>'+te.uvbReplaceDate+'</small></div><button class="sc-btn accent" onclick="showTab(\'elevage\'); showSubtab(\'racks\');">💡 '+(isEn?'View':'Voir')+'</button></div>').join('')+
-      '</div></div>' : '')+
-      (pairingLongF.length ? '<div class="feed-day-group"><div class="feed-day-label">🐍 '+(isEn?'Pairing 5+ days':'En accouplement depuis 5j+')+' — '+pairingLongF.length+'</div><div class="sale-list">'+
-        pairingLongF.map(te=>'<div class="sale-row"><div class="sale-name">'+escapeHtml(te.name)+'<small>'+daysTogether(te)+(isEn?'d together':'j ensemble')+'</small></div><button class="sc-btn accent" onclick="showTab(\'elevage\'); showSubtab(\'racks\');">🐍 '+(isEn?'View':'Voir')+'</button></div>').join('')+
-      '</div></div>' : '')+
-      (lowStockEntriesF.length ? '<div class="feed-day-group"><div class="feed-day-label">📦 '+(isEn?'Low prey stock':'Stock de proies bas')+' — '+lowStockEntriesF.length+'</div><div class="sale-list">'+
-        lowStockEntriesF.map(k=>{ const [species,size]=k.split('|'); return '<div class="sale-row"><div class="sale-name">'+escapeHtml(species)+' '+escapeHtml(size)+'<small>'+feederStock[k]+' '+(isEn?'left':'restant(s)')+'</small></div><button class="sc-btn accent" onclick="showTab(\'elevage\'); showSubtab(\'nourriture\');">📦 '+(isEn?'View':'Voir')+'</button></div>'; }).join('')+
-      '</div></div>' : '');
+          '<button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button>'); })+
+      agendaGroupHtml('clutch', '🥚 '+(isEn?'Clutches to watch closely':'Pontes à surveiller de près'), clutchesToCheckF, 'sale-list', c=>{ const d = Math.floor((new Date(c.hatchDate+'T00:00:00').getTime() - Date.now()) / 86400000); return '<div class="sale-row"><div class="sale-name">'+escapeHtml(c.ref)+'<small>'+(d>=0?(isEn?'hatch in '+d+'d':'éclosion dans '+d+'j'):(isEn?Math.abs(d)+'d overdue':'+'+Math.abs(d)+'j de retard'))+'</small></div>'+viewBtn('🥚', "showTab('incubation')")+'</div>'; })+
+      agendaGroupHtml('clean', '🧹 '+(isEn?'Cleaning overdue':'Nettoyage en retard'), cleanItems, 'sale-list', it=>
+        '<div class="sale-row"><div class="sale-name">'+(it.te ? escapeHtml(it.te.name) : escapeHtml(it.x.rack.name)+' — '+(isEn?'Tub ':'Bac ')+escapeHtml(it.x.key.split('|')[1]))+'</div>'+viewBtn('🧹', "showTab('elevage'); showSubtab('racks');")+'</div>')+
+      agendaGroupHtml('uvb', '☀️ '+(isEn?'UVB replacement overdue':'Remplacement UVB dépassé'), uvbOverdueF, 'sale-list', te=>
+        '<div class="sale-row"><div class="sale-name">'+escapeHtml(te.name)+'<small>'+escapeHtml(te.uvbReplaceDate)+'</small></div>'+viewBtn('💡', "showTab('elevage'); showSubtab('racks');")+'</div>')+
+      agendaGroupHtml('pairing', '🐍 '+(isEn?'Pairing 5+ days':'En accouplement depuis 5j+'), pairingLongF, 'sale-list', te=>
+        '<div class="sale-row"><div class="sale-name">'+escapeHtml(te.name)+'<small>'+daysTogether(te)+(isEn?'d together':'j ensemble')+'</small></div>'+viewBtn('🐍', "showTab('elevage'); showSubtab('racks');")+'</div>')+
+      agendaGroupHtml('stock', '📦 '+(isEn?'Low prey stock':'Stock de proies bas'), lowStockEntriesF, 'sale-list', k=>{ const [species,size]=k.split('|'); return '<div class="sale-row"><div class="sale-name">'+escapeHtml(species)+' '+escapeHtml(size)+'<small>'+feederStock[k]+' '+(isEn?'left':'restant(s)')+'</small></div>'+viewBtn('📦', "showTab('elevage'); showSubtab('nourriture');")+'</div>'; });
   }
 
   // Anniversaires du mois (2 septembre) — juste sympathique, pas fonctionnel, dans l'esprit
@@ -27563,14 +28096,15 @@ function renderDashboard(){
   const lastNextWrap = document.getElementById('dash-lastnext-list');
   if(lastNextWrap){
     lastNextWrap.className = dashSnakes.length ? 'mini-animal-grid' : '';
+    const lnPg = pagerSlice('lastnext', dashSnakes, renderDashboard); // v4.50
     lastNextWrap.innerHTML = dashSnakes.length===0 ? '<div class="empty">'+(isEn?'No reptile registered yet.':'Aucun reptile enregistré pour l\'instant.')+'</div>' :
-      dashSnakes.map(s=>{
+      lnPg.top+lnPg.items.map(s=>{
         const last = lastFedInfo(s);
         const preyIcon = last && last.preyType ? (last.preyType==='live'?' 🐭':' ❄️') : '';
         const lastTxt = last ? (last.date+preyIcon) : t('neverFedLabel');
         const sub = t('lastMealLabel')+lastTxt+'<br>'+t('nextMealLabel')+nextFeedingDate(s);
-        return miniAnimalCardHtml(s.name, sub, '<button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button>');
-      }).join('');
+        return miniAnimalCardHtml(snakeName(s), sub, '<button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button>');
+      }).join('')+lnPg.bottom;
   }
 
   const feedWrap = document.getElementById('dash-feeding-list');
@@ -27588,17 +28122,12 @@ function renderDashboard(){
       if(dateStr===addDays(todayStr,1)) return isEn?'🟠 Tomorrow':'🟠 Demain';
       return '🟡 '+new Date(dateStr+'T00:00:00').toLocaleDateString(isEn?'en-CA':'fr-CA',{weekday:'long', day:'numeric', month:'short'});
     };
-    feedWrap.innerHTML = Object.keys(groups).sort().map(dateStr=>{
-      const snakesForDay = groups[dateStr];
-      return '<div class="feed-day-group">'+
-        '<div class="feed-day-label">'+dayLabel(dateStr)+' — '+snakesForDay.length+(isEn?' reptile'+(snakesForDay.length>1?'s':''):' reptile'+(snakesForDay.length>1?'s':''))+'</div>'+
-        '<div class="mini-animal-grid">'+snakesForDay.map(s=>
-          miniAnimalCardHtml(s.name, '',
+    feedWrap.innerHTML = Object.keys(groups).sort().map(dateStr=>
+      agendaGroupHtml('feed_'+dateStr, dayLabel(dateStr), groups[dateStr], 'mini-animal-grid', s=> // v4.50 — masquer/afficher + pages
+          miniAnimalCardHtml(snakeName(s), '',
             '<button class="save-btn" onclick="logAction(\''+s.id+'\',\'fed\')">🍽 '+(isEn?'Fed':'Nourri')+'</button>'+
-            '<button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button>')
-        ).join('')+
-      '</div></div>';
-    }).join('');
+            '<button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button>'))
+    ).join('');
   }
 
   // Prochaines éclosions (les 3 plus proches)
