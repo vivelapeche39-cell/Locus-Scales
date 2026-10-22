@@ -2235,7 +2235,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.69';
+const APP_VERSION = '2026.09.01.4.72';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5265,6 +5265,39 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.72', date:'2026-10-22',
+    title:{ fr:'Filets de sécurité : reptiles et rongeurs jamais mélangés', en:'Safety nets: reptiles and rodents never mixed' },
+    changes:{
+      fr:[
+        '🛡️ Chaque feuille importée est classée reptiles ou rongeurs selon ce qu\'elle contient vraiment (génétique ou sexe remplis, mots comme python/boa d\'un côté ; bacs, portées, ratio, rat/souris/ASF, tailles de proies de l\'autre). En cas de doute, LOCUS te montre les premières lignes et demande : « Est-ce qu\'on importe des reptiles ou des rongeurs ? » (ou ignorer la feuille).',
+        '🐍 Filet 1 : une ligne qui parle d\'un reptile (python, boa…) n\'entre jamais dans les rongeurs. 🐭 Filet 2 : une ligne de rongeur ou de proie (« Rat - Pinky », « Souris adulte ») sans génétique n\'entre jamais dans les reptiles — et LOCUS dit quelles lignes ont été gardées à part.'
+      ],
+      en:[
+        '🛡️ Every imported sheet is classified as reptiles or rodents from what it really contains (filled genetics or sex, words like python/boa on one side; bins, litters, ratio, rat/mouse/ASF, prey sizes on the other). When in doubt, LOCUS shows you the first rows and asks: « Are you importing reptiles or rodents? » (or skip the sheet).',
+        '🐍 Net 1: a row about a reptile (python, boa…) never goes into the rodents. 🐭 Net 2: a rodent or prey row (« Rat - Pinky », « Mouse adult ») without genetics never goes into the reptiles — and LOCUS says which rows were kept apart.'
+      ]
+    }
+  },
+  { version:'4.71', date:'2026-10-22',
+    title:{ fr:'Import de rongeurs : ratios et espèce corrigés', en:'Rodent import: ratios and species fixed' },
+    changes:{
+      fr:[
+        '🐛 Ratios impossibles (« -5:-13 ») : les colonnes « ID Mâle » / « ID Femelles » (M-05, F-13…) étaient lues comme des nombres. Ce sont maintenant des identifiants : LOCUS compte les animaux pour le ratio et garde les ID dans la note du bac. Un ratio n\'accepte plus que des nombres entiers positifs.',
+        '🐀 Sans colonne Espèce, l\'espèce vient du nom du fichier (« suivi_elevage_rats ») au lieu de « Souris » par défaut, et l\'aperçu le dit. « Date mise en bac » devient la date de fondation de la lignée, « Statut : Repos » retire le mâle comme le bouton de l\'app, et les chiffres « du mois » sans date sont signalés comme ignorés. « Blanchons » n\'est plus deviné comme un stade.'
+      ],
+      en:[
+        '🐛 Impossible ratios (« -5:-13 »): the « Male ID » / « Female IDs » columns (M-05, F-13…) were read as numbers. They are now identifiers: LOCUS counts the animals for the ratio and keeps the IDs in the bin\'s note. A ratio only accepts positive whole numbers now.',
+        '🐀 Without a Species column, the species comes from the file name (« rat_breeding_log ») instead of « Mouse » by default, and the preview says so. « Date put in bin » becomes the lineage founding date, « Status: Rest » removes the male like the app\'s button, and « this month » figures without dates are reported as ignored.'
+      ]
+    }
+  },
+  { version:'4.70', date:'2026-10-22',
+    title:{ fr:'Import : plus de pythons royaux fantômes', en:'Import: no more ghost ball pythons' },
+    changes:{
+      fr:[ '🐀 Une feuille de bacs de croissance (« ID Bac Croissance », « Type / Taille », « Quantité estimée ») n\'est plus prise pour des pythons royaux : un titre de colonne de rongeurs (bac, cage, colonie, portée, litière, croissance, sevrés, lignée) ou un mot de rongeur dans les lignes suffit quand il n\'y a ni génétique ni sexe. Dans un classeur qui contient des rongeurs, une autre feuille sans aucun signe de reptile est lue avec les rongeurs. Les lignes de total sont ignorées, le stade est lu dans « Type / Taille », et les colonnes de coûts par bac sont signalées comme ignorées.' ],
+      en:[ '🐀 A grow-out bin sheet (« Grow bin ID », « Type / Size », « Estimated quantity ») is no longer taken for ball pythons: a rodent column title (bin, cage, colony, litter, bedding, grow-out, weaned, lineage) or a rodent word in the rows is enough when there is no genetics or sex. In a workbook that contains rodents, another sheet with no sign of reptiles is read with the rodents. Total rows are skipped, the stage is read in « Type / Size », and per-bin cost columns are reported as ignored.' ]
+    }
+  },
   { version:'4.69', date:'2026-10-22',
     title:{ fr:'Import de rongeurs : on demande si les bacs sont apparentés', en:'Rodent import: asks whether bins are related' },
     changes:{
@@ -16056,7 +16089,8 @@ function importOsa(a, b){
   }
   return d[a.length][b.length];
 }
-function readImportFileAsRows(file, done){
+function readImportFileAsRows(file, done0){
+  const done = (sh, mt)=>done0(sh, mt ? Object.assign({ fileName:(file && file.name) || '' }, mt) : mt); // v4.71 — nom du fichier (ex. « suivi_elevage_rats.xlsx » → espèce)
   const isEn = currentLang==='en';
   const isExcel = /\.(xlsx|xlsm|xls|ods)$/i.test(file.name||'');
   const reader = new FileReader();
@@ -16454,7 +16488,7 @@ function parseLogPrey(raw){
         .replace(new RegExp(B+'(moyen|moyenne|moyens|moyennes|medium|moy)'+E,'g'),'$1medium$3')
         .replace(new RegExp(B+'(petit|petite|petits|petites|ptit|ptite)'+E,'g'),'$1small$3')
         .replace(new RegExp(B+'(souriceau|souriceaux|sauteuse|sauteuses|sauteur|sauteurs)'+E,'g'),'$1hopper$3')
-        .replace(new RegExp(B+'(poilu|poilue|poilus|poilues|duvet|duveteux|blanchon|blanchons)'+E,'g'),'$1fuzzy$3')
+        .replace(new RegExp(B+'(poilu|poilue|poilus|poilues|duvet|duveteux)'+E,'g'),'$1fuzzy$3') // v4.71 — « blanchon » retiré : sens pas vérifié
         .replace(new RegExp(B+'(nouveau ne|nouveau-ne|nouveaux nes|naissant|naissants|pinkies|pinkys)'+E,'g'),'$1pinky$3')
         .replace(new RegExp(B+'(fuzzies|fuzzys)'+E,'g'),'$1fuzzy$3').replace(new RegExp(B+'(hoppers)'+E,'g'),'$1hopper$3')
         .replace(new RegExp(B+'(weaned|weanlings|weaners?)'+E,'g'),'$1weanling$3').replace(new RegExp(B+'(adults)'+E,'g'),'$1adult$3');
@@ -16795,6 +16829,10 @@ var RODENT_IMPORT_ALIASES = {
   species: ['espece','species','animal','rongeur','rodent','type de rongeur','rodent type','espece rongeur','feeder','feeder type','sorte'],
   binType: ['type','type de bac','bin type','usage','role','fonction','but','purpose','categorie de bac'],
   ratio: ['ratio','ratio m:f','ratio f:m','m:f','f:m','m/f','f/m','composition','trio','sexe ratio','sex ratio','males:femelles','femelles:males','configuration ratio','ratio configuration','config ratio'],
+  maleIds: ['id male','id du male','id males','male id','male ids','# male','no male','identifiant male','nom du male'], // v4.71 — des identifiants, pas un nombre
+  femaleIds: ['id femelles','id des femelles','id femelle','female ids','female id','identifiants femelles','noms des femelles','# femelles'],
+  status: ['statut','statut bac','status','etat du bac','bin status','etat'],
+  monthStats: ['portees ce mois','portees du mois','total sevres (mois)','total sevres mois','sevres ce mois','sevres du mois','litters this month','weaned this month'],
   males: ['males','male','nb males','nombre de males','# males','male count','qty males'],
   females: ['femelles','femelle','females','female','nb femelles','nombre de femelles','# females','female count','qty females'],
   room: ['piece','room','salle','local'],
@@ -16810,7 +16848,7 @@ var RODENT_IMPORT_ALIASES = {
   amount: ['montant','amount','cout','cost','prix','price','total','depense','expense','paye','paid','$','cad','usd'],
   note: ['notes','note','remarque','remarques','commentaire','commentaires','comment','comments','description','details','detail','item','article','fournisseur','supplier','achat','produit','product','quoi','what']
 };
-var RODENT_IMPORT_ORDER = ['dateList','totalBabies','litterTotal','average','rating','totalBreeders','femaleOrigin','maleOrigin','origin','lineage','generation','bin','species','binType','ratio','males','females','location','room','date','count','missing','transferred','euthanized','size','quantity','storage','amount','note'];
+var RODENT_IMPORT_ORDER = ['maleIds','femaleIds','monthStats','status','dateList','totalBabies','litterTotal','average','rating','totalBreeders','femaleOrigin','maleOrigin','origin','lineage','generation','bin','species','binType','ratio','males','females','location','room','date','count','missing','transferred','euthanized','size','quantity','storage','amount','note'];
 function rodentHeaderField(h){
   const x = normalizeHeaderKey(h).replace(/[()\[\]]/g,' ').replace(/\s+/g,' ').trim();
   if(!x) return null;
@@ -16845,8 +16883,9 @@ function rodentBinTypeOf(raw){
 }
 // « 1.2 » (notation mâle.femelle) / « 2:1 » / « 1 male 3 femelles » → ratio de l'app femelles:mâle (ex. '2:1')
 function rodentRatioOf(raw, males, females){
-  const m = importNumber(males), f = importNumber(females);
-  if(m && f) return Math.round(Math.max(m,f))+':'+Math.round(Math.min(m,f));
+  const okN = v=>{ const t = importCellStr(v); if(!/^\s*\d+\s*$/.test(t)) return null; const n = +t; return n>=1 && n<=30 ? n : null; }; // v4.71 — jamais « M-05 » lu comme -5
+  const m = okN(males), f = okN(females);
+  if(m && f) return Math.max(m,f)+':'+Math.min(m,f);
   const x = normalizeHeaderKey(raw);
   if(!x) return null;
   let a = x.match(/(\d+)\s*(?:male|m)\w*\D+(\d+)\s*(?:femelle|female|f)/);
@@ -16904,7 +16943,7 @@ function rodentStageKeyOf(raw){
   const x = normalizeHeaderKey(raw);
   if(!x) return null;
   if(/(pinky|pinkie|rose|nouveau ne|naissant)/.test(x)) return 'pinky';
-  if(/(fuzzy|fuzzie|poilu|duvet|blanchon)/.test(x)) return 'fuzzy';
+  if(/(fuzzy|fuzzie|poilu|duvet)/.test(x)) return 'fuzzy';
   if(/(hopper|sauteu|souriceau)/.test(x)) return 'hopper';
   if(/(weanling|weaned|sevre|pup)/.test(x)) return 'weanling';
   if(/(small|petit|sm\b)/.test(x)) return 'small';
@@ -16948,11 +16987,105 @@ function looksLikePreySheet(sh){
   const hits = firstText.filter(preyWord).length;
   return hits >= Math.ceil(firstText.length*0.6);
 }
+// v4.72 — FILETS DE SÉCURITÉ reptiles ↔ rongeurs (demande d'Alex : capital qu'aucun python royal n'aille dans les
+// rongeurs, ni l'inverse ; en cas de doute, on DEMANDE à l'utilisateur ce qu'il importe).
+var REPTILE_WORD_RE = /(^|[^a-z])(python|pythons|regius|ball python|boa|boas|morelia|pantherophis|corn snake|hognose|heterodon|gecko|geckos|pogona|bearded dragon|serpent|serpents|snake|snakes|reptile|reptiles|tortue|turtle|tortoise|iguane|iguana|varan|monitor lizard|cameleon|chameleon)([^a-z]|$)/;
+var __geneNameRes = null;
+function valueHasKnownReptileGene(v){
+  if(!__geneNameRes){ try{ __geneNameRes = (GENES||[]).flatMap(g=>[g.name, g.nameEn]).filter(n=>n && n.length>=4).map(n=>normalizeHeaderKey(n)).filter((n,i,a)=>a.indexOf(n)===i).map(n=>new RegExp('(^|[^a-z])'+n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'([^a-z]|$)')); }catch(e){ __geneNameRes = []; } }
+  const x = normalizeHeaderKey(v);
+  return /^(normal|het |possible het|pos het|100% het|wild type|classic)/.test(x) || __geneNameRes.some(re=>re.test(x));
+}
+function rowLooksReptile(r){ return (r||[]).some(c=>REPTILE_WORD_RE.test(normalizeHeaderKey(importCellStr(c)))); }
+function sheetHasReptileSign(sh){
+  const rows = ((sh && sh.rows) || []).filter(r=>Array.isArray(r) && r.some(c=>importCellStr(c)!==''));
+  for(let i=0;i<Math.min(10, rows.length);i++){
+    const m = mapCsvHeaders(rows[i].map(importCellStr));
+    const body = rows.slice(i+1, i+40);
+    // v4.72 — une colonne « Mutation / Morph » ne suffit pas (les rongeurs ont aussi des mutations : Agouti, Dumbo, Rex…) :
+    // il faut que la plupart des valeurs soient de vrais gènes de reptiles connus de LOCUS
+    if(m.genes!==undefined){ const vals = body.map(r=>importCellStr(r[m.genes])).filter(Boolean); if(vals.length && vals.filter(valueHasKnownReptileGene).length >= Math.ceil(vals.length*0.6)) return true; }
+    if(m.sex!==undefined){ const vals = body.map(r=>importCellStr(r[m.sex])).filter(Boolean); if(vals.length && vals.filter(v=>importSexOf(v)).length >= Math.ceil(vals.length/2)) return true; }
+  }
+  return rows.slice(0,40).some(rowLooksReptile);
+}
+// 'reptile' | 'rodent' | 'doubt'
+function classifyImportSheet(sh, ctx){
+  let rodStrong = false; try{ rodStrong = !!rodentSheetInfo(sh, false, true) || looksLikePreySheet(sh); }catch(e){}
+  if(rodStrong && isLogSheet(sh.rows||[])){ try{ if(!rodentSheetInfo(sh, false)) rodStrong = false; }catch(e){} } // un historique de repas de reptiles parle de « rat » : ce n'est pas une feuille de rongeurs
+  let hasRep = false; try{ hasRep = sheetHasReptileSign(sh); }catch(e){}
+  // signe FORT de reptiles : la moitié des lignes nomment un reptile (« Python regius »…) ou de vrais gènes connus
+  let repStrong = false;
+  try{
+    const rows = (sh.rows||[]).filter(r=>Array.isArray(r) && r.some(c=>importCellStr(c)!=='')).slice(1, 60);
+    if(rows.length && rows.filter(rowLooksReptile).length >= Math.ceil(rows.length*0.5)) repStrong = true;
+    if(!repStrong){ for(let i=0;i<Math.min(10,(sh.rows||[]).length);i++){ const m = mapCsvHeaders(((sh.rows||[])[i]||[]).map(importCellStr)); if(m.genes!==undefined){ const vals = (sh.rows||[]).slice(i+1,i+40).map(r=>importCellStr((r||[])[m.genes])).filter(Boolean); if(vals.length && vals.filter(valueHasKnownReptileGene).length >= Math.ceil(vals.length*0.6)) repStrong = true; break; } } }
+  }catch(e){}
+  if(repStrong) return 'reptile'; // les mots de rongeurs y sont alors des proies, un historique ou un emplacement
+  if(hasRep && !rodStrong) return 'reptile';
+  if(!hasRep && rodStrong) return 'rodent';
+  if(hasRep && rodStrong) return 'doubt';
+  return (ctx && (ctx.fileRodent || ctx.otherRodent)) ? 'doubt' : 'reptile';
+}
+// Une ligne qui ressemble à un rongeur (« Rat - Pinky », « Souris adulte », « ASF ») sans génétique ni espèce de reptile
+// ne va jamais dans les reptiles — retirée, et on le dit.
+function stripRodentRowsFromReptileSheet(sh){
+  const rows = sh.rows || [];
+  let hI = -1, m = null;
+  for(let i=0;i<Math.min(10, rows.length);i++){ const mm = mapCsvHeaders((rows[i]||[]).map(importCellStr)); if(mm.name!==undefined || mm.animalId!==undefined){ hI = i; m = mm; break; } }
+  if(hI<0) return [];
+  const removed = [];
+  const kept = rows.slice(0, hI+1).concat(rows.slice(hI+1).filter(r=>{
+    if(!Array.isArray(r)) return true;
+    if(rowLooksReptile(r)) return true;
+    if(m.genes!==undefined && importCellStr(r[m.genes])) return true;
+    const nameTxt = [m.name, m.animalId, m.species].filter(x=>x!==undefined).map(ix=>importCellStr(r[ix])).join(' ');
+    const rodent = rodentSpeciesOf(nameTxt) || /(^|[^a-z])(pinky|pinkies|fuzzy|fuzzies|hopper|hoppers|weanling|weaned|feeder)([^a-z]|$)/.test(normalizeHeaderKey(nameTxt));
+    if(rodent){ removed.push({ line:r.__line, txt:nameTxt.trim() }); return false; }
+    return true;
+  }));
+  sh.rows = kept;
+  return removed;
+}
+var importDecision = null;
+function askImportKind(doubtSheets, sheets, meta){
+  const isEn = currentLang==='en';
+  importDecision = { sheets, meta, doubt: doubtSheets, choice:{} };
+  renderImportKindQuestion();
+}
+function importKindSet(i, v){ if(!importDecision) return; importDecision.choice[i] = v; renderImportKindQuestion(); }
+function renderImportKindQuestion(){
+  const isEn = currentLang==='en';
+  const d = importDecision; if(!d) return;
+  const preview = sh=>{
+    const rows = (sh.rows||[]).filter(r=>Array.isArray(r) && r.some(c=>importCellStr(c)!=='')).slice(0,4);
+    return '<div style="font-size:12.5px;color:var(--ink-dim);font-family:\'Courier New\',monospace;margin:4px 0 8px;line-height:1.5;">'+rows.map(r=>escapeHtml(r.map(importCellStr).filter(Boolean).slice(0,5).join(' | ').slice(0,90))).join('<br>')+'</div>';
+  };
+  const btn = (i, v, txt)=>'<button type="button" class="sc-btn'+(d.choice[i]===v?' accent':'')+'" style="font-size:15px;padding:9px 12px;flex:1;min-width:110px;" onclick="importKindSet('+i+', \''+v+'\')">'+(d.choice[i]===v?'✓ ':'')+txt+'</button>';
+  let body = '<p style="font-size:15px;line-height:1.45;margin:4px 0 12px;">'+(isEn?'❓ LOCUS isn\'t sure what '+(d.doubt.length>1?'these sheets contain':'this sheet contains')+'. To never mix reptiles and rodents, tell it:':'❓ LOCUS n\'est pas certain de ce que '+(d.doubt.length>1?'contiennent ces feuilles':'contient cette feuille')+'. Pour ne jamais mélanger reptiles et rongeurs, dis-lui :')+'</p>';
+  d.doubt.forEach((sh,i)=>{
+    body += '<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;">📄 <b>'+escapeHtml(sh.n||(isEn?'File':'Fichier'))+'</b>'+preview(sh)+
+      '<div style="font-size:14.5px;margin-bottom:6px;">'+(isEn?'Are you importing reptiles or rodents?':'Est-ce qu\'on importe des reptiles ou des rongeurs ?')+'</div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+btn(i,'reptile',isEn?'🐍 Reptiles':'🐍 Reptiles')+btn(i,'rodent',isEn?'🐭 Rodents':'🐭 Rongeurs')+btn(i,'skip',isEn?'Skip this sheet':'Ignorer cette feuille')+'</div></div>';
+  });
+  const done = d.doubt.every((_,i)=>d.choice[i]);
+  body += '<button type="button" class="save-btn" style="width:100%;font-size:16px;padding:12px;"'+(done?'':' disabled')+' onclick="confirmImportKind()">'+(isEn?'Continue':'Continuer')+'</button>'+
+    '<button type="button" class="sc-btn" style="width:100%;margin-top:6px;" onclick="importDecision=null; closeQuickModal();">'+(isEn?'Cancel':'Annuler')+'</button>';
+  showQuickModal('📥 '+(isEn?'Reptiles or rodents?':'Reptiles ou rongeurs ?'), body);
+}
+function confirmImportKind(){
+  const d = importDecision; if(!d) return;
+  const decided = Object.assign({}, (d.meta && d.meta.decided) || {});
+  d.doubt.forEach((sh,i)=>{ decided[sh.n||('#'+i)] = d.choice[i]; });
+  importDecision = null;
+  closeQuickModal();
+  routeImportSheets(d.sheets, Object.assign({}, d.meta||{}, { decided }));
+}
 // Où commencent les titres + quel type de feuille (null = pas une feuille de rongeurs)
-function rodentSheetInfo(sh, forced){
+function rodentSheetInfo(sh, forced, probe){ // probe (v4.72) : mesurer les signes de rongeurs même si la feuille a aussi des signes de reptile
   const rows = (sh && sh.rows) || [];
   const name = normalizeHeaderKey(sh && sh.n || '');
-  const nameHint = /(rongeur|rodent|souris|mice|mouse|(^|[^a-z])rats?([^a-z]|$)|colonie|colony|feeder|portee|litter|asf|nourricier|repro|reproduction|naissance|breeding|proie|prey|congel|frozen|(^|[^a-z])stocks?([^a-z]|$)|inventaire|inventory)/.test(name);
+  const nameHint = /(rongeur|rodent|souris|mice|mouse|(^|[^a-z])rats?([^a-z]|$)|colonie|colony|feeder|portee|litter|asf|nourricier|repro|reproduction|naissance|breeding|croissance|grow|sevr|proie|prey|congel|frozen|(^|[^a-z])stocks?([^a-z]|$)|inventaire|inventory)/.test(name);
   for(let i=0;i<Math.min(10, rows.length);i++){
     const cells = (rows[i]||[]).map(importCellStr);
     const map = rodentMapHeaders(cells);
@@ -16960,14 +17093,17 @@ function rodentSheetInfo(sh, forced){
     if(n<2) continue;
     const reptile = mapCsvHeaders(cells);
     const reptileSig = reptile.genes!==undefined || reptile.sex!==undefined || reptile.sire!==undefined || reptile.dam!==undefined;
-    if(reptileSig && !nameHint && !forced) return null; // c'est une liste de reptiles
-    if(!forced && isLogSheet(rows) && !nameHint) return null; // historique de repas des reptiles
+    if(reptileSig && !nameHint && !forced && !probe) return null; // c'est une liste de reptiles
+    if(!forced && isLogSheet(rows) && !nameHint && !probe) return null; // historique de repas des reptiles
     // valeurs de la colonne espèce : surtout des rongeurs ?
     const body = rows.slice(i+1, i+30).filter(r=>Array.isArray(r) && r.some(c=>importCellStr(c)!==''));
     let rodentVals = 0, otherVals = 0;
     const spCol = map.species!==undefined ? map.species : (map.size!==undefined ? map.size : (map.bin!==undefined ? map.bin : null)); // v4.66 — « Rat - Pinky » dans la colonne Produit/Taille
     if(spCol!=null) body.forEach(r=>{ const v = importCellStr(r[spCol]); if(!v) return; if(rodentSpeciesOf(v)) rodentVals++; else otherVals++; });
-    const speciesSays = rodentVals>0 && rodentVals>=otherVals;
+    let speciesSays = rodentVals>0 && rodentVals>=otherVals;
+    // v4.70 — pas de colonne Espèce : un mot de rongeur n'importe où dans la ligne (« Rat - Sevré » dans « Type / Taille »)
+    if(!speciesSays && map.species===undefined){ const withRodent = body.filter(r=>r.some(c=>rodentSpeciesOf(importCellStr(c)))).length; speciesSays = withRodent>0 && withRodent>=Math.ceil(body.length/2); }
+    const headerSays = (!reptileSig || probe) && cells.some(c=>/(^|[^a-z])(bac|cage|colonie|portees?|litiere|rongeurs?|croissance|sevres?|lignee)([^a-z]|$)/.test(normalizeHeaderKey(c)));
     const specific = map.ratio!==undefined || map.dateList!==undefined || map.totalBabies!==undefined || map.litterTotal!==undefined || (map.males!==undefined && map.females!==undefined) || map.missing!==undefined || map.transferred!==undefined || map.euthanized!==undefined || map.femaleOrigin!==undefined || map.maleOrigin!==undefined || (map.lineage!==undefined && map.generation!==undefined);
     let kind = null;
     const isBinSheet = (map.bin!==undefined || map.lineage!==undefined || (map.origin!==undefined && map.species!==undefined)) && (map.ratio!==undefined || map.males!==undefined || map.females!==undefined || map.dateList!==undefined || map.totalBabies!==undefined || map.binType!==undefined);
@@ -16978,7 +17114,7 @@ function rodentSheetInfo(sh, forced){
     else if(map.bin!==undefined || map.lineage!==undefined) kind = 'bins';
     if(!kind && nameHint && (map.bin!==undefined || map.lineage!==undefined)) kind = 'bins';
     if(!kind) continue;
-    const isRodent = forced || nameHint || speciesSays || specific || (kind==='litters' && (map.bin!==undefined || map.lineage!==undefined) && !reptile.name && !reptile.animalId);
+    const isRodent = forced || nameHint || speciesSays || specific || headerSays || (kind==='litters' && (map.bin!==undefined || map.lineage!==undefined) && !reptile.name && !reptile.animalId);
     if(!isRodent) return null;
     if(kind==='expenses' && !forced && !nameHint) return null; // une feuille de dépenses générale n'est pas forcément des rongeurs
     return { headerAt:i, map, kind };
@@ -16995,6 +17131,8 @@ function rodentImportDate(raw, order){
 function buildRodentImportPlan(sheets, forced, overrides){
   const isEn = currentLang==='en';
   const plan = { bins:[], litters:[], stock:[], expenses:[], skipped:[], guessedDates:0, sheets:[], notes:[] };
+  sheets.forEach(sh=>{ (sh.rows||[]).slice(0,10).some(r=>Array.isArray(r) && r.some(c=>{ if(rodentHeaderField(importCellStr(c))==='monthStats'){ plan.notes.push(isEn?'« '+importCellStr(c)+' » ignored: monthly figures without dates can\'t become litters (a litter needs its date).':'« '+importCellStr(c)+' » ignoré : des chiffres du mois sans date ne peuvent pas devenir des portées (une portée a besoin de sa date).'); return true; } return false; })); });
+  sheets.forEach(sh=>{ (sh.rows||[]).slice(0,10).some(r=>Array.isArray(r) && r.some(c=>{ const h = normalizeHeaderKey(importCellStr(c)); if(/(^|[^a-z])(cout|couts|cost|costs)([^a-z]|$)/.test(h) && /(mois|month|bac|bin|alimentation|litiere|food|bedding|total)/.test(h)){ plan.notes.push(isEn?'Cost columns per bin ignored (« '+importCellStr(c)+' »…): rodent expenses are noted with a date in « Rodent budget ».':'Colonnes de coûts par bac ignorées (« '+importCellStr(c)+' »…) : les dépenses rongeurs se notent avec une date dans « Budget rongeurs ».'); return true; } return false; })); });
   sheets.forEach(sh=>{ (sh.rows||[]).slice(0,10).some(r=>Array.isArray(r) && r.some(c=>{ if(/(seuil|alerte|threshold|minimum|mini|reorder)/.test(normalizeHeaderKey(importCellStr(c)))){ plan.notes.push(isEn?'« '+importCellStr(c)+' » column ignored: LOCUS warns of low stock at 5 or less for every size.':'Colonne « '+importCellStr(c)+' » ignorée : LOCUS avertit d\'un stock bas à 5 ou moins pour chaque taille.'); return true; } return false; })); });
   const binByKey = {};
   const keyOf = label=>normalizeHeaderKey(label).replace(/[^a-z0-9]+/g,' ').trim();
@@ -17037,7 +17175,12 @@ function buildRodentImportPlan(sheets, forced, overrides){
     const order = m.date!==undefined ? importDateOrder(rows.map(r=>r), m.date) : null;
     rows.forEach(r=>{
       const line = r.__line || null;
-      const sp = rodentSpeciesOf(str(r,'species')) || rodentSpeciesOf(str(r,'bin')) || rodentSpeciesOf(str(r,'size')) || sheetSpecies(sh);
+      // v4.72 — filet : une ligne qui parle d'un reptile n'entre JAMAIS dans les rongeurs
+      if(rowLooksReptile(r)){ plan.skipped.push({ line, sheet:sh.n, why:(isEn?'looks like a reptile (python, boa…) — never imported into the rodents':'ressemble à un reptile (python, boa…) — jamais importé dans les rongeurs') }); return; }
+      // v4.70 — ligne de total (« Coût total opérationnel », « Total ») : pas un bac
+      const firstTxt = normalizeHeaderKey(importCellStr((r||[]).find(c=>importCellStr(c)!=='')));
+      if(/^(total|sous total|sous-total|grand total|cout total|couts totaux|somme|sum|moyenne)/.test(firstTxt)){ plan.notes.push((isEn?'Total row ignored: ':'Ligne de total ignorée : ')+importCellStr((r||[]).find(c=>importCellStr(c)!==''))); return; }
+      const sp = rodentSpeciesOf(str(r,'species')) || rodentSpeciesOf(str(r,'bin')) || rodentSpeciesOf(str(r,'size')) || rodentSpeciesOf(str(r,'binType')) || (r||[]).map(c=>rodentSpeciesOf(importCellStr(c))).find(Boolean) || sheetSpecies(sh);
       if(info.kind==='expenses'){
         const d = rodentImportDate(cell(r,'date'), order), amt = importNumber(cell(r,'amount'));
         if(!d.value || !(amt>0)){ plan.skipped.push({ line, sheet:sh.n, why: !d.value ? (isEn?'date not understood':'date non comprise') : (isEn?'amount missing or not positive':'montant absent ou pas positif') }); return; }
@@ -17056,7 +17199,7 @@ function buildRodentImportPlan(sheets, forced, overrides){
           return;
         }
         if(qty==null || qty<0 || qty>100000){ plan.skipped.push({ line, sheet:sh.n, why:(isEn?'quantity not understood':'quantité non comprise') }); return; }
-        const live = /(vivant|live|alive)/.test(normalizeHeaderKey(str(r,'storage')+' '+str(r,'binType')+' '+str(r,'note'))); // v4.66 — colonne « Type » = congelé/vivant
+        const live = /(vivant|live|alive)/.test(normalizeHeaderKey(str(r,'storage')+' '+str(r,'binType')+' '+str(r,'status')+' '+str(r,'note'))); // v4.66 — colonne « Type » = congelé/vivant
         const k = feederStockKey(pr.preySpecies, pr.preySize);
         const prev = plan.stock.find(x=>x.key===k && x.live===live);
         if(prev) prev.qty += Math.round(qty); else plan.stock.push({ key:k, species:pr.preySpecies, size:pr.preySize, qty:Math.round(qty), live, line });
@@ -17066,36 +17209,45 @@ function buildRodentImportPlan(sheets, forced, overrides){
       // v4.69 — « Lignée Bleue / Standard », « Albinos haute fécondité » : une souche/couleur, pas un code de lignée.
       // Ça ne dit pas si deux bacs sont apparentés → on le demande à l'éleveur (idée d'Alex).
       let strain = null;
-      if(lin && lin.num==null && lin.name && (lin.name.length>8 || /[\s\/]/.test(lin.name))){ strain = lin.name; lin = null; }
+      if(lin && lin.num==null && lin.gen==null && lin.name && lin.name.length>3){ strain = (str(r,'lineage')||lin.name).replace(/^(lign[ée]e|lineage)\s*[:#-]?\s*/i,'').trim(); lin = null; } // v4.71 — « Albinos (PEW) » = souche ; un code court (« A », « B2 ») ou « Nom.1 » reste une lignée
       if(lin && lin.gen==null){ const g = importNumber(cell(r,'generation')); if(g>=1 && g<=50) lin.gen = Math.round(g); }
       const label = str(r,'bin') || (lin ? '' : '');
       const orig = rodentLineageCodeOf(str(r,'origin'));
       const locTxt = str(r,'location');
-      if(orig && orig.num==null && orig.name && (orig.name.length>8 || /[\s\/]/.test(orig.name))){ strain = strain || orig.name; }
+      if(orig && orig.num==null && orig.gen==null && orig.name && orig.name.length>3){ strain = strain || (str(r,'origin')||orig.name).replace(/^(lign[ée]e|lineage)\s*[:#-]?\s*/i,'').trim(); }
       const fileFem = rodentOriginList(cell(r,'femaleOrigin'));
-      const extra = { fileOrigins: fileFem.length>0, strain, locText: locTxt || null, origin: orig, lineage: lin, femaleOrigins: rodentOriginList(cell(r,'femaleOrigin')), maleOrigin: (rodentOriginList(cell(r,'maleOrigin'))[0] ?? null), species: sp, binType: rodentBinTypeOf(str(r,'binType')) || rodentBinTypeOf(label) || ((m.ratio!==undefined || m.males!==undefined) ? 'reproduction' : null), ratio: rodentRatioOf(str(r,'ratio'), cell(r,'males'), cell(r,'females')), room: cleanRoomValue(str(r,'room')) || null };
+      // v4.71 — colonnes d'identifiants : on compte les animaux pour le ratio, et on garde les ID en note
+      const maleIdsTxt = str(r,'maleIds'), femIdsTxt = str(r,'femaleIds');
+      const countIds = t=>t ? t.split(/[,;\/+&]|\s+et\s+/).map(x=>x.trim()).filter(Boolean).length : 0;
+      const idRatio = (countIds(maleIdsTxt) && countIds(femIdsTxt)) ? Math.max(countIds(femIdsTxt),countIds(maleIdsTxt))+':'+Math.min(countIds(femIdsTxt),countIds(maleIdsTxt)) : null;
+      const extra = { fileOrigins: fileFem.length>0, strain, locText: locTxt || null, origin: orig, lineage: lin, femaleOrigins: rodentOriginList(cell(r,'femaleOrigin')), maleOrigin: (rodentOriginList(cell(r,'maleOrigin'))[0] ?? null), species: sp, binType: rodentBinTypeOf(str(r,'binType')) || rodentBinTypeOf(label) || ((m.ratio!==undefined || m.males!==undefined) ? 'reproduction' : null), ratio: rodentRatioOf(str(r,'ratio'), cell(r,'males'), cell(r,'females')) || idRatio, room: cleanRoomValue(str(r,'room')) || null };
       if(info.kind==='bins'){
         if(!label && !lin){ plan.skipped.push({ line, sheet:sh.n, why:(isEn?'no bin name or lineage':'pas de nom de bac ni de lignée') }); return; }
         if(lin || extra.femaleOrigins.length || extra.maleOrigin!=null) extra.binType = extra.binType || 'reproduction';
+        if(!extra.binType && m.quantity!==undefined && importNumber(cell(r,'quantity'))>0 && m.ratio===undefined) extra.binType = 'stock'; // v4.70 — bac de croissance (quantité, pas de ratio)
         const b = getBin(label, extra, line);
         if(m.quantity!==undefined && str(r,'quantity')!==''){
           const q = importNumber(cell(r,'quantity'));
           if(q>0){
             // v4.65 — un lot de stock a besoin d'une vraie date de référence (le stade est recalculé depuis elle) :
             // stade déclaré (colonne Taille/Stade) → date équivalente ; sinon date de naissance ; sinon on n'invente rien
-            const stageKey = rodentStageKeyOf(str(r,'size'));
-            const bd = m.date!==undefined ? rodentImportDate(cell(r,'date'), order) : { value:null };
+            const stageKey = rodentStageKeyOf(str(r,'size')) || rodentStageKeyOf(str(r,'binType'));
+            const dateHead = m.date!==undefined ? normalizeHeaderKey(importCellStr((sh.rows[info.headerAt]||[])[m.date])) : '';
+            const isBirth = /(naiss|birth|born|dob|ne le|nes le|date de naissance)/.test(dateHead); // v4.71 — « Date entrée » n'est PAS une naissance
+            const bd = (m.date!==undefined && isBirth) ? rodentImportDate(cell(r,'date'), order) : { value:null };
             const ref = stageKey ? rodentReferenceDateForStartingStage(stageKey) : (bd.value || null);
             if(ref) (b.stockBatches = b.stockBatches || []).push({ quantity:Math.round(q), referenceDate:ref, how: stageKey ? 'stage' : 'birth' });
-            else plan.skipped.push({ line, sheet:sh.n, why:(isEn?'stock quantity without a stage or birth date (the stage would be wrong) — add it in the bin: ':'quantité de stock sans stade ni date de naissance (le stade serait faux) — à ajouter dans le bac : ')+(label||'?')+' ('+Math.round(q)+')' });
+            else plan.skipped.push({ line, sheet:sh.n, why:(isEn?'stock quantity without a known stage or birth date (the stage would be wrong) — add it in the bin: ':'quantité de stock sans stade connu ni date de naissance (le stade serait faux) — à ajouter dans le bac : ')+(label||'?')+' ('+Math.round(q)+(str(r,'size')||str(r,'binType') ? ', « '+(str(r,'size')||str(r,'binType'))+' » '+(isEn?'not a stage LOCUS knows':'n\'est pas un stade connu de LOCUS') : '')+')' });
           }
         }
         // v4.63 — note de lignée et évaluation gardées en note
         const isStockRow = (extra.binType||rodentBinTypeOf(str(r,'binType')))==='stock';
-        const notes = [strain ? (isStockRow ? strain : (isEn?'Strain: ':'Souche : ')+strain) : '', lin && lin.note, orig && orig.note, str(r,'rating') ? (isEn?'Rating: ':'Évaluation : ')+str(r,'rating') : '', str(r,'note')].filter(Boolean);
+        if(/(repos|rest|pause|inactif|inactive)/.test(normalizeHeaderKey(str(r,'status')))) b.resting = true; // v4.71 — « Repos » = mâle retiré (comme le bouton de l'app)
+        if(m.date!==undefined && !isStockRow){ const fd = rodentImportDate(cell(r,'date'), order); if(fd.value) b.foundedDate = fd.value; } // « Date mise en bac » = fondation
+        const notes = [maleIdsTxt ? (isEn?'Male: ':'Mâle : ')+maleIdsTxt : '', femIdsTxt ? (isEn?'Females: ':'Femelles : ')+femIdsTxt : '', strain ? (isStockRow ? strain : (isEn?'Strain: ':'Souche : ')+strain) : '', lin && lin.note, orig && orig.note, str(r,'rating') ? (isEn?'Rating: ':'Évaluation : ')+str(r,'rating') : '', str(r,'note')].filter(Boolean);
         if(notes.length) b.note = [b.note].concat(notes).filter(Boolean).join(' — ').slice(0,200);
         // v4.63 — dates de portées dans une seule case + total de bébés : une portée par date, le total réparti
-        const dcol = m.dateList!==undefined ? 'dateList' : ((m.date!==undefined && (b.binType||extra.binType)!=='stock' && m.quantity===undefined) ? 'date' : null); // v4.65 — pour un bac Stock, la date = naissance du lot, pas des portées
+        const dcol = m.dateList!==undefined ? 'dateList' : ((m.date!==undefined && (b.binType||extra.binType)!=='stock' && m.quantity===undefined && (m.totalBabies!==undefined || m.average!==undefined)) ? 'date' : null); // v4.65 — pour un bac Stock, la date = naissance du lot, pas des portées
         if(dcol){
           const parts = str(r, dcol).split(/[,;|\n]+|\s+(?:et|and)\s+/).map(x=>x.trim()).filter(Boolean);
           const dates = [], bad = [];
@@ -17249,8 +17401,9 @@ function openRodentImport(sheets, continueFn, opts){
     if(continueFn) continueFn();
     return;
   }
-  const forcedAll = !!opts.forced || sheets.some(sh=>{ try{ return !rodentSheetInfo(sh,false) && looksLikePreySheet(sh); }catch(e){ return false; } });
-  rodentImport = { sheets, forced: forcedAll, overrides:{}, continueFn, defaultSpecies:'mouse', autoPlace:true };
+  const forcedAll = !!opts.forced || sheets.some(sh=>{ try{ return !rodentSheetInfo(sh,false); }catch(e){ return false; } }); // v4.70 — une feuille jointe aux rongeurs est lue comme rongeurs
+  const fileSp = rodentSpeciesOf(String(opts.fileName||'').replace(/\.[a-z0-9]+$/i,'').replace(/[_\-.]+/g,' ')); // v4.71 — « suivi_elevage_rats » → rat
+  rodentImport = { sheets, forced: forcedAll, overrides:{}, continueFn, defaultSpecies: fileSp || 'mouse', fileSpecies: fileSp || null, autoPlace:true };
   rodentImport.plan = buildRodentImportPlan(sheets, forcedAll, rodentImport.overrides);
   renderRodentImport();
 }
@@ -17299,6 +17452,7 @@ function renderRodentImport(){
       ? (isEn?'Lineage ':'Lignée ')+escapeHtml(String(c.b.lineageNumber))+(isEn?': the male\'s lineage ('+c.b.maleOrigin+') is not in LOCUS or in the file — check it.':' : la lignée du mâle ('+c.b.maleOrigin+') n\'est ni dans LOCUS ni dans le fichier — à vérifier.')
       : (isEn?'Inbreeding risk — lineage ':'Risque de consanguinité — lignée ')+escapeHtml(String(c.b.lineageNumber))+(isEn?': the male (lineage '+c.b.maleOrigin+') shares a lineage with the females.':' : le mâle (lignée '+c.b.maleOrigin+') partage une lignée avec les femelles.'))+'</div>'; });
   newBins.filter(b=>b.renumbered).forEach(b=>{ body += '<div style="font-size:13px;color:var(--gold);margin-bottom:4px;">↪ '+(isEn?'Lineage '+b.renumbered+' could not keep its number — it becomes '+b.lineageNumber+'.':'La lignée '+b.renumbered+' ne pouvait pas garder son numéro — elle devient '+b.lineageNumber+'.')+'</div>'; });
+ if(missingSp && ri.fileSpecies) body += '<div style="font-size:13.5px;color:var(--ink-dim);margin-bottom:4px;">ℹ️ '+(isEn?'No species column: species taken from the file name (':'Pas de colonne Espèce : espèce tirée du nom du fichier (')+rodentSpeciesIconLabel(ri.fileSpecies, isEn)+') — '+(isEn?'change it below if needed.':'change-la plus bas au besoin.')+'</div>';
   if(missingSp) body += '<div class="warn" style="margin-bottom:8px;font-size:14px;">'+missingSp+(isEn?' bin(s) without a species in the file. Use: ':' bac(s) sans espèce dans le fichier. Utiliser : ')+
     '<select onchange="rodentImportSetDefaultSpecies(this.value)" style="font-size:15px;padding:6px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+['mouse','rat','asf'].map(sp=>'<option value="'+sp+'"'+(ri.defaultSpecies===sp?' selected':'')+'>'+spName(sp)+'</option>').join('')+'</select></div>';
   if(newBins.length){
@@ -17358,9 +17512,10 @@ async function confirmRodentImport(){
       const gen = b.lineageGeneration || 1;
       bin = { id:'rb_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), label:b.label, binType:'reproduction', species, ratio:b.ratio||'2:1', room:b.room||null, litters:[],
         lineageNumber:b.lineageNumber, lineageGeneration:gen, lineageLetter:b.lineageLetter||null, lineageCustomName:b.lineageCustomName||null, rackId:null, row:null, col:null,
-        lineageHistory:[{ generation:gen, letter:b.lineageLetter||null, date:localTodayStr(), reason:(isEn?'Imported':'Importé'), linkedToPrevious:null }],
+        lineageHistory:[{ generation:gen, letter:b.lineageLetter||null, date:b.foundedDate||localTodayStr(), reason:(isEn?'Imported':'Importé'), linkedToPrevious:null }],
         cumulativeFootprint: b.cumulativeFootprint||[], notIndependentNote:b.note||null, maleOrigin: b.maleOrigin!=null ? b.maleOrigin : null }; // v4.62 — lignée du fichier
     }
+    if(b.resting && bin.binType==='reproduction'){ bin.maleRemovedDate = localTodayStr(); bin.maleRemovedNote = (isEn?'Rest (imported)':'Repos (importé)'); }
     rodentBins.push(bin); b.target = bin; nb++;
   });
   // v4.67 — placement sur les racks de rongeurs
@@ -17399,12 +17554,12 @@ function openRodentImportPicker(){
 }
 function handleRodentImportFile(input){
   const file = input.files && input.files[0]; if(!file) return;
-  readImportFileAsRows(file, (sheets)=>{
+  readImportFileAsRows(file, (sheets, meta)=>{
     input.value = '';
     const nonEmpty = (sheets||[]).filter(sh=>(sh.rows||[]).some(r=>Array.isArray(r) && r.some(c=>importCellStr(c)!=='')));
     nonEmpty.forEach(sh=>(sh.rows||[]).forEach((r,i)=>{ if(Array.isArray(r)) r.__line = i+1; }));
     if(!nonEmpty.length){ alert(currentLang==='en'?'Empty file.':'Fichier vide.'); return; }
-    openRodentImport(nonEmpty, null, { forced:true });
+    openRodentImport(nonEmpty, null, { forced:true, fileName: meta && meta.fileName });
   });
 }
 function routeImportSheets(sheets, meta){
@@ -17421,15 +17576,28 @@ function routeImportSheets(sheets, meta){
     const sexy = sample.filter(r=>/^(m|f|male|female|male|femelle|mâle|1\.0|0\.1)$/i.test(importCellStr(r[1]))).length;
     if(sample.length && sexy>=Math.ceil(sample.length/2) && sample.every(r=>r.filter(c=>importCellStr(c)!=='').length<=3)){ sh.rows = [['Nom','Sexe','Génétique']].concat(sh.rows); sh.quick = true; }
   });
-  // v4.61 — feuilles de rongeurs (même Excel) : importées d'abord, puis on continue avec les reptiles
+  // v4.61 → v4.72 — chaque feuille est classée reptiles / rongeurs / doute ; en cas de doute on DEMANDE
   if(!(meta && meta.skipRodent)){
-    const rod = nonEmpty.filter(sh=>{ try{ return !!rodentSheetInfo(sh, false) || looksLikePreySheet(sh); }catch(e){ return false; } });
+    const decided = (meta && meta.decided) || {};
+    const fileRodent = !!rodentSpeciesOf(String((meta && meta.fileName)||'').replace(/\.[a-z0-9]+$/i,'').replace(/[_\-.]+/g,' '));
+    const first = nonEmpty.map(sh=>decided[sh.n||''] || classifyImportSheet(sh, { fileRodent, otherRodent:false }));
+    const otherRodent = first.includes('rodent');
+    const kinds = nonEmpty.map((sh,i)=>decided[sh.n||''] || (first[i]==='reptile' && otherRodent ? classifyImportSheet(sh, { fileRodent, otherRodent:true }) : first[i]));
+    const doubt = nonEmpty.filter((sh,i)=>kinds[i]==='doubt');
+    if(doubt.length){ askImportKind(doubt, sheets, meta||{}); return; }
+    const rod = nonEmpty.filter((sh,i)=>kinds[i]==='rodent');
+    const rest = nonEmpty.filter((sh,i)=>kinds[i]==='reptile');
+    if(!rod.length && !rest.length){ showToast(isEn?'Nothing to import.':'Rien à importer.', 'error'); return; }
     if(rod.length){
-      const rest = nonEmpty.filter(sh=>!rod.includes(sh));
-      openRodentImport(rod, rest.length ? ()=>routeImportSheets(rest, Object.assign({}, meta||{}, { skipRodent:true })) : null);
+      openRodentImport(rod, rest.length ? ()=>routeImportSheets(rest, Object.assign({}, meta||{}, { skipRodent:true })) : null, { fileName: meta && meta.fileName, userChoseRodent: rod.some(sh=>decided[sh.n||'']==='rodent') });
       return;
     }
+    if(rest.length!==nonEmpty.length){ routeImportSheets(rest, Object.assign({}, meta||{}, { skipRodent:true })); return; }
   }
+  // v4.72 — filet : aucune ligne de rongeur dans les reptiles
+  const strippedRodent = [];
+  nonEmpty.forEach(sh=>{ try{ strippedRodent.push(...stripRodentRowsFromReptileSheet(sh)); }catch(e){} });
+  if(strippedRodent.length) setTimeout(()=>showToast('🐭 '+strippedRodent.length+(isEn?' row(s) that look like rodents were kept out of the reptiles (line ':' ligne(s) qui ressemblent à des rongeurs gardée(s) hors des reptiles (ligne ')+strippedRodent.slice(0,6).map(x=>x.line).join(', ')+(strippedRodent.length>6?'…':'')+').', 'error'), 600);
   const logs = nonEmpty.filter(sh=>isLogSheet(sh.rows));
   const lists = nonEmpty.filter(sh=>!logs.includes(sh) && sh.rows.slice(0,10).some(r=>{ const mm = mapCsvHeaders((r||[]).map(importCellStr)); return mm.name!==undefined || mm.animalId!==undefined; }));
   // v4.26 — feuille « mixte » : une ligne par repas, mais chaque ligne décrit aussi l'animal (sexe, espèce, génétique…).
