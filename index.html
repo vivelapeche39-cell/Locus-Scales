@@ -2233,7 +2233,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.54';
+const APP_VERSION = '2026.09.01.4.58';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4596,6 +4596,7 @@ const storage = {
     }catch(e){
       console.warn('LOCUS: écriture localStorage impossible (mode privé / quota dépassé)', e);
       storageWriteFailed = true;
+      noteStorageError('snakes', e); // v4.55
     }
     updateStorageBanner();
     if(typeof mirrorSnakesRemote==='function') mirrorSnakesRemote();
@@ -4606,6 +4607,13 @@ const storage = {
 // Estimation grossière (mais suffisante pour une alerte) de l'espace localStorage utilisé par LOCUS,
 // comparée à un budget prudent — les navigateurs varient (souvent 5-10 Mo/origine), donc on prévient tôt.
 const STORAGE_BUDGET_BYTES = 5*1024*1024;
+// v4.55 — garde la vraie erreur d'écriture : avant, toute erreur s'affichait « quota dépassé ».
+function storageLastErrorRef(){ if(!window.__locusStorageErr) window.__locusStorageErr = { last:null }; return window.__locusStorageErr; }
+function isQuotaError(e){ return !!e && (e.name==='QuotaExceededError' || e.name==='NS_ERROR_DOM_QUOTA_REACHED' || e.code===22 || e.code===1014); }
+function noteStorageError(where, e){
+  let used = 0; try{ used = estimateStorageBytes(); }catch(_){}
+  storageLastErrorRef().last = { where, name: (e && e.name) || 'Error', msg: String((e && e.message) || e || '').slice(0,200), quota: isQuotaError(e), at: new Date().toLocaleString(), usedKB: Math.round(used/1024) };
+}
 function estimateStorageBytes(){
   let total = 0;
   try{
@@ -4629,7 +4637,16 @@ function updateStorageBanner(){
   }
 
   if(!banner) return;
-  if(storageWriteFailed){
+  const lastErr = storageLastErrorRef().last;
+  if(storageWriteFailed && lastErr && !lastErr.quota){
+    // v4.55 — pas un manque d'espace : on montre l'erreur réelle (pour le support) au lieu de « quota dépassé »
+    banner.className = 'storage-banner critical';
+    banner.innerHTML = (isEn
+      ? '⚠ <b>Local save failed</b> ('+(lastErr.where==='elevage'?'racks/breeding':'reptiles')+') — not a lack of space ('+lastErr.usedKB+' KB used). Your data on the server is not affected. Error: <code>'+escapeHtml(lastErr.name+': '+lastErr.msg)+'</code> — send a screenshot of this message to support. '
+      : '⚠ <b>Échec de sauvegarde locale</b> ('+(lastErr.where==='elevage'?'racks/élevage':'reptiles')+') — ce n\'est pas un manque d\'espace ('+lastErr.usedKB+' Ko utilisés). Tes données sur le serveur ne sont pas touchées. Erreur : <code>'+escapeHtml(lastErr.name+' : '+lastErr.msg)+'</code> — envoie une capture de ce message au support. ')+
+      '<button class="sc-btn" onclick="exportBackup()">💾 '+(isEn?'Export now':'Exporter maintenant')+'</button>';
+    banner.style.display = 'flex';
+  } else if(storageWriteFailed){
     banner.className = 'storage-banner critical';
     banner.innerHTML = isEn
       ? '⚠ <b>Local save failed</b> — the last change was probably not saved (storage quota exceeded). <b>Export your backup now</b> to avoid losing anything, then remove a few photos if needed. <button class="sc-btn" onclick="exportBackup()">💾 Export now</button>'
@@ -5246,6 +5263,46 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.58', date:'2026-10-22',
+    title:{ fr:'Proie habituelle gardée après reconnexion', en:'Usual prey kept after signing back in' },
+    changes:{
+      fr:[ '🐭 La proie habituelle tirée du dernier repas (4.54) se remplissait seulement au démarrage, avant la synchronisation : après une déconnexion/reconnexion, les fiches arrivées du serveur restaient sans proie. Elle se remplit maintenant aussi après chaque synchronisation, et elle est envoyée au serveur pour ne plus se perdre.' ],
+      en:[ '🐭 The usual prey taken from the last meal (4.54) was only filled at startup, before syncing: after signing out and back in, sheets coming from the server stayed without prey. It is now also filled after every sync, and sent to the server so it is not lost again.' ]
+    }
+  },
+  { version:'4.57', date:'2026-10-22',
+    title:{ fr:'Récupérer les rongeurs d\'une copie', en:'Recover rodents from a copy' },
+    changes:{
+      fr:[
+        '🐭 Configuration › 🛟 Copies automatiques : chaque copie qui contient des rongeurs a un bouton « Récupérer seulement les rongeurs » — reprend les bacs, racks de rongeurs, dépenses et objectif de cette copie sans toucher aux reptiles, racks ni au reste.',
+        '🛡️ Sécurité : si le chargement de l\'app ne va pas au bout, LOCUS n\'enregistre plus et n\'envoie plus de données à moitié chargées (c\'est ce qui a pu vider la liste de rongeurs).'
+      ],
+      en:[
+        '🐭 Settings › 🛟 Automatic copies: each copy that contains rodents has a « Get back the rodents only » button — takes back that copy\'s bins, rodent racks, expenses and goal without touching reptiles, racks or anything else.',
+        '🛡️ Safety: if the app doesn\'t finish loading, LOCUS no longer saves or sends half-loaded data (that is what could empty the rodent list).'
+      ]
+    }
+  },
+  { version:'4.56', date:'2026-10-22',
+    title:{ fr:'Correctif : racks vides après une mise à jour', en:'Fix: empty racks after an update' },
+    changes:{
+      fr:[
+        '🐛 Depuis la 4.45, rouvrir l\'app (ou passer à une nouvelle version) avec des animaux placés dans des racks pouvait arrêter le chargement : racks et Mode Tournée vides jusqu\'à une déconnexion. C\'est corrigé — tes animaux restent dans leurs bacs. Probablement aussi la cause du faux message « quota de stockage dépassé ».',
+        '🗄️ Le « Rack 1 » vide créé automatiquement sur un appareil neuf ne s\'ajoute plus à tes vrais racks quand tu te connectes.'
+      ],
+      en:[
+        '🐛 Since 4.45, reopening the app (or moving to a new version) with animals placed in racks could stop the loading: racks and Tour mode empty until signing out. Fixed — your animals stay in their tubs. Probably also the cause of the false « storage quota exceeded » message.',
+        '🗄️ The empty « Rack 1 » created automatically on a new device is no longer added to your real racks when you sign in.'
+      ]
+    }
+  },
+  { version:'4.55', date:'2026-10-22',
+    title:{ fr:'Message d\'échec de sauvegarde plus précis', en:'Clearer save-failure message' },
+    changes:{
+      fr:[ '💾 Quand une sauvegarde locale échoue, LOCUS dit maintenant si c\'est vraiment un manque d\'espace ou une autre erreur (avec le texte exact de l\'erreur, aussi visible dans ☰ › Configuration › Espace de stockage). Avant, toute erreur s\'affichait « quota de stockage dépassé ».' ],
+      en:[ '💾 When a local save fails, LOCUS now says whether it really is a lack of space or another error (with the exact error text, also shown in ☰ › Settings › Storage space). Before, any error showed « storage quota exceeded ».' ]
+    }
+  },
   { version:'4.54', date:'2026-10-22',
     title:{ fr:'Proie habituelle tirée de l\'historique', en:'Usual prey taken from the history' },
     changes:{
@@ -7505,6 +7562,7 @@ function openStorageDetails(){
     '<div class="modal-row"><span>'+(isEn?'Saved reptiles':'Reptiles enregistrés')+'</span><span>'+savedSnakes.length+'</span></div>'+
     '<div class="modal-row"><span>'+(isEn?'Total photos':'Photos totales')+'</span><span>'+photoCount+'</span></div>'+
     storageKeysBreakdownHtml(isEn)+ // v4.53 — ce qui prend de la place, clé par clé
+    (function(){ const le = storageLastErrorRef().last; return le ? '<div class="warn" style="margin-top:10px;font-size:13px;">'+(isEn?'Last save error: ':'Dernière erreur d\'écriture : ')+escapeHtml(le.at+' — '+(le.where==='elevage'?(isEn?'racks/breeding':'racks/élevage'):(isEn?'reptiles':'reptiles'))+' — '+le.name+' : '+le.msg)+'</div>' : ''; })()+
     '<p style="font-size:11.5px;color:var(--ink-dim);line-height:1.6;margin:14px 0 0;">'+(isEn
       ? 'Estimate based on a safe budget of '+budgetMB+' MB — the real limit varies by browser (often 5-10 MB). This stays local to this device/browser: export regularly so you never lose anything.'
       : 'Estimation basée sur un budget prudent de '+budgetMB+' Mo — la limite réelle varie selon le navigateur (souvent 5-10 Mo). Ceci reste local à cet appareil/navigateur : exporte régulièrement pour ne rien perdre.')+'</p>'+
@@ -7593,7 +7651,7 @@ var editingId = null;
 // addClutch() : on ne peut pas juste passer un paramètre puisque le formulaire de ponte est un
 // formulaire HTML classique, pas un appel de fonction direct.
 var pendingPairingIdForClutch = null;
-updateStorageBanner();
+try{ updateStorageBanner(); }catch(e){ console.warn('LOCUS', e); }
 
 function defaultStatus(gene){
   if(gene.type==='unknown') return 'present';
@@ -10219,7 +10277,8 @@ function renderSavedList(){
     });
   });
 }
-renderSavedList();
+// v4.56 — un plantage d'affichage ici arrêtait TOUT le reste du chargement (racks vides, Mode Tournée vide…)
+try{ renderSavedList(); }catch(e){ console.warn('LOCUS: affichage initial de Mes reptiles reporté', e); }
 
 // Détecte un retour depuis l'onboarding Stripe Connect (voir startStripeConnectOnboarding).
 // Note : ceci confirme seulement que l'éleveur est revenu du flux Stripe, pas que
@@ -11310,7 +11369,7 @@ function renderEggCountOptions(){
     sel.appendChild(opt);
   }
 }
-renderEggCountOptions();
+try{ renderEggCountOptions(); }catch(e){ console.warn('LOCUS', e); }
 (function(){
   const sel = document.getElementById('egg-count');
   sel.addEventListener('change', ()=>{ if(lastDistributions.length){ simulateClutch(); updateActualTotal(); } });
@@ -13974,6 +14033,9 @@ function loadElevage(){
   }catch(e){ console.warn('LOCUS: lecture élevage impossible', e); return { racks:[{id:'rack_1', name:'Rack 1', rows:[8,8,8,8]}], terrariums:[], pairings:[], layout:{...DEFAULT_LAYOUT}, clutches:[], expenses:[], customers:[], customEvents:[], projects:[], feederStock:{}, feederStockLive:{}, todos:[], rodentBins:[], rodentExpenses:[], rodentValuePerUnit:null, feederPrices:{}, rodentPriorityBins:{}, rodentRacks:[{id:'rrack_1', name:'Rack 1', rows:[8,8]}], rodentGoal:{unit:'females',target:null,mode:'expansion'}, dreamSnakes:[] }; }
 }
 function saveElevage(){
+  // v4.57 — si le chargement n'est pas allé au bout, ces variables sont encore vides : écrire maintenant
+  // effacerait des données (c'est ce qui a vidé la liste de rongeurs le 22 oct). On n'écrit pas.
+  if(typeof elevageStateReady!=='function' || !elevageStateReady()){ console.warn('LOCUS: sauvegarde élevage ignorée — chargement incomplet'); return; }
   if(typeof scheduleMilestoneCheck==='function') scheduleMilestoneCheck(); // v3.86
   trackLocalChanges('racks', racks);
   trackLocalChanges('terrariums', terrariums);
@@ -13987,6 +14049,7 @@ function saveElevage(){
   }catch(e){
     console.warn('LOCUS: écriture élevage impossible', e);
     storageWriteFailed = true;
+    noteStorageError('elevage', e); // v4.55
   }
   updateStorageBanner();
   if(typeof mirrorSnakesRemote==='function') mirrorSnakesRemote();
@@ -14803,6 +14866,8 @@ async function synchroniserAvecServeur(){
 
     if(remoteHasData){
       await pullAllUserData();
+      // v4.58 — les fiches arrivées du serveur reçoivent aussi leur proie habituelle (dernier repas noté), puis on l'envoie
+      try{ if(backfillPreyDefaults()>0) await pushAllUserData(); }catch(e){ console.warn('LOCUS: proie par défaut après synchro', e); }
       showToast('☁️ '+(currentLang==='en'?'Data refreshed from server.':'Données récupérées depuis le serveur.'), 'success');
     } else if(localHasData){
       await pushAllUserData(true); // 1ère connexion : rien n'est encore marqué "modifié", faut tout pousser
@@ -14979,8 +15044,12 @@ async function pushKindRows(kind, arr, forceAll, toRow){
   markPushed(kind, sent);
   return true;
 }
+function elevageStateReady(){ // v4.57
+  try{ return racks!==undefined && terrariums!==undefined && rodentBins!==undefined && rodentRacks!==undefined && seasonPlans!==undefined && snakeGroups!==undefined && dreamSnakes!==undefined && customEvents!==undefined; }catch(e){ return false; }
+}
 async function pushAllUserData(forceAll){
   if(!sb || !currentUser) return false;
+  if(!elevageStateReady()){ console.warn('LOCUS: envoi reporté — chargement incomplet'); return false; } // v4.57 — jamais envoyer un état à moitié chargé
   if(offlineIdentity){ syncPushFailed = true; updateSyncPill(); if(!isDeviceOffline()) tryRecoverSession(); return false; }
   if(isDeviceOffline()){ syncPushFailed = true; updateSyncPill(); return false; }
   var allOk = true;
@@ -15085,6 +15154,8 @@ async function pullAllUserData(){
     if(racksRes.data && racksRes.data.length){
       const remoteRacks = racksRes.data.map(r=>({ id:r.id, name:r.name, rows:r.rows, heating:r.heating||null, tubCleanings:r.tub_cleanings||{}, tubWaterChanges:r.tub_water_changes||{}, room:r.room||null, order:(r.sort_order!=null?r.sort_order:null), hidden:!!r.hidden, updatedAt: r.updated_at?Date.parse(r.updated_at):0 }));
       racks = mergeById(racks, remoteRacks, 'racks');
+      // v4.56 — le « Rack 1 » vide créé par défaut sur un appareil sans données ne doit pas s'ajouter aux vrais racks du compte
+      racks = racks.filter(r=>!(r.id==='rack_1' && !remoteRacks.some(x=>x.id==='rack_1') && r.name==='Rack 1' && !savedSnakes.some(s=>s.placement && s.placement.mode==='rack' && s.placement.rackId==='rack_1') && !Object.keys(r.tubCleanings||{}).length));
       markSynced('racks', remoteRacks);
     }
     if(terrariumsRes.data && terrariumsRes.data.length){
@@ -15315,6 +15386,34 @@ async function lbkRestore(ts){
   closeQuickModal();
   alert(isEn ? ('Copy restored: ' + savedSnakes.length + ' reptile(s).') : ('Copie restaurée : ' + savedSnakes.length + ' reptile(s).'));
 }
+// v4.57 — ne reprend QUE les rongeurs d'une copie (bacs, racks de rongeurs, dépenses, priorités, objectif),
+// sans toucher aux reptiles, racks ni au reste. Les bacs déjà présents sont gardés (fusion par id).
+async function lbkRestoreRodents(ts){
+  var isEn = currentLang === 'en';
+  var rec = await lbkGet(ts); if(!rec) return;
+  var data; try{ data = JSON.parse(rec.payload); }catch(e){ alert(isEn?'This copy is unreadable.':'Cette copie est illisible.'); return; }
+  var el = data.elevage || {};
+  var bins = Array.isArray(el.rodentBins) ? el.rodentBins : [];
+  if(!bins.length){ showToast(isEn?'No rodents in this copy.':'Aucun rongeur dans cette copie.', 'error'); return; }
+  if(!confirm(isEn ? ('Get back the '+bins.length+' rodent bin(s) from the copy of '+lbkFmtDate(ts)+'? Your reptiles, racks and everything else stay as they are.') : ('Récupérer les '+bins.length+' bac(s) de rongeurs de la copie du '+lbkFmtDate(ts)+' ? Tes reptiles, racks et tout le reste ne changent pas.'))) return;
+  await lbkTake('safety', true);
+  rodentBins = mergeById(rodentBins || [], bins);
+  if(Array.isArray(el.rodentExpenses)) rodentExpenses = mergeById(rodentExpenses || [], el.rodentExpenses);
+  if(Array.isArray(el.rodentRacks) && el.rodentRacks.length){
+    const isDefault = !rodentRacks || !rodentRacks.length || (rodentRacks.length===1 && rodentRacks[0].id==='rrack_1' && rodentRacks[0].name==='Rack 1' && !rodentBins.some(b=>b && b.rackId==='rrack_1' && !bins.some(x=>x.id===b.id)));
+    rodentRacks = isDefault ? el.rodentRacks : mergeById(rodentRacks, el.rodentRacks);
+  }
+  if(el.rodentPriorityBins && typeof el.rodentPriorityBins==='object') rodentPriorityBins = Object.assign({}, el.rodentPriorityBins, rodentPriorityBins || {});
+  if(el.rodentGoal && (!rodentGoal || rodentGoal.target==null)) rodentGoal = el.rodentGoal;
+  if(el.rodentValuePerUnit!=null && rodentValuePerUnit==null) rodentValuePerUnit = el.rodentValuePerUnit;
+  saveElevage();
+  try{ saveAppStatePushedAt(0); }catch(e){}
+  try{ if(currentUser) pushAllUserData(); }catch(e){}
+  try{ renderRodentRackGrid(); }catch(e){}
+  try{ renderRodentBins(); }catch(e){}
+  closeQuickModal();
+  showToast('🐭 '+bins.length+(isEn?' rodent bin(s) recovered.':' bac(s) de rongeurs récupéré(s).'), 'success');
+}
 async function lbkManualNow(){
   var isEn = currentLang === 'en';
   var ok = await lbkTake('auto', true);
@@ -15325,6 +15424,8 @@ async function openAutoBackups(){
   var isEn = currentLang === 'en';
   var rows = [], failed = false;
   try{ rows = await lbkList(); }catch(e){ failed = true; }
+  // v4.57 — compte les bacs de rongeurs de chaque copie (pour pouvoir les récupérer seuls)
+  for(const r of rows){ try{ const rec = await lbkGet(r.ts); const d = JSON.parse(rec.payload); r.rodentBins = ((d.elevage && d.elevage.rodentBins) || []).length; }catch(e){ r.rodentBins = 0; } }
   var body = '<p style="font-size:11.5px;color:var(--ink-dim);line-height:1.6;margin:0 0 12px;">' + (isEn
     ? 'LOCUS automatically keeps the last 5 full copies of your data on this device (at most one every 6 hours, only when something changed). They don\'t depend on cloud sync. To keep a copy outside this device, download it.'
     : 'LOCUS garde automatiquement sur cet appareil les 5 dernières copies complètes de tes données (une aux 6 h au plus, seulement si quelque chose a changé). Elles ne dépendent pas de la synchro cloud. Pour garder une copie hors de cet appareil, télécharge-la.') + '</p>';
@@ -15342,7 +15443,9 @@ async function openAutoBackups(){
         '<div style="display:flex;gap:8px;">' +
           '<button class="sc-btn" style="flex:1;" onclick="lbkDownload(' + r.ts + ')">⬇️ ' + (isEn ? 'Download' : 'Télécharger') + '</button>' +
           '<button class="sc-btn" style="flex:1;" onclick="lbkRestore(' + r.ts + ')">↩️ ' + (isEn ? 'Restore' : 'Restaurer') + '</button>' +
-        '</div></div>';
+        '</div>' +
+        (r.rodentBins ? '<button class="sc-btn accent" style="width:100%;margin-top:6px;" onclick="lbkRestoreRodents(' + r.ts + ')">🐭 ' + (isEn ? 'Get back the rodents only (' + r.rodentBins + ' bin(s))' : 'Récupérer seulement les rongeurs (' + r.rodentBins + ' bac(s))') + '</button>' : '') +
+        '</div>';
     });
   }
   body += '<button class="sc-btn accent" style="width:100%;margin-top:6px;" onclick="lbkManualNow()">🛟 ' + (isEn ? 'Make a copy now' : 'Faire une copie maintenant') + '</button>';
@@ -17986,7 +18089,7 @@ function confirmRackDimensions(){
   const n = rackOverflowSnakes(rack).length;
   showToast('📐 '+(isEn?'Rack resized.':'Rack redimensionné.')+(n ? (isEn?' '+n+' animal(s) to move.':' '+n+' animal(s) à déplacer.') : ''), n?'':'success');
 }
-function getRack(rackId){ return racks.find(r=>r.id===rackId); }
+function getRack(rackId){ return (racks||[]).find(r=>r.id===rackId); } // v4.56 — racks peut être encore undefined au tout début du chargement
 // v4.12 — vraie alerte de perte de poids (gratuit, règle choisie par Alex le 21 oct) : la dernière
 // pesée (par DATE, pas par ordre d'entrée) est au moins 10 % sous le poids le plus haut des 60 jours
 // d'avant. Comparer au plus haut évite la fausse alerte d'un repas digéré (une proie ≈ 10 % du
@@ -22336,7 +22439,7 @@ function resolveFieldValue(selectId, customInputId, kind){
   return sel || null;
 }
 
-function getTerrarium(id){ return terrariums.find(te=>te.id===id); }
+function getTerrarium(id){ return (terrariums||[]).find(te=>te.id===id); } // v4.56
 function terrariumOccupants(terrariumId){
   return savedSnakes.filter(s=>{ ensureSnakeMeta(s); return s.placement.mode==='terrarium' && s.placement.terrariumId===terrariumId; });
 }
@@ -22759,8 +22862,8 @@ function snakeFromKey(key){
 
 function knownRooms(){
   const okRoom = r=>r && String(r).indexOf('@')===-1; // v3.31 — ignore un courriel inscrit par le remplissage auto
-  const fromRacks = racks.map(r=>r.room).filter(okRoom);
-  const fromTerrariums = terrariums.map(te=>te.room).filter(okRoom);
+  const fromRacks = (racks||[]).map(r=>r.room).filter(okRoom);
+  const fromTerrariums = (terrariums||[]).map(te=>te.room).filter(okRoom);
   return [...new Set([...fromRacks, ...fromTerrariums])].sort();
 }
 function renderRoomSuggestions(){
@@ -30477,6 +30580,7 @@ routeToScannedRack();
 // santé pour un vrai reptile. La déplacer ici, après que toutes les déclarations du fichier aient
 // eu lieu, élimine cette classe de bug au complet plutôt qu'un seul symptôme à la fois.
 renderDashboard();
+try{ renderSavedList(); }catch(e){ console.warn('LOCUS', e); } // v4.56 — 2e affichage une fois les racks chargés (codes de bac)
 renderDraftSpeciesOptions();
 updateDraftPreySpeciesOptions();
 
