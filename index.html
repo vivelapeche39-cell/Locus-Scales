@@ -2233,7 +2233,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.58';
+const APP_VERSION = '2026.09.01.4.60';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5263,6 +5263,26 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.60', date:'2026-10-22',
+    title:{ fr:'Taille de proie estimée d\'après le poids (*)', en:'Prey size estimated from the weight (*)' },
+    changes:{
+      fr:[ '⚖️ Python royal dont l\'espèce de proie est connue mais pas la taille : LOCUS estime maintenant la taille d\'après sa dernière pesée, avec la charte des proies de l\'app (pourcentage du poids, et la plus petite taille en cas de doute). Elle est marquée d\'un * (fiche et liste de décongélation) et suit le poids tant que tu ne la confirmes pas (bouton ✓ Confirmer dans la fiche, ou en la choisissant toi-même). Une taille notée dans un vrai repas passe toujours avant l\'estimation.' ],
+      en:[ '⚖️ Ball python whose prey species is known but not the size: LOCUS now estimates the size from its last weigh-in, using the app\'s prey chart (percentage of body weight, and the smaller size when in doubt). It is marked with a * (sheet and thaw list) and follows the weight until you confirm it (✓ Confirm button in the sheet, or by choosing it yourself). A size noted in a real meal always wins over the estimate.' ]
+    }
+  },
+  { version:'4.59', date:'2026-10-22',
+    title:{ fr:'Proies : remplir en lot, tailles en français', en:'Prey: fill in bulk, sizes in French' },
+    changes:{
+      fr:[
+        '⚡ Nourriture › Proie non renseignée : nouvel outil « Remplir plusieurs d\'un coup » — coche les animaux (ou un raccourci : Tous, Rats sans taille, Souris sans taille, Aucune proie), choisis la proie et la taille, puis Appliquer. Bouton Annuler dans le message.',
+        '🐀 Import d\'historique : les tailles écrites en français sont maintenant comprises (petit rat, rat moyen, gros rat, très gros, souriceau, poilu, rosé, sevré…). Avant, seule l\'espèce était retenue.'
+      ],
+      en:[
+        '⚡ Food › Prey not set: new « Fill in many at once » tool — check the animals (or a shortcut: All, Rats without size, Mice without size, No prey), pick the prey and size, then Apply. Undo button in the message.',
+        '🐀 History import: sizes written in French are now understood (petit rat, rat moyen, gros rat, très gros, souriceau, poilu, rosé, sevré…). Before, only the species was kept.'
+      ]
+    }
+  },
   { version:'4.58', date:'2026-10-22',
     title:{ fr:'Proie habituelle gardée après reconnexion', en:'Usual prey kept after signing back in' },
     changes:{
@@ -12433,9 +12453,10 @@ function openLogbook(id){
         '</select>'+
         (s.preySpecies && PREY_TYPES[s.preySpecies] ? '<select onchange="setPreyInfo(\''+id+'\', \''+s.preySpecies+'\', this.value)" style="flex:1;min-width:100px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:\'Courier New\',monospace;font-size:11.5px;padding:8px;">'+
           '<option value="">'+t('sizeEllipsis')+'</option>'+
-          PREY_TYPES[s.preySpecies].sizes.map(sz=>'<option value="'+sz+'"'+(s.preySize===sz?' selected':'')+'>'+sz+'</option>').join('')+
+          PREY_TYPES[s.preySpecies].sizes.map(sz=>'<option value="'+sz+'"'+(s.preySize===sz?' selected':'')+'>'+sz+(s.preySize===sz && s.preySizeEstimated?' *':'')+'</option>').join('')+
         '</select>' : '')+
       '</div>'+
+      (s.preySize && s.preySizeEstimated ? '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14px;margin:-2px 0 8px;"><span style="flex:1;min-width:160px;">* '+(isEn?'Size estimated from the last weight (prey chart). It follows the weight until you confirm it.':'Taille estimée d\'après la dernière pesée (charte des proies). Elle suit le poids tant que tu ne la confirmes pas.')+'</span><button type="button" class="sc-btn accent" onclick="setPreyInfo(\''+id+'\', \''+s.preySpecies+'\', \''+escapeHtml(s.preySize)+'\'); openLogbook(\''+id+'\');">✓ '+(isEn?'Confirm':'Confirmer')+'</button></div>' : '')+ // v4.60
       '<div class="sex-toggle">'+
         '<button class="sex-btn'+(s.preyType==='frozen'?' active':'')+'" onclick="setPreyType(\''+id+'\', \'frozen\')">❄️ '+t('preyTypeFrozen')+'</button>'+
         '<button class="sex-btn'+(s.preyType==='live'?' active':'')+'" onclick="setPreyType(\''+id+'\', \'live\')">🐭 '+t('preyTypeLive')+'</button>'+
@@ -14899,7 +14920,7 @@ function snakeToRow(s){
     provenance: s.provenance||null, acquisition_date: s.acquisitionDate||null, status: s.status||'kept',
     health: s.health||{}, placement: s.placement||{}, photos: s.photos||[],
     feeding_interval_days: s.feedingIntervalDays||null, prey_species: s.preySpecies||null,
-    prey_size: s.preySize||null, prey_type: s.preyType||'frozen', asking_price: s.askingPrice||null, listed_date: s.listedDate||null,
+    prey_size: s.preySize||null, prey_size_estimated: !!(s.preySize && s.preySizeEstimated), prey_type: s.preyType||'frozen', // v4.60 asking_price: s.askingPrice||null, listed_date: s.listedDate||null,
     listing_url: s.listingUrl||null, buyer: s.buyer||null, sold_date: s.soldDate||null, sold_price: s.soldPrice||null,
     quarantine: s.quarantine||{active:false,startDate:null,durationDays:60}, custom_tags: s.customTags||[], species: s.species||'ball_python',
     paid_via_stripe: !!s.paidViaStripe, care_params: s.careParams||{}, public_token: s.publicToken||null, feed_cost: s.feedCost||null, transfer_token: s.transferToken||null,
@@ -14922,7 +14943,7 @@ function rowToSnake(r){
     id: r.id, name: r.name||'', animalId: r.animal_id||null, notes: r.notes||'', sex: r.sex, genes: r.genes||{}, genesVerified: r.genes_verified,
     sireId: r.sire_id, damId: r.dam_id, birthDate: r.birth_date, provenance: r.provenance, acquisitionDate: r.acquisition_date||null,
     status: r.status, health: r.health||{}, placement: r.placement||{}, photos: r.photos||[],
-    feedingIntervalDays: r.feeding_interval_days, preySpecies: r.prey_species, preySize: r.prey_size, preyType: r.prey_type || 'frozen',
+    feedingIntervalDays: r.feeding_interval_days, preySpecies: r.prey_species, preySize: r.prey_size, preySizeEstimated: !!r.prey_size_estimated, preyType: r.prey_type || 'frozen',
     askingPrice: r.asking_price, listedDate: r.listed_date, listingUrl: r.listing_url,
     buyer: r.buyer, soldDate: r.sold_date, soldPrice: r.sold_price, createdAt: r.created_at ? Date.parse(r.created_at) : Date.now(),
     quarantine: r.quarantine || {active:false,startDate:null,durationDays:60}, customTags: r.custom_tags || [], species: r.species || 'ball_python',
@@ -16330,11 +16351,26 @@ function parseLogPrey(raw){
   const x = normalizeHeaderKey(raw);
   if(!x) return {};
   const out = {};
-  const words = { mouse:['mouse','mice','souris'], rat:['rat','rats'], asf:['asf','african soft fur'], gerbil:['gerbil','gerbille'], rabbit:['rabbit','lapin'], guineapig:['guinea pig','cochon d\'inde'], cricket:['cricket','grillon'], dubia:['dubia'] };
+  const words = { mouse:['mouse','mice','souris','souriceau','souriceaux'], rat:['rat','rats'], asf:['asf','african soft fur'], gerbil:['gerbil','gerbille'], rabbit:['rabbit','lapin'], guineapig:['guinea pig','cochon d\'inde'], cricket:['cricket','grillon'], dubia:['dubia'] };
   Object.keys(words).some(k=>{ if(PREY_TYPES[k] && words[k].some(w=>new RegExp('(^|[^a-z])'+w+'(s|x)?([^a-z]|$)').test(x))){ out.preySpecies = k; return true; } return false; }); // v4.29 — pluriels (crickets, rats)
   if(out.preySpecies && PREY_TYPES[out.preySpecies]){
     const xs = x.replace(/(^|[^a-z])xl([^a-z]|$)/,'$1x-large$2').replace(/(^|[^a-z])(sm)([^a-z]|$)/,'$1small$3').replace(/(^|[^a-z])(med)([^a-z]|$)/,'$1medium$3').replace(/(^|[^a-z])(lg|lrg)([^a-z]|$)/,'$1large$3').replace(/(^|[^a-z])(adulte?s?)([^a-z]|$)/,'$1adult$3').replace(/(^|[^a-z])(rosé|rose|rosee)([^a-z]|$)/,'$1pinky$3').replace(/(^|[^a-z])sevre?e?s?([^a-z]|$)/,'$1weanling$2'); // v4.29 — abréviations et mots français
-    const sz = PREY_TYPES[out.preySpecies].sizes.slice().sort((a,b)=>b.length-a.length).find(z=>new RegExp('(^|[^a-z])'+normalizeHeaderKey(z).replace(/[-]/g,'[- ]?')+'([^a-z]|$)').test(xs));
+    const findSz = str=>PREY_TYPES[out.preySpecies].sizes.slice().sort((a,b)=>b.length-a.length).find(z=>new RegExp('(^|[^a-z])'+normalizeHeaderKey(z).replace(/[-]/g,'[- ]?')+'([^a-z]|$)').test(str));
+    let sz = findSz(xs);
+    if(!sz){
+      // v4.59 — tailles écrites en français (petit rat, rat moyen, gros rat, souriceau…) pour les espèces dont les tailles sont en anglais
+      const B = '(^|[^a-z])', E = '([^a-z]|$)';
+      const fr = xs
+        .replace(new RegExp(B+'(tres gros|tres grosse|extra gros|extra grosse|xxl)'+E,'g'),'$1x-large$3')
+        .replace(new RegExp(B+'(geant|geante|jumbo)'+E,'g'),'$1jumbo$3')
+        .replace(new RegExp(B+'(gros|grosse|grand|grande|gros format)'+E,'g'),'$1large$3')
+        .replace(new RegExp(B+'(moyen|moyenne|moyens|moyennes|medium|moy)'+E,'g'),'$1medium$3')
+        .replace(new RegExp(B+'(petit|petite|petits|petites|ptit|ptite)'+E,'g'),'$1small$3')
+        .replace(new RegExp(B+'(souriceau|souriceaux|sauteuse|sauteuses|sauteur|sauteurs)'+E,'g'),'$1hopper$3')
+        .replace(new RegExp(B+'(poilu|poilue|poilus|poilues|duvet|duveteux|blanchon|blanchons)'+E,'g'),'$1fuzzy$3')
+        .replace(new RegExp(B+'(nouveau ne|nouveau-ne|nouveaux nes|naissant|naissants)'+E,'g'),'$1pinky$3');
+      sz = findSz(fr);
+    }
     if(sz) out.preySize = sz;
   }
   if(/(^|[^a-z])(f\/t|ft|frozen|thawed|decongel|congel)/.test(x)) out.preyType = 'frozen';
@@ -18530,9 +18566,10 @@ function updateDraftPreySizeOptions(){
 // Ne remplace jamais une proie déjà choisie par l'utilisateur.
 function adoptLastPreyAsDefault(s){
   if(!s || !s.health || !Array.isArray(s.health.events)) return false;
-  if(s.preySpecies && s.preySize) return false;
+  if(s.preySpecies && s.preySize && !s.preySizeEstimated) return false;
   const fed = s.health.events.filter(e=>e && e.type==='fed' && e.preySpecies && PREY_TYPES[e.preySpecies]).sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
   if(!fed.length) return false;
+  if(s.preySpecies && s.preySize && !s.preySizeEstimated) return false;
   // si l'espèce est déjà choisie, on prend la dernière taille notée pour CETTE espèce
   const pool = s.preySpecies ? fed.filter(e=>e.preySpecies===s.preySpecies) : fed;
   const last = pool.length ? pool[pool.length-1] : null;
@@ -18541,26 +18578,119 @@ function adoptLastPreyAsDefault(s){
   const hadNoSpecies = !s.preySpecies;
   if(!s.preySpecies){ s.preySpecies = last.preySpecies; changed = true; }
   const lastSized = pool.slice().reverse().find(e=>e.preySize && PREY_TYPES[s.preySpecies].sizes.includes(e.preySize));
-  if(!s.preySize && lastSized){ s.preySize = lastSized.preySize; changed = true; }
+  if((!s.preySize || s.preySizeEstimated) && lastSized && (s.preySize!==lastSized.preySize || s.preySizeEstimated)){ s.preySize = lastSized.preySize; s.preySizeEstimated = false; changed = true; } // un vrai repas noté passe avant l'estimation
   if(hadNoSpecies && (last.preyType==='live' || last.preyType==='frozen') && s.preyType!==last.preyType){ s.preyType = last.preyType; changed = true; } // vivant/décongelé seulement si rien n'était choisi
   if(changed) s.updatedAt = Date.now();
   return changed;
 }
+// v4.60 — taille estimée d'après le poids (pythons royaux, charte de l'app : PYTHON_WEIGHT_CHART / preyPercentRange,
+// RAT_SIZES / MOUSE_SIZES). Marquée « estimée » (*) tant que l'éleveur ne l'a pas confirmée ; elle suit le poids d'ici là.
+// En cas de doute entre deux tailles, on prend la plus petite (règle affichée avec la charte).
+var PREY_CHART_TO_SIZE = { rat:{ pinky:'Pinky', fuzzy:'Fuzzy', pup:'Weanling', small:'Small', medium:'Medium', large:'Large', xlarge:'X-Large' }, mouse:{ pinky:'Pinky', fuzzy:'Fuzzy', hopper:'Hopper', weanling:'Weanling', adult:'Adult', jumbo:'Adult' } };
+function estimatePreySizeFromWeight(s){
+  if(!s || !s.preySpecies || !PREY_CHART_TO_SIZE[s.preySpecies]) return null;
+  if((s.species||'ball_python')!=='ball_python') return null;
+  const w = snakeLastWeight(s);
+  if(!w || w<20 || w>10000) return null;
+  // 1) « Choix typique » de la charte poids du python → proie (PYTHON_WEIGHT_CHART), plus petite taille de la fourchette
+  const TYPICAL = s.preySpecies==='rat'
+    ? [[300,'Pinky'],[500,'Weanling'],[800,'Small'],[1200,'Medium'],[1800,'Large'],[2500,'X-Large']]
+    : [[50,'Hopper'],[150,'Adult']];
+  const maxCovered = s.preySpecies==='rat' ? Infinity : 500; // la charte ne propose plus de souris au-delà de 500 g
+  let typical = null;
+  if(w <= maxCovered) TYPICAL.forEach(([min, size])=>{ if(w >= min) typical = size; });
+  if(typical) return typical;
+  // 2) hors de la charte (ex. rat pour un python de moins de 300 g) : bas de la fourchette en % du poids
+  const pct = preyPercentRange(w);
+  const target = w * pct.min;
+  const table = s.preySpecies==='rat' ? RAT_SIZES : MOUSE_SIZES;
+  let pick = table[0];
+  table.forEach(row=>{ if(target >= row.min) pick = row; });
+  return PREY_CHART_TO_SIZE[s.preySpecies][pick.key] || null;
+}
+function applyEstimatedPreySize(s){
+  if(!s || !s.preySpecies) return false;
+  if(s.preySize && !s.preySizeEstimated) return false; // taille choisie ou tirée d'un vrai repas : on n'y touche jamais
+  const est = estimatePreySizeFromWeight(s);
+  if(!est) return false;
+  if(s.preySize===est && s.preySizeEstimated) return false;
+  s.preySize = est; s.preySizeEstimated = true; s.updatedAt = Date.now();
+  return true;
+}
+function preyEstimatedMark(s, isEn){
+  return (s && s.preySize && s.preySizeEstimated) ? '<span title="'+(isEn?'Size estimated from the weight — confirm it':'Taille estimée d\'après le poids — à confirmer')+'" style="color:var(--gold);font-weight:700;">*</span>' : '';
+}
 function backfillPreyDefaults(){
   try{
     let n = 0;
-    savedSnakes.forEach(s=>{ ensureSnakeMeta(s); if(adoptLastPreyAsDefault(s)) n++; });
+    savedSnakes.forEach(s=>{ ensureSnakeMeta(s); const a = adoptLastPreyAsDefault(s); const b = applyEstimatedPreySize(s); if(a || b) n++; });
     if(n){ storage.save(savedSnakes); try{ renderFoodView(); }catch(e){} }
     return n;
   }catch(e){ return 0; }
 }
 setTimeout(backfillPreyDefaults, 0); // une fois au chargement, pour les fiches déjà importées
+// ==================== v4.59 — remplir la proie habituelle en lot ====================
+function preyBulkState(){ if(!window.__preyBulk) window.__preyBulk = { sel:new Set(), sp:'', size:'' }; return window.__preyBulk; }
+function preyBulkToggle(id, on){ const pb = preyBulkState(); if(on) pb.sel.add(id); else pb.sel.delete(id); renderFoodView(); }
+function preyBulkPick(kind){
+  const pb = preyBulkState();
+  const ids = window.__preyMissingIds || [];
+  pb.sel = new Set(kind==='none' ? [] : ids.filter(id=>{ const s = savedSnakes.find(x=>x.id===id); return s && (kind==='all' || s.preySpecies===kind || (kind==='__nosp' && !s.preySpecies)); }));
+  if(kind!=='all' && kind!=='none' && kind!=='__nosp' && PREY_TYPES[kind]){ pb.sp = kind; if(!PREY_TYPES[kind].sizes.includes(pb.size)) pb.size = ''; }
+  renderFoodView();
+}
+function preyBulkSet(k, v){ const pb = preyBulkState(); pb[k] = v; if(k==='sp') pb.size = ''; renderFoodView(); }
+function preyBulkBarHtml(list){
+  const isEn = currentLang==='en';
+  const pb = preyBulkState();
+  const spCount = {}; list.forEach(s=>{ const k = s.preySpecies||'__nosp'; spCount[k] = (spCount[k]||0)+1; });
+  const species = [...new Set(list.map(s=>s.species||'ball_python'))];
+  const spOpts = [...new Set(species.flatMap(sp=>{ try{ return preyTypesForSpecies(sp); }catch(e){ return ['mouse','rat']; } }))];
+  const selStyle = 'font-size:16px;padding:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);flex:1;min-width:130px;';
+  const pickBtn = (k, label, n)=>'<button type="button" class="sc-btn" style="font-size:14px;" onclick="preyBulkPick(\''+k+'\')">'+label+' ('+n+')</button>';
+  const n = pb.sel.size;
+  return '<div style="grid-column:1 / -1;border:1px dashed var(--gold);border-radius:12px;padding:10px 12px;margin-bottom:6px;">'+
+    '<div style="font-size:15px;margin-bottom:8px;">⚡ <b>'+(isEn?'Fill in many at once':'Remplir plusieurs d\'un coup')+'</b> — '+(isEn?'check the animals (or use a shortcut), pick the prey, apply.':'coche les animaux (ou un raccourci), choisis la proie, applique.')+'</div>'+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">'+
+      pickBtn('all', isEn?'✓ All':'✓ Tous', list.length)+
+      Object.keys(spCount).filter(k=>k!=='__nosp' && PREY_TYPES[k]).map(k=>pickBtn(k, PREY_TYPES[k].icon+' '+(isEn?PREY_TYPES[k].labelEn:PREY_TYPES[k].labelFr)+(isEn?' without size':' sans taille'), spCount[k])).join('')+
+      (spCount.__nosp ? pickBtn('__nosp', isEn?'No prey at all':'Aucune proie', spCount.__nosp) : '')+
+      (n ? '<button type="button" class="sc-btn" style="font-size:14px;" onclick="preyBulkPick(\'none\')">✕ '+(isEn?'Uncheck':'Décocher')+'</button>' : '')+
+    '</div>'+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">'+
+      '<select style="'+selStyle+'" onchange="preyBulkSet(\'sp\', this.value)"><option value="">'+(isEn?'Prey…':'Proie…')+'</option>'+spOpts.filter(k=>PREY_TYPES[k]).map(k=>'<option value="'+k+'"'+(pb.sp===k?' selected':'')+'>'+PREY_TYPES[k].icon+' '+escapeHtml(isEn?PREY_TYPES[k].labelEn:PREY_TYPES[k].labelFr)+'</option>').join('')+'</select>'+
+      '<select style="'+selStyle+'"'+(pb.sp?'':' disabled')+' onchange="preyBulkSet(\'size\', this.value)"><option value="">'+(isEn?'Size…':'Taille…')+'</option>'+(pb.sp && PREY_TYPES[pb.sp] ? PREY_TYPES[pb.sp].sizes.map(z=>'<option value="'+escapeHtml(z)+'"'+(pb.size===z?' selected':'')+'>'+escapeHtml(z)+'</option>').join('') : '')+'</select>'+
+      '<button type="button" class="save-btn" style="font-size:15px;padding:10px 14px;"'+(n && pb.sp && pb.size ? '' : ' disabled')+' onclick="preyBulkApply()">✅ '+(isEn?'Apply to '+n+' checked':'Appliquer aux '+n+' coché'+(n>1?'s':''))+'</button>'+
+    '</div></div>';
+}
+function preyBulkApply(){
+  const isEn = currentLang==='en';
+  const pb = preyBulkState();
+  if(!pb.sp || !pb.size || !pb.sel.size) return;
+  const undo = [];
+  [...pb.sel].forEach(id=>{
+    const s = savedSnakes.find(x=>x.id===id); if(!s) return;
+    undo.push({ id, sp:s.preySpecies, size:s.preySize, est:!!s.preySizeEstimated });
+    s.preySpecies = pb.sp; s.preySize = pb.size; s.preySizeEstimated = false; s.updatedAt = Date.now();
+  });
+  window.__preyBulkUndo = undo;
+  pb.sel = new Set();
+  storage.save(savedSnakes);
+  renderFoodView();
+  showToast('🐭 '+undo.length+(isEn?' animal(s): ':' animal(s) : ')+(isEn?PREY_TYPES[pb.sp].labelEn:PREY_TYPES[pb.sp].labelFr)+' '+pb.size+'.', 'success', 'preyBulkUndo()');
+}
+function preyBulkUndo(){
+  const u = window.__preyBulkUndo || []; window.__preyBulkUndo = null;
+  u.forEach(x=>{ const s = savedSnakes.find(y=>y.id===x.id); if(s){ s.preySpecies = x.sp; s.preySize = x.size; s.preySizeEstimated = !!x.est; s.updatedAt = Date.now(); } });
+  storage.save(savedSnakes); renderFoodView();
+}
 function updatePreySpecies(id, species){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
   ensureSnakeMeta(s);
   s.preySpecies = species || null;
   s.preySize = null; // les tailles diffèrent selon l'espèce, on réinitialise
+  s.preySizeEstimated = false; // v4.60
   storage.save(savedSnakes);
   openLogbook(id); // rafraîchit pour afficher les tailles correspondant à la nouvelle espèce
 }
@@ -18571,6 +18701,8 @@ function setPreyInfo(id, species, size){
   ensureSnakeMeta(s);
   s.preySpecies = species || null;
   s.preySize = size || null;
+  s.preySizeEstimated = false; // v4.60 — choisie à la main = confirmée
+  s.updatedAt = Date.now();
   storage.save(savedSnakes);
   showToast((currentLang==='en'?'Prey updated for ':'Proie mise à jour pour ')+s.name+'.', 'success');
 }
@@ -18706,11 +18838,15 @@ function renderFoodView(){
 
   const missingWrap = document.getElementById('prey-missing-list');
   missingWrap.className = withoutPrey.length ? 'mini-animal-grid' : '';
+  window.__preyMissingIds = withoutPrey.map(s=>s.id); // v4.59
+  const pb = preyBulkState();
+  [...pb.sel].forEach(id=>{ if(!window.__preyMissingIds.includes(id)) pb.sel.delete(id); });
   missingWrap.innerHTML = withoutPrey.length===0
     ? '<div class="empty">✅ '+(isEn?'All reptiles with a meal due have their prey filled in.':'Tous les reptiles avec un repas prévu ont leur proie renseignée.')+'</div>'
-    : (function(){ const pg = pagerSlice('preymissing', withoutPrey, renderFoodView); return pg.top+pg.items.map(s=>miniAnimalCardHtml( // v4.50
+    : preyBulkBarHtml(withoutPrey) + (function(){ const pg = pagerSlice('preymissing', withoutPrey, renderFoodView); return pg.top+pg.items.map(s=>miniAnimalCardHtml( // v4.50
         snakeName(s),
-        (isEn?'Meal due ':'Repas prévu le ')+nextFeedingDate(s),
+        (isEn?'Meal due ':'Repas prévu le ')+nextFeedingDate(s)+(s.preySpecies && PREY_TYPES[s.preySpecies] ? '<br>'+PREY_TYPES[s.preySpecies].icon+' '+escapeHtml(isEn?PREY_TYPES[s.preySpecies].labelEn:PREY_TYPES[s.preySpecies].labelFr)+' — '+(isEn?'size?':'taille ?') : ''),
+        '<label style="display:flex;align-items:center;gap:6px;font-size:14px;margin:4px 0;"><input type="checkbox" style="width:22px;height:22px;accent-color:var(--gold);"'+(pb.sel.has(s.id)?' checked':'')+' onchange="preyBulkToggle(\''+s.id+'\', this.checked)"/>'+(isEn?'Select':'Cocher')+'</label>'+
         '<button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">'+t('fillPreyBtn')+'</button>'
       )).join('')+pg.bottom; })();
 
@@ -18750,6 +18886,8 @@ function renderDefrostList(){
   const horizon = addDays(todayStr, foodHorizonDays-1);
   const due = savedSnakes.filter(s=> nextFeedingDate(s) <= horizon && s.preySpecies && s.preySize);
   const frozenCounts = {};
+  const estCounts = {}; // v4.60 — combien de ces proies viennent d'une taille estimée (*)
+  due.forEach(s=>{ if(s.preySizeEstimated){ const k = feederStockKey(s.preySpecies, s.preySize); estCounts[k] = (estCounts[k]||0)+1; } });
   const liveLines = {}; // clé espèce|taille -> { count, replaces:Set }
   const liveSim = Object.assign({}, feederStockLive||{});
   due.forEach(s=>{
@@ -18800,13 +18938,14 @@ function renderDefrostList(){
   html += frozenKeys.length ? frozenKeys.map(k=>{
     const parts = k.split('|');
     const av = frozenAvailableFor(parts[0], parts[1]);
-    return lineHtml(k, frozenCounts[k], statusHtml(frozenCounts[k], av.qty, av.tracked), '');
+    return lineHtml(k, frozenCounts[k], statusHtml(frozenCounts[k], av.qty, av.tracked), estCounts[k] ? ('* '+estCounts[k]+(isEn?' estimated from the weight — to confirm':' estimée(s) d\'après le poids — à confirmer')) : '');
   }).join('') : '<div style="font-size:11px;color:var(--ink-dim);margin-bottom:6px;">'+(isEn?'Nothing to thaw.':'Rien à décongeler.')+'</div>';
   html += '<div style="font-size:12px;font-weight:700;margin:14px 0 6px;">🐭 '+(isEn?'Live — to plan':'Vivant — à prévoir')+'</div>';
   html += liveKeys.length ? liveKeys.map(k=>{
     const line = liveLines[k];
     const stock = (feederStockLive||{})[k];
-    const note = line.replaces.size ? (isEn?'replaces ':'remplace ')+[...line.replaces].map(r=>{ const p=r.split('|'); return escapeHtml(preyLabelShort(p[0],p[1])); }).join(', ')+(isEn?' (none in stock)':' (aucun en stock)') : '';
+    const estN = estCounts[k] ? ('* '+estCounts[k]+(isEn?' estimated from the weight':' estimée(s) d\'après le poids')+' · ') : '';
+    const note = estN + (line.replaces.size ? (isEn?'replaces ':'remplace ')+[...line.replaces].map(r=>{ const p=r.split('|'); return escapeHtml(preyLabelShort(p[0],p[1])); }).join(', ')+(isEn?' (none in stock)':' (aucun en stock)') : '');
     return lineHtml(k, line.count, statusHtml(line.count, stock||0, stock!=null), note);
   }).join('') : '<div style="font-size:11px;color:var(--ink-dim);">'+(isEn?'No live prey to plan.':'Aucune proie vivante à prévoir.')+'</div>';
   wrap.innerHTML = html;
