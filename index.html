@@ -2212,7 +2212,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.44';
+const APP_VERSION = '2026.09.01.4.45';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5223,6 +5223,21 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.45', date:'2026-10-22',
+    title:{ fr:'Ranger ses animaux rapidement', en:'Place your animals quickly' },
+    changes:{
+      fr:[
+        '📦 Rangement automatique (Racks & Terrariums, bandeau « animaux à classer ») : tu choisis racks, terrariums ou les deux, tu crées au besoin tes racks (combien de racks, de rangées et de bacs, ou un rack par groupe d\'âge), puis LOCUS range les animaux par groupe — bébés, juvéniles, adultes (selon la date de naissance, ou le poids pour le python royal) — dans l\'ordre des ID, du nom ou de la naissance. Aperçu avant de confirmer, avec ce qui manque de place, et bouton Annuler.',
+        '🔀 Nouveau mode « Placer / déplacer » dans l\'entretien en lot : touche un animal (dans un bac ou dans la liste « À classer »), puis sa nouvelle place. Un bac occupé = les deux animaux échangent. Annuler le dernier déplacement en un toucher.',
+        '📍 Chaque bac a maintenant un identifiant lisible, « Rack A-R2-B5 » (rack, rangée, bac), affiché sur la fiche et la carte de l\'animal et dans l\'inventaire Excel. À l\'import, une colonne « Emplacement » (ou Rack + Rangée + Bac) place les animaux directement, dans plusieurs formats : « Rack A-R2-B5 », « Rack A - Rangée 2 - Bac 5 », « A-2-5 », « Rack 1 #12 » (12e bac), « R2-B5 » ou le nom d\'un terrarium. Les racks et terrariums qui n\'existent pas sont créés; une place déjà prise ou illisible est signalée et le texte gardé dans les notes. Gratuit.'
+      ],
+      en:[
+        '📦 Auto-place (Racks & Terrariums, « animals to place » banner): choose racks, terrariums or both, create your racks if needed (how many racks, rows and tubs, or one rack per age group), then LOCUS places the animals by group — babies, juveniles, adults (from the birth date, or the weight for ball pythons) — in ID, name or birth order. Preview before confirming, including what won\'t fit, and an Undo button.',
+        '🔀 New « Place / move » mode in bulk maintenance: tap an animal (in a tub or in the « To place » list), then its new spot. An occupied tub = the two animals swap. Undo the last move in one tap.',
+        '📍 Every tub now has a readable identifier, « Rack A-R2-B5 » (rack, row, tub), shown on the animal\'s sheet and card and in the Excel inventory. On import, a « Location » column (or Rack + Row + Tub) places animals directly, in several formats: « Rack A-R2-B5 », « Rack A - Row 2 - Tub 5 », « A-2-5 », « Rack 1 #12 » (12th tub), « R2-B5 » or a terrarium name. Racks and terrariums that don\'t exist are created; a taken or unreadable spot is flagged and the text kept in the notes. Free.'
+      ]
+    }
+  },
   { version:'4.44', date:'2026-10-22',
     title:{ fr:'Import : titres de colonnes composés', en:'Import: compound column titles' },
     changes:{
@@ -9655,7 +9670,7 @@ function renderSavedList(){
     ensureSnakeMeta(s);
     const card = document.createElement('div');
     card.className = 'saved-card';
-    const placeLabel = s.placement.mode==='rack' ? ((isEn?'Rack — Row ':'Rack — Rangée ')+s.placement.row+(isEn?' / Tub ':' / Bac ')+s.placement.tub) : (isEn?'Terrarium':'Terrarium');
+    const placeLabel = placementCode(s) ? escapeHtml(placementCode(s)) : snakeIsUnplaced(s) ? (isEn?'To place':'À classer') : s.placement.mode==='rack' ? ((isEn?'Rack — Row ':'Rack — Rangée ')+s.placement.row+(isEn?' / Tub ':' / Bac ')+s.placement.tub) : (isEn?'Terrarium':'Terrarium'); // v4.45 — « Rack A-R2-B5 »
     const w = s.health.weights;
     const weightLine = w.length
       ? '⚖ '+w[w.length-1].value+'g'+(w.length>1 ? ' ('+(w[w.length-1].value-w[w.length-2].value>=0?'+':'')+(w[w.length-1].value-w[w.length-2].value)+(isEn?'g since last weigh-in)':'g depuis dernière pesée)') : (isEn?' — 1st weigh-in':' — 1ʳᵉ pesée'))
@@ -11517,7 +11532,7 @@ function openLogbook(id){
   // qu'il soit jamais déclaré dans cette fonction). Trouvé en corrigeant la visibilité du champ Proie.
   const isEn = currentLang==='en';
   document.getElementById('logbook-title').textContent = s.name;
-  const placeLabel = s.placement.mode==='rack' ? t('rackLocationLabel').replace('__ROW__', s.placement.row).replace('__TUB__', s.placement.tub) : t('terrariumLocationLabel');
+  const placeLabel = (snakeIsUnplaced(s) ? (currentLang==='en'?'To place':'À classer') : (s.placement.mode==='rack' ? t('rackLocationLabel').replace('__ROW__', s.placement.row).replace('__TUB__', s.placement.tub) : t('terrariumLocationLabel'))+(placementCode(s) ? ' · '+escapeHtml(placementCode(s)) : '')); // v4.45 — identifiant du bac (« Rack A-R2-B5 »)
   const sexLbl = s.sex==='male'?t('sexMale'):s.sex==='female'?t('sexFemale'):t('sexUnknown');
   const hatchTl = birthPrecision(s.birthDate)==='full' ? hatchlingTimeline(s.birthDate) : null;
   const photosHtml = (s.photos && s.photos.length)
@@ -12228,7 +12243,7 @@ function exportSnakeSheet(id, vetMode){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
   ensureSnakeMeta(s);
-  const placeLabel = s.placement.mode==='rack' ? t('rackLocationLabel').replace('__ROW__', s.placement.row).replace('__TUB__', s.placement.tub) : t('terrariumLocationLabel');
+  const placeLabel = (snakeIsUnplaced(s) ? (currentLang==='en'?'To place':'À classer') : (s.placement.mode==='rack' ? t('rackLocationLabel').replace('__ROW__', s.placement.row).replace('__TUB__', s.placement.tub) : t('terrariumLocationLabel'))+(placementCode(s) ? ' · '+escapeHtml(placementCode(s)) : '')); // v4.45 — identifiant du bac (« Rack A-R2-B5 »)
   const sire = s.sireId ? savedSnakes.find(x=>x.id===s.sireId) : null;
   const dam = s.damId ? savedSnakes.find(x=>x.id===s.damId) : null;
 
@@ -14919,6 +14934,9 @@ const CSV_COLUMN_ALIASES = {
   lastShedQuality: ['last shed status','last shed quality','shed quality','shed status','qualite de la mue','etat de la mue'], // v4.30
   acquired: ['acquisition date','date of acquisition','acquisition','acquired','date acquired','purchase date','date of purchase','date d\'achat','date d\'acquisition','acquired on','bought on'], // v4.31 — vrai champ acquisitionDate
   status: ['status','statut','etat','state','sale status','statut de vente','availability','disponibilite','animal status','inventory status'], // v4.20
+  location: ['emplacement','location','placement','rack/bac','rack / bac','rack-bac','enclosure','enclos','cage','habitat','housing','logement','terrarium','vivarium','position','spot','rack location','enclosure name','where','rack'], // v4.45
+  locRow: ['rangee','row','etage','shelf','level','tablette','rang','no rangee','row #'], // v4.45
+  locTub: ['bac','tub','bin','slot','tiroir','drawer','case','no bac','tub #','bac #'], // v4.45
   sire: ['sire','pere','father','male parent','parent male','sire id','id du pere','dad','sire name','nom du pere'], // v4.20
   dam: ['dam','mere','mother','female parent','parent femelle','dam id','id de la mere','mom','dam name','nom de la mere'], // v4.20
   lastFed: ['dernier repas','date du dernier repas','last fed','last fed date','last feeding','last meal','date last fed','last feeding date','last feed','last fed on','dernier nourrissage','last feed date','last meal date','date of last feed'], // v4.18
@@ -15953,10 +15971,123 @@ function routeImportSheets(sheets, meta){
 // une colonne au titre inconnu (« Morph », « Hatch »…) s'associe sans toucher au fichier. Si aucune
 // colonne nom/ID n'est reconnue, on demande laquelle au lieu d'un message d'erreur. L'ordre des
 // colonnes n'a jamais compté : tout passe par les titres (ou par le choix fait ici).
-var IMPORT_FIELD_ORDER = ['animalId','name','sex','species','genes','birthDate','status','sire','dam','weight','weightDate','lastFed','lastFedPrey','lastShed','lastShedQuality','acquired','provenance','purchasePrice','askingPrice','notes'];
+var IMPORT_FIELD_ORDER = ['animalId','name','sex','species','genes','birthDate','status','sire','dam','weight','weightDate','lastFed','lastFedPrey','lastShed','lastShedQuality','acquired','provenance','purchasePrice','askingPrice','location','locRow','locTub','notes'];
 function importFieldLabel(f, isEn){
-  const L = { animalId:['ID','ID'], name:['Nom','Name'], sex:['Sexe','Sex'], species:['Espèce','Species'], genes:['Génétique','Genetics'], birthDate:['Date de naissance','Birth date'], weight:['Poids (g)','Weight (g)'], weightDate:['Date de pesée','Weigh date'], status:['Statut','Status'], sire:['Père (ID ou nom)','Sire (ID or name)'], dam:['Mère (ID ou nom)','Dam (ID or name)'], lastFed:['Dernier repas (date)','Last fed (date)'], lastFedPrey:['Dernier repas (proie)','Last fed (prey)'], lastShed:['Dernière mue (date)','Last shed (date)'], lastShedQuality:['Dernière mue (qualité)','Last shed (quality)'], acquired:['Date d\'acquisition','Acquisition date'], notes:['Notes','Notes'], provenance:['Provenance','Provenance'], purchasePrice:['Prix d\'achat','Purchase price'], askingPrice:['Prix demandé','Asking price'] };
+  const L = { location:['Emplacement (rack-bac ou terrarium)','Location (rack-tub or terrarium)'], locRow:['Rangée','Row'], locTub:['Bac','Tub'], animalId:['ID','ID'], name:['Nom','Name'], sex:['Sexe','Sex'], species:['Espèce','Species'], genes:['Génétique','Genetics'], birthDate:['Date de naissance','Birth date'], weight:['Poids (g)','Weight (g)'], weightDate:['Date de pesée','Weigh date'], status:['Statut','Status'], sire:['Père (ID ou nom)','Sire (ID or name)'], dam:['Mère (ID ou nom)','Dam (ID or name)'], lastFed:['Dernier repas (date)','Last fed (date)'], lastFedPrey:['Dernier repas (proie)','Last fed (prey)'], lastShed:['Dernière mue (date)','Last shed (date)'], lastShedQuality:['Dernière mue (qualité)','Last shed (quality)'], acquired:['Date d\'acquisition','Acquisition date'], notes:['Notes','Notes'], provenance:['Provenance','Provenance'], purchasePrice:['Prix d\'achat','Purchase price'], askingPrice:['Prix demandé','Asking price'] };
   return L[f] ? L[f][isEn?1:0] : f;
+}
+// ==================== v4.45 — emplacement lu à l'import (« Rack A-R2-B5 », « A-2-5 », « Rack 1 #12 », un terrarium…) ====================
+function importLocationText(r){
+  const loc = (r.locRaw||'').trim(), row = (r.locRowRaw||'').trim(), tub = (r.locTubRaw||'').trim();
+  if(!loc && !row && !tub) return '';
+  const parts = [loc];
+  if(row) parts.push(/^\d+$/.test(row) ? 'R'+row : row);
+  if(tub) parts.push(/^\d+$/.test(tub) ? 'B'+tub : tub);
+  return parts.filter(Boolean).join('-');
+}
+function locNameKey(x){ return normalizeHeaderKey(x).replace(/[^a-z0-9]+/g,' ').trim(); }
+// → { kind:'rack', rackId|null, rackName, row, tub, index } | { kind:'terra', teId|null, name } | { kind:'bad', why }
+function parseLocationCode(raw){
+  const txt = String(raw||'').trim();
+  if(!txt || importIsBlankish(txt)) return null;
+  const k = locNameKey(txt);
+  const te = terrariums.find(x=>locNameKey(x.name)===k);
+  if(te) return { kind:'terra', teId:te.id, name:te.name };
+  let rest = k, rackId = null, rackName = null;
+  const known = racks.slice().sort((a,b)=>locNameKey(b.name).length-locNameKey(a.name).length).find(r=>{ const n = locNameKey(r.name); return n && (k===n || k.startsWith(n+' ')); });
+  if(known){ rackId = known.id; rackName = known.name; rest = k.slice(locNameKey(known.name).length).trim(); }
+  else {
+    let m = k.match(/^(rack|etagere|shelf|meuble|unit|unite)\s*([a-z0-9]+)\b\s*(.*)$/);
+    if(m){ rackName = 'Rack '+(m[2].length===1 ? m[2].toUpperCase() : m[2].charAt(0).toUpperCase()+m[2].slice(1)); rest = m[3]; const ex = racks.find(r=>locNameKey(r.name)===locNameKey(rackName)); if(ex){ rackId = ex.id; rackName = ex.name; } }
+    else if((m = k.match(/^([a-z])\s*(\d+)\s+(\d+)$/))){ rackName = 'Rack '+m[1].toUpperCase(); rest = m[2]+' '+m[3]; const ex = racks.find(r=>locNameKey(r.name)===locNameKey(rackName)); if(ex){ rackId = ex.id; rackName = ex.name; } }
+    else if(/^(terrarium|terra|vivarium|viv|enclos|enclosure|cage|habitat|tank|aquarium|bassin)\b/.test(k)) return { kind:'terra', teId:null, name:txt.slice(0,60) };
+  }
+  let row = null, tub = null, index = null;
+  const rm = rest.match(/(?:^|\s)(?:rangee|rang|row|etage|level|shelf|tablette|r)\s*(\d+)\b/);
+  const tm = rest.match(/(?:^|\s)(?:bac|tub|bin|slot|tiroir|drawer|case|b|t)\s*(\d+)\b/);
+  if(rm) row = Number(rm[1]);
+  if(tm) tub = Number(tm[1]);
+  if(row==null || tub==null){
+    const nums = (rest.match(/\d+/g)||[]).map(Number);
+    if(row==null && tub==null && nums.length===2){ row = nums[0]; tub = nums[1]; }
+    else if(row==null && tub!=null && nums.length===1 && !rm){ index = tub; tub = null; }      // « Rack 1 bac 12 » = 12e bac du rack
+    else if(row==null && tub==null && nums.length===1){ index = nums[0]; }                    // « Rack 1 #12 »
+    else if(row!=null && tub==null && nums.length===2){ tub = nums[1]; }
+  }
+  if(!rackName){ // pas de rack nommé : le seul rack existant, sinon un nouveau « Rack 1 »
+    if(racks.length===1){ rackId = racks[0].id; rackName = racks[0].name; }
+    else if(racks.length===0){ rackName = 'Rack 1'; }
+    else return { kind:'bad', why:'norack' };
+  }
+  if((row==null || tub==null) && index==null) return { kind:'bad', why:'nospot' };
+  if((row!=null && row<1) || (tub!=null && tub<1) || (index!=null && index<1)) return { kind:'bad', why:'nospot' };
+  return { kind:'rack', rackId, rackName, row, tub, index };
+}
+// Plan complet (sans rien modifier) : racks à créer, places, conflits. rows = rangées d'import qui seront créées.
+function importLocationPlan(rows){
+  const plan = { placed:[], bad:[], conflict:[], newRacks:{}, newTerras:{}, outside:[] };
+  const taken = new Set();
+  savedSnakes.forEach(s=>{ ensureSnakeMeta(s); if(s.placement.mode==='rack' && s.placement.rackId) taken.add(s.placement.rackId+'|'+s.placement.row+'|'+s.placement.tub); });
+  const teCount = {}; terrariums.forEach(te=>{ teCount[te.id] = terrariumOccupants(te.id).length; });
+  rows.forEach(r=>{
+    const txt = importLocationText(r);
+    if(!txt) return;
+    const who = r.animalId || r.name;
+    const p = parseLocationCode(txt);
+    if(!p || p.kind==='bad'){ plan.bad.push({ r, txt, who, line:r.line, why: p ? p.why : 'nospot' }); return; }
+    if(p.kind==='terra'){
+      const key = p.teId || 'new:'+locNameKey(p.name);
+      if(!p.teId) plan.newTerras[key] = plan.newTerras[key] || { name:p.name };
+      teCount[key] = (teCount[key]||0) + 1;
+      if(teCount[key] > 2){ plan.conflict.push({ r, txt, who, line:r.line }); teCount[key]--; return; }
+      plan.placed.push({ r, terraKey:key, txt });
+      return;
+    }
+    let rackKey = p.rackId;
+    if(!rackKey){ rackKey = 'new:'+locNameKey(p.rackName); plan.newRacks[rackKey] = plan.newRacks[rackKey] || { name:p.rackName, maxRow:0, maxTub:0, maxIndex:0 }; }
+    let row = p.row, tub = p.tub;
+    const nr = plan.newRacks[rackKey];
+    if(p.index!=null){
+      if(nr){ nr.maxIndex = Math.max(nr.maxIndex, p.index); row = Math.ceil(p.index/8); tub = ((p.index-1)%8)+1; }
+      else { const rack = getRack(rackKey); let left = p.index; row = null; for(let i=0;i<rack.rows.length;i++){ if(left<=rack.rows[i]){ row = i+1; tub = left; break; } left -= rack.rows[i]; } if(row==null){ plan.outside.push({ r, txt, who, line:r.line }); return; } }
+    } else if(nr){ nr.maxRow = Math.max(nr.maxRow, row); nr.maxTub = Math.max(nr.maxTub, tub); }
+    else { const rack = getRack(rackKey); if(!rack || row>rack.rows.length || tub>rack.rows[row-1]){ plan.outside.push({ r, txt, who, line:r.line }); return; } }
+    const spot = rackKey+'|'+row+'|'+tub;
+    if(taken.has(spot)){ plan.conflict.push({ r, txt, who, line:r.line }); return; }
+    taken.add(spot);
+    plan.placed.push({ r, rackKey, row, tub, txt });
+  });
+  Object.values(plan.newRacks).forEach(nr=>{ if(nr.maxIndex){ nr.maxRow = Math.max(nr.maxRow, Math.ceil(nr.maxIndex/8)); nr.maxTub = Math.max(nr.maxTub, 8); } nr.maxRow = Math.max(1, nr.maxRow); nr.maxTub = Math.max(1, nr.maxTub); });
+  return plan;
+}
+function importLocationPreviewHtml(rows, isEn, p){
+  const plan = importLocationPlan(rows);
+  if(!plan.placed.length && !plan.bad.length && !plan.conflict.length && !plan.outside.length) return '';
+  const ex = (arr)=>escapeHtml(arr.slice(0,6).map(x=>(isEn?'line ':'ligne ')+x.line+' « '+x.txt+' »').join(', '))+(arr.length>6?' +'+(arr.length-6):'');
+  const nr = Object.values(plan.newRacks), nt = Object.values(plan.newTerras);
+  let h = p('📍 '+(isEn?plan.placed.length+' animal(s) will be placed from the location column.':plan.placed.length+' animal(s) seront placés selon la colonne d\'emplacement.')+
+    (nr.length ? ' '+(isEn?'Racks created: ':'Racks créés : ')+'<b>'+escapeHtml(nr.map(x=>x.name+' ('+x.maxRow+'×'+x.maxTub+')').join(', '))+'</b>.' : '')+
+    (nt.length ? ' '+(isEn?'Terrariums created: ':'Terrariums créés : ')+'<b>'+escapeHtml(nt.map(x=>x.name).join(', '))+'</b>.' : ''), 'var(--sage)');
+  if(plan.bad.length) h += p('⚠ '+(isEn?plan.bad.length+' unreadable location(s) — left « to place », text kept in the notes: ':plan.bad.length+' emplacement(s) illisible(s) — laissé(s) « à classer », texte gardé dans les notes : ')+'<b>'+ex(plan.bad)+'</b>', 'var(--gold)');
+  if(plan.outside.length) h += p('⚠ '+(isEn?plan.outside.length+' location(s) outside the existing rack (row or tub too high) — left « to place »: ':plan.outside.length+' emplacement(s) hors du rack existant (rangée ou bac trop loin) — laissé(s) « à classer » : ')+'<b>'+ex(plan.outside)+'</b>', 'var(--gold)');
+  if(plan.conflict.length) h += p('⚠ '+(isEn?plan.conflict.length+' spot(s) already taken — left « to place »: ':plan.conflict.length+' place(s) déjà prise(s) — laissé(s) « à classer » : ')+'<b>'+ex(plan.conflict)+'</b>', 'var(--gold)');
+  return h;
+}
+function applyImportLocations(rows){
+  const plan = importLocationPlan(rows);
+  const rackIds = {}, teIds = {};
+  Object.keys(plan.newRacks).forEach((key, i)=>{ const nr = plan.newRacks[key]; const r = { id:'rack_'+Date.now()+'_imp'+i, name:nr.name, rows:Array(nr.maxRow).fill(nr.maxTub) }; racks.push(r); rackIds[key] = r.id; });
+  Object.keys(plan.newTerras).forEach((key, i)=>{ const te = { id:'terra_'+Date.now()+'_imp'+i, name:plan.newTerras[key].name, size:null, status:'libre', bioactive:false, pairingStartDate:null, lighting:null, heating:null, substrate:null, uvbReplaceDate:null, cleanings:[] }; terrariums.push(te); teIds[key] = te.id; });
+  plan.placed.forEach(pl=>{
+    const s = savedSnakes.find(x=>x.id===pl.r._createdId); if(!s) return;
+    if(pl.terraKey) s.placement = { mode:'terrarium', terrariumId: teIds[pl.terraKey] || pl.terraKey };
+    else s.placement = { mode:'rack', rackId: rackIds[pl.rackKey] || pl.rackKey, row:pl.row, tub:pl.tub };
+  });
+  const isEn = currentLang==='en';
+  plan.bad.concat(plan.outside, plan.conflict).forEach(b=>{ const s = savedSnakes.find(x=>x.id===b.r._createdId); if(s) s.notes = [s.notes, (isEn?'Location in the file: ':'Emplacement dans le fichier : ')+b.txt].filter(Boolean).join('\n'); });
+  terrariums.forEach(refreshTerrariumStatus);
+  saveElevage();
+  return plan.placed.length;
 }
 function genericImportFromRows(rows, meta){
   const isEn = currentLang==='en';
@@ -16161,6 +16292,7 @@ function rebuildGenericImportRows(){
       name: name.slice(0,80), animalId, line: cols.__line, // v4.40 — numéro de ligne pour les messages
       status: st.status, statusKnown: st.known, statusRaw: str(cols,'status'), quarantine: !!st.quarantine,
       notes: [str(cols,'notes'), ...wordNotes, ...priceNotes, ...packedNotes, (parsed.unknown && parsed.unknown.length && str(cols,'genes') ? (isEn?'Genetics in the file: ':'Génétique dans le fichier : ')+str(cols,'genes') : ''), (!st.known && str(cols,'status') ? (isEn?'Status in the imported file: ':'Statut dans le fichier importé : ')+str(cols,'status') : '')].filter(Boolean).join('\n') || null, // v4.21 (+ date d'acquisition v4.30)
+      locRaw: str(cols,'location'), locRowRaw: str(cols,'locRow'), locTubRaw: str(cols,'locTub'), // v4.45
       sireRef: str(cols,'sire') || null, damRef: str(cols,'dam') || null, // v4.20 — liés après la création (ID ou nom, dans LOCUS ou dans le fichier)
       sex: importSexOf(sexRaw),
       genes: parsed.genes, unknownGenes: parsed.unknown, genesRaw: str(cols,'genes'),
@@ -16287,6 +16419,7 @@ function renderGenericCsvPreview(){
           '<button class="sc-btn'+(m.picking?'':' accent')+'" style="font-size:14px;padding:8px 12px;" onclick="toggleImportPicking(false)">'+(isEn?'The first '+slots:'Les '+slots+' premiers')+'</button>'+
           '<button class="sc-btn'+(m.picking?' accent':'')+'" style="font-size:14px;padding:8px 12px;" onclick="toggleImportPicking(true)">'+(isEn?'Choose which ones':'Choisir lesquels')+'</button>'+
         '</div></div>' : '')+
+    importLocationPreviewHtml(importRowsToCreate().map(x=>x.r), isEn, p)+ // v4.45
     (m.packed ? p('🗓 '+(isEn?'History found in the column(s) ':'Historique trouvé dans la ou les colonnes ')+'<b>'+escapeHtml(m.packed.names.map(x=>'« '+x+' »').join(', '))+'</b>'+(isEn?': '+m.packed.count+' dated entry(ies) (meals, sheds, weigh-ins), offered right after the animals for you to check.':' : '+m.packed.count+' entrée(s) datée(s) (repas, mues, pesées), proposée(s) juste après les animaux pour que tu les vérifies.')+(m.packed.undated ? (isEn?' '+m.packed.undated+' entry(ies) without a date are kept in the animal\'s notes.':' '+m.packed.undated+' entrée(s) sans date sont gardée(s) dans les notes de l\'animal.') : ''), 'var(--sage)') : '')+
     (m.hasLog && !m.combined && !m.packed ? p('🗓 '+(isEn?'A history sheet (meals, sheds, weigh-ins) was also found — it will be offered right after the animals.':'Une feuille d\'historique (repas, mues, pesées) a aussi été trouvée — elle sera proposée juste après les animaux.'), 'var(--sage)') : '')+
     (m.sheet ? p((isEn?'Sheet read: ':'Feuille lue : ')+'<b>'+escapeHtml(m.sheet)+'</b>'+(m.sheets>1?(isEn?' ('+m.sheets+' sheets in the file — the first one with a name or ID column)':' ('+m.sheets+' feuilles dans le fichier — la première avec une colonne nom ou ID)'):''), 'var(--ink-dim)') : '')+
@@ -16386,12 +16519,15 @@ function confirmGenericCsvImport(){
     if(sid) s.sireId = sid;
     if(did) s.damId = did;
   });
+  const placedN = applyImportLocations(imported); // v4.45 — colonne d'emplacement
+  const stillUnplaced = imported.filter(r=>{ const s = savedSnakes.find(x=>x.id===r._createdId); return s && snakeIsUnplaced(s) && snakeIsActiveForPlacement(s); }).length;
   pendingGenericCsvRows = [];
   pendingGenericImportMeta = null;
   storage.save(savedSnakes);
   renderSavedList();
+  try{ renderRackGrid(); renderTerrariumList(); }catch(e){}
   closeQuickModal();
-  showToast('📋 '+added+' '+(isEn?'reptile(s) imported.':'reptile(s) importé(s).'), 'success');
+  showToast('📋 '+added+' '+(isEn?'reptile(s) imported.':'reptile(s) importé(s).')+(placedN ? ' 📍 '+placedN+(isEn?' placed.':' placé(s).') : '')+(stillUnplaced ? (isEn?' '+stillUnplaced+' to place: Racks & Terrariums → 📦 Auto-place.':' '+stillUnplaced+' à classer : Racks & Terrariums → 📦 Ranger automatiquement.') : ''), 'success');
   if(pendingLogAfterAnimals){ const lg = pendingLogAfterAnimals; pendingLogAfterAnimals = null; setTimeout(()=>logImportFromRows(lg), 400); } // v4.19 — l'historique du même fichier, maintenant que les animaux existent
 }
 
@@ -20004,7 +20140,7 @@ function renderRackGrid(){
         '<button class="sc-btn" onclick="printRackLabel(\''+rack.id+'\')">🏷️ '+(isEn?'Rack QR':'QR du rack')+'</button>'+
         '<button class="sc-btn" onclick="openRackLogbookModal(\''+rack.id+'\')">🗒️ '+(isEn?'Rack journal':'Journal du rack')+'</button>'+
         (racks.length>1 ? '<button class="sc-btn danger" data-act="delrack" data-rack="'+rack.id+'">'+t('deleteThisRackBtn')+'</button>' : '')+
-        (maintMode && maintMode!=='uvb' && maintMode!=='wq' ? '<button class="sc-btn accent" onclick="toggleMaintRack(\''+rack.id+'\')">✅ '+(isEn?'Whole rack':'Tout le rack')+'</button>' : '')+ // v3.75
+        (maintMode && maintMode!=='uvb' && maintMode!=='wq' && maintMode!=='move' ? '<button class="sc-btn accent" onclick="toggleMaintRack(\''+rack.id+'\')">✅ '+(isEn?'Whole rack':'Tout le rack')+'</button>' : '')+ // v3.75
       '</div>'+
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">'+
         '<span style="font-size:11px;color:var(--ink-dim);">🔥 '+(isEn?'Heating':'Chauffage')+' :</span>'+
@@ -20022,7 +20158,7 @@ function renderRackGrid(){
       rowEl.className = 'rack-row';
       rowEl.innerHTML = '<span class="rack-row-label">'+t('rowLabelPrefix')+' '+row+'</span>';
       // v3.75 — en mode entretien, toucher « Rangée N » sélectionne toute la rangée.
-      if(maintMode && maintMode!=='uvb' && maintMode!=='wq'){
+      if(maintMode && maintMode!=='uvb' && maintMode!=='wq' && maintMode!=='move'){
         const lbl = rowEl.querySelector('.rack-row-label');
         lbl.style.cursor = 'pointer'; lbl.style.textDecoration = 'underline';
         lbl.addEventListener('click', ()=>toggleMaintRow(rack.id, row));
@@ -20245,6 +20381,7 @@ function maintKeyApplies(key){
     if(maintMode==='poop') return terrariumOccupants(te.id).length>0; // v3.78 — seulement s'il y a un animal
     return true;
   }
+  if(maintMode==='move') return true; // v4.45 — tout bac ou terrarium peut recevoir un animal
   if(maintMode==='poop'){ const p = key.split('|'); return !!snakeAt(p[1], Number(p[2]), Number(p[3])); }
   return maintMode!=='uvb' && maintMode!=='wq'; // bacs de rack : eau et nettoyage seulement
 }
@@ -20262,9 +20399,16 @@ function renderMaintBar(){
     pill('clean_partial', '🧽 '+(isEn?'Partial cleaning':'Nettoyage partiel'))+
     pill('clean_complete', '🧹 '+(isEn?'Full cleaning':'Nettoyage complet'))+
     pill('poop', '💩 '+(isEn?'Poop':'Selles'))+ // v3.78 — selles notées sur l'animal du bac/terrarium
+    pill('move', '🔀 '+(isEn?'Place / move':'Placer / déplacer'))+ // v4.45
     (terrariums.some(maintTerrariumHasUvb) ? pill('uvb', '☀️ '+(isEn?'UVB replaced':'UVB remplacé')) : '')+
     (terrariums.some(maintTerrariumIsAquatic) ? pill('wq', '🧪 '+(isEn?'Water test':'Test d\'eau')) : '')+
     '</div>';
+  // v4.45 — animaux sans place : bandeau avec le rangement automatique
+  const unplacedN = savedSnakes.filter(s=>snakeIsUnplaced(s) && snakeIsActiveForPlacement(s)).length;
+  if(unplacedN && maintMode!=='move') html += '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;padding:8px 10px;border:1px dashed var(--gold);border-radius:10px;">'+
+    '<span style="font-size:14px;color:var(--ink);flex:1;min-width:160px;">📦 '+unplacedN+(isEn?' animal(s) to place.':' animal(s) à classer.')+'</span>'+
+    '<button type="button" class="sc-btn accent" onclick="openAutoPlaceModal()">'+(isEn?'Auto-place…':'Ranger automatiquement…')+'</button>'+
+    '<button type="button" class="sc-btn" onclick="setMaintMode(\'move\')">🔀 '+(isEn?'One by one':'Un par un')+'</button></div>';
   if(maintMode){
     const today = localTodayStr();
     if(!maintDate) maintDate = today;
@@ -20272,7 +20416,9 @@ function renderMaintBar(){
     // Panneau fixé en bas de l'écran (au-dessus de la barre Fiscal/Valeur/…) : toujours visible
     // pendant qu'on fait défiler les racks et terrariums.
     html += '<div class="maint-action-panel">';
-    if(maintMode==='wq'){
+    if(maintMode==='move'){
+      html += movePanelHtml(isEn); // v4.45
+    } else if(maintMode==='wq'){
       html += '<span style="font-size:13px;color:var(--ink);flex:1;min-width:180px;">'+(isEn?'Tap an aquatic enclosure to enter its reading (values differ from tank to tank).':'Touche un terrarium aquatique pour entrer sa mesure (les valeurs changent d\'un bassin à l\'autre).')+'</span>';
     } else {
       html += '<span class="tour-count" style="color:var(--gold);">'+n+' '+(isEn?'selected':'sélectionné(s)')+'</span>'+
@@ -20301,12 +20447,273 @@ function setMaintMode(mode){
   if(mode===maintMode) mode = null;
   const keepDate = maintDate;
   maintMode = mode;
+  moveSrcId = null; // v4.45
   maintSel = new Set();
   maintNote = '';
   maintDate = mode ? keepDate : '';
   renderMaintBar();
   try{ renderRackGrid(); }catch(e){}
   try{ renderTerrariumList(); }catch(e){}
+}
+// ==================== v4.45 — rangement des animaux (placement en lot, déplacer, rangement auto) ====================
+// Gratuit (décision d'Alex, 22 oct). Un animal « à classer » = mode terrarium sans terrarium.
+function snakeIsUnplaced(s){ ensureSnakeMeta(s); return s.placement.mode==='terrarium' && !s.placement.terrariumId; }
+function snakeIsActiveForPlacement(s){ return !['sold','deceased'].includes(s.status); }
+// Identifiant d'emplacement lisible, repris à l'export et compris à l'import : « Rack A-R2-B5 » ou le nom du terrarium.
+function placementCode(s){
+  ensureSnakeMeta(s);
+  const p = s.placement;
+  if(p.mode==='rack' && p.rackId){ const rack = getRack(p.rackId); return rack ? rack.name+'-R'+p.row+'-B'+p.tub : ''; }
+  if(p.mode==='terrarium' && p.terrariumId){ const te = getTerrarium(p.terrariumId); return te ? te.name : ''; }
+  return '';
+}
+function rackFreeTubs(rack){
+  const out = [];
+  rack.rows.forEach((n, ri)=>{ for(let tub=1; tub<=n; tub++){ if(!snakeAt(rack.id, ri+1, tub)) out.push({ row:ri+1, tub }); } });
+  return out;
+}
+function rackTubCount(rack){ return rack.rows.reduce((a,b)=>a+b, 0); }
+function freeTerrariums(){ return terrariums.filter(te=>terrariumOccupants(te.id).length===0); }
+// Groupe d'âge : date de naissance d'abord (seuils du rythme de repas), sinon le poids (python royal : 300 g / 1000 g).
+function placeAgeMonths(bd){
+  if(!bd) return null;
+  const m = ageInMonths(bd);
+  if(m!=null) return m;
+  if(/^\d{4}$/.test(String(bd))){ const now = new Date(); return (now.getFullYear()-Number(bd))*12 + (now.getMonth()+1-7); } // année seule : milieu d'année
+  return null;
+}
+function placeAgeGroup(s){
+  const m = placeAgeMonths(s.birthDate);
+  if(m!=null){ const adultAt = SPECIES_ADULT_AT_12M.includes(s.species) ? 12 : 18; return m<6 ? 'baby' : m<adultAt ? 'juvenile' : 'adult'; }
+  const ws = (s.health && s.health.weights) || [];
+  const w = ws.length ? Number(ws[ws.length-1].value) : null;
+  if(w>0 && (s.species||'ball_python')==='ball_python') return w<300 ? 'baby' : w<1000 ? 'juvenile' : 'adult';
+  return 'unknown';
+}
+var PLACE_GROUPS = ['baby','juvenile','adult','unknown'];
+function placeGroupLabel(g, isEn){ return ({ baby:['🐣 Bébés','🐣 Babies'], juvenile:['🐍 Juvéniles','🐍 Juveniles'], adult:['🐉 Adultes','🐉 Adults'], unknown:['❔ Âge inconnu','❔ Unknown age'] })[g][isEn?1:0]; }
+// Annuler : on garde l'emplacement d'avant de chaque animal touché, et les racks créés pendant l'opération.
+var placeUndo = null;
+function placeRemember(list, createdRacks){ placeUndo = { items: list.map(s=>({ id:s.id, placement: JSON.parse(JSON.stringify(s.placement)) })), racks: createdRacks||[] }; }
+function undoPlacement(){
+  const isEn = currentLang==='en';
+  if(!placeUndo) return;
+  placeUndo.items.forEach(it=>{ const s = savedSnakes.find(x=>x.id===it.id); if(s) s.placement = it.placement; });
+  (placeUndo.racks||[]).forEach(id=>{ if(!savedSnakes.some(s=>s.placement && s.placement.rackId===id && s.placement.mode==='rack')) racks = racks.filter(r=>r.id!==id); });
+  placeUndo = null;
+  terrariums.forEach(refreshTerrariumStatus);
+  storage.save(savedSnakes); saveElevage();
+  try{ renderRackGrid(); renderTerrariumList(); }catch(e){}
+  showToast('↩ '+(isEn?'Placement undone.':'Rangement annulé.'), 'success');
+}
+// ---------- Mode « Placer / déplacer » (pastille dans la barre d'entretien) ----------
+var moveSrcId = null;
+function moveTargetSnake(key){
+  if(key.indexOf('tub|')===0){ const p = key.split('|'); return snakeAt(p[1], Number(p[2]), Number(p[3])); }
+  return null;
+}
+function placementFromKey(key){
+  if(key.indexOf('tub|')===0){ const p = key.split('|'); return { mode:'rack', rackId:p[1], row:Number(p[2]), tub:Number(p[3]) }; }
+  if(key.indexOf('te|')===0) return { mode:'terrarium', terrariumId:key.slice(3) };
+  return null;
+}
+function selectMoveSource(id){ moveSrcId = (moveSrcId===id) ? null : id; renderMaintBar(); try{ renderRackGrid(); renderTerrariumList(); }catch(e){} }
+function handleMoveTap(key){
+  const isEn = currentLang==='en';
+  const target = placementFromKey(key);
+  if(!target) return;
+  const src = moveSrcId ? savedSnakes.find(s=>s.id===moveSrcId) : null;
+  if(!src){
+    // rien de choisi : toucher un bac occupé le choisit comme animal à déplacer
+    const occ = key.indexOf('tub|')===0 ? moveTargetSnake(key) : null;
+    if(occ){ selectMoveSource(occ.id); return; }
+    if(key.indexOf('te|')===0){ const o = terrariumOccupants(key.slice(3)); if(o.length===1){ selectMoveSource(o[0].id); return; } }
+    showToast(isEn?'Pick an animal first: tap an occupied tub, or one in the « To place » list.':'Choisis d\'abord un animal : touche un bac occupé, ou un animal dans la liste « À classer ».', 'info');
+    return;
+  }
+  ensureSnakeMeta(src);
+  const before = JSON.parse(JSON.stringify(src.placement));
+  if(target.mode==='rack'){
+    if(before.mode==='rack' && before.rackId===target.rackId && before.row===target.row && before.tub===target.tub){ selectMoveSource(src.id); return; } // retouché = désélectionné
+    const occ = snakeAt(target.rackId, target.row, target.tub);
+    placeRemember(occ ? [src, occ] : [src]);
+    if(occ) occ.placement = (before.mode==='terrarium' && !before.terrariumId) ? { mode:'terrarium', terrariumId:null, row:null, tub:null } : before; // échange (un animal « à classer » envoie l'occupant à classer)
+    src.placement = target;
+  } else {
+    const te = getTerrarium(target.terrariumId); if(!te) return;
+    if(before.mode==='terrarium' && before.terrariumId===te.id){ selectMoveSource(src.id); return; }
+    const occs = terrariumOccupants(te.id);
+    if(occs.length>=terrariumCapacity(te)){ showToast(isEn?'That terrarium is full.':'Ce terrarium est plein.', 'error'); return; }
+    placeRemember([src]);
+    src.placement = target;
+  }
+  moveSrcId = null;
+  terrariums.forEach(refreshTerrariumStatus);
+  storage.save(savedSnakes); saveElevage();
+  renderMaintBar();
+  try{ renderRackGrid(); renderTerrariumList(); }catch(e){}
+  showToast('🔀 '+escapeHtml(snakeName(src))+' → '+escapeHtml(placementCode(src)), 'success', 'undoPlacement()');
+}
+function movePanelHtml(isEn){
+  const unplaced = savedSnakes.filter(s=>snakeIsUnplaced(s) && snakeIsActiveForPlacement(s));
+  const src = moveSrcId ? savedSnakes.find(s=>s.id===moveSrcId) : null;
+  let h = '<div style="flex:1 1 100%;font-size:13px;color:var(--ink);line-height:1.4;">'+
+    (src ? '👉 <b>'+escapeHtml(snakeName(src))+'</b> '+(isEn?'selected — now tap where it goes (an occupied tub = swap).':'choisi — touche maintenant sa nouvelle place (un bac occupé = échange).')
+         : (isEn?'Tap an occupied tub (or an animal below), then tap its new tub or terrarium. An occupied tub swaps the two animals.':'Touche un bac occupé (ou un animal ci-dessous), puis sa nouvelle place. Un bac occupé = les deux animaux échangent.'))+
+    '</div>';
+  if(unplaced.length){
+    h += '<div style="flex:1 1 100%;display:flex;gap:6px;overflow-x:auto;padding:2px 0 4px;">'+
+      unplaced.slice(0,60).map(s=>'<button type="button" class="tour-action-btn" onclick="selectMoveSource(\''+s.id+'\')" style="flex:0 0 auto;padding:6px 10px;'+(s.id===moveSrcId?'background:var(--gold);color:#1a1409;border-color:var(--gold);':'')+'">'+escapeHtml(snakeName(s))+'</button>').join('')+
+      (unplaced.length>60 ? '<span class="tour-count" style="flex:0 0 auto;">+'+(unplaced.length-60)+'</span>' : '')+
+    '</div>';
+  }
+  h += '<button type="button" class="sc-btn accent" onclick="openAutoPlaceModal()">📦 '+(isEn?'Auto-place…':'Ranger automatiquement…')+'</button>';
+  if(placeUndo) h += '<button type="button" class="sc-btn" onclick="undoPlacement()">↩ '+(isEn?'Undo last':'Annuler le dernier')+'</button>';
+  return h;
+}
+// ---------- Rangement automatique ----------
+var autoPlace = null;
+function openAutoPlaceModal(){
+  const isEn = currentLang==='en';
+  const unplaced = savedSnakes.filter(s=>snakeIsUnplaced(s) && snakeIsActiveForPlacement(s));
+  if(!unplaced.length){ showToast(isEn?'No animal to place — everyone already has a spot.':'Aucun animal à classer — tout le monde a déjà sa place.', 'info'); return; }
+  autoPlace = { where:null, map:{}, sort:'id', newRacks:{ count:1, rows:4, tubs:8, prefix:'Rack', perGroup:false } };
+  renderAutoPlaceModal();
+}
+function autoPlaceGroups(){
+  const g = { baby:[], juvenile:[], adult:[], unknown:[] };
+  savedSnakes.filter(s=>snakeIsUnplaced(s) && snakeIsActiveForPlacement(s)).forEach(s=>g[placeAgeGroup(s)].push(s));
+  return g;
+}
+function autoPlaceSorted(list){
+  const by = autoPlace.sort;
+  const key = s=> by==='name' ? normalizeHeaderKey(snakeName(s)) : by==='birth' ? String(s.birthDate||'9999') : String(s.animalId||snakeName(s)).toUpperCase();
+  return list.slice().sort((a,b)=>key(a).localeCompare(key(b), undefined, { numeric:true }));
+}
+function autoPlaceDestOptions(isEn){
+  const opts = [{ v:'', l: isEn?'— Leave to place —':'— Laisser à classer —' }];
+  if(autoPlace.where!=='terra') racks.forEach(r=>opts.push({ v:'rack|'+r.id, l: r.name+' ('+rackFreeTubs(r).length+(isEn?' free':' libres')+')' }));
+  if(autoPlace.where!=='rack') opts.push({ v:'terra', l:(isEn?'Empty terrariums':'Terrariums vides')+' ('+freeTerrariums().length+')' });
+  return opts;
+}
+// Plan : qui va où, sans rien modifier (sert à l'aperçu ET à la confirmation)
+function autoPlacePlan(){
+  const groups = autoPlaceGroups();
+  const free = {}; racks.forEach(r=>{ free[r.id] = rackFreeTubs(r); });
+  let terraFree = freeTerrariums().slice();
+  const moves = [], left = [], perDest = {};
+  PLACE_GROUPS.forEach(g=>{
+    const dest = autoPlace.map[g] || '';
+    autoPlaceSorted(groups[g]).forEach(s=>{
+      if(!dest){ return; }
+      perDest[dest] = perDest[dest] || { need:0, placed:0 };
+      perDest[dest].need++;
+      if(dest.indexOf('rack|')===0){
+        const id = dest.slice(5), spot = (free[id]||[]).shift();
+        if(spot){ moves.push({ s, placement:{ mode:'rack', rackId:id, row:spot.row, tub:spot.tub } }); perDest[dest].placed++; }
+        else left.push(s);
+      } else if(dest==='terra'){
+        const te = terraFree.shift();
+        if(te){ moves.push({ s, placement:{ mode:'terrarium', terrariumId:te.id } }); perDest[dest].placed++; }
+        else left.push(s);
+      }
+    });
+  });
+  return { groups, moves, left, perDest };
+}
+function renderAutoPlaceModal(){
+  const isEn = currentLang==='en';
+  const ap = autoPlace;
+  const btn = (on, onclick, label)=>'<button type="button" class="tour-action-btn" onclick="'+onclick+'" style="padding:9px 12px;'+(on?'background:var(--gold);color:#1a1409;border-color:var(--gold);font-weight:bold;':'')+'">'+label+'</button>';
+  const sect = (title, inner)=>'<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0;"><div style="font-size:15px;font-weight:600;color:var(--gold);margin-bottom:8px;">'+title+'</div>'+inner+'</div>';
+  const groups = autoPlaceGroups();
+  const total = PLACE_GROUPS.reduce((a,g)=>a+groups[g].length, 0);
+  let body = '<p style="font-size:14px;margin:4px 0 8px;">'+total+(isEn?' animal(s) to place.':' animal(s) à classer.')+'</p>';
+  body += sect(isEn?'1. Where?':'1. Où les ranger ?', '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+
+    btn(ap.where==='rack', "autoPlaceSet('where','rack')", '🗄 Racks')+btn(ap.where==='terra', "autoPlaceSet('where','terra')", '🏠 Terrariums')+btn(ap.where==='both', "autoPlaceSet('where','both')", isEn?'Both':'Les deux')+'</div>');
+  if(!ap.where){ showQuickModal('📦 '+(isEn?'Auto-place':'Rangement automatique'), body); return; }
+  if(ap.where!=='terra'){
+    const nr = ap.newRacks;
+    const rackList = racks.map(r=>'<div style="font-size:13.5px;padding:3px 0;">🗄 <b>'+escapeHtml(r.name)+'</b> — '+r.rows.length+(isEn?' row(s), ':' rangée(s), ')+rackTubCount(r)+(isEn?' tubs, ':' bacs, ')+'<b>'+rackFreeTubs(r).length+'</b>'+(isEn?' free':' libres')+'</div>').join('');
+    const num = (id, val, min, max)=>'<input type="number" id="'+id+'" value="'+val+'" min="'+min+'" max="'+max+'" style="width:64px;font-size:16px;padding:6px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>';
+    body += sect(isEn?'2. Your racks':'2. Tes racks', rackList+
+      '<div style="margin-top:8px;font-size:13.5px;line-height:2.1;">➕ '+(isEn?'Create ':'Créer ')+num('ap-nr-count', nr.count, 1, 20)+(isEn?' rack(s) of ':' rack(s) de ')+num('ap-nr-rows', nr.rows, 1, 30)+(isEn?' rows × ':' rangées × ')+num('ap-nr-tubs', nr.tubs, 1, 30)+(isEn?' tubs':' bacs')+
+      '<br>'+(isEn?'Name: ':'Nom : ')+'<input type="text" id="ap-nr-prefix" value="'+escapeHtml(nr.prefix)+'" style="width:130px;font-size:16px;padding:6px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
+      ' <label style="font-size:13px;"><input type="checkbox" id="ap-nr-pergroup"'+(nr.perGroup?' checked':'')+'/> '+(isEn?'one rack per age group (Babies, Juveniles, Adults)':'un rack par groupe d\'âge (Bébés, Juvéniles, Adultes)')+'</label></div>'+
+      '<button type="button" class="sc-btn" style="margin-top:6px;" onclick="autoPlaceCreateRacks()">➕ '+(isEn?'Create these racks':'Créer ces racks')+'</button>');
+  }
+  const opts = autoPlaceDestOptions(isEn);
+  const rows = PLACE_GROUPS.filter(g=>groups[g].length).map(g=>{
+    const v = ap.map[g] || '';
+    return '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:5px 0;"><span style="min-width:150px;font-size:14px;">'+placeGroupLabel(g, isEn)+' <b>('+groups[g].length+')</b></span>'+
+      '<select onchange="autoPlace.map[\''+g+'\']=this.value;renderAutoPlaceModal();" style="flex:1;min-width:160px;font-size:16px;padding:7px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+      opts.map(o=>'<option value="'+o.v+'"'+(o.v===v?' selected':'')+'>'+escapeHtml(o.l)+'</option>').join('')+'</select></div>';
+  }).join('');
+  body += sect((ap.where==='terra'?'2. ':'3. ')+(isEn?'Who goes where':'Qui va où'), rows+
+    '<div style="font-size:12.5px;color:var(--ink-dim);margin-top:4px;">'+(isEn?'Age from the birth date (baby < 6 months, juvenile < 18 months — 12 for hognose and bearded dragon); without a date, ball pythons are grouped by weight (< 300 g, < 1000 g).':'Âge selon la date de naissance (bébé < 6 mois, juvénile < 18 mois — 12 pour le hognose et le dragon barbu); sans date, les pythons royaux sont classés selon le poids (< 300 g, < 1000 g).')+'</div>'+
+    '<div style="margin-top:8px;font-size:13.5px;">'+(isEn?'Order in the tubs: ':'Ordre dans les bacs : ')+
+    ['id','name','birth'].map(k=>btn(ap.sort===k, "autoPlaceSet('sort','"+k+"')", k==='id'?'ID':k==='name'?(isEn?'Name':'Nom'):(isEn?'Birth date':'Naissance'))).join(' ')+'</div>');
+  const plan = autoPlacePlan();
+  const lines = Object.keys(plan.perDest).map(d=>{
+    const pd = plan.perDest[d], name = d==='terra' ? (isEn?'Empty terrariums':'Terrariums vides') : (getRack(d.slice(5))||{}).name;
+    const short = pd.need - pd.placed;
+    return '<div style="font-size:14px;padding:2px 0;color:'+(short?'var(--gold)':'var(--sage)')+';">'+(short?'⚠ ':'✓ ')+escapeHtml(name||'?')+' : '+pd.placed+'/'+pd.need+(short ? (isEn?' — '+short+' won\'t fit, they stay to place':' — il en manque '+short+', ils restent à classer') : '')+'</div>';
+  }).join('');
+  body += sect(isEn?'Preview':'Aperçu', lines || '<div style="font-size:13.5px;color:var(--ink-dim);">'+(isEn?'Choose a destination for at least one group.':'Choisis une destination pour au moins un groupe.')+'</div>');
+  body += '<button type="button" class="save-btn" style="width:100%;font-size:16px;padding:12px;" '+(plan.moves.length?'':'disabled')+' onclick="confirmAutoPlace()">✅ '+(isEn?'Place '+plan.moves.length+' animal(s)':'Ranger '+plan.moves.length+' animal(s)')+'</button>'+
+    '<button type="button" class="sc-btn" style="width:100%;margin-top:6px;" onclick="autoPlace=null;closeQuickModal();">'+(isEn?'Cancel':'Annuler')+'</button>';
+  showQuickModal('📦 '+(isEn?'Auto-place':'Rangement automatique'), body);
+}
+function autoPlaceSet(k, v){
+  autoPlace[k] = v;
+  if(k==='where'){ // destinations par défaut : un rack par groupe dans l'ordre, sinon les terrariums
+    const g = autoPlaceGroups(); autoPlace.map = {};
+    const rk = v==='terra' ? [] : racks.filter(r=>rackFreeTubs(r).length);
+    const named = (grp, words)=>rk.find(r=>words.some(w=>normalizeHeaderKey(r.name).includes(w)));
+    ['baby','juvenile','adult'].forEach((grp, i)=>{ if(!g[grp].length) return;
+      const byName = named(grp, grp==='baby'?['bebe','baby','babies','nouveau']:grp==='juvenile'?['juv','sub']:['adult','reprod','breeder']);
+      const r = byName || rk[Math.min(i, rk.length-1)];
+      autoPlace.map[grp] = r ? 'rack|'+r.id : (v!=='rack' ? 'terra' : '');
+    });
+  }
+  renderAutoPlaceModal();
+}
+function autoPlaceCreateRacks(){
+  const isEn = currentLang==='en';
+  const val = (id, d, min, max)=>{ const n = parseInt((document.getElementById(id)||{}).value, 10); return isNaN(n) ? d : Math.max(min, Math.min(max, n)); };
+  const nr = autoPlace.newRacks;
+  nr.count = val('ap-nr-count', 1, 1, 20); nr.rows = val('ap-nr-rows', 4, 1, 30); nr.tubs = val('ap-nr-tubs', 8, 1, 30);
+  nr.prefix = ((document.getElementById('ap-nr-prefix')||{}).value || 'Rack').trim().slice(0,40) || 'Rack';
+  nr.perGroup = !!(document.getElementById('ap-nr-pergroup')||{}).checked;
+  const groupNames = isEn ? ['Babies','Juveniles','Adults'] : ['Bébés','Juvéniles','Adultes'];
+  const created = [];
+  const count = nr.perGroup ? 3 : nr.count;
+  for(let i=0;i<count;i++){
+    let name = nr.perGroup ? nr.prefix+' '+groupNames[i] : (count>1 || racks.some(r=>r.name===nr.prefix) ? nr.prefix+' '+(racks.length+1) : nr.prefix);
+    while(racks.some(r=>r.name===name)) name += '+';
+    const r = { id:'rack_'+Date.now()+'_'+i, name, rows: Array(nr.rows).fill(nr.tubs) };
+    racks.push(r); created.push(r);
+  }
+  autoPlace.createdRacks = (autoPlace.createdRacks||[]).concat(created.map(r=>r.id));
+  saveElevage();
+  try{ renderRackGrid(); }catch(e){}
+  if(nr.perGroup){ const ids = created.map(r=>'rack|'+r.id); autoPlace.map.baby = ids[0]; autoPlace.map.juvenile = ids[1]; autoPlace.map.adult = ids[2]; }
+  else if(autoPlace.where){ autoPlaceSet('where', autoPlace.where); return; }
+  showToast('➕ '+created.length+(isEn?' rack(s) created.':' rack(s) créé(s).'), 'success');
+  renderAutoPlaceModal();
+}
+function confirmAutoPlace(){
+  const isEn = currentLang==='en';
+  const plan = autoPlacePlan();
+  if(!plan.moves.length) return;
+  placeRemember(plan.moves.map(m=>m.s), autoPlace.createdRacks||[]);
+  plan.moves.forEach(m=>{ m.s.placement = m.placement; });
+  terrariums.forEach(refreshTerrariumStatus);
+  storage.save(savedSnakes); saveElevage();
+  autoPlace = null;
+  closeQuickModal();
+  try{ renderRackGrid(); renderTerrariumList(); renderMaintBar(); }catch(e){}
+  showToast('📦 '+plan.moves.length+(isEn?' animal(s) placed.':' animal(s) rangé(s).')+(plan.left.length ? (isEn?' '+plan.left.length+' still to place.':' '+plan.left.length+' encore à classer.') : ''), 'success', 'undoPlacement()');
 }
 // Branché à la fin de chaque bac/carte pendant le rendu : en mode entretien, le toucher sélectionne
 // (écouteur en capture : la fiche, le ✕, 🧹 ou 💧 du bac ne s'ouvrent pas pendant ce temps).
@@ -20316,11 +20723,13 @@ function decorateMaintTarget(el, key){
   const applies = maintKeyApplies(key);
   el.classList.add(applies ? 'maint-selectable' : 'maint-disabled');
   if(maintSel.has(key)) el.classList.add('maint-selected');
+  if(maintMode==='move' && moveSrcId){ const mv = savedSnakes.find(x=>x.id===moveSrcId); if(mv){ const pp = mv.placement||{}; const mk = pp.mode==='rack' ? 'tub|'+pp.rackId+'|'+pp.row+'|'+pp.tub : (pp.terrariumId ? 'te|'+pp.terrariumId : ''); if(mk===key) el.classList.add('maint-selected'); } }
   el.addEventListener('click', (e)=>{
     if(e.target.closest('input,select,textarea')) return;
     e.stopPropagation(); e.preventDefault();
     if(!applies) return;
     if(maintMode==='wq'){ openTerrariumWaterQualityModal(key.slice(3)); return; }
+    if(maintMode==='move'){ handleMoveTap(key); return; } // v4.45
     toggleMaintKeys([key]);
   }, true);
 }
@@ -27605,7 +28014,7 @@ function exportInventoryExcel(){
   const locationLabel = s => {
     if(s.placement.mode==='rack'){
       const rack = getRack(s.placement.rackId);
-      return (rack?rack.name:'?')+' R'+s.placement.row+'/B'+s.placement.tub;
+      return placementCode(s) || ((rack?rack.name:'?')+'-R'+s.placement.row+'-B'+s.placement.tub); // v4.45 — même identifiant que celui relu par l'import
     }
     const te = s.placement.terrariumId ? getTerrarium(s.placement.terrariumId) : null;
     return te ? te.name : (isEn?'Unassigned':'Non classé');
@@ -27638,7 +28047,7 @@ function exportInventoryPdf(){
   const locationLabel = s => {
     if(s.placement.mode==='rack'){
       const rack = getRack(s.placement.rackId);
-      return (rack?rack.name:'?')+' R'+s.placement.row+'/B'+s.placement.tub;
+      return placementCode(s) || ((rack?rack.name:'?')+'-R'+s.placement.row+'-B'+s.placement.tub); // v4.45 — même identifiant que celui relu par l'import
     }
     const te = s.placement.terrariumId ? getTerrarium(s.placement.terrariumId) : null;
     return te ? te.name : (isEn?'Unassigned':'Non classé');
