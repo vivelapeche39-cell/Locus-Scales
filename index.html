@@ -2235,7 +2235,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.65';
+const APP_VERSION = '2026.09.01.4.66';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5265,6 +5265,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.66', date:'2026-10-22',
+    title:{ fr:'Import plus strict : un stock de proies n\'est pas des reptiles', en:'Stricter import: a prey stock is not reptiles' },
+    changes:{
+      fr:[ '🐀 Une feuille dont les lignes sont des rongeurs ou des proies (« Rat - Pinky », « Souris adulte », « ASF - Medium ») et qui n\'a ni génétique ni sexe n\'est plus jamais prise pour une liste de reptiles : elle va à l\'import de rongeurs. Les noms de feuille comme « État des stocks & proies » sont aussi reconnus, la colonne « Type » (congelé/vivant) est lue, les pluriels (Fuzzies, Pinkies, Weaned) sont compris, et une taille qui n\'existe pas pour l\'espèce est listée avec les tailles possibles.' ],
+      en:[ '🐀 A sheet whose rows are rodents or prey (« Rat - Pinky », « Mouse adult », « ASF - Medium ») and that has no genetics or sex is never taken for a reptile list anymore: it goes to the rodent import. Sheet names like « Stock & prey status » are recognized too, the « Type » column (frozen/live) is read, plurals (Fuzzies, Pinkies, Weaned) are understood, and a size that doesn\'t exist for the species is listed with the possible sizes.' ]
+    }
+  },
   { version:'4.65', date:'2026-10-22',
     title:{ fr:'Import de rongeurs aligné sur les lignées', en:'Rodent import aligned with lineages' },
     changes:{
@@ -16421,7 +16428,9 @@ function parseLogPrey(raw){
         .replace(new RegExp(B+'(petit|petite|petits|petites|ptit|ptite)'+E,'g'),'$1small$3')
         .replace(new RegExp(B+'(souriceau|souriceaux|sauteuse|sauteuses|sauteur|sauteurs)'+E,'g'),'$1hopper$3')
         .replace(new RegExp(B+'(poilu|poilue|poilus|poilues|duvet|duveteux|blanchon|blanchons)'+E,'g'),'$1fuzzy$3')
-        .replace(new RegExp(B+'(nouveau ne|nouveau-ne|nouveaux nes|naissant|naissants)'+E,'g'),'$1pinky$3');
+        .replace(new RegExp(B+'(nouveau ne|nouveau-ne|nouveaux nes|naissant|naissants|pinkies|pinkys)'+E,'g'),'$1pinky$3')
+        .replace(new RegExp(B+'(fuzzies|fuzzys)'+E,'g'),'$1fuzzy$3').replace(new RegExp(B+'(hoppers)'+E,'g'),'$1hopper$3')
+        .replace(new RegExp(B+'(weaned|weanlings|weaners?)'+E,'g'),'$1weanling$3').replace(new RegExp(B+'(adults)'+E,'g'),'$1adult$3');
       sz = findSz(fr);
     }
     if(sz) out.preySize = sz;
@@ -16854,11 +16863,26 @@ function rodentOriginList(raw){
   if(!txt || importIsBlankish(txt)) return [];
   return [...new Set(txt.split(/[,;+&\/]|\bet\b|\band\b/i).map(p=>{ const c = rodentLineageCodeOf(p.trim()); return c && c.num; }).filter(n=>n!=null))];
 }
+// v4.66 — plus strict : une feuille dont la 1re colonne de texte est surtout des rongeurs/proies (« Rat - Pinky »,
+// « Souris adulte », « ASF ») et qui n'a ni génétique ni sexe n'est JAMAIS une liste de reptiles.
+function looksLikePreySheet(sh){
+  const rows = ((sh && sh.rows) || []).filter(r=>Array.isArray(r) && r.some(c=>importCellStr(c)!==''));
+  if(rows.length<2) return false;
+  for(let i=0;i<Math.min(5, rows.length);i++){
+    const rep = mapCsvHeaders(rows[i].map(importCellStr));
+    if(rep.genes!==undefined || rep.sex!==undefined) return false;
+  }
+  const preyWord = v=>rodentSpeciesOf(v) || /(^|[^a-z])(pinky|pinkies|fuzzy|fuzzies|hopper|hoppers|weanling|weaned|sevre|rose|souriceau|feeder|proie|prey)([^a-z]|$)/.test(normalizeHeaderKey(v));
+  const firstText = rows.slice(0, 40).map(r=>r.map(importCellStr).find(v=>v && isNaN(Number(v.replace(',','.'))))).filter(Boolean);
+  if(firstText.length<3) return false;
+  const hits = firstText.filter(preyWord).length;
+  return hits >= Math.ceil(firstText.length*0.6);
+}
 // Où commencent les titres + quel type de feuille (null = pas une feuille de rongeurs)
 function rodentSheetInfo(sh, forced){
   const rows = (sh && sh.rows) || [];
   const name = normalizeHeaderKey(sh && sh.n || '');
-  const nameHint = /(rongeur|rodent|souris|mice|mouse|(^|[^a-z])rats?([^a-z]|$)|colonie|colony|feeder|portee|litter|asf|nourricier)/.test(name);
+  const nameHint = /(rongeur|rodent|souris|mice|mouse|(^|[^a-z])rats?([^a-z]|$)|colonie|colony|feeder|portee|litter|asf|nourricier|proie|prey|congel|frozen|(^|[^a-z])stocks?([^a-z]|$)|inventaire|inventory)/.test(name);
   for(let i=0;i<Math.min(10, rows.length);i++){
     const cells = (rows[i]||[]).map(importCellStr);
     const map = rodentMapHeaders(cells);
@@ -16871,7 +16895,8 @@ function rodentSheetInfo(sh, forced){
     // valeurs de la colonne espèce : surtout des rongeurs ?
     const body = rows.slice(i+1, i+30).filter(r=>Array.isArray(r) && r.some(c=>importCellStr(c)!==''));
     let rodentVals = 0, otherVals = 0;
-    if(map.species!==undefined) body.forEach(r=>{ const v = importCellStr(r[map.species]); if(!v) return; if(rodentSpeciesOf(v)) rodentVals++; else otherVals++; });
+    const spCol = map.species!==undefined ? map.species : (map.size!==undefined ? map.size : (map.bin!==undefined ? map.bin : null)); // v4.66 — « Rat - Pinky » dans la colonne Produit/Taille
+    if(spCol!=null) body.forEach(r=>{ const v = importCellStr(r[spCol]); if(!v) return; if(rodentSpeciesOf(v)) rodentVals++; else otherVals++; });
     const speciesSays = rodentVals>0 && rodentVals>=otherVals;
     const specific = map.ratio!==undefined || map.dateList!==undefined || map.totalBabies!==undefined || map.litterTotal!==undefined || (map.males!==undefined && map.females!==undefined) || map.missing!==undefined || map.transferred!==undefined || map.euthanized!==undefined || map.femaleOrigin!==undefined || map.maleOrigin!==undefined || (map.lineage!==undefined && map.generation!==undefined);
     let kind = null;
@@ -16900,6 +16925,7 @@ function rodentImportDate(raw, order){
 function buildRodentImportPlan(sheets, forced){
   const isEn = currentLang==='en';
   const plan = { bins:[], litters:[], stock:[], expenses:[], skipped:[], guessedDates:0, sheets:[], notes:[] };
+  sheets.forEach(sh=>{ (sh.rows||[]).slice(0,10).some(r=>Array.isArray(r) && r.some(c=>{ if(/(seuil|alerte|threshold|minimum|mini|reorder)/.test(normalizeHeaderKey(importCellStr(c)))){ plan.notes.push(isEn?'« '+importCellStr(c)+' » column ignored: LOCUS warns of low stock at 5 or less for every size.':'Colonne « '+importCellStr(c)+' » ignorée : LOCUS avertit d\'un stock bas à 5 ou moins pour chaque taille.'); return true; } return false; })); });
   const binByKey = {};
   const keyOf = label=>normalizeHeaderKey(label).replace(/[^a-z0-9]+/g,' ').trim();
   const existingByKey = {};
@@ -16945,9 +16971,14 @@ function buildRodentImportPlan(sheets, forced){
         const txt = (sp ? ({mouse:'souris',rat:'rat',asf:'asf'})[sp] : '')+' '+str(r,'size');
         const pr = parseLogPrey(txt);
         const qty = importNumber(cell(r,'quantity')!=null && str(r,'quantity')!=='' ? cell(r,'quantity') : cell(r,'count'));
-        if(!pr.preySpecies || !pr.preySize){ plan.skipped.push({ line, sheet:sh.n, why:(isEn?'species or size not understood: ':'espèce ou taille non comprise : ')+(str(r,'species')+' '+str(r,'size')).trim() }); return; }
+        if(!pr.preySpecies || !pr.preySize){
+          const spK = pr.preySpecies || sp;
+          const sizesTxt = spK && PREY_TYPES[spK] ? ' — '+(isEn?'sizes in LOCUS for this species: ':'tailles dans LOCUS pour cette espèce : ')+PREY_TYPES[spK].sizes.join(', ') : '';
+          plan.skipped.push({ line, sheet:sh.n, why:(isEn?'species or size not understood: ':'espèce ou taille non comprise : ')+(str(r,'species')+' '+str(r,'size')).trim()+sizesTxt });
+          return;
+        }
         if(qty==null || qty<0 || qty>100000){ plan.skipped.push({ line, sheet:sh.n, why:(isEn?'quantity not understood':'quantité non comprise') }); return; }
-        const live = /(vivant|live|alive)/.test(normalizeHeaderKey(str(r,'storage')+' '+str(r,'note')));
+        const live = /(vivant|live|alive)/.test(normalizeHeaderKey(str(r,'storage')+' '+str(r,'binType')+' '+str(r,'note'))); // v4.66 — colonne « Type » = congelé/vivant
         const k = feederStockKey(pr.preySpecies, pr.preySize);
         const prev = plan.stock.find(x=>x.key===k && x.live===live);
         if(prev) prev.qty += Math.round(qty); else plan.stock.push({ key:k, species:pr.preySpecies, size:pr.preySize, qty:Math.round(qty), live, line });
@@ -17114,7 +17145,7 @@ function openRodentImport(sheets, continueFn, opts){
     if(continueFn) continueFn();
     return;
   }
-  const plan = buildRodentImportPlan(sheets, !!opts.forced);
+  const plan = buildRodentImportPlan(sheets, !!opts.forced || sheets.some(sh=>{ try{ return !rodentSheetInfo(sh,false) && looksLikePreySheet(sh); }catch(e){ return false; } }));
   rodentImport = { plan, continueFn, defaultSpecies:'mouse' };
   renderRodentImport();
 }
@@ -17241,7 +17272,7 @@ function routeImportSheets(sheets, meta){
   });
   // v4.61 — feuilles de rongeurs (même Excel) : importées d'abord, puis on continue avec les reptiles
   if(!(meta && meta.skipRodent)){
-    const rod = nonEmpty.filter(sh=>{ try{ return !!rodentSheetInfo(sh, false); }catch(e){ return false; } });
+    const rod = nonEmpty.filter(sh=>{ try{ return !!rodentSheetInfo(sh, false) || looksLikePreySheet(sh); }catch(e){ return false; } });
     if(rod.length){
       const rest = nonEmpty.filter(sh=>!rod.includes(sh));
       openRodentImport(rod, rest.length ? ()=>routeImportSheets(rest, Object.assign({}, meta||{}, { skipRodent:true })) : null);
