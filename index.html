@@ -2235,7 +2235,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.74';
+const APP_VERSION = '2026.09.01.4.76';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5265,6 +5265,20 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.76', date:'2026-10-22',
+    title:{ fr:'Placer un animal : par son nom, plus par un numéro', en:'Placing an animal: by name, no more numbers' },
+    changes:{
+      fr:[ '📍 Toucher un bac vide (ou « Assigner » sur un terrarium) ouvre maintenant une liste de tes animaux avec nom, ID, sexe, gènes et place actuelle — plus besoin de deviner un numéro. Les animaux « À classer » sont en haut, et une recherche (nom, ID ou gène) raccourcit la liste. Pour déplacer vers un terrarium, la liste montre aussi qui est déjà dedans.' ],
+      en:[ '📍 Tapping an empty tub (or « Assign » on a terrarium) now opens a list of your animals with name, ID, sex, genes and current spot — no more guessing a number. Animals « To place » are at the top, and a search (name, ID or gene) narrows the list. When moving to a terrarium, the list also shows who is already in it.' ]
+    }
+  },
+  { version:'4.75', date:'2026-10-22',
+    title:{ fr:'Import de rongeurs : la colonne Ratio a priorité', en:'Rodent import: the Ratio column comes first' },
+    changes:{
+      fr:[ '🐭 Quand ton fichier a une colonne Ratio (ex. « Ratio (M:F) » = 1:3), c\'est elle que LOCUS utilise, toujours. Les colonnes de nombres ou d\'identifiants de mâles/femelles servent seulement si la colonne Ratio est vide.' ],
+      en:[ '🐭 When your file has a Ratio column (e.g. "Ratio (M:F)" = 1:3), LOCUS always uses it. Male/female count or ID columns are only used if the Ratio column is empty.' ]
+    }
+  },
   { version:'4.74', date:'2026-10-22',
     title:{ fr:'Rongeurs : ratios impossibles réparés', en:'Rodents: impossible ratios repaired' },
     changes:{
@@ -6320,7 +6334,7 @@ const I18N = {
     deleteRowTitle: 'Supprimer cette rangée',
     unassignConfirm: 'Retirer « __NAME__ » du bac Rangée __ROW__ / Bac __TUB__ ?',
     noSnakesRegisteredAlert: 'Aucun reptile enregistré. Vas dans l\'onglet « Mes reptiles » pour en ajouter.',
-    assignPromptQuestion: 'Placer quel reptile en Rangée __ROW__ / Bac __TUB__ ?',
+    assignPromptQuestion: 'Quel reptile en Rangée __ROW__ / Bac __TUB__ ?',
     assignPromptInstruction: 'Entre le numéro :',
     hatchMoodOverdue: 'Éclosion en cours ou dépassée — vérifie l\'incubateur !',
     hatchMoodSoon: 'Ça y est, c\'est pour très bientôt !',
@@ -16899,9 +16913,14 @@ function rodentBinTypeOf(raw){
 function rodentRatioOf(raw, males, females){
   const okN = v=>{ const t = importCellStr(v); if(!/^\s*\d+\s*$/.test(t)) return null; const n = +t; return n>=1 && n<=30 ? n : null; }; // v4.71 — jamais « M-05 » lu comme -5
   const m = okN(males), f = okN(females);
-  if(m && f) return Math.max(m,f)+':'+Math.min(m,f);
   const x = normalizeHeaderKey(raw);
-  if(!x) return null;
+  // v4.75 — une colonne Ratio dédiée passe TOUJOURS en premier ; les colonnes de nombres de mâles/femelles ne servent que si elle est vide ou illisible
+  const fromCol = x ? rodentRatioFromText(x) : null;
+  if(fromCol) return fromCol;
+  if(m && f) return Math.max(m,f)+':'+Math.min(m,f);
+  return null;
+}
+function rodentRatioFromText(x){
   let a = x.match(/(\d+)\s*(?:male|m)\w*\D+(\d+)\s*(?:femelle|female|f)/);
   if(a) return Math.max(+a[1],+a[2])+':'+Math.min(+a[1],+a[2]);
   a = x.match(/(\d+)\s*(?:femelle|female|f)\w*\D+(\d+)\s*(?:male|m)/);
@@ -23386,17 +23405,64 @@ function unassignTub(rackId, row, tub){
   renderRackGrid(); renderTerrariumList();
 }
 
+// v4.76 — demande d'Alex : choisir l'animal par son nom / ID au lieu d'un numéro à deviner (ancien prompt « Entre le numéro »).
+// Liste à toucher avec recherche ; les animaux « À classer » d'abord, puis les autres avec leur place actuelle.
+function snakePickLabelHtml(s, isEn){
+  ensureSnakeMeta(s);
+  const nm = snakeName(s);
+  const id = s.animalId && s.animalId!==nm ? ' <small style="color:var(--gold);">'+escapeHtml(s.animalId)+'</small>' : '';
+  const sex = s.sex==='male'?'♂':s.sex==='female'?'♀':'?';
+  let genes = ''; try{ genes = Object.keys(s.genes||{}).length ? summarizeGenes(s.genes) : (isEn?'Normal':'Normal'); }catch(e){}
+  const where = snakeIsUnplaced(s) ? '' : (placementCode(s) || '');
+  return '<span style="font-size:16px;color:var(--ink);">'+sex+' '+escapeHtml(nm)+'</span>'+id+
+    '<br/><small style="color:var(--ink-dim);font-size:12.5px;">'+escapeHtml(genes)+(where?' · 📍 '+escapeHtml(where):'')+'</small>';
+}
+function snakePickListHtml(targetFn, filterTxt, isEn, excludeFn){
+  const q = normalizeHeaderKey(filterTxt||'');
+  const list = savedSnakes.filter(s=>{ ensureSnakeMeta(s); return snakeIsActiveForPlacement(s) && !(excludeFn && excludeFn(s)); })
+    .filter(s=>{ if(!q) return true; let g=''; try{ g = summarizeGenes(s.genes); }catch(e){} return normalizeHeaderKey([snakeName(s), s.animalId||'', g].join(' ')).includes(q); })
+    .sort((a,b)=>(snakeIsUnplaced(b)?1:0)-(snakeIsUnplaced(a)?1:0) || snakeName(a).localeCompare(snakeName(b), undefined, {numeric:true}));
+  if(!list.length) return '<p style="color:var(--ink-dim);font-size:14px;">'+(isEn?'No animal matches.':'Aucun animal ne correspond.')+'</p>';
+  let h = '', lastUn = null;
+  list.slice(0,150).forEach(s=>{
+    const un = snakeIsUnplaced(s);
+    if(un!==lastUn){ h += '<div style="font-size:12px;color:var(--gold);margin:8px 0 4px;text-transform:uppercase;letter-spacing:.5px;">'+(un?(isEn?'📦 To place':'📦 À classer'):(isEn?'Already placed (will move here)':'Déjà placés (seront déplacés ici)'))+'</div>'; lastUn = un; }
+    h += '<button type="button" class="sc-btn" style="display:block;width:100%;text-align:left;padding:9px 12px;margin-bottom:6px;line-height:1.35;" onclick="'+targetFn+'(\''+s.id+'\')">'+snakePickLabelHtml(s, isEn)+'</button>';
+  });
+  if(list.length>150) h += '<p style="color:var(--ink-dim);font-size:13px;">+'+(list.length-150)+' — '+(isEn?'type to narrow down':'tape pour raccourcir la liste')+'</p>';
+  return h;
+}
+var tubPickTarget = null;
 function assignToTub(rackId, row, tub){
+  const isEn = currentLang==='en';
   if(savedSnakes.length===0){ alert(t('noSnakesRegisteredAlert')); return; }
-  const names = savedSnakes.map((s,i)=> (i+1)+'. '+s.name+' ('+(s.sex==='male'?'M':'F')+')').join('\n');
-  const question = t('assignPromptQuestion').replace('__ROW__', row).replace('__TUB__', tub);
-  const pick = prompt(question+'\n\n'+names+'\n\n'+t('assignPromptInstruction'));
-  const idx = parseInt(pick,10)-1;
-  if(isNaN(idx) || !savedSnakes[idx]) return;
-  ensureSnakeMeta(savedSnakes[idx]);
-  savedSnakes[idx].placement = { mode:'rack', rackId, row, tub };
-  storage.save(savedSnakes);
-  renderRackGrid(); renderTerrariumList();
+  tubPickTarget = { rackId, row, tub };
+  const body = '<input type="search" id="tub-pick-search" placeholder="'+(isEn?'Search: name, ID or gene':'Chercher : nom, ID ou gène')+'" oninput="renderTubPickList()" style="width:100%;font-size:16px;padding:9px 10px;margin-bottom:10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
+    '<div id="tub-pick-list" style="max-height:60vh;overflow-y:auto;"></div>';
+  const rk = getRack(rackId);
+  showQuickModal(t('assignPromptQuestion').replace('__ROW__', row).replace('__TUB__', tub)+(rk?' — '+rk.name:''), body);
+  renderTubPickList();
+}
+function renderTubPickList(){
+  const el = document.getElementById('tub-pick-list'); if(!el) return;
+  const inp = document.getElementById('tub-pick-search');
+  el.innerHTML = snakePickListHtml('confirmTubPick', inp ? inp.value : '', currentLang==='en');
+}
+function confirmTubPick(snakeId){
+  const isEn = currentLang==='en';
+  const tg = tubPickTarget; const s = savedSnakes.find(x=>x.id===snakeId);
+  if(!tg || !s) return;
+  ensureSnakeMeta(s);
+  const occupied = savedSnakes.some(x=>x.id!==s.id && x.placement && x.placement.mode==='rack' && x.placement.rackId===tg.rackId && +x.placement.row===+tg.row && +x.placement.tub===+tg.tub);
+  if(occupied){ alert(isEn?'This tub is already taken.':'Ce bac est déjà occupé.'); return; }
+  const oldTe = s.placement.mode==='terrarium' ? getTerrarium(s.placement.terrariumId) : null;
+  s.placement = { mode:'rack', rackId:tg.rackId, row:tg.row, tub:tg.tub };
+  s.updatedAt = Date.now();
+  try{ if(oldTe) refreshTerrariumStatus(oldTe); }catch(e){}
+  storage.save(savedSnakes); try{ saveElevage(); }catch(e){}
+  tubPickTarget = null; closeQuickModal();
+  renderRackGrid(); renderTerrariumList(); try{ renderTourGrid(); }catch(e){}
+  showToast('📍 '+snakeName(s)+(isEn?' placed.':' placé(e).'), 'success');
 }
 
 function toggleTerrarium(id){
@@ -23638,27 +23704,35 @@ function openAssignAnimalModal(terrariumId){
   if(terrariumOccupants(terrariumId).length >= terrariumCapacity(te)){ alert(isEn?'This terrarium is already full.':'Ce terrarium est déjà plein.'); return; }
   const candidates = savedSnakes.filter(s=>{ ensureSnakeMeta(s); return !(s.placement.mode==='terrarium' && s.placement.terrariumId===terrariumId); });
   if(!candidates.length){ alert(isEn?'No other reptile available.':'Aucun autre reptile disponible.'); return; }
-  const optionsHtml = candidates.map(s=>'<option value="'+s.id+'">'+escapeHtml(snakeName(s))+' ('+(s.sex==='male'?'♂':'♀')+')</option>').join('');
-  const body =
-    '<select id="te-assign-select" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:12px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+optionsHtml+'</select>'+
-    '<button class="sc-btn accent" style="width:100%;" onclick="confirmAssignAnimal(\''+terrariumId+'\')">'+(isEn?'Assign':'Assigner')+'</button>';
+  tePickTarget = terrariumId; // v4.76 — même liste à toucher (nom, ID, gènes) que pour les bacs
+  const body = '<input type="search" id="te-pick-search" placeholder="'+(isEn?'Search: name, ID or gene':'Chercher : nom, ID ou gène')+'" oninput="renderTePickList()" style="width:100%;font-size:16px;padding:9px 10px;margin-bottom:10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
+    '<div id="te-pick-list" style="max-height:60vh;overflow-y:auto;"></div>';
   showQuickModal((isEn?'Assign to "':'Assigner à « ')+te.name+(isEn?'"':' »'), body);
+  renderTePickList();
 }
-function confirmAssignAnimal(terrariumId){
+var tePickTarget = null;
+function renderTePickList(){
+  const el = document.getElementById('te-pick-list'); if(!el) return;
+  const inp = document.getElementById('te-pick-search');
+  el.innerHTML = snakePickListHtml('confirmAssignAnimal', inp ? inp.value : '', currentLang==='en', s=>s.placement && s.placement.mode==='terrarium' && s.placement.terrariumId===tePickTarget);
+}
+function confirmAssignAnimal(snakeId){
   const isEn = currentLang==='en';
+  const terrariumId = tePickTarget;
   const te = getTerrarium(terrariumId);
   if(!te || terrariumOccupants(terrariumId).length >= terrariumCapacity(te)){ alert(isEn?'This terrarium is already full.':'Ce terrarium est déjà plein.'); return; }
-  const snakeId = document.getElementById('te-assign-select').value;
   const s = savedSnakes.find(x=>x.id===snakeId);
   if(!s) return;
   ensureSnakeMeta(s);
+  const oldTe = s.placement.mode==='terrarium' ? getTerrarium(s.placement.terrariumId) : null;
   s.placement = { mode:'terrarium', terrariumId };
-  refreshTerrariumStatus(te);
+  s.updatedAt = Date.now();
+  refreshTerrariumStatus(te); try{ if(oldTe) refreshTerrariumStatus(oldTe); }catch(e){}
   storage.save(savedSnakes);
   saveElevage();
   closeQuickModal();
-  renderTerrariumList(); renderTourGrid();
-  showToast('✓ '+s.name+' '+(isEn?'assigned.':'assigné(e).'), 'success');
+  renderTerrariumList(); renderTourGrid(); try{ renderRackGrid(); }catch(e){}
+  showToast('✓ '+snakeName(s)+' '+(isEn?'assigned.':'assigné(e).'), 'success');
 }
 
 // Choisir VERS QUEL terrarium déplacer un animal donné (bouton "↔ Déplacer" ou "Assigner" du bac "à classer").
@@ -23670,13 +23744,14 @@ function openMoveTerrariumModal(snakeId){
   const currentId = s.placement.terrariumId || null;
   const options = terrariums.filter(te=>te.id!==currentId).map(te=>{
     const full = terrariumOccupants(te.id).length >= terrariumCapacity(te);
-    return '<option value="'+te.id+'"'+(full?' disabled':'')+'>'+escapeHtml(te.name)+(full?(isEn?' (full)':' (plein)'):'')+'</option>';
+    const occ = terrariumOccupants(te.id).map(x=>snakeName(x)).join(', '); // v4.76 — voir qui est déjà dedans
+    return '<option value="'+te.id+'"'+(full?' disabled':'')+'>'+escapeHtml(te.name)+(occ?' — '+escapeHtml(occ):(isEn?' — empty':' — vide'))+(full?(isEn?' (full)':' (plein)'):'')+'</option>';
   }).join('');
   if(!options){ alert(isEn?'No other terrarium available — create one first.':'Aucun autre terrarium disponible — crées-en un d\'abord.'); return; }
   const body =
     '<select id="te-move-select" style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:12px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+options+'</select>'+
     '<button class="sc-btn accent" style="width:100%;" onclick="confirmMoveTerrarium(\''+snakeId+'\')">'+(isEn?'Move':'Déplacer')+'</button>';
-  showQuickModal((isEn?'Move ':'Déplacer ')+s.name, body);
+  showQuickModal((isEn?'Move ':'Déplacer ')+snakeName(s), body);
 }
 function confirmMoveTerrarium(snakeId){
   const isEn = currentLang==='en';
@@ -23695,7 +23770,7 @@ function confirmMoveTerrarium(snakeId){
   saveElevage();
   closeQuickModal();
   renderTerrariumList(); renderTourGrid();
-  showToast('↔ '+s.name+' '+(isEn?'moved.':'déplacé(e).'), 'success');
+  showToast('↔ '+snakeName(s)+' '+(isEn?'moved.':'déplacé(e).'), 'success');
 }
 function unassignFromTerrarium(snakeId){
   const isEn = currentLang==='en';
