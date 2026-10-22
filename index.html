@@ -2233,7 +2233,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.53';
+const APP_VERSION = '2026.09.01.4.54';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5246,6 +5246,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.54', date:'2026-10-22',
+    title:{ fr:'Proie habituelle tirée de l\'historique', en:'Usual prey taken from the history' },
+    changes:{
+      fr:[ '🐭 Quand une fiche n\'a pas de proie habituelle, LOCUS prend maintenant la dernière proie notée dans son historique de repas (espèce, taille, vivant/décongelé) — à l\'import d\'un historique et une fois au chargement pour les fiches déjà importées. Une proie déjà choisie n\'est jamais remplacée. Fini les dizaines de « proie non renseignée » dans la liste de décongélation.' ],
+      en:[ '🐭 When a sheet has no usual prey, LOCUS now takes the last prey noted in its meal history (species, size, live/frozen) — when importing a history and once at startup for sheets already imported. A prey you already chose is never replaced. No more dozens of « prey not set » in the thaw list.' ]
+    }
+  },
   { version:'4.53', date:'2026-10-22',
     title:{ fr:'Détail de l\'espace local', en:'Local storage breakdown' },
     changes:{
@@ -16420,6 +16427,7 @@ function confirmLogImport(){
     try{ recomputeConsecutiveRefusals(s); }catch(e){}
     s.updatedAt = Date.now();
   });
+  let preyFilled = 0; touched.forEach(s=>{ if(adoptLastPreyAsDefault(s)) preyFilled++; }); // v4.54
   // v4.47 — entretiens vers le journal du bac / terrarium
   (m.maintItems||[]).forEach((it, i)=>{
     const pl = it.placement, water = it.kind==='water';
@@ -16434,7 +16442,7 @@ function confirmLogImport(){
   storage.save(savedSnakes);
   renderSavedList();
   closeQuickModal();
-  showToast('🗓 '+n+' '+(isEn?'entr(ies) added to '+touched.size+' animal(s).':'entrée(s) ajoutée(s) à '+touched.size+' animal(s).'), 'success');
+  showToast('🗓 '+n+' '+(isEn?'entr(ies) added to '+touched.size+' animal(s).':'entrée(s) ajoutée(s) à '+touched.size+' animal(s).')+(preyFilled ? (isEn?' Usual prey filled in from the last meal for '+preyFilled+' animal(s).':' Proie habituelle remplie d\'après le dernier repas pour '+preyFilled+' animal(s).') : ''), 'success');
 }
 // v4.47 — activité d'entretien lue dans un historique importé
 function logMaintKind(raw){
@@ -18415,6 +18423,35 @@ function updateDraftPreySizeOptions(){
     PREY_TYPES[species].sizes.map(sz=>'<option value="'+sz+'">'+sz+'</option>').join('');
 }
 
+// v4.54 — la dernière proie notée dans l'historique devient la proie par défaut si la fiche n'en a pas.
+// Ne remplace jamais une proie déjà choisie par l'utilisateur.
+function adoptLastPreyAsDefault(s){
+  if(!s || !s.health || !Array.isArray(s.health.events)) return false;
+  if(s.preySpecies && s.preySize) return false;
+  const fed = s.health.events.filter(e=>e && e.type==='fed' && e.preySpecies && PREY_TYPES[e.preySpecies]).sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+  if(!fed.length) return false;
+  // si l'espèce est déjà choisie, on prend la dernière taille notée pour CETTE espèce
+  const pool = s.preySpecies ? fed.filter(e=>e.preySpecies===s.preySpecies) : fed;
+  const last = pool.length ? pool[pool.length-1] : null;
+  if(!last) return false;
+  let changed = false;
+  const hadNoSpecies = !s.preySpecies;
+  if(!s.preySpecies){ s.preySpecies = last.preySpecies; changed = true; }
+  const lastSized = pool.slice().reverse().find(e=>e.preySize && PREY_TYPES[s.preySpecies].sizes.includes(e.preySize));
+  if(!s.preySize && lastSized){ s.preySize = lastSized.preySize; changed = true; }
+  if(hadNoSpecies && (last.preyType==='live' || last.preyType==='frozen') && s.preyType!==last.preyType){ s.preyType = last.preyType; changed = true; } // vivant/décongelé seulement si rien n'était choisi
+  if(changed) s.updatedAt = Date.now();
+  return changed;
+}
+function backfillPreyDefaults(){
+  try{
+    let n = 0;
+    savedSnakes.forEach(s=>{ ensureSnakeMeta(s); if(adoptLastPreyAsDefault(s)) n++; });
+    if(n){ storage.save(savedSnakes); try{ renderFoodView(); }catch(e){} }
+    return n;
+  }catch(e){ return 0; }
+}
+setTimeout(backfillPreyDefaults, 0); // une fois au chargement, pour les fiches déjà importées
 function updatePreySpecies(id, species){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
