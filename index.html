@@ -2235,7 +2235,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.76';
+const APP_VERSION = '2026.09.01.4.78';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5265,6 +5265,20 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.78', date:'2026-10-22',
+    title:{ fr:'Placer en enchaînement', en:'Chain placing' },
+    changes:{
+      fr:[ '⚡ Touche un bac vide et choisis l\'animal : la liste se rouvre tout de suite pour le prochain bac vide (rangée par rangée, puis le rack suivant). Un toucher par animal. Boutons « Passer ce bac » et « Terminer » ; s\'arrête tout seul quand tout le monde est placé ou qu\'il n\'y a plus de bac vide.' ],
+      en:[ '⚡ Tap an empty tub and pick the animal: the list reopens right away for the next empty tub (row by row, then the next rack). One tap per animal. « Skip this tub » and « Done » buttons; stops on its own when everyone is placed or no empty tub is left.' ]
+    }
+  },
+  { version:'4.77', date:'2026-10-22',
+    title:{ fr:'Terrarium vide affiché « Occupé »', en:'Empty terrarium shown as « Occupied »' },
+    changes:{
+      fr:[ '🏠 Le statut d\'un terrarium (Libre / Occupé / Accouplement) suit maintenant toujours les animaux qui sont vraiment dedans. Avant, un terrarium vidé par un déplacement ou un rangement pouvait rester « Occupé ».' ],
+      en:[ '🏠 A terrarium\'s status (Free / Occupied / Pairing) now always follows the animals actually in it. Before, a terrarium emptied by a move or by placement help could stay « Occupied ».' ]
+    }
+  },
   { version:'4.76', date:'2026-10-22',
     title:{ fr:'Placer un animal : par son nom, plus par un numéro', en:'Placing an animal: by name, no more numbers' },
     changes:{
@@ -23433,11 +23447,37 @@ function snakePickListHtml(targetFn, filterTxt, isEn, excludeFn){
   return h;
 }
 var tubPickTarget = null;
+// v4.77 — ENCHAÎNEMENT (choix d'Alex) : après chaque animal placé, la liste se rouvre tout de suite pour le
+// prochain bac vide (même rack d'abord, rangée par rangée, puis les racks suivants non masqués).
+function tubIsTaken(rackId, row, tub){
+  return savedSnakes.some(x=>{ ensureSnakeMeta(x); return x.placement.mode==='rack' && x.placement.rackId===rackId && +x.placement.row===+row && +x.placement.tub===+tub && snakeIsActiveForPlacement(x); });
+}
+function nextEmptyTub(rackId, row, tub){
+  const list = racksOrdered().filter(r=>!r.hidden || r.id===rackId);
+  let ri = list.findIndex(r=>r.id===rackId); if(ri<0) return null;
+  let r = +row, b = +tub + 1;
+  for(let k=0; k<list.length; k++){
+    const rk = list[(ri+k)];
+    if(!rk) break;
+    const rows = rk.rows||[];
+    for(; r<=rows.length; r++, b=1){
+      for(; b<=(rows[r-1]||0); b++){ if(!tubIsTaken(rk.id, r, b)) return { rackId:rk.id, row:r, tub:b }; }
+    }
+    r = 1; b = 1;
+  }
+  return null;
+}
 function assignToTub(rackId, row, tub){
   const isEn = currentLang==='en';
   if(savedSnakes.length===0){ alert(t('noSnakesRegisteredAlert')); return; }
   tubPickTarget = { rackId, row, tub };
-  const body = '<input type="search" id="tub-pick-search" placeholder="'+(isEn?'Search: name, ID or gene':'Chercher : nom, ID ou gène')+'" oninput="renderTubPickList()" style="width:100%;font-size:16px;padding:9px 10px;margin-bottom:10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
+  const left = savedSnakes.filter(s=>snakeIsUnplaced(s) && snakeIsActiveForPlacement(s)).length;
+  const body = '<div style="display:flex;gap:8px;margin-bottom:10px;">'+
+      '<button type="button" class="sc-btn" style="flex:1;font-size:15px;padding:9px;" onclick="skipTubPick()">⏭ '+(isEn?'Skip this tub':'Passer ce bac')+'</button>'+
+      '<button type="button" class="sc-btn accent" style="flex:1;font-size:15px;padding:9px;" onclick="tubPickTarget=null;closeQuickModal();">✓ '+(isEn?'Done':'Terminer')+'</button>'+
+    '</div>'+
+    '<div style="font-size:13px;color:var(--ink-dim);margin-bottom:8px;">'+(isEn?'After each pick, the next empty tub opens automatically.':'Après chaque choix, le prochain bac vide s\'ouvre tout seul.')+(left?' 📦 '+left+(isEn?' left to place.':' à classer.'):'')+'</div>'+
+    '<input type="search" id="tub-pick-search" placeholder="'+(isEn?'Search: name, ID or gene':'Chercher : nom, ID ou gène')+'" oninput="renderTubPickList()" style="width:100%;font-size:16px;padding:9px 10px;margin-bottom:10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
     '<div id="tub-pick-list" style="max-height:60vh;overflow-y:auto;"></div>';
   const rk = getRack(rackId);
   showQuickModal(t('assignPromptQuestion').replace('__ROW__', row).replace('__TUB__', tub)+(rk?' — '+rk.name:''), body);
@@ -23463,6 +23503,16 @@ function confirmTubPick(snakeId){
   tubPickTarget = null; closeQuickModal();
   renderRackGrid(); renderTerrariumList(); try{ renderTourGrid(); }catch(e){}
   showToast('📍 '+snakeName(s)+(isEn?' placed.':' placé(e).'), 'success');
+  openNextTubPick(tg);
+}
+function skipTubPick(){ const tg = tubPickTarget; if(!tg) return; closeQuickModal(); openNextTubPick(tg); }
+function openNextTubPick(tg){
+  const isEn = currentLang==='en';
+  const left = savedSnakes.filter(x=>snakeIsUnplaced(x) && snakeIsActiveForPlacement(x)).length;
+  if(!left){ tubPickTarget = null; showToast('✅ '+(isEn?'Everyone is placed.':'Tout le monde est placé.'), 'success'); return; }
+  const nx = nextEmptyTub(tg.rackId, tg.row, tg.tub);
+  if(!nx){ tubPickTarget = null; showToast(isEn?'No more empty tubs in your racks.':'Plus de bac vide dans tes racks.', 'info'); return; }
+  assignToTub(nx.rackId, nx.row, nx.tub);
 }
 
 function toggleTerrarium(id){
@@ -23859,6 +23909,7 @@ function renderTerrariumList(){
   terrariums.forEach(te=>{
     try{
       const occupants = terrariumOccupants(te.id).filter(s=>!elevageSearchTerm || matchesSearch(s, elevageSearchTerm));
+      refreshTerrariumStatus(te); // v4.77 — le statut suit TOUJOURS les vrais occupants (un terrarium vide affichait « Occupé » après un déplacement)
       const status = te.status || 'libre';
       const statusLabel = status==='libre' ? (isEn?'Free':'Libre') : status==='accouplement' ? (isEn?'Pairing':'Accouplement') : (isEn?'Occupied':'Occupé');
       const card = document.createElement('div');
