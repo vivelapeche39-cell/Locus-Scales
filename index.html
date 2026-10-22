@@ -2233,7 +2233,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.50';
+const APP_VERSION = '2026.09.01.4.52';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5244,6 +5244,32 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.52', date:'2026-10-22',
+    title:{ fr:'Correctif : Mes reptiles vide', en:'Fix: empty My reptiles' },
+    changes:{
+      fr:[ '🐛 Depuis la 4.50, Mes reptiles pouvait rester vide à l\'ouverture de l\'app quand la collection contenait des animaux (erreur au démarrage causée par les pages). C\'est corrigé : tes animaux s\'affichent de nouveau, vérifiés ou non.' ],
+      en:[ '🐛 Since 4.50, My reptiles could stay empty when opening the app with animals in the collection (a startup error caused by the pages). Fixed: your animals show again, verified or not.' ]
+    }
+  },
+  { version:'4.51', date:'2026-10-22',
+    title:{ fr:'Racks à ta façon, alertes plus calmes', en:'Racks your way, calmer alerts' },
+    changes:{
+      fr:[
+        '▲▼ Racks & Terrariums : monte ou descends chaque rack pour choisir son ordre (aussi dans le Mode Tournée).',
+        '🙈 « Masquer » replie un rack temporairement (il reste là, avec ses animaux) — « Réafficher » le ramène.',
+        '📐 « Dimensions » : change le nombre de rangées et de bacs (pour toutes les rangées d\'un coup ou rangée par rangée), avec un aperçu des animaux touchés. Aucun animal n\'est retiré : si un bac n\'existe plus, il reste affiché en pointillé avec « à déplacer » tant qu\'un animal y est, plus un bouton « Les déplacer ». Même chose avec les boutons − et 🗑 des rangées.',
+        '🔕 Mode Tournée : les grosses listes d\'alertes deviennent une ligne chacune (« Priorité — reptiles à surveiller — 5 », « Reptiles à surveiller — 33 », « Rappel de pesée ») avec « Afficher les 33 » ; la liste s\'ouvre un animal par ligne, en pages, avec un bouton Fiche.',
+        '🐛 Un reptile jamais nourri affichait « nullj sans repas » : il affiche maintenant « jamais nourri ».'
+      ],
+      en:[
+        '▲▼ Racks & Enclosures: move each rack up or down to choose its order (also in Tour mode).',
+        '🙈 « Hide » folds a rack away temporarily (it stays there, with its animals) — « Show » brings it back.',
+        '📐 « Size »: change the number of rows and tubs (all rows at once or row by row), with a preview of the animals affected. No animal is removed: if a tub no longer exists, it stays shown dashed with « to move » as long as an animal is in it, plus a « Move them » button. Same with the rows\' − and 🗑 buttons.',
+        '🔕 Tour mode: the big alert lists become one line each (« Priority — reptiles to watch — 5 », « Reptiles to watch — 33 », « Weigh reminder ») with « Show the 33 »; the list opens one animal per line, in pages, with a Sheet button.',
+        '🐛 A reptile never fed showed « nulld without a meal »: it now shows « never fed ».'
+      ]
+    }
+  },
   { version:'4.50', date:'2026-10-22',
     title:{ fr:'Listes en pages, Agenda masquable', en:'Paged lists, collapsible Agenda' },
     changes:{
@@ -11528,43 +11554,51 @@ function escapeHtml(str){
 
 // ==================== v4.50 — pages de 20/40/60/80/100 (ou tout) partout, groupes de l'Agenda masquables ====================
 // Choix d'affichage personnel → localStorage (repli en mémoire si bloqué), comme les filtres sauvegardés.
+// v4.52 — ATTENTION : renderSavedList() tourne au chargement AVANT ces lignes. Les « var » sont alors
+// encore undefined → tout l'état passe par pagerState() / des constantes dans des fonctions.
+function pagerState(){
+  if(!window.__locusPager) window.__locusPager = { page:{}, sig:{}, render:{}, sizeMem:null, agendaRender:{}, agendaCollapsed:null };
+  return window.__locusPager;
+}
+function listPageSizes(){ return [20,40,60,80,100,0]; } // 0 = tout afficher
 var LIST_PAGE_SIZE_KEY = 'locus_list_page_size_v1';
-var LIST_PAGE_SIZES = [20,40,60,80,100,0]; // 0 = tout afficher
-var __listPageSizeMem = null;
-var __pagerPage = {}, __pagerSig = {}, __pagerRender = {};
 function listPageSize(){
-  if(__listPageSizeMem!=null) return __listPageSizeMem;
-  try{ const v = parseInt(localStorage.getItem(LIST_PAGE_SIZE_KEY), 10); if(LIST_PAGE_SIZES.includes(v)) return v; }catch(e){}
+  const st = pagerState();
+  if(st.sizeMem!=null) return st.sizeMem;
+  try{ const v = parseInt(localStorage.getItem('locus_list_page_size_v1'), 10); if(listPageSizes().includes(v)) return v; }catch(e){}
   return 20;
 }
 function setListPageSize(v){
-  v = parseInt(v, 10); if(!LIST_PAGE_SIZES.includes(v)) return;
-  __listPageSizeMem = v;
-  try{ localStorage.setItem(LIST_PAGE_SIZE_KEY, String(v)); }catch(e){}
-  __pagerPage = {};
+  v = parseInt(v, 10); if(!listPageSizes().includes(v)) return;
+  const st = pagerState();
+  st.sizeMem = v;
+  try{ localStorage.setItem('locus_list_page_size_v1', String(v)); }catch(e){}
+  st.page = {};
   rerenderPagedLists();
 }
 function rerenderPagedLists(){
   const done = new Set();
-  Object.keys(__pagerRender).forEach(k=>{ const fn = __pagerRender[k]; if(fn && !done.has(fn)){ done.add(fn); try{ fn(); }catch(e){} } });
+  const R = pagerState().render;
+  Object.keys(R).forEach(k=>{ const fn = R[k]; if(fn && !done.has(fn)){ done.add(fn); try{ fn(); }catch(e){} } });
 }
 function pagerSizeSelectHtml(){
   const isEn = currentLang==='en', cur = listPageSize();
   return '<select class="egg-select" style="font-size:15px;" onchange="setListPageSize(this.value)" aria-label="'+(isEn?'Items per page':'Éléments par page')+'">'+
-    LIST_PAGE_SIZES.map(v=>'<option value="'+v+'"'+(v===cur?' selected':'')+'>'+(v ? (isEn?'Show '+v:'Afficher '+v) : (isEn?'Show all':'Tout afficher'))+'</option>').join('')+'</select>';
+    listPageSizes().map(v=>'<option value="'+v+'"'+(v===cur?' selected':'')+'>'+(v ? (isEn?'Show '+v:'Afficher '+v) : (isEn?'Show all':'Tout afficher'))+'</option>').join('')+'</select>';
 }
 // Coupe une liste en pages. Retourne { items, top, bottom } — top/bottom : barres à insérer avant/après.
 function pagerSlice(key, list, rerender, sig){
   const isEn = currentLang==='en';
-  if(rerender) __pagerRender[key] = rerender;
-  if(sig!==undefined){ if(__pagerSig[key]!==sig) __pagerPage[key] = 0; __pagerSig[key] = sig; }
+  const P = pagerState();
+  if(rerender) P.render[key] = rerender;
+  if(sig!==undefined){ if(P.sig[key]!==sig) P.page[key] = 0; P.sig[key] = sig; }
   const n = list.length, size = listPageSize();
   const wrap = (inner, extra)=>'<div class="list-pager" data-pager="'+key+'"'+(extra||'')+' style="grid-column:1 / -1;display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:6px 0;">'+inner+'</div>';
   if(n<=20) return { items:list, top:'', bottom:'' };
-  if(!size || n<=size){ __pagerPage[key] = 0; return { items:list, top:'', bottom:wrap('<span style="flex:1;font-size:14px;color:var(--ink-dim);">'+n+(isEn?' shown':' affiché(s)')+'</span>'+pagerSizeSelectHtml()) }; }
+  if(!size || n<=size){ P.page[key] = 0; return { items:list, top:'', bottom:wrap('<span style="flex:1;font-size:14px;color:var(--ink-dim);">'+n+(isEn?' shown':' affiché(s)')+'</span>'+pagerSizeSelectHtml()) }; }
   const pages = Math.ceil(n/size);
-  let pg = Math.min(Math.max(__pagerPage[key]||0, 0), pages-1);
-  __pagerPage[key] = pg;
+  let pg = Math.min(Math.max(P.page[key]||0, 0), pages-1);
+  P.page[key] = pg;
   const from = pg*size, to = Math.min(n, from+size);
   const info = (isEn?'Page ':'Page ')+(pg+1)+'/'+pages+' — '+(from+1)+'–'+to+(isEn?' of ':' sur ')+n;
   const prev = '<button type="button" class="sc-btn" style="font-size:15px;padding:8px 12px;"'+(pg>0?'':' disabled')+' onclick="pagerGo(\''+key+'\', -1)">◀ '+(isEn?'Previous':'Précédents')+'</button>';
@@ -11576,18 +11610,19 @@ function pagerSlice(key, list, rerender, sig){
   };
 }
 function pagerGo(key, delta){
-  __pagerPage[key] = (__pagerPage[key]||0) + delta;
-  const fn = __pagerRender[key]; if(fn) fn();
+  const P = pagerState();
+  P.page[key] = (P.page[key]||0) + delta;
+  const fn = P.render[key]; if(fn) fn();
   const top = document.querySelector('[data-pager="'+key+'"][data-pager-top]');
   if(top){ try{ top.scrollIntoView({ block:'start', behavior:'smooth' }); }catch(e){ top.scrollIntoView(); } }
 }
 // Agenda : chaque groupe peut être masqué (« Afficher les 87 ») — choix retenu sur l'appareil.
 var AGENDA_COLLAPSE_KEY = 'locus_agenda_collapsed_v1';
-var __agendaCollapsedMem = null;
 function agendaCollapsedState(){
-  if(__agendaCollapsedMem) return __agendaCollapsedMem;
-  try{ __agendaCollapsedMem = JSON.parse(localStorage.getItem(AGENDA_COLLAPSE_KEY)||'{}') || {}; }catch(e){ __agendaCollapsedMem = {}; }
-  return __agendaCollapsedMem;
+  const P = pagerState();
+  if(P.agendaCollapsed) return P.agendaCollapsed;
+  try{ P.agendaCollapsed = JSON.parse(localStorage.getItem('locus_agenda_collapsed_v1')||'{}') || {}; }catch(e){ P.agendaCollapsed = {}; }
+  return P.agendaCollapsed;
 }
 function toggleAgendaGroup(key){
   const st = agendaCollapsedState();
@@ -11596,19 +11631,24 @@ function toggleAgendaGroup(key){
   // les groupes de repas sont datés : on oublie ceux des jours passés
   const today = localTodayStr();
   Object.keys(st).forEach(k=>{ if(k.indexOf('feed_')===0 && k.slice(5) < addDays(today,-30)) delete st[k]; });
-  try{ localStorage.setItem(AGENDA_COLLAPSE_KEY, JSON.stringify(st)); }catch(e){}
-  try{ renderDashboard(); }catch(e){}
+  try{ localStorage.setItem('locus_agenda_collapsed_v1', JSON.stringify(st)); }catch(e){}
+  const fn = pagerState().agendaRender[key] || renderDashboard;
+  try{ fn(); }catch(e){}
 }
-function agendaGroupHtml(key, label, list, wrapClass, itemFn){
+// opts (v4.51) : { rerender, collapsedByDefault }
+function agendaGroupHtml(key, label, list, wrapClass, itemFn, opts){
   const isEn = currentLang==='en';
+  opts = opts || {};
+  const rerender = opts.rerender || renderDashboard;
+  pagerState().agendaRender[key] = rerender;
   const n = (list||[]).length; if(!n) return '';
   const st = agendaCollapsedState(), size = listPageSize();
-  const collapsed = Object.prototype.hasOwnProperty.call(st, key) ? !!st[key] : !!(size && n>size);
+  const collapsed = Object.prototype.hasOwnProperty.call(st, key) ? !!st[key] : (opts.collapsedByDefault!=null ? !!opts.collapsedByDefault : !!(size && n>size));
   const head = '<div class="feed-day-label" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="flex:1;min-width:150px;">'+label+' — '+n+'</span>'+
     '<button type="button" class="sc-btn'+(collapsed?' accent':'')+'" style="font-size:14px;padding:7px 12px;" onclick="toggleAgendaGroup(\''+key+'\')">'+
       (collapsed ? (isEn?'Show the '+n+' ▾':'Afficher les '+n+' ▾') : (isEn?'Hide ▴':'Masquer ▴'))+'</button></div>';
   if(collapsed) return '<div class="feed-day-group" data-agenda-group="'+key+'" data-collapsed="1">'+head+'</div>';
-  const pg = pagerSlice('ag_'+key, list, renderDashboard);
+  const pg = pagerSlice('ag_'+key, list, rerender);
   return '<div class="feed-day-group" data-agenda-group="'+key+'" data-collapsed="0">'+head+pg.top+'<div class="'+wrapClass+'">'+pg.items.map(itemFn).join('')+'</div>'+pg.bottom+'</div>';
 }
 function miniAnimalCardHtml(name, sublineHtml, actionHtml){
@@ -14905,7 +14945,7 @@ async function pushAllUserData(forceAll){
   var allOk = true;
   try{
     if(!(await pushKindRows('snakes', savedSnakes, forceAll, snakeToRow))) allOk = false;
-    if(!(await pushKindRows('racks', racks, forceAll, function(r){ return { id:r.id, user_id:currentUser.id, name:r.name, rows:r.rows, heating:r.heating||null, tub_cleanings:r.tubCleanings||{}, tub_water_changes:r.tubWaterChanges||{}, room:r.room||null }; }))) allOk = false;
+    if(!(await pushKindRows('racks', racks, forceAll, function(r){ return { id:r.id, user_id:currentUser.id, name:r.name, rows:r.rows, heating:r.heating||null, tub_cleanings:r.tubCleanings||{}, tub_water_changes:r.tubWaterChanges||{}, room:r.room||null, sort_order:(r.order!=null?r.order:null), hidden:!!r.hidden }; }))) allOk = false;
     if(!(await pushKindRows('terrariums', terrariums, forceAll, function(te){ return { id:te.id, user_id:currentUser.id, name:te.name, size:te.size||null, status:te.status||'libre', bioactive: !!te.bioactive, lighting:te.lighting||null, heating:te.heating||null, substrate:te.substrate||null, pairing_start_date:te.pairingStartDate||null, uvb_replace_date:te.uvbReplaceDate||null, cleanings:te.cleanings||[], water_changes:te.waterChanges||[], water_quality:te.waterQuality||[], room:te.room||null }; }))) allOk = false;
     if(!(await pushKindRows('pairings', pairings, forceAll, function(p){ return { id:p.id, user_id:currentUser.id, sire_id:p.maleId||null, dam_id:p.femaleId||null, data:p }; }))) allOk = false;
     if(!(await pushKindRows('clutches', clutches, forceAll, function(c){ return { id:c.id, user_id:currentUser.id, pairing_id:c.pairingId||null, public_token:c.publicToken||null, data:c }; }))) allOk = false;
@@ -15002,7 +15042,7 @@ async function pullAllUserData(){
       storage.save(savedSnakes);
     }
     if(racksRes.data && racksRes.data.length){
-      const remoteRacks = racksRes.data.map(r=>({ id:r.id, name:r.name, rows:r.rows, heating:r.heating||null, tubCleanings:r.tub_cleanings||{}, tubWaterChanges:r.tub_water_changes||{}, room:r.room||null, updatedAt: r.updated_at?Date.parse(r.updated_at):0 }));
+      const remoteRacks = racksRes.data.map(r=>({ id:r.id, name:r.name, rows:r.rows, heating:r.heating||null, tubCleanings:r.tub_cleanings||{}, tubWaterChanges:r.tub_water_changes||{}, room:r.room||null, order:(r.sort_order!=null?r.sort_order:null), hidden:!!r.hidden, updatedAt: r.updated_at?Date.parse(r.updated_at):0 }));
       racks = mergeById(racks, remoteRacks, 'racks');
       markSynced('racks', remoteRacks);
     }
@@ -17803,6 +17843,106 @@ function makeKeyboardClickable(el, label){
 function tubKey(rackId,row,tub){ return rackId+'|'+row+'|'+tub; }
 function snakeAt(rackId,row,tub){
   return savedSnakes.find(s=>{ ensureSnakeMeta(s); return s.placement.mode==='rack' && s.placement.rackId===rackId && s.placement.row===row && s.placement.tub===tub; });
+}
+// ==================== v4.51 — ordre des racks, racks masqués, dimensions sans perdre d'occupant ====================
+function racksOrdered(){
+  return racks.map((r,i)=>({ r, i })).sort((a,b)=>((a.r.order!=null?a.r.order:a.i) - (b.r.order!=null?b.r.order:b.i)) || (a.i-b.i)).map(x=>x.r);
+}
+function moveRackOrder(rackId, delta){
+  const list = racksOrdered();
+  const i = list.findIndex(r=>r.id===rackId), j = i+delta;
+  if(i<0 || j<0 || j>=list.length) return;
+  const tmp = list[i]; list[i] = list[j]; list[j] = tmp;
+  list.forEach((r,k)=>{ if(r.order!==k){ r.order = k; r.updatedAt = Date.now(); } });
+  saveElevage();
+  renderRackGrid(); try{ renderTourGrid(); }catch(e){}
+}
+function toggleRackHidden(rackId){
+  const isEn = currentLang==='en';
+  const rack = getRack(rackId); if(!rack) return;
+  rack.hidden = !rack.hidden; rack.updatedAt = Date.now();
+  saveElevage();
+  renderRackGrid(); try{ renderTourGrid(); }catch(e){}
+  showToast(rack.hidden ? ('🙈 '+(isEn?'« '+rack.name+' » hidden — still there, just folded away.':'« '+rack.name+' » masqué — il est toujours là, juste replié.')) : ('👁 '+(isEn?'« '+rack.name+' » shown again.':'« '+rack.name+' » réaffiché.')), 'success');
+}
+function rackTubInBounds(rack, row, tub){
+  return !!rack && row>=1 && row<=rack.rows.length && tub>=1 && tub<=rack.rows[row-1];
+}
+// Animaux placés dans un bac qui n'existe plus après un changement de dimensions
+function rackOverflowSnakes(rack){
+  return savedSnakes.filter(s=>s.placement && s.placement.mode==='rack' && s.placement.rackId===rack.id && s.status!=='deceased' && s.status!=='sold' && !rackTubInBounds(rack, s.placement.row, s.placement.tub));
+}
+// Rangées/bacs à dessiner : les dimensions + les bacs hors format encore occupés
+function rackDisplayRows(rack){
+  const over = rackOverflowSnakes(rack);
+  const nRows = Math.max(rack.rows.length, ...over.map(s=>s.placement.row||0));
+  const out = [];
+  for(let r=1;r<=nRows;r++){
+    const real = r<=rack.rows.length ? rack.rows[r-1] : 0;
+    const extra = over.filter(s=>s.placement.row===r && s.placement.tub>real).map(s=>s.placement.tub).sort((a,b)=>a-b);
+    out.push({ row:r, real, extra, ghostRow: r>rack.rows.length });
+  }
+  return out;
+}
+function rackOverflowBannerHtml(rack){
+  const isEn = currentLang==='en';
+  const n = rackOverflowSnakes(rack).length;
+  if(!n) return '';
+  return '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0 10px;padding:8px 12px;border:1px dashed #e08a63;border-radius:10px;font-size:14px;color:var(--ink);">'+
+    '<span style="flex:1;min-width:160px;">⚠ '+n+(isEn?' animal(s) are in tubs outside this rack\'s new size — move them (dashed tubs).':' animal(s) dans des bacs hors des nouvelles dimensions — à déplacer (bacs en pointillé).')+'</span>'+
+    '<button type="button" class="sc-btn accent" onclick="showTab(\'elevage\'); showSubtab(\'racks\'); if(maintMode!==\'move\') setMaintMode(\'move\');">📦 '+(isEn?'Move them':'Les déplacer')+'</button></div>';
+}
+function overflowTubCellHtml(isEn){
+  return '<div class="tub-tag" style="color:#e08a63;font-weight:700;">⚠ '+(isEn?'to move':'à déplacer')+'</div>';
+}
+var rackDimsEdit = null;
+function openRackDimensions(rackId){
+  const rack = getRack(rackId); if(!rack) return;
+  rackDimsEdit = { rackId, rows: rack.rows.slice() };
+  renderRackDimensions();
+}
+function rackDimsSet(i, v){ v = Math.max(1, Math.min(30, parseInt(v,10)||1)); rackDimsEdit.rows[i] = v; renderRackDimensions(); }
+function rackDimsAll(v){ v = Math.max(1, Math.min(30, parseInt(v,10)||1)); rackDimsEdit.rows = rackDimsEdit.rows.map(()=>v); renderRackDimensions(); }
+function rackDimsRowCount(v){
+  v = Math.max(1, Math.min(30, parseInt(v,10)||1));
+  const last = rackDimsEdit.rows.length ? rackDimsEdit.rows[rackDimsEdit.rows.length-1] : 6;
+  while(rackDimsEdit.rows.length<v) rackDimsEdit.rows.push(last);
+  rackDimsEdit.rows.length = v;
+  renderRackDimensions();
+}
+function renderRackDimensions(){
+  const isEn = currentLang==='en';
+  const e = rackDimsEdit, rack = getRack(e.rackId); if(!rack) return;
+  const preview = { id:rack.id, rows:e.rows };
+  const outside = savedSnakes.filter(s=>s.placement && s.placement.mode==='rack' && s.placement.rackId===rack.id && s.status!=='deceased' && s.status!=='sold' && !rackTubInBounds(preview, s.placement.row, s.placement.tub));
+  const inp = 'font-size:18px;padding:8px;width:76px;text-align:center;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);';
+  const same = e.rows.every(n=>n===e.rows[0]);
+  const body =
+    '<p style="font-size:14px;line-height:1.45;margin:4px 0 12px;">'+(isEn
+      ? 'Change the size of « '+escapeHtml(rack.name)+' ». <b>No animal is removed</b>: if one ends up outside the new size, its tub stays visible (dashed) with « to move » until you move it.'
+      : 'Change la taille de « '+escapeHtml(rack.name)+' ». <b>Aucun animal n\'est retiré</b> : si un animal se retrouve hors des nouvelles dimensions, son bac reste affiché (en pointillé) avec « à déplacer » jusqu\'à ce que tu le déplaces.')+'</p>'+
+    '<label style="display:flex;align-items:center;gap:10px;font-size:15px;margin-bottom:10px;">'+(isEn?'Number of rows':'Nombre de rangées')+' <input type="number" min="1" max="30" value="'+e.rows.length+'" style="'+inp+'" onchange="rackDimsRowCount(this.value)"/></label>'+
+    '<label style="display:flex;align-items:center;gap:10px;font-size:15px;margin-bottom:12px;">'+(isEn?'Tubs in every row':'Bacs dans chaque rangée')+' <input type="number" min="1" max="30" value="'+(same?e.rows[0]:'')+'" placeholder="—" style="'+inp+'" onchange="rackDimsAll(this.value)"/></label>'+
+    '<div style="font-size:13px;color:var(--ink-dim);margin-bottom:6px;">'+(isEn?'Or row by row:':'Ou rangée par rangée :')+'</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-bottom:12px;">'+
+      e.rows.map((n,i)=>'<label style="display:flex;align-items:center;gap:6px;font-size:14px;">'+(isEn?'Row ':'Rangée ')+(i+1)+' <input type="number" min="1" max="30" value="'+n+'" style="'+inp+'width:64px;" onchange="rackDimsSet('+i+', this.value)"/></label>').join('')+
+    '</div>'+
+    (outside.length
+      ? '<div class="warn" style="margin-bottom:10px;">⚠ '+outside.length+(isEn?' animal(s) will be outside the new size and marked « to move »: ':' animal(s) seront hors des nouvelles dimensions et marqués « à déplacer » : ')+outside.map(s=>escapeHtml(snakeName(s))+' ('+escapeHtml(placementCode(s))+')').join(', ')+'</div>'
+      : '<div style="font-size:14px;color:var(--sage);margin-bottom:10px;">✓ '+(isEn?'Every animal still fits.':'Tous les animaux entrent encore.')+'</div>')+
+    '<button type="button" class="save-btn" style="width:100%;font-size:16px;padding:12px;" onclick="confirmRackDimensions()">✅ '+(isEn?'Apply: ':'Appliquer : ')+e.rows.length+(isEn?' row(s), ':' rangée(s), ')+e.rows.reduce((a,b)=>a+b,0)+(isEn?' tubs':' bacs')+'</button>'+
+    '<button type="button" class="sc-btn" style="width:100%;margin-top:6px;" onclick="rackDimsEdit=null; closeQuickModal();">'+(isEn?'Cancel':'Annuler')+'</button>';
+  showQuickModal('📐 '+(isEn?'Rack size':'Dimensions du rack'), body);
+}
+function confirmRackDimensions(){
+  const isEn = currentLang==='en';
+  const e = rackDimsEdit, rack = e && getRack(e.rackId); if(!rack) return;
+  rack.rows = e.rows.slice(); rack.updatedAt = Date.now();
+  rackDimsEdit = null;
+  saveElevage(); closeQuickModal();
+  renderRackGrid(); try{ renderTourGrid(); }catch(_){}
+  const n = rackOverflowSnakes(rack).length;
+  showToast('📐 '+(isEn?'Rack resized.':'Rack redimensionné.')+(n ? (isEn?' '+n+' animal(s) to move.':' '+n+' animal(s) à déplacer.') : ''), n?'':'success');
 }
 function getRack(rackId){ return racks.find(r=>r.id===rackId); }
 // v4.12 — vraie alerte de perte de poids (gratuit, règle choisie par Alex le 21 oct) : la dernière
@@ -20688,18 +20828,33 @@ function renderRackGrid(){
   renderRoomSuggestions();
   const container = document.getElementById('racks-container');
   container.innerHTML = '';
-  racks.forEach(rack=>{
+  const orderedRacks = racksOrdered(); // v4.51
+  orderedRacks.forEach((rack, rackPos)=>{
     const unit = document.createElement('div');
     unit.className = 'rack-unit';
     const overdueTubs = countOverdueTubCleanings(rack);
+    const orderBtns = '<button class="sc-btn" title="'+(isEn?'Move up':'Monter')+'" aria-label="'+(isEn?'Move rack up':'Monter le rack')+'"'+(rackPos>0?'':' disabled')+' onclick="moveRackOrder(\''+rack.id+'\', -1)">▲</button>'+
+      '<button class="sc-btn" title="'+(isEn?'Move down':'Descendre')+'" aria-label="'+(isEn?'Move rack down':'Descendre le rack')+'"'+(rackPos<orderedRacks.length-1?'':' disabled')+' onclick="moveRackOrder(\''+rack.id+'\', 1)">▼</button>';
+    if(rack.hidden){
+      const nIn = savedSnakes.filter(s=>s.placement && s.placement.mode==='rack' && s.placement.rackId===rack.id && s.status!=='deceased' && s.status!=='sold').length;
+      unit.style.opacity = '.8';
+      unit.innerHTML = '<div class="rack-unit-head" style="align-items:center;">'+
+        '<span style="flex:1;min-width:140px;font-size:15px;">🙈 <b>'+escapeHtml(rack.name)+'</b> <span style="color:var(--ink-dim);font-size:13px;">'+(isEn?'(hidden — ':'(masqué — ')+nIn+(isEn?' animal(s))':' animal(s))')+'</span></span>'+
+        orderBtns+'<button class="sc-btn accent" onclick="toggleRackHidden(\''+rack.id+'\')">👁 '+(isEn?'Show':'Réafficher')+'</button></div>';
+      container.appendChild(unit);
+      return;
+    }
     unit.innerHTML =
       '<div class="rack-unit-head">'+
+        orderBtns+
         '<input type="text" class="rack-name-input" value="'+escapeHtml(rack.name)+'" data-rack="'+rack.id+'"/>'+
+        '<button class="sc-btn" onclick="openRackDimensions(\''+rack.id+'\')">📐 '+(isEn?'Size':'Dimensions')+'</button>'+
+        '<button class="sc-btn" onclick="toggleRackHidden(\''+rack.id+'\')">🙈 '+(isEn?'Hide':'Masquer')+'</button>'+
         '<button class="sc-btn" data-act="addrow" data-rack="'+rack.id+'">'+t('addRowBtn')+'</button>'+
         '<button class="sc-btn" data-act="cleanrack" data-rack="'+rack.id+'">🧹 '+(isEn?'Cleaning':'Nettoyage')+(overdueTubs?' <span style="color:#e08a63;font-weight:700;">🚨 '+overdueTubs+'</span>':'')+'</button>'+
         '<button class="sc-btn" onclick="printRackLabel(\''+rack.id+'\')">🏷️ '+(isEn?'Rack QR':'QR du rack')+'</button>'+
         '<button class="sc-btn" onclick="openRackLogbookModal(\''+rack.id+'\')">🗒️ '+(isEn?'Rack journal':'Journal du rack')+'</button>'+
-        (racks.length>1 ? '<button class="sc-btn danger" data-act="delrack" data-rack="'+rack.id+'">'+t('deleteThisRackBtn')+'</button>' : '')+
+        (racks.length>1 ? '<button class="sc-btn danger" data-act="delrack" data-rack="'+rack.id+'">'+t('deleteThisRackBtn')+'</button>' : '')+ // v4.51 — un rack vide se supprime aussi
         (maintMode && maintMode!=='uvb' && maintMode!=='wq' && maintMode!=='move' ? '<button class="sc-btn accent" onclick="toggleMaintRack(\''+rack.id+'\')">✅ '+(isEn?'Whole rack':'Tout le rack')+'</button>' : '')+ // v3.75
       '</div>'+
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">'+
@@ -20712,18 +20867,20 @@ function renderRackGrid(){
       '</div>';
     const gridEl = document.createElement('div');
     gridEl.className = 'rack-grid';
-    rack.rows.forEach((tubCount, rowIdx)=>{
-      const row = rowIdx+1;
+    if(rackOverflowSnakes(rack).length) unit.insertAdjacentHTML('beforeend', rackOverflowBannerHtml(rack)); // v4.51
+    rackDisplayRows(rack).forEach(dr=>{
+      const rowIdx = dr.row-1, row = dr.row, tubCount = dr.real;
       const rowEl = document.createElement('div');
       rowEl.className = 'rack-row';
-      rowEl.innerHTML = '<span class="rack-row-label">'+t('rowLabelPrefix')+' '+row+'</span>';
+      rowEl.innerHTML = '<span class="rack-row-label">'+t('rowLabelPrefix')+' '+row+(dr.ghostRow?' ⚠':'')+'</span>';
       // v3.75 — en mode entretien, toucher « Rangée N » sélectionne toute la rangée.
       if(maintMode && maintMode!=='uvb' && maintMode!=='wq' && maintMode!=='move'){
         const lbl = rowEl.querySelector('.rack-row-label');
         lbl.style.cursor = 'pointer'; lbl.style.textDecoration = 'underline';
         lbl.addEventListener('click', ()=>toggleMaintRow(rack.id, row));
       }
-      for(let t2=1;t2<=tubCount;t2++){
+      [...Array(tubCount).keys()].map(i=>i+1).concat(dr.extra).forEach(t2=>{
+        const outside = t2>tubCount; // v4.51 — bac hors des dimensions, gardé tant qu'il est occupé
         const snake = snakeAt(rack.id,row,t2);
         const cell = document.createElement('div');
         let searchCls = '';
@@ -20735,7 +20892,8 @@ function renderRackGrid(){
           cell.innerHTML = '<button class="tub-remove" title="'+t('removeFromTubTitle')+'" aria-label="'+t('removeFromTubAria')+escapeHtml(snakeName(snake))+t('fromTubSuffix')+'">✕</button>'+
             '<button class="tub-remove" style="right:22px;" title="'+(isEn?'Cleaning':'Nettoyage')+'">🧹</button>'+
             '<button class="tub-remove" style="right:44px;" title="'+(isEn?'Water change':'Changement d\'eau')+'">💧</button>'+
-            '<div class="tub-name">'+escapeHtml(snakeName(snake))+'</div><div class="tub-tag">'+(snake.sex==='male'?'♂':'♀')+'</div>';
+            '<div class="tub-name">'+escapeHtml(snakeName(snake))+'</div><div class="tub-tag">'+(snake.sex==='male'?'♂':snake.sex==='female'?'♀':'?')+'</div>'+(outside?overflowTubCellHtml(isEn):'');
+          if(outside){ cell.style.border = '2px dashed #e08a63'; cell.title = (isEn?'Tub ':'Bac ')+t2+(isEn?' no longer exists in this rack — move this animal':' n\'existe plus dans ce rack — déplace cet animal'); }
           cell.addEventListener('click', ()=>openLogbook(snake.id));
           cell.querySelector('.tub-remove').addEventListener('click', (e)=>{ e.stopPropagation(); unassignTub(rack.id,row,t2); });
           cell.querySelectorAll('.tub-remove')[1].addEventListener('click', (e)=>{ e.stopPropagation(); openSingleTubCleaningModal(rack.id, row, t2); });
@@ -20748,7 +20906,8 @@ function renderRackGrid(){
         }
         decorateMaintTarget(cell, 'tub|'+rack.id+'|'+row+'|'+t2); // v3.75
         rowEl.appendChild(cell);
-      }
+      });
+      if(dr.ghostRow){ gridEl.appendChild(rowEl); return; } // rangée retirée : pas d'outils +/−
       const rowTools = document.createElement('div');
       rowTools.className = 'rack-row-tools';
       rowTools.innerHTML =
@@ -21095,6 +21254,7 @@ function handleMoveTap(key){
   const before = JSON.parse(JSON.stringify(src.placement));
   if(target.mode==='rack'){
     if(before.mode==='rack' && before.rackId===target.rackId && before.row===target.row && before.tub===target.tub){ selectMoveSource(src.id); return; } // retouché = désélectionné
+    if(!rackTubInBounds(getRack(target.rackId), target.row, target.tub)){ showToast(isEn?'That tub no longer exists in the rack — pick a tub inside it.':'Ce bac n\'existe plus dans le rack — choisis un bac à l\'intérieur.', 'error'); return; } // v4.51
     const occ = snakeAt(target.rackId, target.row, target.tub);
     placeRemember(occ ? [src, occ] : [src]);
     if(occ) occ.placement = (before.mode==='terrarium' && !before.terrariumId) ? { mode:'terrarium', terrariumId:null, row:null, tub:null } : before; // échange (un animal « à classer » envoie l'occupant à classer)
@@ -21937,11 +22097,8 @@ function removeLastRow(rackId){
   const rowIdx = rack.rows.length-1;
   const row = rowIdx+1;
   const occupants = savedSnakes.filter(s=>{ ensureSnakeMeta(s); return s.placement.mode==='rack' && s.placement.rackId===rackId && s.placement.row===row; });
-  if(occupants.length && !confirm(currentLang==='en'
-    ? ('This row contains '+occupants.length+' reptile(s) — they will switch to Terrarium mode. Continue?')
-    : ('Cette rangée contient '+occupants.length+' reptile(s) — ils repasseront en mode Terrarium. Continuer ?'))) return;
-  occupants.forEach(s=>{ s.placement = {mode:'terrarium', rackId:null, row:null, tub:null}; });
-  storage.save(savedSnakes);
+  // v4.51 — les occupants restent : leurs bacs s'affichent « à déplacer »
+  if(occupants.length) showToast('⚠ '+occupants.length+(currentLang==='en'?' animal(s) now outside the rack — marked « to move ».':' animal(s) maintenant hors du rack — marqué(s) « à déplacer ».'));
   rack.rows.pop();
   saveElevage();
   renderRackGrid(); renderTerrariumList();
@@ -21956,10 +22113,8 @@ function adjustRowTubCount(rackId, rowIdx, delta){
     if(rack.rows[rowIdx]<=1) return;
     const lastTub = rack.rows[rowIdx];
     const occupant = snakeAt(rackId, row, lastTub);
-    if(occupant && !confirm(currentLang==='en'
-      ? ('Tub '+lastTub+' in row '+row+' contains "'+occupant.name+'" — remove it and delete this tub?')
-      : ('Le bac '+lastTub+' de la rangée '+row+' contient « '+occupant.name+' » — le retirer et supprimer ce bac ?'))) return;
-    if(occupant){ occupant.placement = {mode:'terrarium', rackId:null, row:null, tub:null}; storage.save(savedSnakes); }
+    // v4.51 — l'animal n'est plus retiré : son bac reste affiché « à déplacer » tant qu'il y est
+    if(occupant) showToast('⚠ '+snakeName(occupant)+(currentLang==='en'?' is now outside the rack — marked « to move ».':' est maintenant hors du rack — marqué « à déplacer ».'));
     rack.rows[rowIdx]--;
   }
   saveElevage();
@@ -22610,7 +22765,7 @@ function renderTourGrid(){
     var visibleRacks = targetRack ? [targetRack] : [];
   } else {
     if(rackFilterBanner) rackFilterBanner.style.display = 'none';
-    var visibleRacks = tourRoomFilter==='all' ? racks : racks.filter(r=>r.room===tourRoomFilter);
+    var visibleRacks = (tourRoomFilter==='all' ? racksOrdered() : racksOrdered().filter(r=>r.room===tourRoomFilter)).filter(r=>!r.hidden); // v4.51 — ordre choisi, racks masqués exclus
     if(tourCategoryFilter!=='all'){
       // Un rack est montré seulement s'il contient au moins un occupant du type choisi — les racks
       // sont presque toujours des serpents en pratique, donc filtrer sur "lézard"/"tortue" les
@@ -22618,23 +22773,27 @@ function renderTourGrid(){
       visibleRacks = visibleRacks.filter(r=>savedSnakes.some(s=>s.placement && s.placement.mode==='rack' && s.placement.rackId===r.id && speciesCategoryOf(s.species)===tourCategoryFilter));
     }
   }
+  const hiddenRacks = tourRackFilter ? [] : racks.filter(r=>r.hidden);
+  if(hiddenRacks.length) grid.insertAdjacentHTML('beforeend', '<div style="font-size:14px;color:var(--ink-dim);margin:0 0 8px;">🙈 '+hiddenRacks.length+(isEn?' hidden rack(s): ':' rack(s) masqué(s) : ')+hiddenRacks.map(r=>'<button type="button" class="sc-btn" onclick="toggleRackHidden(\''+r.id+'\')">👁 '+escapeHtml(r.name)+'</button>').join(' ')+'</div>');
   visibleRacks.forEach(rack=>{
     const unit = document.createElement('div');
     unit.className = 'rack-unit';
+    if(rackOverflowSnakes(rack).length) unit.insertAdjacentHTML('beforeend', rackOverflowBannerHtml(rack)); // v4.51
     const headBar = document.createElement('div');
     headBar.className = 'rack-row';
     headBar.innerHTML = '<span class="rack-row-label">'+escapeHtml(rack.name)+'</span><button class="rack-row-select accent-select" data-allrack="'+rack.id+'">⚡ '+(isEn?'This whole rack':'Tout ce rack')+'</button>';
     unit.appendChild(headBar);
 
-    rack.rows.forEach((tubCount, rowIdx)=>{
-      const row = rowIdx+1;
+    rackDisplayRows(rack).forEach(dr=>{
+      const row = dr.row, tubCount = dr.real;
+      const tubList = [...Array(tubCount).keys()].map(i=>i+1).concat(dr.extra); // v4.51 — + bacs hors format occupés
       const rowEl = document.createElement('div');
       rowEl.className = 'rack-row';
       const rowKeys = [];
-      for(let tubIdx=1;tubIdx<=tubCount;tubIdx++){ if(snakeAt(rack.id,row,tubIdx)) rowKeys.push(tubKey(rack.id,row,tubIdx)); }
+      tubList.forEach(tubIdx=>{ if(snakeAt(rack.id,row,tubIdx)) rowKeys.push(tubKey(rack.id,row,tubIdx)); });
       const rowFullySelected = rowKeys.length>0 && rowKeys.every(k=>tourSelection.has(k));
       rowEl.innerHTML = '<span class="rack-row-label">'+(isEn?'Row ':'Rangée ')+row+'</span><button class="rack-row-select'+(rowFullySelected?' active':'')+'" data-rack="'+rack.id+'" data-row="'+row+'">'+(rowFullySelected?(isEn?'✓ Selected':'✓ Sélectionnée'):(isEn?'Sel. row':'Sél. rangée'))+'</button>';
-      for(let tubIdx=1;tubIdx<=tubCount;tubIdx++){
+      tubList.forEach(tubIdx=>{
         var snake = snakeAt(rack.id,row,tubIdx);
         var key = tubKey(rack.id,row,tubIdx);
         var cell = document.createElement('div');
@@ -22656,6 +22815,7 @@ function renderTourGrid(){
             if(isInShed(snake)) tag = (tag ? tag+' · ' : '')+'🔵'; // v3.90 — en mue
             cell.setAttribute('data-tooltip', snakeTooltip(snake));
           }
+          if(tubIdx>tubCount){ cell.style.border = '2px dashed #e08a63'; tag = (tag ? tag+' · ' : '')+'⚠ '+(isEn?'to move':'à déplacer'); } // v4.51
           cell.innerHTML = (snake ? '<div class="tub-name">'+escapeHtml(snakeName(snake))+'</div><div class="tub-tag">'+tag+'</div>' : (isEn?'Tub ':'Bac ')+tubIdx+(isEn?' — empty':' — vide')) + alertIcon
             + (snake ? '<span class="tub-prey" data-preytoggle="'+snake.id+'" title="'+(isEn?'Tap to switch live/frozen':'Toucher pour changer vivant/décongelé')+'">'+(snake.preyType==='live'?'🐭':'❄️')+'</span>' : '');
           if(snake){
@@ -22670,7 +22830,7 @@ function renderTourGrid(){
           console.warn('LOCUS: erreur affichage bac Mode Tournée', erreur);
         }
         rowEl.appendChild(cell);
-      }
+      });
       unit.appendChild(rowEl);
     });
     grid.appendChild(unit);
@@ -22684,9 +22844,9 @@ function renderTourGrid(){
     btn.addEventListener('click', ()=>{
       const rackId = btn.dataset.rack, row = parseInt(btn.dataset.row,10);
       const rack = getRack(rackId);
-      const tubCount = rack.rows[row-1];
+      const dr = rackDisplayRows(rack).find(x=>x.row===row) || { real:0, extra:[] };
       const rowKeys = [];
-      for(let tubIdx=1;tubIdx<=tubCount;tubIdx++){ if(snakeAt(rackId,row,tubIdx)) rowKeys.push(tubKey(rackId,row,tubIdx)); }
+      [...Array(dr.real).keys()].map(i=>i+1).concat(dr.extra).forEach(tubIdx=>{ if(snakeAt(rackId,row,tubIdx)) rowKeys.push(tubKey(rackId,row,tubIdx)); }); // v4.51
       const alreadyFull = rowKeys.length>0 && rowKeys.every(k=>tourSelection.has(k));
       if(alreadyFull){
         rowKeys.forEach(k=>tourSelection.delete(k));
@@ -22702,9 +22862,9 @@ function renderTourGrid(){
     btn.addEventListener('click', ()=>{
       const rack = getRack(btn.dataset.allrack);
       let count = 0;
-      rack.rows.forEach((tubCount, rowIdx)=>{
-        const row = rowIdx+1;
-        for(let tubIdx=1;tubIdx<=tubCount;tubIdx++){ if(snakeAt(rack.id,row,tubIdx)){ tourSelection.add(tubKey(rack.id,row,tubIdx)); count++; } }
+      rackDisplayRows(rack).forEach(dr=>{ // v4.51 — inclut les bacs « à déplacer »
+        const row = dr.row;
+        [...Array(dr.real).keys()].map(i=>i+1).concat(dr.extra).forEach(tubIdx=>{ if(snakeAt(rack.id,row,tubIdx)){ tourSelection.add(tubKey(rack.id,row,tubIdx)); count++; } });
       });
       showToast('⚡ "'+rack.name+'" '+(isEn?'selected — ':'sélectionné — ')+count+' reptile(s).', 'success');
       renderTourGrid();
@@ -22953,7 +23113,7 @@ function lastShedQuality(s){
 function healthRiskAssessment(s){
   const isEn = currentLang==='en';
   const signals = [];
-  if(isFeedingFlagged(s)) signals.push({ type:'feeding', label:isEn?daysSinceLastFed(s)+'d without a meal':daysSinceLastFed(s)+'j sans repas' });
+  if(isFeedingFlagged(s)) { const fd = daysSinceLastFed(s); signals.push({ type:'feeding', label: fd==null ? (isEn?'never fed':'jamais nourri') : (isEn?fd+'d without a meal':fd+'j sans repas') }); } // v4.51 — plus de « nullj »
   if(weightDropping(s)){ const wd = weightDropInfo(s); signals.push({ type:'weight', label:isEn?'weight loss −'+wd.pct+'%':'perte de poids −'+String(wd.pct).replace('.',',')+' %' }); } // v4.12
   const shedQ = lastShedQuality(s);
   // v3.52 — chez les lézards (et tortues), muer en morceaux est normal : seule « incomplète »
@@ -22999,20 +23159,16 @@ function renderHealthAlerts(){
   const watch = assessed.filter(x=>x.risk.level==='watch');
   const wrap = document.getElementById('health-alerts');
   if(!wrap) return;
-  let html = '';
-  if(urgent.length){
-    html += '<div class="health-alert-bar">🚨 <b>'+urgent.length+(isEn?' reptile(s)</b> need priority attention: ':' reptile(s)</b> à surveiller en priorité : ')+
-      urgent.map(x=> escapeHtml(snakeName(x.s))+' ('+x.risk.signals.map(sig=>sig.label).join(', ')+')').join(', ')+'</div>';
-  }
-  if(watch.length){
-    html += '<div class="health-alert-bar" style="background:rgba(216,187,70,.14);border-color:var(--gold);"><span>⚠ <b style="color:var(--gold);">'+watch.length+(isEn?' reptile(s)</b> to watch: ':' reptile(s)</b> à surveiller : ')+
-      watch.map(x=> escapeHtml(snakeName(x.s))+' ('+x.risk.signals[0].label+')').join(', ')+'</span></div>';
-  }
+  // v4.51 — une ligne courte par type d'alerte (« 5 à surveiller en priorité — Afficher les 5 »),
+  // la liste détaillée s'ouvre au besoin, un animal par ligne, en pages.
+  const row = (x, txt)=>'<div class="sale-row"><div class="sale-name">'+escapeHtml(snakeName(x.s))+'<small>'+escapeHtml(txt)+'</small></div><button class="sc-btn accent" onclick="openLogbook(\''+x.s.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button></div>';
   const weighList = savedSnakes.map(s=>({ s, why:weighReminderReason(s) })).filter(x=>x.why);
-  if(weighList.length){
-    html += '<div style="font-size:12px;color:var(--ink-dim);margin:2px 0 10px;padding:6px 10px;border-left:2px solid var(--line);">⚖️ '+
-      (isEn?'Weigh reminder: ':'Rappel de pesée : ')+weighList.map(x=>'<b style="color:var(--ink);">'+escapeHtml(snakeName(x.s))+'</b> ('+x.why+')').join(', ')+'</div>';
-  }
+  const box = (tone, inner)=>'<div style="border:1px solid '+tone+';border-radius:10px;padding:4px 10px;margin-bottom:8px;">'+inner+'</div>';
+  const o = { rerender: renderHealthAlerts, collapsedByDefault: true };
+  let html = '';
+  if(urgent.length) html += box('#e08a63', agendaGroupHtml('health_urgent', '🚨 '+(isEn?'Priority — reptiles to watch':'Priorité — reptiles à surveiller'), urgent, 'sale-list', x=>row(x, x.risk.signals.map(sig=>sig.label).join(', ')), o));
+  if(watch.length) html += box('var(--gold)', agendaGroupHtml('health_watch', '⚠ '+(isEn?'Reptiles to watch':'Reptiles à surveiller'), watch, 'sale-list', x=>row(x, x.risk.signals.map(sig=>sig.label).join(', ')), o));
+  if(weighList.length) html += box('var(--line)', agendaGroupHtml('health_weigh', '⚖️ '+(isEn?'Weigh reminder':'Rappel de pesée'), weighList, 'sale-list', x=>row(x, x.why), o));
   wrap.innerHTML = html;
 }
 
