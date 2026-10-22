@@ -2235,7 +2235,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.72';
+const APP_VERSION = '2026.09.01.4.74';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5265,6 +5265,20 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.74', date:'2026-10-22',
+    title:{ fr:'Rongeurs : ratios impossibles réparés', en:'Rodents: impossible ratios repaired' },
+    changes:{
+      fr:[ '🔧 Les bacs importés avant la 4.71 pouvaient montrer un ratio impossible comme « -10:-27 » (les identifiants M-10 / F-27 étaient lus comme des nombres). LOCUS les recompte maintenant avec les identifiants gardés dans la note du bac ; s\'il ne peut pas, le ratio est marqué « à corriger » au lieu de garder un chiffre faux.' ],
+      en:[ '🔧 Bins imported before 4.71 could show an impossible ratio like "-10:-27" (IDs M-10 / F-27 were read as numbers). LOCUS now recounts them from the IDs kept in the bin\'s note; if it can\'t, the ratio is marked "to fix" instead of keeping a wrong number.' ]
+    }
+  },
+  { version:'4.73', date:'2026-10-22',
+    title:{ fr:'Rongeurs : la souche importée n\'est plus un avertissement', en:'Rodents: imported strain is no longer a warning' },
+    changes:{
+      fr:[ '📝 La souche, les identifiants ou les remarques lus dans un fichier importé s\'affichent maintenant comme une simple note grise sur le bac, et non plus en orange avec ⚠. Le ⚠ orange est réservé à la vraie mise en garde « Pas indépendante » que tu écris toi-même. Les bacs déjà importés sont corrigés automatiquement.' ],
+      en:[ '📝 The strain, IDs or remarks read from an imported file now show as a plain grey note on the bin, no longer in orange with ⚠. The orange ⚠ is kept for the real "Not independent" warning you write yourself. Bins already imported are fixed automatically.' ]
+    }
+  },
   { version:'4.72', date:'2026-10-22',
     title:{ fr:'Filets de sécurité : reptiles et rongeurs jamais mélangés', en:'Safety nets: reptiles and rodents never mixed' },
     changes:{
@@ -17513,7 +17527,7 @@ async function confirmRodentImport(){
       bin = { id:'rb_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), label:b.label, binType:'reproduction', species, ratio:b.ratio||'2:1', room:b.room||null, litters:[],
         lineageNumber:b.lineageNumber, lineageGeneration:gen, lineageLetter:b.lineageLetter||null, lineageCustomName:b.lineageCustomName||null, rackId:null, row:null, col:null,
         lineageHistory:[{ generation:gen, letter:b.lineageLetter||null, date:b.foundedDate||localTodayStr(), reason:(isEn?'Imported':'Importé'), linkedToPrevious:null }],
-        cumulativeFootprint: b.cumulativeFootprint||[], notIndependentNote:b.note||null, maleOrigin: b.maleOrigin!=null ? b.maleOrigin : null }; // v4.62 — lignée du fichier
+        cumulativeFootprint: b.cumulativeFootprint||[], notIndependentNote:null, note:b.note||null, maleOrigin: b.maleOrigin!=null ? b.maleOrigin : null }; // v4.62 — lignée du fichier
     }
     if(b.resting && bin.binType==='reproduction'){ bin.maleRemovedDate = localTodayStr(); bin.maleRemovedNote = (isEn?'Rest (imported)':'Repos (importé)'); }
     rodentBins.push(bin); b.target = bin; nb++;
@@ -20020,8 +20034,27 @@ function rodentSpeciesIconLabel(species, isEn){
   if(species==='rat') return '🐀 '+(isEn?'Rat':'Rat');
   return '🐭 ASF';
 }
+// v4.74 — réparation des ratios impossibles (« -10:-27 ») laissés par les imports d'avant 4.71, qui lisaient
+// les identifiants « M-10 / F-27 » comme des nombres. On recompte avec les identifiants gardés en note, sinon on
+// vide le ratio (affiché « à corriger ») plutôt que de garder un chiffre faux. Jamais d'invention.
+function rodentRatioIsValid(r){ const a = /^(\d+):(\d+)$/.exec(r||''); return !!a && +a[1]>=1 && +a[2]>=1 && +a[1]<=60 && +a[2]<=60; }
+function repairRodentRatios(){
+  let n = 0;
+  (rodentBins||[]).forEach(b=>{
+    if(!b || b.binType==='stock' || b.ratio==null || b.ratio==='' || rodentRatioIsValid(b.ratio)) return;
+    const txt = [b.note, b.notIndependentNote].filter(Boolean).join(' — ');
+    const grab = re=>{ const m = re.exec(txt); return m ? m[1].split(/[,;\/+&]|\s+et\s+|\s+and\s+/).map(x=>x.trim()).filter(Boolean).length : 0; };
+    const nm = grab(/(?:Mâles?|Males?)\s*:\s*([^—]+)/i), nf = grab(/(?:Femelles|Females)\s*:\s*([^—]+)/i);
+    b.ratioBadFromImport = b.ratio;
+    b.ratio = (nm && nf) ? Math.max(nm,nf)+':'+Math.min(nm,nf) : null;
+    n++;
+  });
+  if(n){ try{ if(typeof elevageStateReady!=='function' || elevageStateReady()) saveElevage(); }catch(e){} }
+  return n;
+}
 function renderRodentBins(){
   const isEn = currentLang==='en';
+  try{ repairRodentRatios(); }catch(e){ console.warn('LOCUS: réparation des ratios', e); }
   const lockedMsg = document.getElementById('rodent-locked-msg');
   const unlockedContent = document.getElementById('rodent-unlocked-content');
   if(!hasAccess('rodentManagement')){
@@ -20094,9 +20127,9 @@ function rodentReproBinCardHtml(bin, isEn){
       '</div>'+
       '<div class="clutch-body">'+
         mrow(isEn?'Species':'Espèce', rodentSpeciesIconLabel(bin.species, isEn))+
-        mrow(isEn?'Ratio':'Ratio', bin.ratio||'—')+
+        mrow(isEn?'Ratio':'Ratio', bin.ratio ? escapeHtml(bin.ratio) : (bin.ratioBadFromImport ? '<span style="color:var(--rust);">'+(isEn?'to fix (unreadable in the import)':'à corriger (illisible à l\'import)')+'</span>' : '—'))+
         (bin.cumulativeFootprint && bin.cumulativeFootprint.length ? mrow(isEn?'Related lineages':'Lignées apparentées', bin.cumulativeFootprint.map(e=>e.number+'.'+e.generation).join(', ')) : '')+
-        (bin.notIndependentNote ? '<div class="modal-row"><span style="color:var(--rust);">⚠️ '+escapeHtml(bin.notIndependentNote)+'</span></div>' : '')+
+        (function(){ const n = rodentBinNoteParts(bin); return (n.warn ? '<div class="modal-row"><span style="color:var(--rust);">⚠️ '+(isEn?'Not independent: ':'Pas indépendante : ')+escapeHtml(n.warn)+'</span></div>' : '')+(n.info ? '<div class="modal-row"><span style="color:var(--ink-dim);">📝 '+escapeHtml(n.info)+'</span></div>' : ''); })()+
         (bin.room ? mrow(isEn?'Room':'Pièce', escapeHtml(bin.room)) : '')+
         mrow(isEn?'Male':'Mâle', bin.maleRemovedDate
           ? '<span style="color:var(--gold);">'+(isEn?'Removed ':'Retiré le ')+bin.maleRemovedDate+'</span>'+(bin.maleRemovedNote?' <small style="color:var(--ink-dim);">('+escapeHtml(bin.maleRemovedNote)+')</small>':'')+' <button class="sc-btn" style="padding:1px 8px;font-size:10px;margin-left:6px;" onclick="toggleRodentMaleRemoval(\''+bin.id+'\')">'+(isEn?'Reintroduce':'Réintroduire')+'</button>'
@@ -20138,6 +20171,14 @@ function rodentReproBinCardHtml(bin, isEn){
 // portées, pas de ratio : des lots avec date de référence (réelle ou calculée depuis un stade
 // déclaré), stade toujours calculé en direct, plus le contrôle du bac prioritaire de l'espèce
 // (celui qui décompte en silence à Nourrir/Congeler).
+// v4.73 — la note d'un import (souche, identifiants…) n'est pas un avertissement. Les bacs importés en 4.62–4.72
+// l'avaient rangée par erreur dans notIndependentNote (affichée en orange ⚠) : on la lit ici comme simple note.
+function rodentBinNoteParts(bin){
+  const imported = !!(bin && bin.lineageHistory && bin.lineageHistory[0] && /^(Importé|Imported)$/.test(bin.lineageHistory[0].reason||''));
+  let warn = bin.notIndependentNote || '', info = bin.note || '';
+  if(warn && imported && !info){ info = warn; warn = ''; }
+  return { warn, info };
+}
 function rodentStockBinCardHtml(bin, isEn){
     if(!bin.stockBatches) bin.stockBatches = [];
     const totalCount = rodentStockBinTotalCount(bin);
@@ -20160,6 +20201,7 @@ function rodentStockBinCardHtml(bin, isEn){
         mrow(isEn?'Species':'Espèce', rodentSpeciesIconLabel(bin.species, isEn))+
         mrow(isEn?'Type':'Type', isEn?'Stock / Grow-out':'Stock / Croissance')+
         mrow(isEn?'Group':'Groupe', rodentSexeGroupeLabel(bin.sexeGroupe, isEn))+
+        (bin.note ? '<div class="modal-row"><span style="color:var(--ink-dim);">📝 '+escapeHtml(bin.note)+'</span></div>' : '')+
         (bin.room ? mrow(isEn?'Room':'Pièce', escapeHtml(bin.room)) : '')+
         mrow(isEn?'Total in bin':'Total dans le bac', ''+totalCount)+
         mrow(isEn?'Priority bin':'Bac prioritaire', isPriority
