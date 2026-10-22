@@ -2235,7 +2235,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.66';
+const APP_VERSION = '2026.09.01.4.67';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5265,6 +5265,19 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.67', date:'2026-10-22',
+    title:{ fr:'Import de rongeurs : bacs placés sur les racks', en:'Rodent import: bins placed on the racks' },
+    changes:{
+      fr:[
+        '📍 Les bacs importés sont maintenant placés sur tes racks de rongeurs (case cochée par défaut dans l\'aperçu) : à la place indiquée par une colonne Emplacement du fichier (« Rack 1 R2-B5 », « R2 B5 »…), sinon dans les premières places libres ; un rack de 2×8 est créé s\'il manque de place. Fini les bacs « par terre ».',
+        '🐛 Une portée sans bac indiqué ne crée plus de faux bac « Bac importé » : elle est ignorée et listée dans l\'aperçu (on ne sait pas de quel bac elle vient). La colonne « Emplacement » n\'est plus confondue avec la pièce.'
+      ],
+      en:[
+        '📍 Imported bins are now placed on your rodent racks (box checked by default in the preview): at the place given by a Location column in the file (« Rack 1 R2-B5 », « R2 B5 »…), otherwise in the first free places; a 2×8 rack is created if there is not enough room. No more bins « on the floor ».',
+        '🐛 A litter with no bin given no longer creates a fake « Imported bin »: it is skipped and listed in the preview (we don\'t know which bin it comes from). The « Location » column is no longer confused with the room.'
+      ]
+    }
+  },
   { version:'4.66', date:'2026-10-22',
     title:{ fr:'Import plus strict : un stock de proies n\'est pas des reptiles', en:'Stricter import: a prey stock is not reptiles' },
     changes:{
@@ -16770,7 +16783,8 @@ var RODENT_IMPORT_ALIASES = {
   ratio: ['ratio','ratio m:f','ratio f:m','m:f','f:m','m/f','f/m','composition','trio','sexe ratio','sex ratio','males:femelles','femelles:males','configuration ratio','ratio configuration','config ratio'],
   males: ['males','male','nb males','nombre de males','# males','male count','qty males'],
   females: ['femelles','femelle','females','female','nb femelles','nombre de femelles','# females','female count','qty females'],
-  room: ['piece','room','salle','local','emplacement','location'],
+  room: ['piece','room','salle','local'],
+  location: ['emplacement','location','position','rack','place','slot','rack / bac','emplacement rack','emplacement du bac','bin location','rack position'], // v4.67
   date: ['date','date portee','date de portee','date de la portee','date naissance','date de naissance','birth date','birthdate','dob','born','naissance','litter date','date mise bas','mise bas','date achat','date d\'achat','purchase date','expense date','date depense','date de depense','jour','day'],
   count: ['nombre','nb','count','# petits','petits','pups','babies','bebes','nb petits','nombre de petits','litter size','taille portee','taille de portee','taille de la portee','nes','nb nes','born count','total nes','litter count','nombre de bebes'],
   missing: ['manquants','manquant','morts','mort','missing','dead','perdus','perdu','lost','mortalite','deces'],
@@ -16782,7 +16796,7 @@ var RODENT_IMPORT_ALIASES = {
   amount: ['montant','amount','cout','cost','prix','price','total','depense','expense','paye','paid','$','cad','usd'],
   note: ['notes','note','remarque','remarques','commentaire','commentaires','comment','comments','description','details','detail','item','article','fournisseur','supplier','achat','produit','product','quoi','what']
 };
-var RODENT_IMPORT_ORDER = ['dateList','totalBabies','litterTotal','average','rating','totalBreeders','femaleOrigin','maleOrigin','origin','lineage','generation','bin','species','binType','ratio','males','females','room','date','count','missing','transferred','euthanized','size','quantity','storage','amount','note'];
+var RODENT_IMPORT_ORDER = ['dateList','totalBabies','litterTotal','average','rating','totalBreeders','femaleOrigin','maleOrigin','origin','lineage','generation','bin','species','binType','ratio','males','females','location','room','date','count','missing','transferred','euthanized','size','quantity','storage','amount','note'];
 function rodentHeaderField(h){
   const x = normalizeHeaderKey(h).replace(/[()\[\]]/g,' ').replace(/\s+/g,' ').trim();
   if(!x) return null;
@@ -16829,6 +16843,46 @@ function rodentRatioOf(raw, males, females){
   if(/couple|paire|pair/.test(x)) return '1:1';
   return null;
 }
+// v4.67 — placement des bacs importés sur les racks de rongeurs (décision d'Alex : automatique par défaut)
+function rodentLocationOf(raw){
+  const txt = importCellStr(raw); if(!txt) return null;
+  const k = normalizeHeaderKey(txt).replace(/[^a-z0-9]+/g,' ').trim();
+  let rack = null, rest = k;
+  const known = (rodentRacks||[]).slice().sort((a,b)=>b.name.length-a.name.length).find(r=>{ const n = normalizeHeaderKey(r.name).replace(/[^a-z0-9]+/g,' ').trim(); return n && (k===n || k.startsWith(n+' ')); });
+  if(known){ rack = known; rest = k.slice(normalizeHeaderKey(known.name).replace(/[^a-z0-9]+/g,' ').trim().length).trim(); }
+  const rm = rest.match(/(?:^|\s)(?:rangee|rang|row|r)\s*(\d+)/), cm = rest.match(/(?:^|\s)(?:bac|bin|col|colonne|b|c|slot)\s*(\d+)/);
+  let row = rm ? +rm[1] : null, col = cm ? +cm[1] : null;
+  if(row==null || col==null){ const nums = rest.match(/\d+/g) || []; if(nums.length>=2){ row = +nums[nums.length-2]; col = +nums[nums.length-1]; } }
+  if(!rack && (rodentRacks||[]).length===1 && !/(^|\s)(rack|etagere|shelf)(\s|$)/.test(k)) rack = rodentRacks[0]; // un seul rack et aucun nom de rack écrit
+  if(row==null || col==null) return { bad:true, text:txt };
+  return { rack, row, col, text:txt };
+}
+function rodentSlotFree(rackId, row, col, taken){ return !rodentBins.some(b=>b.rackId===rackId && b.row===row && b.col===col) && !taken.has(rackId+'|'+row+'|'+col); }
+function planRodentPlacement(newBins, wanted){
+  const out = [], taken = new Set(), newRacks = [];
+  const racksAll = ()=>(rodentRacks||[]).concat(newRacks);
+  newBins.forEach(b=>{
+    b.locProblem = false;
+    if(!b.locText) return;
+    const loc = rodentLocationOf(b.locText);
+    if(loc && !loc.bad && loc.rack && loc.row>=1 && loc.row<=loc.rack.rows.length && loc.col>=1 && loc.col<=loc.rack.rows[loc.row-1] && rodentSlotFree(loc.rack.id, loc.row, loc.col, taken)){
+      taken.add(loc.rack.id+'|'+loc.row+'|'+loc.col); out.push({ bin:b, rackId:loc.rack.id, rackName:loc.rack.name, row:loc.row, col:loc.col, fromFile:true });
+    } else b.locProblem = true;
+  });
+  if(!wanted) return { out, newRacks };
+  newBins.filter(b=>!out.some(o=>o.bin===b)).forEach(b=>{
+    let spot = null;
+    racksAll().some(r=>r.rows.some((cols, ri)=>{ for(let c=1;c<=cols;c++){ if(rodentSlotFree(r.id, ri+1, c, taken)){ spot = { r, row:ri+1, col:c }; return true; } } return false; }));
+    if(!spot){
+      const nr = { id:'rrack_'+Date.now()+'_'+newRacks.length, name:'Rack '+(racksAll().length+1), rows:[8,8], isNew:true };
+      newRacks.push(nr); spot = { r:nr, row:1, col:1 };
+    }
+    taken.add(spot.r.id+'|'+spot.row+'|'+spot.col);
+    out.push({ bin:b, rackId:spot.r.id, rackName:spot.r.name, row:spot.row, col:spot.col, fromFile:false });
+  });
+  return { out, newRacks };
+}
+function rodentImportTogglePlace(on){ if(rodentImport){ rodentImport.autoPlace = !!on; renderRodentImport(); } }
 // v4.65 — stade d'un lot de stock (mêmes clés que RODENT_STAGE_CHART_DEFAULT)
 function rodentStageKeyOf(raw){
   const x = normalizeHeaderKey(raw);
@@ -16942,7 +16996,7 @@ function buildRodentImportPlan(sheets, forced){
       binByKey[k] = b; plan.bins.push(b); return b;
     }
     if(!k) return null;
-    if(binByKey[k]) { const b = binByKey[k]; if(extra){ ['species','binType','ratio','room','lineage','origin','femaleOrigins','maleOrigin'].forEach(f=>{ if((b[f]==null || (Array.isArray(b[f]) && !b[f].length)) && extra[f]!=null) b[f] = extra[f]; }); } return b; }
+    if(binByKey[k]) { const b = binByKey[k]; if(extra){ ['species','binType','ratio','room','lineage','origin','femaleOrigins','maleOrigin','locText'].forEach(f=>{ if((b[f]==null || (Array.isArray(b[f]) && !b[f].length)) && extra[f]!=null) b[f] = extra[f]; }); } return b; }
     const shownLabel = label ? String(label).trim().slice(0,60) : (lin ? ((currentLang==='en'?'Lineage ':'Lignée ')+(lin.num!=null?lin.num:lin.name)+'.'+(lin.gen||1)+(lin.letter||'')) : '');
     const b = { key:k, label:shownLabel, existing: (lin && lin.num!=null) ? null : (existingByKey[k] || null), line };
     Object.assign(b, extra||{});
@@ -16988,7 +17042,8 @@ function buildRodentImportPlan(sheets, forced){
       if(lin && lin.gen==null){ const g = importNumber(cell(r,'generation')); if(g>=1 && g<=50) lin.gen = Math.round(g); }
       const label = str(r,'bin') || (lin ? '' : '');
       const orig = rodentLineageCodeOf(str(r,'origin'));
-      const extra = { origin: orig, lineage: lin, femaleOrigins: rodentOriginList(cell(r,'femaleOrigin')), maleOrigin: (rodentOriginList(cell(r,'maleOrigin'))[0] ?? null), species: sp, binType: rodentBinTypeOf(str(r,'binType')) || rodentBinTypeOf(label) || ((m.ratio!==undefined || m.males!==undefined) ? 'reproduction' : null), ratio: rodentRatioOf(str(r,'ratio'), cell(r,'males'), cell(r,'females')), room: cleanRoomValue(str(r,'room')) || null };
+      const locTxt = str(r,'location');
+      const extra = { locText: locTxt || null, origin: orig, lineage: lin, femaleOrigins: rodentOriginList(cell(r,'femaleOrigin')), maleOrigin: (rodentOriginList(cell(r,'maleOrigin'))[0] ?? null), species: sp, binType: rodentBinTypeOf(str(r,'binType')) || rodentBinTypeOf(label) || ((m.ratio!==undefined || m.males!==undefined) ? 'reproduction' : null), ratio: rodentRatioOf(str(r,'ratio'), cell(r,'males'), cell(r,'females')), room: cleanRoomValue(str(r,'room')) || null };
       if(info.kind==='bins'){
         if(!label && !lin){ plan.skipped.push({ line, sheet:sh.n, why:(isEn?'no bin name or lineage':'pas de nom de bac ni de lignée') }); return; }
         if(lin || orig || extra.femaleOrigins.length || extra.maleOrigin!=null) extra.binType = extra.binType || 'reproduction';
@@ -17041,7 +17096,8 @@ function buildRodentImportPlan(sheets, forced){
       if(d.value > localTodayStr()){ plan.skipped.push({ line, sheet:sh.n, why:(isEn?'date in the future: ':'date dans le futur : ')+d.value }); return; }
       if(!(cnt>=1 && cnt<=40)){ plan.skipped.push({ line, sheet:sh.n, why:(isEn?'number of babies not understood: ':'nombre de petits non compris : ')+str(r,'count') }); return; }
       if(d.guessed) plan.guessedDates++;
-      const b = getBin(label || (lin ? '' : (isEn?'Imported bin':'Bac importé'))+(sp?' '+({mouse:isEn?'mice':'souris',rat:'rats',asf:'ASF'})[sp]:''), extra, line);
+      if(!label && !lin){ plan.skipped.push({ line, sheet:sh.n, why:(isEn?'litter without a bin — we don\'t know which bin it belongs to':'portée sans bac — on ne sait pas de quel bac elle vient')+' ('+d.value+', '+Math.round(cnt)+')' }); return; } // v4.67 — plus de faux bac « Bac importé »
+      const b = getBin(label, extra, line);
       const num = f=>{ const v = importNumber(cell(r,f)); return (v>=0 && v<=40) ? Math.round(v) : 0; };
       plan.litters.push({ bin:b, date:d.value, count:Math.round(cnt), missing:num('missing'), transferred:num('transferred'), euthanized:num('euthanized'), line });
     });
@@ -17146,7 +17202,7 @@ function openRodentImport(sheets, continueFn, opts){
     return;
   }
   const plan = buildRodentImportPlan(sheets, !!opts.forced || sheets.some(sh=>{ try{ return !rodentSheetInfo(sh,false) && looksLikePreySheet(sh); }catch(e){ return false; } }));
-  rodentImport = { plan, continueFn, defaultSpecies:'mouse' };
+  rodentImport = { plan, continueFn, defaultSpecies:'mouse', autoPlace:true };
   renderRodentImport();
 }
 function rodentImportSetDefaultSpecies(v){ if(rodentImport){ rodentImport.defaultSpecies = v; renderRodentImport(); } }
@@ -17182,6 +17238,13 @@ function renderRodentImport(){
   newBins.filter(b=>b.renumbered).forEach(b=>{ body += '<div style="font-size:13px;color:var(--gold);margin-bottom:4px;">↪ '+(isEn?'Lineage '+b.renumbered+' could not keep its number — it becomes '+b.lineageNumber+'.':'La lignée '+b.renumbered+' ne pouvait pas garder son numéro — elle devient '+b.lineageNumber+'.')+'</div>'; });
   if(missingSp) body += '<div class="warn" style="margin-bottom:8px;font-size:14px;">'+missingSp+(isEn?' bin(s) without a species in the file. Use: ':' bac(s) sans espèce dans le fichier. Utiliser : ')+
     '<select onchange="rodentImportSetDefaultSpecies(this.value)" style="font-size:15px;padding:6px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+['mouse','rat','asf'].map(sp=>'<option value="'+sp+'"'+(ri.defaultSpecies===sp?' selected':'')+'>'+spName(sp)+'</option>').join('')+'</select></div>';
+  if(newBins.length){
+    const pp = planRodentPlacement(newBins, ri.autoPlace);
+    const fromFile = pp.out.filter(o=>o.fromFile).length, auto = pp.out.length - fromFile, bad = newBins.filter(b=>b.locProblem).length;
+    body += '<label style="display:flex;gap:10px;align-items:flex-start;font-size:15px;margin:4px 0 10px;cursor:pointer;"><input type="checkbox" style="width:22px;height:22px;margin-top:2px;accent-color:var(--gold);"'+(ri.autoPlace?' checked':'')+' onchange="rodentImportTogglePlace(this.checked)"/><span>📍 '+(isEn?'Place the new bins on my rodent racks':'Placer les nouveaux bacs sur mes racks de rongeurs')+
+      '<br><small style="color:var(--ink-dim);font-size:13px;">'+(fromFile?fromFile+(isEn?' at the place given in the file · ':' à la place indiquée dans le fichier · '):'')+(ri.autoPlace ? auto+(isEn?' in the first free places':' dans les premières places libres') : (isEn?'the others stay to place':'les autres restent à placer'))+(pp.newRacks.length ? ' · '+pp.newRacks.length+(isEn?' new 2×8 rack(s) created':' nouveau(x) rack(s) de 2×8 créé(s)') : '')+'</small></span></label>';
+    if(bad) body += '<div style="font-size:13px;color:var(--gold);margin:-4px 0 8px;">⚠ '+bad+(isEn?' location(s) from the file not usable (unknown rack, outside the rack or place taken) — placed elsewhere or left to place.':' emplacement(s) du fichier inutilisable(s) (rack inconnu, hors du rack ou place prise) — placé(s) ailleurs ou laissé(s) à placer.')+'</div>';
+  }
   if(p.guessedDates) body += '<div style="font-size:13px;color:var(--gold);margin-bottom:6px;">⚠ '+p.guessedDates+(isEn?' date(s) could be read two ways (e.g. 03/04) — read as month/day.':' date(s) pouvaient se lire de deux façons (ex. 03/04) — lues jour/mois.')+'</div>';
   const realSkips = p.skipped.filter(s=>!s.dup), dups = p.skipped.filter(s=>s.dup);
   if(dups.length) body += '<div style="font-size:13px;color:var(--ink-dim);margin-bottom:6px;">↺ '+dups.length+(isEn?' line(s) already in LOCUS — not added twice.':' ligne(s) déjà dans LOCUS — pas ajoutée(s) deux fois.')+'</div>';
@@ -17220,6 +17283,13 @@ async function confirmRodentImport(){
     }
     rodentBins.push(bin); b.target = bin; nb++;
   });
+  // v4.67 — placement sur les racks de rongeurs
+  try{
+    const pp = planRodentPlacement(p.bins.filter(b=>!b.existing && b.target), ri.autoPlace);
+    pp.newRacks.forEach(r=>{ rodentRacks.push({ id:r.id, name:r.name, rows:r.rows.slice() }); });
+    pp.out.forEach(o=>{ o.bin.target.rackId = o.rackId; o.bin.target.row = o.row; o.bin.target.col = o.col; });
+    ri.placed = pp.out.length; ri.newRacks = pp.newRacks.length;
+  }catch(e){ console.warn('LOCUS: placement des bacs importés', e); }
   p.litters.forEach((l,i)=>{
     const bin = l.bin.target; if(!bin) return;
     if(!bin.litters) bin.litters = [];
@@ -17240,7 +17310,8 @@ async function confirmRodentImport(){
   if(nl) parts.push(nl+(isEn?' litter(s)':' portée(s)'));
   if(ns) parts.push(ns+(isEn?' stock line(s)':' ligne(s) de stock'));
   if(ne) parts.push(ne+(isEn?' expense(s)':' dépense(s)'));
-  showToast('🐭 '+(isEn?'Rodents imported: ':'Rongeurs importés : ')+parts.join(', ')+'.'+(nb ? (isEn?' New breeding bins are in « Bins »; place them in a rack when you want.':' Les nouveaux bacs de reproduction sont dans « Bacs » ; place-les dans un rack quand tu veux.') : ''), 'success');
+  const notPlaced = nb - (ri.placed||0);
+  showToast('🐭 '+(isEn?'Rodents imported: ':'Rongeurs importés : ')+parts.join(', ')+'.'+(ri.placed ? (isEn?' '+ri.placed+' bin(s) placed on the racks':' '+ri.placed+' bac(s) placé(s) sur les racks')+(ri.newRacks?(isEn?' ('+ri.newRacks+' new rack(s))':' ('+ri.newRacks+' nouveau(x) rack(s))'):'')+'.' : '')+(notPlaced>0 ? (isEn?' '+notPlaced+' bin(s) left to place.':' '+notPlaced+' bac(s) à placer.') : ''), 'success');
   if(cont) setTimeout(cont, 400);
 }
 function openRodentImportPicker(){
