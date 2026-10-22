@@ -2212,7 +2212,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.43';
+const APP_VERSION = '2026.09.01.4.44';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5223,6 +5223,17 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.44', date:'2026-10-22',
+    title:{ fr:'Import : titres de colonnes composés', en:'Import: compound column titles' },
+    changes:{
+      fr:[
+        '🧩 Import : les titres de colonnes faits de plusieurs mots collés sont compris mot par mot — « ID_Reptile » (ID), « Morph_Genetique » (génétique), « ID_Pere » / « ID_Mere » (parents, liés après l\'import). Une colonne d\'historique générale (« Historique_Suivi », « Journal », « Suivi ») est lue entrée par entrée : chaque date devient un repas, un refus, une mue ou une pesée selon ce qui est écrit; ce qui ne concerne pas l\'animal (« Nettoyage ») est signalé.'
+      ],
+      en:[
+        '🧩 Import: column titles made of several joined words are understood word by word — « ID_Reptile » (ID), « Morph_Genetique » (genetics), « ID_Pere » / « ID_Mere » (parents, linked after the import). A general history column (« Historique_Suivi », « Log », « Records ») is read entry by entry: each date becomes a meal, refusal, shed or weigh-in depending on what is written; anything that isn\'t about the animal (« Cleaning ») is flagged.'
+      ]
+    }
+  },
   { version:'4.43', date:'2026-10-21',
     title:{ fr:'Import : prix négatifs', en:'Import: negative prices' },
     changes:{
@@ -14943,7 +14954,33 @@ function mapCsvHeaders(headerRow){
       if(map[field]===undefined && CSV_COLUMN_ALIASES[field].some(alias=>vars.includes(normalizeHeaderKey(alias)))){ map[field] = i; break; }
     }
   });
+  // v4.44 — 3e passe, mot par mot : « ID_Reptile », « Morph_Genetique », « ID_Pere », « Nom_Mere », « Poids_Actuel_g »
+  headerRow.forEach((h,i)=>{
+    if(Object.values(map).includes(i)) return;
+    const words = normalizeHeaderKey(h).replace(/[\(\[][^\)\]]*[\)\]]/g,' ').replace(/[^a-z0-9#' ]+/g,' ').split(' ').filter(Boolean);
+    if(!words.length) return;
+    const field = importFieldFromWords(words);
+    if(field && map[field]===undefined) map[field] = i;
+  });
   return map;
+}
+var IMPORT_HEADER_FILLER = ['de','du','des','la','le','les','l','d','of','the','a','actuel','actuelle','current','reptile','animal','serpent','snake','python','bp','g','gr','grammes','grams','kg','lb','lbs','info','infos','du','au'];
+function importFieldFromWords(words){
+  const has = w=>words.includes(w);
+  // parents d'abord : « ID_Pere » est le père, pas l'ID de l'animal
+  if(['pere','sire','father','dad','papa'].some(has)) return 'sire';
+  if(['mere','dam','mother','mom','maman'].some(has)) return 'dam';
+  const core = words.filter(w=>!IMPORT_HEADER_FILLER.includes(w));
+  const idWords = ['id','no','numero','num','code','tag','identifiant','ref','reference','#'];
+  if(core.length && core.every(w=>idWords.includes(w))) return 'animalId';               // « ID_Reptile », « Code animal »
+  if(!core.length) return null;
+  const joined = core.join(' ');
+  for(const field in CSV_COLUMN_ALIASES){ if(CSV_COLUMN_ALIASES[field].some(a=>normalizeHeaderKey(a)===joined)) return field; }
+  // tous les mots restants veulent dire la même chose (« Morph Genetique ») → ce champ
+  const fieldsOf = w=>Object.keys(CSV_COLUMN_ALIASES).filter(f=>CSV_COLUMN_ALIASES[f].some(a=>normalizeHeaderKey(a)===w));
+  const sets = core.map(fieldsOf);
+  if(sets.every(x=>x.length)){ const common = sets[0].filter(f=>sets.every(x=>x.includes(f))); if(common.length===1) return common[0]; }
+  return null;
 }
 // Ne devine pas les formats de date ambigus (ex. 03/04/2026 = 3 avril ou 4 mars ?) — accepte
 // seulement l'ISO sans équivoque, laisse vide sinon pour qu'Alex/l'utilisateur corrige à la main
@@ -15782,11 +15819,11 @@ function importSourceOf(sh){
 // d'historique ordinaire, traitée par logImportFromRows juste après les animaux (mêmes règles : doublons, aperçu).
 function packedHistoryKind(h){
   const x = normalizeHeaderKey(h||'');
-  if(!/(history|historique|log|journal|records?|suivi)/.test(x)) return null;
+  if(!/(^|[^a-z])(history|historique|log|logs|journal|records?|suivi)([^a-z]|$)/.test(x.replace(/_/g,' '))) return null; // v4.44 — mot entier (« Biologie » n'est pas un journal)
   if(/(shed|mue|molt|moult)/.test(x)) return 'shed';
   if(/(weight|poids|pesee|weigh)/.test(x)) return 'weight';
   if(/(feed|feeding|meal|repas|nourri|alimentation|food)/.test(x)) return 'feed';
-  return null;
+  return 'mixed'; // v4.44 — « Historique_Suivi » : repas, mues et pesées mêlés, chaque entrée est lue pour ce qu'elle dit
 }
 function packedHistoryCols(headerRow){
   const out = [];
@@ -15823,6 +15860,14 @@ function packedHistoryToLogRows(rows, hIdx, colMap, packed){
         let act, prey = '', w = '', note = '';
         if(pc.kind==='shed'){ const a = mapLogActivity(en.text); act = a==='inshed' ? en.text : 'Shed'; note = en.text; }
         else if(pc.kind==='weight'){ act = 'Weighed'; w = en.text; }
+        else if(pc.kind==='mixed'){
+          const a = mapLogActivity(en.text), pr = parseLogPrey(en.text);
+          const wm = en.text.match(/(\d+(?:[.,]\d+)?)\s*(g|gr|grammes?|grams?|kg)\b/i);
+          if(a==='weight' || (!a && wm && !pr.preySpecies)){ act = 'Weighed'; w = wm ? wm[0] : en.text; }
+          else if(a){ act = en.text; prey = a==='fed' ? en.text : ''; note = a==='shed' ? en.text : ''; }
+          else if(pr.preySpecies){ act = 'Fed'; prey = en.text; }
+          else act = en.text || '?'; // ex. « Nettoyage » : pas une activité de l'animal, signalé à l'étape historique
+        }
         else {
           const a = mapLogActivity(en.text);
           if(a){ act = en.text; prey = a==='fed' ? en.text : ''; }
