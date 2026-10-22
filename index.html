@@ -2233,7 +2233,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.52';
+const APP_VERSION = '2026.09.01.4.53';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4543,6 +4543,8 @@ function fieldHash(v){ const s = stableStringify(v===undefined ? null : v); let 
 function snakeFieldMap(s){ const out = {}; Object.keys(s||{}).forEach(k=>{ if(!SNAKE_MERGE_SKIP[k]) out[k] = fieldHash(s[k]); }); return out; }
 function recordSnakeBase(arr, onlyMissing){
   (arr||[]).forEach(s=>{ if(s && s.id!=null && (!onlyMissing || !snakeFieldBase[s.id])) snakeFieldBase[s.id] = snakeFieldMap(s); });
+  // v4.53 — on oublie les fiches supprimées (avant, chaque import/suppression laissait des restes ici)
+  try{ if(Array.isArray(savedSnakes) && savedSnakes.length){ const keep = new Set(savedSnakes.map(x=>String(x.id))); (arr||[]).forEach(x=>{ if(x && x.id!=null) keep.add(String(x.id)); }); Object.keys(snakeFieldBase).forEach(id=>{ if(!keep.has(String(id))) delete snakeFieldBase[id]; }); } }catch(e){}
   try{ localStorage.setItem(SNAKE_FIELD_BASE_KEY, JSON.stringify(snakeFieldBase)); }catch(e){}
 }
 function isBlankValue(v){
@@ -5244,6 +5246,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.53', date:'2026-10-22',
+    title:{ fr:'Détail de l\'espace local', en:'Local storage breakdown' },
+    changes:{
+      fr:[ '💾 La fenêtre « Espace de stockage local » (☰ › Configuration › Espace de stockage) montre maintenant ce qui prend le plus de place, catégorie par catégorie, pour trouver la cause quand le message « quota de stockage dépassé » apparaît.', '🧹 Les traces des fiches supprimées ne restent plus dans l\'espace local.' ],
+      en:[ '💾 The « Local storage space » window (💾/⚠️ button) now shows what takes the most space, category by category, to find the cause when the « storage quota exceeded » message appears.' ]
+    }
+  },
   { version:'4.52', date:'2026-10-22',
     title:{ fr:'Correctif : Mes reptiles vide', en:'Fix: empty My reptiles' },
     changes:{
@@ -7451,6 +7460,30 @@ async function confirmDeleteAccount(){
   }
 }
 
+// v4.53 — détail de l'espace local par catégorie, pour trouver ce qui remplit le quota
+function storageKeysBreakdownHtml(isEn){
+  const labels = {
+    locus_snakes_v1:['Reptiles (fiches, journal, photos)','Reptiles (sheets, logbook, photos)'],
+    locus_elevage_v1:['Élevage (racks, terrariums, pontes, dépenses…)','Breeding (racks, enclosures, clutches, expenses…)'],
+    locus_profile_v1:['Profil (logo, infos)','Profile (logo, info)'],
+    locus_config_v1:['Configuration','Settings']
+  };
+  const rows = [];
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i); if(!k) continue;
+      rows.push({ k, n: k.length + (localStorage.getItem(k)||'').length });
+    }
+  }catch(e){ return ''; }
+  rows.sort((a,b)=>b.n-a.n);
+  const top = rows.slice(0,8);
+  if(!top.length) return '';
+  return '<div style="margin-top:12px;font-size:14px;"><b>'+(isEn?'What takes the most space':'Ce qui prend le plus de place')+'</b></div>'+
+    top.map(r=>{
+      const lab = labels[r.k] ? labels[r.k][isEn?1:0] : r.k;
+      return '<div class="modal-row"><span style="word-break:break-all;">'+escapeHtml(lab)+'</span><span>'+Math.round(r.n/1024)+(isEn?' KB':' Ko')+'</span></div>';
+    }).join('');
+}
 function openStorageDetails(){
   const isEn = currentLang==='en';
   const used = estimateStorageBytes();
@@ -7464,6 +7497,7 @@ function openStorageDetails(){
     '<div class="modal-row"><span>'+(isEn?'% used':'% utilisé')+'</span><span>'+pct+'%</span></div>'+
     '<div class="modal-row"><span>'+(isEn?'Saved reptiles':'Reptiles enregistrés')+'</span><span>'+savedSnakes.length+'</span></div>'+
     '<div class="modal-row"><span>'+(isEn?'Total photos':'Photos totales')+'</span><span>'+photoCount+'</span></div>'+
+    storageKeysBreakdownHtml(isEn)+ // v4.53 — ce qui prend de la place, clé par clé
     '<p style="font-size:11.5px;color:var(--ink-dim);line-height:1.6;margin:14px 0 0;">'+(isEn
       ? 'Estimate based on a safe budget of '+budgetMB+' MB — the real limit varies by browser (often 5-10 MB). This stays local to this device/browser: export regularly so you never lose anything.'
       : 'Estimation basée sur un budget prudent de '+budgetMB+' Mo — la limite réelle varie selon le navigateur (souvent 5-10 Mo). Ceci reste local à cet appareil/navigateur : exporte régulièrement pour ne rien perdre.')+'</p>'+
