@@ -1280,6 +1280,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
           <button class="filter-chip" data-status="reserved" data-i18n="filterReserved">Réservé</button>
           <button class="filter-chip" data-status="sold" data-i18n="filterSold">Vendu</button>
           <button class="filter-chip" data-status="deceased" data-i18n="filterMemorial">🕊 Mémorial</button>
+          <button class="filter-chip" data-status="archive" data-i18n="filterArchive">🗄 Archives</button>
         </div>
         <div class="mine-filter-group" id="mine-sex-filters">
           <button class="filter-chip active" data-sex="all" data-i18n="filterMaleFemale">Mâle+Femelle</button>
@@ -2238,7 +2239,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.90';
+const APP_VERSION = '2026.09.01.4.93';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4504,7 +4505,15 @@ function stableStringify(value){
   return '{'+keys.map(k=>JSON.stringify(k)+':'+stableStringify(value[k])).join(',')+'}';
 }
 function contentSignature(item){
-  return stableStringify(item);
+  // v4.92 — un champ vide (null / absent) et createdAt (date du serveur ≠ date locale) ne sont pas une modification :
+  // avant, chaque tirage serveur faisait croire que les 100 fiches avaient changé → tout était renvoyé à chaque synchro.
+  return sigStringify(item, true);
+}
+function sigStringify(v, top){ // comme stableStringify, mais ignore à tous les niveaux les valeurs vides (null, absent, [] vide)
+  if(v===null || v===undefined || typeof v!=='object') return JSON.stringify(v===undefined ? null : v);
+  if(Array.isArray(v)) return '['+v.map(x=>sigStringify(x, false)).join(',')+']';
+  const keys = Object.keys(v).filter(k=>k!=='updatedAt' && !(top && k==='createdAt')).filter(k=>{ const x = v[k]; return !(x===null || x===undefined || (Array.isArray(x) && !x.length)); }).sort();
+  return '{'+keys.map(k=>JSON.stringify(k)+':'+sigStringify(v[k], false)).join(',')+'}';
 }
 // Compare chaque élément à sa dernière version connue ; si le contenu a changé, lui donne un nouvel
 // horodatage local et le marque à pousser vers le cloud au prochain pushAllUserData().
@@ -4580,7 +4589,12 @@ function markSynced(kind, arr, fromLocalLoad){
   // au chargement, la copie locale n'est pas forcément ce que le serveur a : on ne remplit que les fiches sans base
   if(kind==='snakes') recordSnakeBase(arr, !!fromLocalLoad);
   const snap = lastSyncSnapshot[kind];
-  (arr||[]).forEach(item=>{ if(item && item.id!=null) snap[item.id] = contentSignature(item); });
+  (arr||[]).forEach(item=>{ if(item && item.id!=null){
+    let it = item;
+    // v4.92 — la fiche venue du serveur est complétée (valeurs par défaut) comme la copie locale avant d'être signée
+    if(kind==='snakes'){ try{ it = JSON.parse(JSON.stringify(item)); ensureSnakeMeta(it); }catch(e){ it = item; } }
+    snap[item.id] = contentSignature(it);
+  } });
 }
 
 const storage = {
@@ -5268,6 +5282,29 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.93', date:'2026-10-23',
+    title:{ fr:'Archives : vendus et décédés rangés', en:'Archives: sold and deceased put away' },
+    changes:{
+      fr:[ '🗄 Dans Mes reptiles, « Tous » n\'affiche plus les animaux vendus ni décédés. La nouvelle pastille « 🗄 Archives » les regroupe (les pastilles Vendu et Mémorial restent). Rien n\'est effacé : l\'arbre, les lignées, les statistiques et les exports les comptent toujours.' ],
+      en:[ '🗄 In My reptiles, « All » no longer shows sold or deceased animals. The new « 🗄 Archives » chip groups them (the Sold and Memorial chips stay). Nothing is deleted: the tree, lineages, statistics and exports still count them.' ]
+    }
+  },
+  { version:'4.92', date:'2026-10-23',
+    title:{ fr:'Synchro allégée et trophées qui ne ressurgissent plus', en:'Lighter sync and trophies that no longer pop up again' },
+    changes:{
+      fr:[ '☁️ La synchronisation n\'envoie plus que les fiches vraiment modifiées. Avant, chaque récupération depuis le serveur faisait croire que toutes les fiches avaient changé (champs vides comparés à des champs absents), et tout était renvoyé à chaque fois.',
+           '🏆 Les trophées déjà vus sont maintenant retenus pour chaque compte, même après une déconnexion, et ne sont comptés qu\'une fois tes données chargées : ils ne te sautent plus au visage à chaque reconnexion.' ],
+      en:[ '☁️ Sync now only sends records that really changed. Before, every refresh from the server made it look like all records had changed (empty fields compared with missing ones), and everything was sent again each time.',
+           '🏆 Trophies you have seen are now remembered per account, even after signing out, and are only counted once your data is loaded: they no longer pop up at every sign-in.' ]
+    }
+  },
+  { version:'4.91', date:'2026-10-23',
+    title:{ fr:'Supprimer un parent : avertissement', en:'Deleting a parent: warning' },
+    changes:{
+      fr:[ '⚠️ Supprimer un reptile qui a des petits affiche maintenant un avertissement : le lien avec ses petits disparaîtrait de l\'arbre et des lignées. Un reproducteur vendu ou décédé se marque « Vendu » ou « Décédé » : il reste dans l\'arbre et les lignées.' ],
+      en:[ '⚠️ Deleting a reptile that has babies now shows a warning: the link with its babies would disappear from the tree and lineages. A sold or deceased breeder should be marked « Sold » or « Deceased »: it stays in the tree and lineages.' ]
+    }
+  },
   { version:'4.90', date:'2026-10-23',
     title:{ fr:'Lignées : onglet Couples', en:'Lineages: Pairs tab' },
     changes:{
@@ -6742,7 +6779,7 @@ const I18N = {
     filterForSale: 'À vendre',
     filterReserved: 'Réservé',
     filterSold: 'Vendu',
-    filterDeceased: '🕊 Décédé', filterMemorial: '🕊 Mémorial',
+    filterDeceased: '🕊 Décédé', filterMemorial: '🕊 Mémorial', filterArchive: '🗄 Archives',
     filterMaleFemale: 'Mâle+Femelle',
     filterUnknownSex: 'Non sexé',
     filterGeneticsAll: 'Génétique : Tous',
@@ -7325,7 +7362,7 @@ const I18N = {
     filterForSale: 'For Sale',
     filterReserved: 'Reserved',
     filterSold: 'Sold',
-    filterDeceased: '🕊 Deceased', filterMemorial: '🕊 Memorial',
+    filterDeceased: '🕊 Deceased', filterMemorial: '🕊 Memorial', filterArchive: '🗄 Archives',
     filterMaleFemale: 'Male+Female',
     filterUnknownSex: 'Unsexed',
     filterGeneticsAll: 'Genetics: All',
@@ -7930,6 +7967,7 @@ function speciesCategoryOf(speciesId){
   const ref = SPECIES_REFERENCE.find(sp=>sp.id===speciesId);
   return ref ? ref.category : 'serpent';
 }
+try{ savedSnakes.forEach(x=>{ try{ ensureSnakeMeta(x); }catch(e){} }); }catch(e){} // v4.92 — complétées AVANT la signature, sinon tout paraît modifié
 markSynced('snakes', savedSnakes, true); // v4.04
 var editingId = null;
 // Lien ponte <-> accouplement (2 septembre) — pont temporaire entre createClutchFromPairing() et
@@ -9819,6 +9857,11 @@ function deleteSnake(id){
   const isEn = currentLang==='en';
   const s = savedSnakes.find(x=>x.id===id);
   const name = s ? s.name : '';
+  // v4.91 — supprimer un parent casse le lien avec ses petits (arbre, lignées) : on le dit, et on propose Vendu / Décédé
+  const kidsN = savedSnakes.filter(x=>x.sireId===id || x.damId===id).length;
+  if(kidsN && !confirm(isEn
+      ? '⚠️ '+snakeName(s)+' is the parent of '+kidsN+' animal(s). Deleting it removes it from their family tree and lineages for good. If it was sold or died, mark it « Sold » or « Deceased » instead — the link is kept.\n\nDelete anyway?'
+      : '⚠️ '+snakeName(s)+' est le parent de '+kidsN+' animal(aux). Le supprimer l\'efface pour de bon de leur arbre et de leurs lignées. S\'il a été vendu ou est décédé, marque-le plutôt « Vendu » ou « Décédé » — le lien est gardé.\n\nSupprimer quand même ?')) return;
   if(!confirm(isEn ? 'Permanently delete '+name+'? This also deletes its full logbook (weights, sheds, vet visits, photos) and cannot be undone.' : 'Supprimer définitivement '+name+' ? Ça efface aussi tout son journal de bord (poids, mues, visites vétérinaires, photos) et c\'est irréversible.')) return;
   savedSnakes = savedSnakes.filter(s=>s.id!==id);
   if(editingId===id) cancelEdit();
@@ -10469,8 +10512,11 @@ function renderSavedList(){
   try{ renderGeneticHealthReport(); }catch(e){}
   const grid = document.getElementById('saved-grid');
   let visible = savedSnakes.filter(s=>matchesSearch(s, mineSearchTerm));
-  if(mineStatusFilter!=='all') visible = visible.filter(s=>s.status===mineStatusFilter);
-  else visible = visible.filter(s=>s.status!=='deceased'); // v3.84 — les décédés sont dans « Mémorial »
+  // v4.93 — choix d'Alex : « Tous » n'affiche plus ni vendus ni décédés ; « 🗄 Archives » les regroupe. Rien n'est effacé :
+  // l'arbre, les lignées, les statistiques et les exports les comptent toujours.
+  if(mineStatusFilter==='archive') visible = visible.filter(s=>s.status==='sold' || s.status==='deceased');
+  else if(mineStatusFilter!=='all') visible = visible.filter(s=>s.status===mineStatusFilter);
+  else visible = visible.filter(s=>s.status!=='deceased' && s.status!=='sold');
   if(mineSexFilter!=='all') visible = visible.filter(s=> mineSexFilter==='unknown' ? !s.sex : s.sex===mineSexFilter);
   if(mineVerifiedFilter!=='all') visible = visible.filter(s=> mineVerifiedFilter==='unverified' ? !s.genesVerified : s.genesVerified);
   if(mineTagFilter!=='all') visible = visible.filter(s=> (s.customTags||[]).includes(mineTagFilter));
@@ -15560,6 +15606,7 @@ async function synchroniserAvecServeur(){
     }
   } finally {
     estOccupe = false;
+    window.__locusPulledOnce = true; // v4.92 — les trophées attendent que les données du compte soient arrivées
     // Filet de sécurité (30 août) — pullAllUserData a déjà son propre rafraîchissement garanti
     // (voir son bloc finally), mais le chemin "push" (localHasData vrai, remoteHasData faux) n'en
     // avait aucun : rien ne rafraîchissait alors Racks/Terrariums/Mode Tournée après un push, même
@@ -15833,6 +15880,7 @@ async function pullAllUserData(){
     if(snakesRes.data){
       const remoteSnakes = snakesRes.data.map(rowToSnake);
       savedSnakes = mergeById(savedSnakes, remoteSnakes, 'snakes');
+      savedSnakes.forEach(x=>{ try{ ensureSnakeMeta(x); }catch(e){} }); // v4.92 — même forme que la copie signée
       markSynced('snakes', remoteSnakes);
       storage.save(savedSnakes);
     }
@@ -19209,7 +19257,7 @@ function ensureSnakeMeta(s){
   if(s.animalId===undefined) s.animalId = null; // v4.16 — ID animal (ex. BP-M-26-C3-01)
   if(typeof s.notes!=='string') s.notes = s.notes==null ? '' : String(s.notes); // v4.21 — notes libres (privées)
   if(!s.placement) s.placement = { mode:'terrarium', row:null, tub:null };
-  if(s.placement.mode==='rack' && !s.placement.rackId) s.placement.rackId = racks[0] ? racks[0].id : 'rack_1'; // migration ancien format
+  if(s.placement.mode==='rack' && !s.placement.rackId) s.placement.rackId = (typeof racks!=='undefined' && racks && racks[0]) ? racks[0].id : 'rack_1'; // migration ancien format (v4.92 — tolérant au tout début du chargement)
   // terrariumId (31 août) : avant, mode:'terrarium' était une simple étiquette sans terrarium nommé
   // derrière. Les anciennes fiches reçoivent terrariumId:null — traitées comme "à classer" dans
   // renderTerrariumList(), plutôt que rattachées d'office à un terrarium deviné.
@@ -28257,6 +28305,10 @@ function computeRecords(){
   return out;
 }
 var MILESTONES_SEEN_KEY = 'locus_milestones_seen_v2'; // v3.91 — nouvelle liste : re-semée en silence au 1er lancement
+// v4.92 — trophées « vus » gardés PAR COMPTE et hors des clés locus_ effacées à la déconnexion : avant, chaque
+// reconnexion repartait de zéro avec une collection vide, puis tout « se débloquait » quand les données arrivaient.
+function milestonesSeenKey(){ let o = null; try{ o = (currentUser && currentUser.id) || getDataOwner() || null; }catch(e){} return o ? 'lcs_ms_seen_'+o : MILESTONES_SEEN_KEY; }
+function milestonesLostKey(){ const k = milestonesSeenKey(); return k===MILESTONES_SEEN_KEY ? 'locus_trophies_lost_v1' : k.replace('lcs_ms_seen_','lcs_ms_lost_'); }
 var _milestoneCheckTimer = null;
 // Annonce discrète d'un trophée nouvellement débloqué (un seul message, jamais de rappel).
 // Au tout premier passage, les trophées déjà atteints sont marqués « vus » sans message (rétroactif).
@@ -28264,18 +28316,21 @@ function scheduleMilestoneCheck(){
   clearTimeout(_milestoneCheckTimer);
   _milestoneCheckTimer = setTimeout(function(){
     try{
+      if(currentUser && !window.__locusPulledOnce){ scheduleMilestoneCheck(); return; } // v4.92 — pas avant le chargement du compte
+      try{ if(typeof elevageStateReady==='function' && !elevageStateReady()){ scheduleMilestoneCheck(); return; } }catch(e){}
       const done = computeMilestones().filter(m=>m.done);
+      const SEEN_K = milestonesSeenKey(), LOST_K = milestonesLostKey();
       let seen = null;
-      try{ seen = JSON.parse(localStorage.getItem(MILESTONES_SEEN_KEY)||'null'); }catch(e){ seen = null; }
+      try{ seen = JSON.parse(localStorage.getItem(SEEN_K)||'null'); }catch(e){ seen = null; }
       const ids = done.map(m=>m.id);
-      if(!Array.isArray(seen)){ try{ localStorage.setItem(MILESTONES_SEEN_KEY, JSON.stringify(ids)); }catch(e){} return; }
+      if(!Array.isArray(seen)){ try{ localStorage.setItem(SEEN_K, JSON.stringify(ids)); }catch(e){} return; }
       // v3.97 — trophée perdu (Sang neuf) : un seul message discret
       try{
         const lostNow = computeTrophyGroups().reduce((a,g)=>a.concat(g.steps.filter(s=>s.lost && seen.includes(s.id))),[]);
-        let lostSeen = []; try{ lostSeen = JSON.parse(localStorage.getItem('locus_trophies_lost_v1')||'[]'); }catch(e){}
+        let lostSeen = []; try{ lostSeen = JSON.parse(localStorage.getItem(LOST_K)||localStorage.getItem('locus_trophies_lost_v1')||'[]'); }catch(e){}
         const newLost = lostNow.filter(s=>!lostSeen.includes(s.id));
         if(newLost.length){
-          localStorage.setItem('locus_trophies_lost_v1', JSON.stringify(lostSeen.concat(newLost.map(s=>s.id))));
+          localStorage.setItem(LOST_K, JSON.stringify(lostSeen.concat(newLost.map(s=>s.id))));
           const en2 = currentLang==='en';
           showToast('💔 '+(en2?'Trophy lost: ':'Trophée perdu : ')+newLost.map(s=>'« '+escapeHtml(s.title)+' »').join(', ')+(newLost[0].lostDetail?' — '+escapeHtml(newLost[0].lostDetail):''));
         }
@@ -28283,7 +28338,7 @@ function scheduleMilestoneCheck(){
       try{ syncNewbloodToVitrine(); }catch(e){} // v3.98
       const fresh = done.filter(m=>!seen.includes(m.id));
       if(fresh.length){
-        try{ localStorage.setItem(MILESTONES_SEEN_KEY, JSON.stringify([...new Set(seen.concat(ids))])); }catch(e){}
+        try{ localStorage.setItem(SEEN_K, JSON.stringify([...new Set(seen.concat(ids))])); }catch(e){}
         const en = currentLang==='en';
         const names = fresh.slice(0,3).map(m=>'« '+m.title+' »').join(', ')+(fresh.length>3 ? (en?' and '+(fresh.length-3)+' more':' et '+(fresh.length-3)+' autre(s)') : '');
         const hiddenFound = fresh.some(m=>String(m.id).startsWith('h_'));
