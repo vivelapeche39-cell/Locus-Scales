@@ -1655,6 +1655,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
     </div>
 
     <div id="sub-repro-pontes" style="display:none;">
+    <div id="clutch-pairing-suggest"></div>
     <div class="pairing-form">
       <select id="clutch-sire" onchange="updateClutchReproductionFields()"></select>
       <span style="color:var(--ink-dim);font-family:'Courier New',monospace;font-size:11px;">×</span>
@@ -2240,7 +2241,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.94';
+const APP_VERSION = '2026.09.01.4.95';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5283,6 +5284,15 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.95', date:'2026-10-23',
+    title:{ fr:'Couples : listes défilantes et accouplements proposés dans Portées', en:'Pairs: scrolling lists and pairings suggested in Clutches' },
+    changes:{
+      fr:[ '🧭 Dans « Choisir le couple », chaque liste (mâles, femelles) défile dans sa propre fenêtre au lieu d\'allonger la page.',
+           '💞 Dans Portées, les accouplements en cours (créés dans le Mode Verrou ou le Calendrier, sans portée encore notée) sont proposés en haut, avec le nombre de jours et de locks. Touche un couple : le formulaire se remplit et la portée est reliée à cet accouplement.' ],
+      en:[ '🧭 In « Choose the pair », each list (males, females) scrolls in its own window instead of stretching the page.',
+           '💞 In Clutches, pairings in progress (created in Lock mode or the Calendar, with no clutch logged yet) are suggested at the top, with days and lock count. Tap a pair: the form fills in and the clutch is linked to that pairing.' ]
+    }
+  },
   { version:'4.94', date:'2026-10-23',
     title:{ fr:'Mode Verrou : choisir le couple facilement', en:'Lock mode: easy pair picking' },
     changes:{
@@ -22680,6 +22690,7 @@ function showReproSubtab(sub){
   if(sub==='calendar'){ renderPairingForm(); renderTimeline(); renderHealthLog(); renderProjects(); }
   if(sub==='objectif'){ renderTags('objectif'); }
   if(sub==='lockmode'){ renderLockModePairingSelects(); renderLockModeGrid(); }
+  if(sub==='pontes'){ try{ renderClutchPairingSuggest(); }catch(e){} } // v4.95
 }
 
 /* ---- Racks & Terrariums ---- */
@@ -26670,6 +26681,30 @@ function renderClutchForm(){
   damSel.innerHTML = females.length ? females.map(s=>'<option value="'+s.id+'">'+escapeHtml(snakeName(s))+'</option>').join('') : '<option value="">'+(isEn?'No female registered':'Aucune femelle enregistrée')+'</option>';
   if(!document.getElementById('clutch-laydate').value) document.getElementById('clutch-laydate').valueAsDate = new Date();
   updateClutchReproductionFields();
+  try{ renderClutchPairingSuggest(); }catch(e){ console.warn('LOCUS: suggestions de portée', e); }
+}
+// v4.95 — demande d'Alex : les accouplements en cours (Mode Verrou / Calendrier) sont proposés dans Portées.
+// Toucher un couple pré-remplit le formulaire et relie la portée à cet accouplement (createClutchFromPairing).
+function renderClutchPairingSuggest(){
+  const isEn = currentLang==='en';
+  const box = document.getElementById('clutch-pairing-suggest'); if(!box) return;
+  const live = pairings.filter(p=>{
+    if(p.outcome==='notSelected') return false;
+    if(clutches.some(c=>c.pairingId===p.id)) return false;
+    const m = savedSnakes.find(x=>x.id===p.maleId), f = savedSnakes.find(x=>x.id===p.femaleId);
+    return m && f && isActiveSnake(f);
+  }).sort((a,b)=>String((b.lockDates||[]).slice(-1)[0]||b.pairedDate||'').localeCompare(String((a.lockDates||[]).slice(-1)[0]||a.pairedDate||'')));
+  if(!live.length){ box.innerHTML = ''; return; }
+  const nm = id=>{ const x = savedSnakes.find(y=>y.id===id); return x ? snakeName(x) : '?'; };
+  const days = d=>d ? Math.max(0, Math.floor((Date.now()-new Date(String(d).slice(0,10)+'T00:00:00').getTime())/86400000)) : null;
+  box.innerHTML = '<div style="border:1px solid var(--gold);border-radius:12px;padding:10px 12px;margin:0 0 12px;">'+
+    '<div style="font-size:15px;color:var(--ink);margin-bottom:6px;">💞 <b>'+(isEn?'Pairings in progress':'Accouplements en cours')+'</b> ('+live.length+') <small style="color:var(--ink-dim);">— '+(isEn?'tap one to log its clutch':'touche-en un pour noter sa portée')+'</small></div>'+
+    '<div style="max-height:38vh;overflow-y:auto;padding-right:4px;">'+
+    live.map(p=>{ const locks = (p.lockDates||[]).length, d = days(p.pairedDate);
+      return '<button type="button" onclick="createClutchFromPairing(\''+p.id+'\')" style="display:block;width:100%;text-align:left;margin:0 0 5px;padding:8px 10px;border-radius:9px;border:1px solid var(--line);background:var(--bg-panel-2);color:var(--ink);cursor:pointer;line-height:1.35;'+(pendingPairingIdForClutch===p.id?'border:2px solid var(--gold);':'')+'">'+
+        '<span style="font-size:15px;">♂ <b>'+escapeHtml(nm(p.maleId))+'</b> × ♀ <b>'+escapeHtml(nm(p.femaleId))+'</b></span><br/>'+
+        '<small style="color:var(--ink-dim);font-size:12.5px;">'+(d!=null?(isEn?'since ':'depuis ')+d+(isEn?' d':' j'):'')+' · 🔒 '+locks+' lock'+(locks>1?'s':'')+(p.ovulationConfirmed?' · '+(isEn?'ovulation ✓':'ovulation ✓'):'')+'</small></button>'; }).join('')+
+    '</div></div>';
 }
 // Amorce le formulaire de ponte depuis une fiche d'accouplement (2 septembre) — pré-remplit
 // sire/dam et retient le lien pour que addClutch() sache relier la ponte créée à cet accouplement.
@@ -26683,6 +26718,7 @@ function createClutchFromPairing(pairingId){
   if(p.maleId) document.getElementById('clutch-sire').value = p.maleId;
   if(p.femaleId) document.getElementById('clutch-dam').value = p.femaleId;
   updateClutchIncubationDefault();
+  try{ renderClutchPairingSuggest(); }catch(e){}
   document.getElementById('clutch-eggcount').focus();
 }
 
@@ -26845,6 +26881,7 @@ function addClutch(){
   });
   pendingPairingIdForClutch = null; // consommé — repasse en création "libre" par défaut
   saveElevage();
+  try{ renderClutchPairingSuggest(); }catch(e){} // v4.95
   document.getElementById('clutch-eggcount').value = '';
   renderClutches();
   try{ renderLastYearReference(); }catch(e){}
@@ -31451,10 +31488,10 @@ function renderLockModePicker(){
   const col = (sex, title, crit)=>{
     const all = base.filter(s=>s.sex===sex).sort(sortFn);
     const list = lmPick.all ? all : all.filter(lmSuggested);
-    const lim = lmPick.more[sex] ? list.length : 15;
+    const lim = list.length; // v4.95 — barre de défilement au lieu d'une longue liste
     const chosenId = sex==='male' ? selM : selF;
     return '<div style="flex:1 1 280px;min-width:0;"><div style="font-size:15px;color:var(--gold);margin:4px 0 6px;">'+title+' ('+list.length+')<br/><small style="color:var(--ink-dim);font-size:12px;">'+crit+'</small></div>'+
-      (list.length ? list.slice(0,lim).map(s=>row(s, s.id===chosenId)).join('') : '<p style="font-size:13px;color:var(--ink-dim);">'+(lmPick.all?(isEn?'None.':'Aucun.'):(isEn?'None — try « All ».':'Aucun — essaie « Tous ».'))+'</p>')+
+      (list.length ? '<div style="max-height:46vh;overflow-y:auto;padding-right:4px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding-top:6px;">'+list.slice(0,lim).map(s=>row(s, s.id===chosenId)).join('')+'</div>' : '<p style="font-size:13px;color:var(--ink-dim);">'+(lmPick.all?(isEn?'None.':'Aucun.'):(isEn?'None — try « All ».':'Aucun — essaie « Tous ».'))+'</p>')+
       (list.length>lim ? '<button type="button" class="sc-btn" onclick="lmPick.more.'+sex+'=true;renderLockModePicker()">▼ +'+(list.length-lim)+(isEn?' more':' de plus')+'</button>' : '')+'</div>';
   };
   const sortOpts = [['weight',isEn?'Weight (heaviest)':'Poids (plus lourd)'],['proven',isEn?'Proven first':'Proven d\'abord'],['genes',isEn?'Number of genes':'Nombre de gènes'],['age',isEn?'Age (oldest)':'Âge (plus vieux)'],['id','ID'],['name',isEn?'Name':'Nom'],['parent',isEn?'Parents':'Parents']];
