@@ -2238,7 +2238,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.84';
+const APP_VERSION = '2026.09.01.4.85';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5268,6 +5268,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.85', date:'2026-10-23',
+    title:{ fr:'Placer : voir les places vides et échanger', en:'Place: see empty spots and swap' },
+    changes:{
+      fr:[ '📍 « Placer » sur un animal non assigné montre maintenant tes racks en petits plans : les bacs vides en vert, les bacs occupés avec le nom de l\'animal. Touche un bac vide pour placer, ou un bac occupé pour échanger (l\'autre animal passe dans « Non assignés », après confirmation). Les terrariums sont en dessous, avec leurs occupants.' ],
+      en:[ '📍 « Place » on an unassigned animal now shows your racks as small maps: empty tubs in green, occupied tubs with the animal\'s name. Tap an empty tub to place, or an occupied one to swap (the other animal goes to « Not assigned », after confirmation). Terrariums are below, with their occupants.' ]
+    }
+  },
   { version:'4.84', date:'2026-10-23',
     title:{ fr:'Desert : avertissement de fertilité renforcé', en:'Desert: stronger fertility warning' },
     changes:{
@@ -23914,37 +23921,87 @@ function startTubChain(){
   if(!f){ showToast(isEn?'No empty tub in your racks — add a rack or a terrarium.':'Aucun bac vide dans tes racks — ajoute un rack ou un terrarium.', 'info'); return; }
   assignToTub(f.rackId, f.row, f.tub);
 }
-// v4.79 — « Placer » un animal non assigné : choisir un bac vide (n'importe quel rack) ou un terrarium
+// v4.85 — demande d'Alex : voir les places VIDES et pouvoir ÉCHANGER avec une place occupée, au lieu d'une liste
+// de bacs à deviner. Mini-racks à toucher : bac vide = placer ; bac occupé = échanger (l'occupant passe dans
+// « Non assignés »). Terrariums en dessous, avec leurs occupants.
+var placeChoiceSnakeId = null;
+function tubOccupant(rackId, row, tub){
+  return savedSnakes.find(x=>{ ensureSnakeMeta(x); return x.placement.mode==='rack' && x.placement.rackId===rackId && +x.placement.row===+row && +x.placement.tub===+tub && snakeIsActiveForPlacement(x); }) || null;
+}
 function openPlaceChoice(snakeId){
   const isEn = currentLang==='en';
   const s = savedSnakes.find(x=>x.id===snakeId); if(!s) return;
-  let opts = '';
-  racksOrdered().filter(r=>!r.hidden).forEach(rk=>{ const rows = rk.rows||[]; for(let r=1;r<=rows.length;r++) for(let b=1;b<=(rows[r-1]||0);b++) if(!tubIsTaken(rk.id,r,b)) opts += '<option value="tub|'+rk.id+'|'+r+'|'+b+'">🗄️ '+escapeHtml(rk.name)+' — '+(isEn?'Row ':'Rangée ')+r+(isEn?' / Tub ':' / Bac ')+b+'</option>'; });
-  terrariums.forEach(te=>{ const occ = terrariumOccupants(te.id); if(occ.length < terrariumCapacity(te)) opts += '<option value="te|'+te.id+'">🏠 '+escapeHtml(te.name)+(occ.length?' — '+escapeHtml(occ.map(x=>snakeName(x)).join(', ')):(isEn?' — empty':' — vide'))+'</option>'; });
-  if(!opts){ alert(isEn?'No free tub or terrarium — add a rack or a terrarium first.':'Aucun bac ni terrarium libre — ajoute d\'abord un rack ou un terrarium.'); return; }
-  const body = '<select id="place-choice-select" style="width:100%;font-size:16px;padding:9px 10px;margin-bottom:12px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+opts+'</select>'+
-    '<button class="sc-btn accent" style="width:100%;font-size:15px;" onclick="confirmPlaceChoice(\''+snakeId+'\')">📍 '+(isEn?'Place here':'Placer ici')+'</button>';
-  showQuickModal((isEn?'Place ':'Placer ')+snakeName(s), body);
-}
-function confirmPlaceChoice(snakeId){
-  const isEn = currentLang==='en';
-  const s = savedSnakes.find(x=>x.id===snakeId); const v = (document.getElementById('place-choice-select')||{}).value || '';
-  if(!s || !v) return;
-  ensureSnakeMeta(s);
-  const p = v.split('|');
-  if(p[0]==='tub'){
-    if(tubIsTaken(p[1], +p[2], +p[3])){ alert(isEn?'This tub is already taken.':'Ce bac est déjà occupé.'); return; }
-    s.placement = { mode:'rack', rackId:p[1], row:+p[2], tub:+p[3] };
-  } else {
-    const te = getTerrarium(p[1]); if(!te || terrariumOccupants(te.id).length >= terrariumCapacity(te)){ alert(isEn?'That terrarium is full.':'Ce terrarium est plein.'); return; }
-    s.placement = { mode:'terrarium', terrariumId:te.id };
-    try{ refreshTerrariumStatus(te); }catch(e){}
+  placeChoiceSnakeId = snakeId;
+  const cell = (label, sub, onclick, empty) => '<button type="button" onclick="'+onclick+'" style="flex:1 1 0;min-width:0;min-height:52px;padding:4px 3px;border-radius:8px;font-size:12px;line-height:1.25;cursor:pointer;overflow:hidden;'+
+    (empty ? 'border:2px solid var(--sage);background:rgba(124,131,99,.18);color:var(--ink);' : 'border:1px solid var(--line);background:var(--bg-panel-2);color:var(--ink-dim);')+'">'+
+    '<b style="display:block;font-size:12.5px;color:'+(empty?'var(--sage)':'var(--ink)')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+label+'</b>'+(sub?'<span style="display:block;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+sub+'</span>':'')+'</button>';
+  let h = '<p style="font-size:13.5px;color:var(--ink-dim);line-height:1.45;margin:0 0 10px;">'+(isEn
+    ? '<b style="color:var(--sage);">Green = empty</b>: tap to place. An occupied tub: tap to <b>swap</b> (the animal in it goes to « Not assigned »).'
+    : '<b style="color:var(--sage);">Vert = vide</b> : touche pour placer. Un bac occupé : touche pour <b>échanger</b> (l\'animal qui y est passe dans « Non assignés »).')+'</p>';
+  const rks = racksOrdered().filter(r=>!r.hidden);
+  rks.forEach(rk=>{
+    const rows = rk.rows||[]; let free = 0;
+    let g = '';
+    for(let r=1;r<=rows.length;r++){
+      g += '<div style="display:flex;gap:4px;margin-bottom:4px;align-items:stretch;"><span style="flex:0 0 22px;font-size:11px;color:var(--ink-dim);align-self:center;">R'+r+'</span>';
+      for(let b=1;b<=(rows[r-1]||0);b++){
+        const occ = tubOccupant(rk.id, r, b);
+        if(!occ) free++;
+        g += occ ? cell(escapeHtml(snakeName(occ)), (isEn?'Tub ':'Bac ')+b+' · ↔', "pickPlaceTub('"+rk.id+"',"+r+","+b+")", false)
+                 : cell((isEn?'Empty':'Vide'), (isEn?'Tub ':'Bac ')+b, "pickPlaceTub('"+rk.id+"',"+r+","+b+")", true);
+      }
+      g += '</div>';
+    }
+    h += '<div style="border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:10px;"><div style="font-size:14px;color:var(--gold);margin-bottom:6px;">🗄️ '+escapeHtml(rk.name)+' <small style="color:var(--ink-dim);">— '+free+' '+(isEn?'empty':'vide(s)')+'</small></div>'+g+'</div>';
+  });
+  if((terrariums||[]).length){
+    h += '<div style="border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:10px;"><div style="font-size:14px;color:var(--gold);margin-bottom:6px;">🏠 '+(isEn?'Terrariums':'Terrariums')+'</div><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;">';
+    terrariums.forEach(te=>{
+      const occ = terrariumOccupants(te.id);
+      const full = occ.length >= terrariumCapacity(te);
+      h += full ? cell(escapeHtml(te.name), escapeHtml(occ.map(x=>snakeName(x)).join(', '))+' · ↔', "pickPlaceTerrarium('"+te.id+"')", false)
+                : cell(escapeHtml(te.name), occ.length ? '+ '+escapeHtml(occ.map(x=>snakeName(x)).join(', ')) : (isEn?'Empty':'Vide'), "pickPlaceTerrarium('"+te.id+"')", true);
+    });
+    h += '</div></div>';
   }
+  if(!rks.length && !(terrariums||[]).length) h += '<p>'+(isEn?'No rack or terrarium yet — add one first.':'Aucun rack ni terrarium — ajoutes-en un d\'abord.')+'</p>';
+  showQuickModal((isEn?'Place ':'Placer ')+snakeName(s), h);
+}
+function finishPlaceChoice(s, msg){
   s.updatedAt = Date.now();
   storage.save(savedSnakes); try{ saveElevage(); }catch(e){}
-  closeQuickModal();
+  closeQuickModal(); placeChoiceSnakeId = null;
   renderRackGrid(); renderTerrariumList(); try{ renderTourGrid(); }catch(e){}
-  showToast('📍 '+snakeName(s)+(isEn?' placed.':' placé(e).'), 'success');
+  showToast(msg, 'success');
+}
+function pickPlaceTub(rackId, row, tub){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===placeChoiceSnakeId); if(!s) return;
+  ensureSnakeMeta(s);
+  const occ = tubOccupant(rackId, row, tub);
+  const oldTe = s.placement.mode==='terrarium' ? getTerrarium(s.placement.terrariumId) : null;
+  if(occ){
+    if(!confirm(isEn ? 'Swap: '+snakeName(s)+' goes into this tub and '+snakeName(occ)+' goes to « Not assigned ». OK?' : 'Échange : '+snakeName(s)+' prend ce bac et '+snakeName(occ)+' passe dans « Non assignés ». OK ?')) return;
+    occ.placement = { mode:'terrarium', terrariumId:null }; occ.updatedAt = Date.now();
+  }
+  s.placement = { mode:'rack', rackId, row, tub };
+  try{ if(oldTe) refreshTerrariumStatus(oldTe); }catch(e){}
+  finishPlaceChoice(s, (occ?'↔ ':'📍 ')+snakeName(s)+(isEn?' placed.':' placé(e).')+(occ?' '+snakeName(occ)+(isEn?' → Not assigned.':' → Non assignés.'):''));
+}
+function pickPlaceTerrarium(teId){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===placeChoiceSnakeId); if(!s) return;
+  const te = getTerrarium(teId); if(!te) return;
+  ensureSnakeMeta(s);
+  const occ = terrariumOccupants(te.id).filter(x=>x.id!==s.id);
+  let moved = [];
+  if(occ.length >= terrariumCapacity(te)){
+    if(!confirm(isEn ? 'Swap: '+snakeName(s)+' goes into « '+te.name+' » and '+occ.map(x=>snakeName(x)).join(', ')+' go(es) to « Not assigned ». OK?' : 'Échange : '+snakeName(s)+' va dans « '+te.name+' » et '+occ.map(x=>snakeName(x)).join(', ')+' passe(nt) dans « Non assignés ». OK ?')) return;
+    occ.forEach(x=>{ x.placement = { mode:'terrarium', terrariumId:null }; x.updatedAt = Date.now(); }); moved = occ;
+  }
+  s.placement = { mode:'terrarium', terrariumId:te.id };
+  try{ refreshTerrariumStatus(te); }catch(e){}
+  finishPlaceChoice(s, (moved.length?'↔ ':'📍 ')+snakeName(s)+(isEn?' placed.':' placé(e).'));
 }
 function skipTubPick(){ const tg = tubPickTarget; if(!tg) return; closeQuickModal(); openNextTubPick(tg); }
 function openNextTubPick(tg){
