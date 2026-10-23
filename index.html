@@ -2241,7 +2241,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.97';
+const APP_VERSION = '2026.09.01.4.98';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5284,6 +5284,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.98', date:'2026-10-23',
+    title:{ fr:'Portée : vérification du couple', en:'Clutch: pair check' },
+    changes:{
+      fr:[ '🐣 En notant une portée à la main, si ce couple a un accouplement en cours, la portée y est reliée toute seule. Si le mâle ou la femelle est en accouplement avec un autre animal, LOCUS demande de confirmer avant d\'enregistrer (ex. accouplement PR-005 × PR-076 mais portée notée PR-005 × PR-010).' ],
+      en:[ '🐣 When logging a clutch by hand, if that pair has a pairing in progress, the clutch is linked to it automatically. If the male or female is paired with another animal, LOCUS asks to confirm before saving (e.g. pairing PR-005 × PR-076 but clutch logged PR-005 × PR-010).' ]
+    }
+  },
   { version:'4.97', date:'2026-10-23',
     title:{ fr:'Accouplement terminé quand la portée est notée', en:'Pairing ends when the clutch is logged' },
     changes:{
@@ -26905,6 +26912,17 @@ function addClutch(){
   if(!sireId || !damId || !layDate || (!isOvo && (isNaN(eggCount) || eggCount<1))){
     alert(isEn?'Select a sire, a dam, and a date (plus a valid egg count for oviparous species).':'Sélectionne un père, une mère et une date (plus un nombre d\'œufs valide pour une espèce ovipare).');
     return;
+  }
+  // v4.98 — filet : portée notée sans passer par la suggestion alors qu'un accouplement en cours existe
+  if(!pendingPairingIdForClutch){
+    const nmC = id=>{ const x = savedSnakes.find(y=>y.id===id); return x ? snakeName(x) : '?'; };
+    const exact = pairings.find(p=>!pairingIsDone(p) && p.maleId===sireId && p.femaleId===damId);
+    if(exact) pendingPairingIdForClutch = exact.id; // même couple : on relie tout seul
+    else {
+      const other = pairings.filter(p=>!pairingIsDone(p) && (p.maleId===sireId || p.femaleId===damId));
+      if(other.length && !confirm((isEn?'⚠️ In progress: ':'⚠️ En cours : ')+other.map(p=>nmC(p.maleId)+' × '+nmC(p.femaleId)).join(', ')+'.\n\n'+
+          (isEn?'You are logging a clutch for ':'Tu notes une portée pour ')+nmC(sireId)+' × '+nmC(damId)+(isEn?', which is not that pairing. Is the female (or male) right?\n\nOK = log it anyway · Cancel = fix the selection':', qui n\'est pas cet accouplement. La femelle (ou le mâle) est-elle la bonne ?\n\nOK = noter quand même · Annuler = corriger la sélection'))) return;
+    }
   }
   const ref = generateClutchRef(layDate);
   const hatchDate = addDays(layDate, incubationDays);
