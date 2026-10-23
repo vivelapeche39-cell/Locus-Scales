@@ -2241,7 +2241,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.96';
+const APP_VERSION = '2026.09.01.4.97';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5284,6 +5284,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.97', date:'2026-10-23',
+    title:{ fr:'Accouplement terminé quand la portée est notée', en:'Pairing ends when the clutch is logged' },
+    changes:{
+      fr:[ '🔒 Un accouplement sort maintenant du Mode Verrou (et des « Mâles en reproduction » de l\'Agenda) dès qu\'une portée y est reliée, ou qu\'une portée de ce couple est notée après la date d\'accouplement. Avant, seule l\'ovulation confirmée le sortait : le couple restait affiché même après la ponte et l\'éclosion. L\'historique des locks reste dans les fiches et le Calendrier.' ],
+      en:[ '🔒 A pairing now leaves Lock mode (and the Agenda\'s « Males in breeding ») as soon as a clutch is linked to it, or a clutch from that pair is logged after the pairing date. Before, only a confirmed ovulation removed it: the pair stayed shown even after laying and hatching. The lock history stays in the records and the Calendar.' ]
+    }
+  },
   { version:'4.96', date:'2026-10-23',
     title:{ fr:'Portées : gènes et sexes au même endroit', en:'Clutches: genetics and sex in one place' },
     changes:{
@@ -10060,6 +10067,13 @@ function snakeLastWeight(s){
   if(!w || !w.length) return null;
   const v = Number(w[w.length-1].value);
   return isNaN(v) ? null : v;
+}
+// v4.97 — un accouplement est terminé dès qu'une portée y est reliée (ou qu'une portée de cette femelle a été notée
+// après la date d'accouplement), ou s'il est « non retenu ». Avant, seule l'ovulation confirmée le sortait du Mode Verrou.
+function pairingIsDone(p){
+  if(!p) return true;
+  if(p.ovulationConfirmed || p.outcome==='notSelected') return true;
+  try{ return (clutches||[]).some(c=>c.pairingId===p.id || (c.damId===p.femaleId && c.sireId===p.maleId && p.pairedDate && c.layDate && String(c.layDate)>=String(p.pairedDate))); }catch(e){ return false; }
 }
 function activePairingsList(){ try{ return Array.isArray(pairings) ? pairings : []; }catch(e){ return []; } }
 // « Breeder actuel » = dans un pairing noté depuis moins de 12 mois (sauf « non retenu »)
@@ -15064,7 +15078,7 @@ function breedingMaleStatus(){
   if(!hasAccess('lockMode') && !hasAccess('seasonPlan')) return [];
   const today = spToday();
   const maleIds = new Set();
-  pairings.filter(p=>!p.ovulationConfirmed).forEach(p=>maleIds.add(p.maleId));
+  pairings.filter(p=>!pairingIsDone(p)).forEach(p=>maleIds.add(p.maleId)); // v4.97
   activeSeasonPlans().forEach(plan=>maleIds.add(plan.maleId));
   const out = [];
   maleIds.forEach(mid=>{
@@ -31577,7 +31591,7 @@ function renderLockModeGrid(){
   const wrap = document.getElementById('lockmode-grid');
   if(!wrap) return;
   if(!hasAccess('lockMode')){ wrap.innerHTML = lockedFeatureHtml(); return; }
-  const active = pairings.filter(p=>!p.ovulationConfirmed);
+  const active = pairings.filter(p=>!pairingIsDone(p)); // v4.97 — une portée notée termine l'accouplement
   if(!active.length){
     wrap.innerHTML = '<div class="empty">'+(isEn?'No active pairing right now — add one above or start one from the Season plan.':'Aucun accouplement actif pour l\'instant — ajoutes-en un ci-dessus ou démarre-le depuis le Plan de saison.')+'</div>';
     return;
