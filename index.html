@@ -2238,7 +2238,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.87';
+const APP_VERSION = '2026.09.01.4.90';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5268,6 +5268,27 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.90', date:'2026-10-23',
+    title:{ fr:'Lignées : onglet Couples', en:'Lineages: Pairs tab' },
+    changes:{
+      fr:[ '⚭ Nouvel onglet « Couples » dans « Santé des lignées » : chaque couple qui a eu des petits, avec le nombre de petits, de descendants en tout et de générations. Son arbre part du couple et montre tous les descendants de leurs petits.' ],
+      en:[ '⚭ New « Pairs » tab in « Lineage health »: each pair that had babies, with the number of babies, descendants in all and generations. Its tree starts from the pair and shows every descendant of their babies.' ]
+    }
+  },
+  { version:'4.89', date:'2026-10-23',
+    title:{ fr:'Lignées : onglets Mâles / Femelles / Autres', en:'Lineages: Males / Females / Others tabs' },
+    changes:{
+      fr:[ '🗂 Dans « Santé des lignées », les lignées sont classées en onglets : ♂ Mâles, ♀ Femelles (selon le fondateur) et Autres (fondateurs au sexe inconnu + animaux sans parent ni petit connu, touchables pour ouvrir leur fiche).' ],
+      en:[ '🗂 In « Lineage health », lineages are sorted into tabs: ♂ Males, ♀ Females (by founder) and Others (founders of unknown sex + animals with no known parent or baby, tappable to open their record).' ]
+    }
+  },
+  { version:'4.88', date:'2026-10-23',
+    title:{ fr:'Lignées par fondateur', en:'Lineages by founder' },
+    changes:{
+      fr:[ '🌳 Une lignée est maintenant un reproducteur sans parents connus et tous ses descendants (avant, tous les animaux reliés par un partenaire commun formaient une seule grosse famille). L\'arbre part de ce fondateur ; ses partenaires sont nommés à chaque génération. Un petit fait partie de la lignée de son père et de celle de sa mère.' ],
+      en:[ '🌳 A lineage is now a breeder with no known parents and all its descendants (before, every animal linked through a shared partner formed one big family). The tree starts from that founder; partners are named at each generation. A baby belongs to its sire\'s and its dam\'s lineage.' ]
+    }
+  },
   { version:'4.87', date:'2026-10-23',
     title:{ fr:'Santé des lignées : familles et arbre descendant', en:'Lineage health: families and descendant tree' },
     changes:{
@@ -10203,13 +10224,29 @@ function renderGeneticHealthReport(){
   const existing = document.getElementById(folderId);
   const isOpen = existing ? !existing.classList.contains('collapsed') : false;
   const nm = id=>{ const x = savedSnakes.find(s=>s.id===id); return x ? snakeName(x) : (isEn?'(deleted)':'(supprimé)'); };
-  let rows = '<div style="font-size:14.5px;color:var(--ink);margin:0 0 8px;"><b>'+FM.fams.length+'</b> '+(isEn?'family(ies)':'famille(s)')+' · <b>'+FM.fams.reduce((n,f)=>n+f.founders.length,0)+'</b> '+(isEn?'founder(s)':'fondateur(s)')+' · <b>'+FM.unlinked.length+'</b> '+(isEn?'animal(s) with no known link':'animal(aux) sans lien connu')+'</div>';
-  if(FM.fams.length){
-    rows += FM.fams.slice(0,30).map((f,i)=>{ const aff = f.members.filter(s=>Object.values(traitLatestLevels(s)).some(v=>v>=1)).length;
-      return '<div class="modal-row" style="align-items:center;"><span style="font-size:14px;line-height:1.35;"><b>'+escapeHtml(familyLabel(f))+'</b><br/><small style="color:var(--ink-dim);">'+f.members.length+' '+(isEn?'animals':'animaux')+' · '+f.depth+' '+(isEn?'gen.':'gén.')+(aff?' · <span style="color:var(--rust);">'+aff+' '+(isEn?'with a trait noted':'avec un trait noté')+'</span>':'')+'</small></span>'+
+  let rows = '<div style="font-size:14.5px;color:var(--ink);margin:0 0 4px;"><b>'+FM.fams.length+'</b> '+(isEn?'lineage(s)':'lignée(s)')+' · <b>'+FM.unlinked.length+'</b> '+(isEn?'animal(s) with no known parent or baby':'animal(aux) sans parent ni petit connu')+'</div>'+
+    '<p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 8px;">'+(isEn?'A lineage = a breeder with no known parents and all its descendants. A baby belongs to its sire\'s and its dam\'s lineage.':'Une lignée = un reproducteur sans parents connus et tous ses descendants. Un petit fait partie de la lignée de son père et de celle de sa mère.')+'</p>';
+  // v4.89 — onglets demandés par Alex : ♂ Mâles · ♀ Femelles · Autres (sans progéniture, sexe inconnu)
+  const linTab = window.__linTab || 'male';
+  const famIdx = FM.fams.map((f,i)=>({ f, i }));
+  const CP = coupleFamilies();
+  const tabList = { couple: CP.map((f,i)=>({ f, i, couple:true })), male: famIdx.filter(x=>x.f.founder.sex==='male'), female: famIdx.filter(x=>x.f.founder.sex==='female'), other: famIdx.filter(x=>x.f.founder.sex!=='male' && x.f.founder.sex!=='female') };
+  const tabBtn = (k, label, n)=>'<button type="button" class="filter-chip'+(linTab===k?' active':'')+'" style="font-size:14px;padding:7px 12px;" onclick="window.__linTab=\''+k+'\';renderGeneticHealthReport();">'+label+' ('+n+')</button>';
+  rows += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px;">'+tabBtn('male', isEn?'♂ Males':'♂ Mâles', tabList.male.length)+tabBtn('female', isEn?'♀ Females':'♀ Femelles', tabList.female.length)+tabBtn('other', isEn?'Others':'Autres', tabList.other.length+FM.unlinked.length)+tabBtn('couple', isEn?'⚭ Pairs':'⚭ Couples', CP.length)+'</div>';
+  const shownFams = tabList[linTab] || [];
+  if(linTab==='other' && FM.unlinked.length){
+    rows += '<div style="font-size:12.5px;color:var(--gold);margin:4px 0;">'+(isEn?'No known parent or baby':'Sans parent ni petit connu')+' ('+FM.unlinked.length+')</div><div style="margin-bottom:8px;">'+FM.unlinked.map(x=>snakeTreeChip(x,isEn).replace('closeQuickModal();','')).join('')+'</div>';
+  }
+  if(shownFams.length){
+    rows += shownFams.slice(0,60).map(({f,i,couple})=>{ const aff = f.members.filter(s=>Object.values(traitLatestLevels(s)).some(v=>v>=1)).length;
+      if(couple) return '<div class="modal-row" style="align-items:center;"><span style="font-size:14px;line-height:1.35;"><b>⚭ '+escapeHtml(f.label)+'</b><br/><small style="color:var(--ink-dim);">'+f.direct+' '+(isEn?'baby(ies)':'petit(s)')+' · '+(f.members.length-2)+' '+(isEn?'descendant(s) in all':'descendant(s) en tout')+' · '+f.depth+' '+(isEn?'gen.':'gén.')+(aff?' · <span style="color:var(--rust);">'+aff+' '+(isEn?'with a trait noted':'avec un trait noté')+'</span>':'')+'</small></span>'+
+        '<button class="sc-btn accent" style="padding:4px 10px;" onclick="openCoupleTree('+i+')">🌳 '+(isEn?'Tree':'Arbre')+'</button></div>';
+      return '<div class="modal-row" style="align-items:center;"><span style="font-size:14px;line-height:1.35;"><b>'+(f.founder.sex==='male'?'♂':f.founder.sex==='female'?'♀':'?')+' '+escapeHtml(familyLabel(f))+'</b><br/><small style="color:var(--ink-dim);">'+(f.members.length-1)+' '+(isEn?'descendant(s)':'descendant(s)')+' · '+f.depth+' '+(isEn?'gen.':'gén.')+(aff?' · <span style="color:var(--rust);">'+aff+' '+(isEn?'with a trait noted':'avec un trait noté')+'</span>':'')+'</small></span>'+
         '<button class="sc-btn accent" style="padding:4px 10px;" onclick="openFamilyTree('+i+')">🌳 '+(isEn?'Tree':'Arbre')+'</button></div>'; }).join('');
+  } else if(FM.fams.length){
+    if(!(linTab==='other' && FM.unlinked.length)) rows += '<p style="font-size:13px;color:var(--ink-dim);margin:0 0 8px;">'+(isEn?'Nothing in this tab.':'Rien dans cet onglet.')+'</p>';
   } else {
-    rows += '<p style="font-size:13px;color:var(--ink-dim);margin:0 0 8px;">'+(isEn?'No family yet — add the sire and dam on your records to link them.':'Aucune famille encore — indique le père et la mère sur les fiches pour les relier.')+'</p>';
+    rows += '<p style="font-size:13px;color:var(--ink-dim);margin:0 0 8px;">'+(isEn?'No lineage yet — add the sire and dam on your records to link them.':'Aucune lignée encore — indique le père et la mère sur les fiches pour les relier.')+'</p>';
   }
   if(!G.pairOut.length && !G.orphans.length) rows += '<p style="font-size:13px;color:var(--ink-dim);margin:10px 0 0;">'+(isEn?'No health observation yet — log wobble or another trait from a carrier\'s record (🧬 Tracked traits).':'Aucune observation santé encore — note le wobble ou un autre trait depuis la fiche d\'un porteur (🧬 Traits suivis).')+'</p>';
   if(G.pairOut.length){
@@ -12350,29 +12387,26 @@ function lineageHealthGroups(){
   const parOut = Object.keys(parents).map(pid=>{ const kids = savedSnakes.filter(s=>s.sireId===pid || s.damId===pid); const partners = new Set(kids.map(s=>s.sireId===pid ? s.damId : s.sireId).filter(Boolean)); return { pid, total:kids.length, partners:partners.size, kinds:summarize(kids) }; }).filter(x=>x.partners>1);
   return { pairOut, parOut, orphans };
 }
-// v4.87 — familles (choix d'Alex : « famille reliée » = animaux reliés par des parents connus) + arbre descendant
+// v4.88 — lignées PAR FONDATEUR (choix d'Alex après test : la « famille reliée » de 4.87 collait 61 animaux ensemble dès
+// qu'un mâle servait plusieurs femelles). Lignée = un reproducteur sans parents connus + tous ses descendants. Un petit
+// apparaît dans la lignée de son père ET de sa mère.
 function snakeFamilies(){
   const byId = {}; savedSnakes.forEach(s=>{ byId[s.id] = s; });
-  const adj = {}; const link = (a,b)=>{ (adj[a]=adj[a]||new Set()).add(b); (adj[b]=adj[b]||new Set()).add(a); };
-  savedSnakes.forEach(s=>{ [s.sireId, s.damId].forEach(p=>{ if(p && byId[p]) link(s.id, p); }); });
-  const seen = new Set(), fams = [];
-  Object.keys(adj).forEach(start=>{
-    if(seen.has(start)) return;
-    const comp = []; const stack = [start]; seen.add(start);
-    while(stack.length){ const x = stack.pop(); comp.push(x); (adj[x]||[]).forEach(y=>{ if(!seen.has(y)){ seen.add(y); stack.push(y); } }); }
-    if(comp.length<2) return;
-    const members = comp.map(id=>byId[id]);
-    const inFam = new Set(comp);
-    const founders = members.filter(s=>!(s.sireId && inFam.has(s.sireId)) && !(s.damId && inFam.has(s.damId)));
-    const gen = {}; const genOf = (s, depth)=>{ if(gen[s.id]!=null) return gen[s.id]; if(depth>30) return 0; const ps = [s.sireId, s.damId].filter(p=>p && inFam.has(p)).map(p=>byId[p]); const g = ps.length ? Math.max(...ps.map(p=>genOf(p, depth+1)))+1 : 0; gen[s.id] = g; return g; };
+  const kids = {}; savedSnakes.forEach(s=>{ [s.sireId, s.damId].forEach(p=>{ if(p && byId[p]) (kids[p]=kids[p]||[]).push(s); }); });
+  const hasParent = s=>(s.sireId && byId[s.sireId]) || (s.damId && byId[s.damId]);
+  const fams = [];
+  savedSnakes.filter(s=>!hasParent(s) && kids[s.id] && kids[s.id].length).forEach(f=>{
+    const inL = new Set([f.id]); const queue = [f]; const members = [f];
+    while(queue.length){ const x = queue.shift(); (kids[x.id]||[]).forEach(c=>{ if(!inL.has(c.id)){ inL.add(c.id); members.push(c); queue.push(c); } }); }
+    const gen = {}; const genOf = (s, d)=>{ if(gen[s.id]!=null) return gen[s.id]; if(s.id===f.id || d>30) return (gen[s.id] = 0); const ps = [s.sireId, s.damId].filter(p=>p && inL.has(p)).map(p=>byId[p]); const g = ps.length ? Math.max(...ps.map(p=>genOf(p, d+1)))+1 : 0; return (gen[s.id] = g); };
     members.forEach(s=>genOf(s,0));
-    fams.push({ members, founders, gen, depth: Math.max(...members.map(s=>gen[s.id]))+1 });
+    fams.push({ founder:f, founders:[f], members, gen, depth: Math.max(...members.map(s=>gen[s.id]))+1 });
   });
   fams.sort((a,b)=>b.members.length-a.members.length);
-  const linked = new Set(); fams.forEach(f=>f.members.forEach(s=>linked.add(s.id)));
-  return { fams, unlinked: savedSnakes.filter(s=>!linked.has(s.id)) };
+  const unlinked = savedSnakes.filter(s=>!hasParent(s) && !(kids[s.id] && kids[s.id].length));
+  return { fams, unlinked };
 }
-function familyLabel(f){ return f.founders.slice(0,3).map(s=>snakeName(s)).join(' · ') + (f.founders.length>3 ? ' +'+(f.founders.length-3) : ''); }
+function familyLabel(f){ return snakeName(f.founder); }
 function snakeTreeChip(s, isEn){
   const lv = traitLatestLevels(s);
   const tr = Object.keys(lv).filter(k=>lv[k]>=1).map(k=>(TRAIT_KINDS[k]||TRAIT_KINDS.other).icon+lv[k]).join(' ');
@@ -12380,27 +12414,46 @@ function snakeTreeChip(s, isEn){
   return '<button type="button" onclick="closeQuickModal();openLogbook(\''+s.id+'\')" style="display:inline-block;margin:3px;padding:6px 9px;border-radius:8px;border:1px solid var(--line);background:var(--bg-panel-2);color:var(--ink);font-size:13.5px;line-height:1.3;cursor:pointer;text-align:left;">'+
     (s.sex==='male'?'♂':s.sex==='female'?'♀':'?')+' '+escapeHtml(snakeName(s))+st+(tr?' <b style="color:var(--rust);">'+tr+'</b>':'')+'</button>';
 }
-function openFamilyTree(index){
+// v4.90 — descendants d'un COUPLE (demande d'Alex) : le couple en haut, puis tous les descendants de leurs petits
+function coupleFamilies(){
+  const byId = {}; savedSnakes.forEach(s=>{ byId[s.id] = s; });
+  const kids = {}; savedSnakes.forEach(s=>{ [s.sireId, s.damId].forEach(p=>{ if(p && byId[p]) (kids[p]=kids[p]||[]).push(s); }); });
+  const pairs = {};
+  savedSnakes.forEach(s=>{ if(s.sireId && s.damId && byId[s.sireId] && byId[s.damId]) (pairs[s.sireId+'|'+s.damId] = pairs[s.sireId+'|'+s.damId] || []).push(s); });
+  const out = Object.keys(pairs).map(k=>{
+    const [sid,did] = k.split('|'); const sire = byId[sid], dam = byId[did];
+    const roots = [sire, dam]; const inL = new Set([sid,did]); const members = [sire, dam]; const queue = pairs[k].slice();
+    pairs[k].forEach(c=>{ if(!inL.has(c.id)){ inL.add(c.id); members.push(c); } });
+    while(queue.length){ const x = queue.shift(); (kids[x.id]||[]).forEach(c=>{ if(!inL.has(c.id)){ inL.add(c.id); members.push(c); queue.push(c); } }); }
+    const gen = { [sid]:0, [did]:0 };
+    const genOf = (s, d)=>{ if(gen[s.id]!=null) return gen[s.id]; if(d>30) return (gen[s.id]=0); const ps = [s.sireId, s.damId].filter(p=>p && inL.has(p)).map(p=>byId[p]); const g = ps.length ? Math.max(...ps.map(p=>genOf(p, d+1)))+1 : 0; return (gen[s.id] = g); };
+    members.forEach(s=>genOf(s,0));
+    return { couple:true, founder:sire, founders:roots, label: snakeName(sire)+' × '+snakeName(dam), members, direct: pairs[k].length, gen, depth: Math.max(...members.map(s=>gen[s.id]))+1 };
+  });
+  out.sort((a,b)=>b.members.length-a.members.length);
+  return out;
+}
+function openCoupleTree(index){ const F = coupleFamilies()[index]; if(F) openFamilyTree(-1, F); }
+function openFamilyTree(index, given){
   const isEn = currentLang==='en';
-  const F = snakeFamilies().fams[index]; if(!F) return;
-  const inFam = new Set(F.members.map(s=>s.id));
-  const nm = id=>{ const x = savedSnakes.find(s=>s.id===id); return x ? snakeName(x) : '?'; };
-  let h = '<p style="font-size:13px;color:var(--ink-dim);margin:0 0 10px;">'+F.members.length+' '+(isEn?'animals':'animaux')+' · '+F.depth+' '+(isEn?'generation(s)':'génération(s)')+'. '+(isEn?'Tap an animal to open its record. 🌀2 = last level noted.':'Touche un animal pour ouvrir sa fiche. 🌀2 = dernier niveau noté.')+'</p>';
+  const F = given || snakeFamilies().fams[index]; if(!F) return;
+  const nm = id=>{ const x = savedSnakes.find(s=>s.id===id); return x ? snakeName(x) : (isEn?'unknown':'inconnu'); };
+  let h = '<p style="font-size:13px;color:var(--ink-dim);margin:0 0 10px;">'+(F.members.length-F.founders.length)+' '+(isEn?'descendant(s)':'descendant(s)')+' · '+F.depth+' '+(isEn?'generation(s)':'génération(s)')+'. '+(isEn?'Partners from outside this lineage are named but not counted. Tap an animal to open its record.':'Les partenaires hors de cette lignée sont nommés mais pas comptés. Touche un animal pour ouvrir sa fiche.')+'</p>';
   for(let g=0; g<F.depth; g++){
     const inGen = F.members.filter(s=>F.gen[s.id]===g);
     if(!inGen.length) continue;
     h += '<div style="border-left:3px solid var(--gold);padding:4px 0 6px 10px;margin:0 0 10px '+(Math.min(g,4)*10)+'px;">'+
-      '<div style="font-size:13px;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">'+(g===0?(isEn?'Founders':'Fondateurs'):(isEn?'Generation ':'Génération ')+(g+1))+'</div>';
+      '<div style="font-size:13px;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">'+(g===0?(F.couple?(isEn?'Couple':'Couple'):(isEn?'Founder':'Fondateur')):(isEn?'Generation ':'Génération ')+(g+1))+'</div>';
     if(g===0){ h += inGen.map(s=>snakeTreeChip(s,isEn)).join(''); }
     else {
       const groups = {};
-      inGen.forEach(s=>{ const k = (s.sireId && inFam.has(s.sireId) ? s.sireId : '?')+'|'+(s.damId && inFam.has(s.damId) ? s.damId : '?'); (groups[k]=groups[k]||[]).push(s); });
+      inGen.forEach(s=>{ const k = (s.sireId||'?')+'|'+(s.damId||'?'); (groups[k]=groups[k]||[]).push(s); });
       Object.keys(groups).forEach(k=>{ const [a,b] = k.split('|');
         h += '<div style="font-size:13.5px;color:var(--ink);margin:4px 0 2px;">'+escapeHtml(a==='?'?(isEn?'unknown':'inconnu'):nm(a))+' × '+escapeHtml(b==='?'?(isEn?'unknown':'inconnue'):nm(b))+' →</div><div>'+groups[k].map(s=>snakeTreeChip(s,isEn)).join('')+'</div>'; });
     }
     h += '</div>';
   }
-  showQuickModal('🌳 '+(isEn?'Family of ':'Famille de ')+familyLabel(F), h);
+  showQuickModal('🌳 '+(F.couple ? (isEn?'Descendants of ':'Descendants de ')+F.label : (isEn?'Lineage of ':'Lignée de ')+familyLabel(F)), h);
 }
 function lineageKindsLine(kinds, total, isEn){
   return Object.keys(kinds).map(k=>{ const d = kinds[k]; const T = TRAIT_KINDS[k]||TRAIT_KINDS.other;
