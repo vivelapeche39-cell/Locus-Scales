@@ -2241,7 +2241,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.95';
+const APP_VERSION = '2026.09.01.4.96';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5284,6 +5284,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.96', date:'2026-10-23',
+    title:{ fr:'Portées : gènes et sexes au même endroit', en:'Clutches: genetics and sex in one place' },
+    changes:{
+      fr:[ '🧬 Une portée éclose a un bouton « Gènes et sexes » (avec le nombre de bébés à vérifier) : chaque bébé a ses boutons ♀ ♂ ? et ✓ pour confirmer sa génétique. « Plus tard » garde de côté ceux qu\'on ne peut pas encore déterminer. Proposé aussi juste après l\'éclosion. La liste « Génétique à vérifier » a maintenant les boutons de sexe elle aussi.' ],
+      en:[ '🧬 A hatched clutch has a « Genetics & sex » button (with the number of babies to check): each baby has ♀ ♂ ? buttons and ✓ to confirm its genetics. « Later » sets aside the ones you can\'t tell yet. Also offered right after hatching. The « Genetics to verify » list now has the sex buttons too.' ]
+    }
+  },
   { version:'4.95', date:'2026-10-23',
     title:{ fr:'Couples : listes défilantes et accouplements proposés dans Portées', en:'Pairs: scrolling lists and pairings suggested in Clutches' },
     changes:{
@@ -10441,9 +10448,30 @@ var SORT_CHOICES = [
   ['acq',['Acquisition : plus récente d\'abord','Acquisition: most recent first']], ['acq_old',['Acquisition : plus ancienne d\'abord','Acquisition: oldest first']],
   ['provenance',['Éleveur d\'origine','Original breeder']], ['kin',['Frères et sœurs ensemble','Siblings together']], ['breeder',['Reproducteurs d\'abord','Breeders first']]
 ];
+// v4.96 — vérification par portée (demande d'Alex) : gènes ET sexe des bébés d'une ponte, avec « plus tard »
+function geneReviewBase(){
+  const g = geneReview || {};
+  if(g.clutchId){
+    const c = (clutches||[]).find(x=>x.id===g.clutchId);
+    if(!c) return [];
+    return savedSnakes.filter(s=>{ ensureSnakeMeta(s); return s.clutchRef===c.ref && s.damId===c.damId && s.status!=='deceased' && (!s.genesVerified || !s.sex || s.sex==='unknown' || g.seen.has(s.id)); });
+  }
+  return savedSnakes.filter(s=>{ ensureSnakeMeta(s); return !s.genesVerified && s.status!=='deceased'; });
+}
+function clutchBabiesToCheck(c){ return savedSnakes.filter(s=>s.clutchRef===c.ref && s.damId===c.damId && s.status!=='deceased' && (!s.genesVerified || !s.sex || s.sex==='unknown')).length; }
+function openClutchReview(clutchId){
+  geneReview = { q:'', sex:'all', age:'all', species:'all', sort:'id', keep:new Set(), clutchId, seen:new Set() };
+  geneReviewBase().forEach(s=>geneReview.seen.add(s.id)); // garder à l'écran ceux qu'on vient de compléter
+  renderGeneReview();
+}
+function geneReviewSetSex(id, sex){
+  const s = savedSnakes.find(x=>x.id===id); if(!s) return;
+  s.sex = sex==='unknown' ? null : sex; s.updatedAt = Date.now();
+  storage.save(savedSnakes); renderSavedList(); renderGeneReview();
+}
 function geneReviewList(){
   const g = geneReview;
-  let list = savedSnakes.filter(s=>{ ensureSnakeMeta(s); return !s.genesVerified && s.status!=='deceased'; });
+  let list = geneReviewBase();
   if(g.q) list = list.filter(s=>matchesSearch(s, g.q) || normalizeHeaderKey(s.notes||'').includes(normalizeHeaderKey(g.q)));
   if(g.sex!=='all') list = list.filter(s=> g.sex==='unknown' ? !s.sex : s.sex===g.sex);
   if(g.age!=='all') list = list.filter(s=>placeAgeGroup(s)===g.age);
@@ -10468,8 +10496,9 @@ function renderGeneReviewButtons(){
 function renderGeneReview(){
   const isEn = currentLang==='en';
   const g = geneReview;
-  const all = savedSnakes.filter(s=>{ ensureSnakeMeta(s); return !s.genesVerified && s.status!=='deceased'; });
+  const all = geneReviewBase();
   const list = geneReviewList();
+  const clutchMode = !!g.clutchId;
   const sel = (k, opts)=>'<select onchange="geneReviewSet(\''+k+'\', this.value)" style="flex:1;min-width:120px;font-size:16px;padding:7px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+opts.map(o=>'<option value="'+o[0]+'"'+(g[k]===o[0]?' selected':'')+'>'+escapeHtml(o[1])+'</option>').join('')+'</select>';
   const speciesIn = [...new Set(all.map(s=>s.species||'ball_python'))];
   const fileGenes = s=>{ const m = String(s.notes||'').match(/(?:Génétique dans le fichier|Genetics in the file) : ([^\n]+)/); return m ? m[1] : ''; };
@@ -10484,19 +10513,24 @@ function renderGeneReview(){
       (speciesIn.length>1 ? sel('species', [['all',isEn?'All species':'Toutes les espèces']].concat(speciesIn.map(sp=>[sp, speciesDisplayLabel(sp, isEn)]))) : '')+
     '</div>'+
     '<div style="font-size:13px;color:var(--ink-dim);margin-bottom:4px;">'+list.length+(isEn?' shown':' affiché(s)')+(list.length!==all.length?(isEn?' of ':' sur ')+all.length:'')+'</div>'+
-    '<div style="max-height:52vh;overflow-y:auto;border:1px solid var(--line);border-radius:10px;padding:2px 8px;">'+
+    '<div id="gene-review-scroll" style="max-height:52vh;overflow-y:auto;border:1px solid var(--line);border-radius:10px;padding:2px 8px;">'+
     (list.length ? list.map(s=>{
       const fg = fileGenes(s);
       return '<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line);">'+
-        '<label style="display:flex;flex-direction:column;align-items:center;font-size:10.5px;color:var(--ink-dim);min-width:46px;"><input type="checkbox" style="width:22px;height:22px;"'+(g.keep.has(s.id)?' checked':'')+' onchange="geneReviewToggleKeep(\''+s.id+'\', this.checked)"/>'+(isEn?'keep':'garder')+'</label>'+
+        '<label style="display:flex;flex-direction:column;align-items:center;font-size:10.5px;color:var(--ink-dim);min-width:46px;"><input type="checkbox" style="width:22px;height:22px;"'+(g.keep.has(s.id)?' checked':'')+' onchange="geneReviewToggleKeep(\''+s.id+'\', this.checked)"/>'+(isEn?'later':'plus tard')+'</label>'+
         '<div style="flex:1;min-width:0;"><div style="font-size:14.5px;"><b>'+escapeHtml(snakeName(s))+'</b>'+(s.name && s.animalId ? ' <span style="font-size:12px;color:var(--ink-dim);">'+escapeHtml(s.animalId)+'</span>' : '')+' <span style="color:var(--ink-dim);font-size:12.5px;">'+(s.sex==='male'?'♂':s.sex==='female'?'♀':'?')+' · '+escapeHtml(speciesDisplayLabel(s.species, isEn))+(s.birthDate?' · '+escapeHtml(s.birthDate):'')+'</span></div>'+
-          '<div style="font-size:14px;color:var(--sage);">'+(Object.keys(s.genes||{}).length ? escapeHtml(summarizeGenes(s.genes)) : (isEn?'Normal / no gene':'Normal / aucun gène'))+'</div>'+
+          '<div style="font-size:14px;color:var(--sage);">'+(s.genesVerified?'✅ ':'')+(Object.keys(s.genes||{}).length ? escapeHtml(summarizeGenes(s.genes)) : (isEn?'Normal / no gene':'Normal / aucun gène'))+'</div>'+
+          '<div style="display:flex;gap:4px;margin-top:4px;">'+[['female','♀'],['male','♂'],['unknown','?']].map(([k,ic])=>{ const on = k==='unknown' ? (!s.sex || s.sex==='unknown') : s.sex===k;
+            return '<button type="button" onclick="geneReviewSetSex(\''+s.id+'\',\''+k+'\')" style="min-width:42px;padding:5px 8px;border-radius:8px;font-size:16px;cursor:pointer;'+(on?'border:2px solid var(--gold);background:rgba(201,151,62,.18);color:var(--ink);':'border:1px solid var(--line);background:var(--bg-panel-2);color:var(--ink-dim);')+'" title="'+(k==='female'?(isEn?'Female':'Femelle'):k==='male'?(isEn?'Male':'Mâle'):(isEn?'Unknown':'Inconnu'))+'">'+ic+'</button>'; }).join('')+'</div>'+
           (fg ? '<div style="font-size:12.5px;color:var(--gold);">'+(isEn?'In the file: ':'Dans le fichier : ')+escapeHtml(fg)+'</div>' : '')+'</div>'+
         '<div style="display:flex;flex-direction:column;gap:4px;"><button type="button" class="sc-btn" title="'+(isEn?'Edit':'Modifier')+'" onclick="closeQuickModal(); openLogbook(\''+s.id+'\');">✏️</button>'+
         '<button type="button" class="sc-btn accent" title="'+(isEn?'Verified':'Vérifiée')+'" onclick="geneReviewVerifyOne(\''+s.id+'\')">✓</button></div></div>';
     }).join('') : '<div style="padding:14px 0;font-size:14px;color:var(--ink-dim);">'+(all.length ? (isEn?'No animal matches these filters.':'Aucun animal ne correspond à ces filtres.') : (isEn?'Everything is verified. 🎉':'Tout est vérifié. 🎉'))+'</div>')+
     '</div><div id="gene-review-buttons" style="margin-top:10px;"></div>';
-  showQuickModal('🧬 '+(isEn?'Genetics to verify':'Génétique à vérifier'), body);
+  const prevScroll = (document.getElementById('gene-review-scroll')||{}).scrollTop || 0; // v4.96 — ne pas remonter en haut à chaque toucher
+  if(clutchMode){ const c = (clutches||[]).find(x=>x.id===g.clutchId); body = '<p style="font-size:14px;line-height:1.45;margin:0 0 8px;color:var(--gold);">'+(isEn?'Clutch ':'Ponte ')+escapeHtml(c?c.ref:'')+' — '+(isEn?'set each baby\'s sex (♀ ♂ ?) and confirm its genetics (✓). Check « later » for the ones you can\'t tell yet.':'indique le sexe de chaque bébé (♀ ♂ ?) et confirme sa génétique (✓). Coche « plus tard » pour ceux que tu ne peux pas encore déterminer.')+'</p>'+body; }
+  showQuickModal('🧬 '+(clutchMode?(isEn?'Genetics & sex':'Gènes et sexes'):(isEn?'Genetics to verify':'Génétique à vérifier')), body);
+  try{ const sc = document.getElementById('gene-review-scroll'); if(sc && prevScroll) sc.scrollTop = prevScroll; }catch(e){}
   renderGeneReviewButtons();
 }
 function geneReviewVerifyOne(id){
@@ -27007,6 +27041,7 @@ function renderClutches(){
       '</div>' : '')+
       '<div class="clutch-actions">'+
         (c.hatched ? '' : '<button class="sc-btn accent" data-act="hatch" data-id="'+c.id+'">'+(isOvo?(isEn?'Mark as born':'Marquer née'):t('markHatchedBtn'))+'</button>')+
+        (c.hatched ? (function(){ const n = clutchBabiesToCheck(c); return '<button class="sc-btn'+(n?' accent':'')+'" onclick="openClutchReview(\''+c.id+'\')">🧬 '+(isEn?'Genetics & sex':'Gènes et sexes')+(n?' ('+n+(isEn?' to check':' à vérifier')+')':' ✓')+'</button>'; })() : '')+
         '<button class="sc-btn" data-act="toggleshowcase" data-id="'+c.id+'">🖼️ '+(c.publicToken?(isEn?'Disable showcase':'Retirer la vitrine'):(isEn?'Showcase link':'Lien vitrine'))+'</button>'+
         (c.publicToken ? '<button class="sc-btn" data-act="copyshowcase" data-id="'+c.id+'">📋 '+(isEn?'Copy':'Copier')+'</button>' : '')+
         '<button class="sc-btn danger" data-act="delclutch" data-id="'+c.id+'">'+t('deleteBtn')+'</button>'+
@@ -27184,7 +27219,8 @@ function showHatchUndoModal(clutchId, createdIds, count, ref, sireId, damId){
     isEn
       ? '<p style="font-size:12.5px;color:var(--ink-dim);line-height:1.6;margin:0 0 14px;">Records <b>'+ref+'-01</b> to <b>'+ref+'-'+String(count).padStart(2,'0')+'</b> created with the exact genetics from the draw. Sex not set — remember to sex them and add photos. Genetics stay marked <b style="color:#d8bb46;">"to verify"</b> until visually confirmed on each record.</p>'
       : '<p style="font-size:12.5px;color:var(--ink-dim);line-height:1.6;margin:0 0 14px;">Fiches <b>'+ref+'-01</b> à <b>'+ref+'-'+String(count).padStart(2,'0')+'</b> créées avec la génétique exacte du tirage. Sexe non défini — pense à sexer et ajouter des photos. La génétique reste marquée <b style="color:#d8bb46;">« à vérifier »</b> jusqu\'à confirmation visuelle sur chaque fiche.</p>'
-      + waitlistMatchesHtml + (function(){ try{ return hatchTraitsHtml(clutchId, createdIds); }catch(e){ return ''; } })(),
+      + waitlistMatchesHtml + (function(){ try{ return hatchTraitsHtml(clutchId, createdIds); }catch(e){ return ''; } })()
+      + '<button class="sc-btn accent" style="width:100%;margin:0 0 12px;" onclick="closeQuickModal();openClutchReview(\''+clutchId+'\')">🧬 '+(isEn?'Set sexes and verify genetics now':'Indiquer les sexes et vérifier les gènes maintenant')+'</button>',
     '<div style="display:flex;gap:8px;">'+
       '<button class="save-btn" style="flex:1;" onclick="closeQuickModal();">'+(isEn?'OK, continue':'OK, continuer')+'</button>'+
       '<button class="sc-btn danger" onclick="undoHatchCreation(\''+clutchId+'\', '+JSON.stringify(createdIds).replace(/"/g,'&quot;')+')">↩ '+(isEn?'Undo this creation':'Annuler cette création')+'</button>'+
