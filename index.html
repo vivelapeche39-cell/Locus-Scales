@@ -2238,7 +2238,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.81';
+const APP_VERSION = '2026.09.01.4.84';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4128,7 +4128,7 @@ const GENES = [
   // Cinnamon / Black Pastel Complex — locus partagé (allélisme prouvé ; reconfirmé sur Morphpedia le 9 oct : complexe « 8 Ball »).
   // Les deux formes homozygotes ET le composé hétérozygote Cinnamon×Black Pastel ("8-Ball", voir
   // COMPOUND_NAMES) partagent le même risque santé accru — texte d'avertissement volontairement identique.
-  {id:'champagne', name:'Champagne', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant', warning:"Wobble (trouble neurologique de la tête/du regard) présent chez la quasi-totalité des porteurs, même à l'état simple. Forme homozygote (Super Champagne) létale in ovo — jamais viable. Combinaison avec Spider (même locus) également létale.", warningEn:"Wobble (neurological head/eye-tracking disorder) present in nearly all carriers, even in single (het) form. Homozygous form (Super Champagne) is lethal in ovo — never viable. Combination with Spider (same locus) is also lethal."},
+  {id:'champagne', name:'Champagne', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant', warning:"Wobble (trouble neurologique de la tête/du regard) présent chez la quasi-totalité des porteurs, même à l'état simple — souvent plus léger que celui du Spider (de type Woma, selon les témoignages d'éleveurs). Forme homozygote (Super Champagne) létale in ovo — jamais viable. Combinaison avec Spider (même locus) également létale.", warningEn:"Wobble (neurological head/eye-tracking disorder) present in nearly all carriers, even in single (het) form — often milder than Spider's (Woma-like, according to breeder reports). Homozygous form (Super Champagne) is lethal in ovo — never viable. Combination with Spider (same locus) is also lethal."},
   {id:'cinnamon', name:'Cinnamon', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant', superLabel:'Super Cinnamon', warning:"Forme homozygote (Super Cinnamon — même allure que le combo 8 Ball Cinnamon × Black Pastel) associée à un risque accru de kinking (déformations vertébrales), microphtalmie (« bug eyes »), malformation de la mâchoire (duckbill) et retard de croissance. Tous les individus supers ne sont pas affectés, mais l'incidence est jugée significative par de nombreux éleveurs expérimentés.", warningEn:"Homozygous form (Super Cinnamon — looks like the 8 Ball combo, Cinnamon × Black Pastel) is associated with an increased risk of kinking (spinal deformities), microphthalmia (\"bug eyes\"), jaw malformation (duckbill), and stunted growth. Not every super individual is affected, but the incidence is considered significant by many experienced breeders."},
   {id:'blackpastel', name:'Black Pastel', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant', superLabel:'Super Black Pastel', warning:"Forme homozygote (Super Black Pastel — même allure que le combo 8 Ball) associée au même risque accru que Super Cinnamon : kinking, microphtalmie, malformation de la mâchoire, retard de croissance.", warningEn:"Homozygous form (Super Black Pastel — looks like the 8 Ball combo) carries the same increased risk as Super Cinnamon: kinking, microphthalmia, jaw malformation, stunted growth."},
   {id:'huffman', name:'Huffman', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant'},
@@ -5268,6 +5268,39 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.84', date:'2026-10-23',
+    title:{ fr:'Desert : avertissement de fertilité renforcé', en:'Desert: stronger fertility warning' },
+    changes:{
+      fr:[ '⚠️ Sur la fiche d\'un Desert, l\'avertissement dit maintenant clairement que les femelles sont réputées pratiquement infertiles (presque jamais de ponte viable selon les éleveurs), et qu\'un mâle Desert transmet le gène à environ la moitié de ses petits.' ],
+      en:[ '⚠️ On a Desert record, the warning now clearly says females are known to be practically infertile (almost never a viable clutch according to breeders), and that a Desert male passes the gene to about half of his babies.' ]
+    }
+  },
+  { version:'4.83', date:'2026-10-23',
+    title:{ fr:'Santé des lignées (2/2) : éclosion, rappel à 3 mois, vue par famille', en:'Lineage health (2/2): hatching, 3-month check, family view' },
+    changes:{
+      fr:[ '🐣 À l\'éclosion, si des bébés portent un gène à wobble : « As-tu vu du wobble ? » (Non / Pas encore sûr / Oui avec le niveau par bébé). Pour une ponte d\'œufs, tu peux aussi noter le nombre d\'œufs non viables, qui sert à suivre la fertilité de la femelle.',
+           '🌀 Rappel unique à 3 mois dans les alertes santé pour les porteurs d\'un gène à wobble : Rien vu / Noter / Ne plus demander.',
+           '🧬 « Santé par génétique » devient « Santé des lignées » : les observations notées, regroupées par couple et par reproducteur (tous partenaires), avec « peu de données » sous 5 bébés. Elle n\'apparaît que quand il y a des observations.',
+           '⚠️ Un mâle Desert affiche aussi un avertissement sur sa fiche : ses filles Desert hériteront des problèmes de fertilité.',
+           'Gratuit (santé).' ],
+      en:[ '🐣 At hatching, if babies carry a wobble gene: « Did you see any wobble? » (No / Not sure yet / Yes with the level per baby). For an egg clutch, you can also note the number of non-viable eggs, used to follow the female\'s fertility.',
+           '🌀 One-time 3-month check in health alerts for carriers of a wobble gene: Nothing seen / Log / Don\'t ask again.',
+           '🧬 « Health by genetics » becomes « Lineage health »: logged observations grouped by pair and by breeder (all partners), with « little data » under 5 babies. It only shows when there are observations.',
+           '⚠️ A Desert male also shows a warning on his record: his Desert daughters will inherit the fertility issues.',
+           'Free (health).' ]
+    }
+  },
+  { version:'4.82', date:'2026-10-23',
+    title:{ fr:'Santé des lignées (1/2) : traits suivis sur la fiche', en:'Lineage health (1/2): tracked traits on the record' },
+    changes:{
+      fr:[ '🧬 Sur la fiche d\'un python royal porteur d\'un gène associé à un problème connu, un bloc « Traits suivis » indique le problème (wobble, petits yeux, kinking / duckbill, fertilité des femelles, photophobie…) avec son statut : documenté, rapporté par la communauté ou incertain, et la source. Rien n\'apparaît sur les cartes.',
+           '➕ « Noter une observation » : le trait, un niveau de 0 à 3 (échelle LOCUS, définie pour le wobble), la date et une note. L\'historique montre si ça reste stable, monte ou baisse. Pour une femelle Desert ou Caramel Albino, sa fertilité est calculée à partir des œufs non viables notés.',
+           'Gratuit (santé).' ],
+      en:[ '🧬 On the record of a ball python carrying a gene linked to a known issue, a « Tracked traits » block shows the issue (wobble, small eyes, kinking / duckbill, female fertility, light sensitivity…) with its status: documented, reported by the community or uncertain, and the source. Nothing shows on the cards.',
+           '➕ « Log an observation »: the trait, a 0 to 3 level (LOCUS scale, defined for wobble), the date and a note. The history shows if it stays stable, goes up or down. For a Desert or Caramel Albino female, her fertility is computed from the non-viable eggs you noted.',
+           'Free (health).' ]
+    }
+  },
   { version:'4.81', date:'2026-10-23',
     title:{ fr:'Filtres & tri en haut de Mes reptiles', en:'Filters & sort at the top of My reptiles' },
     changes:{
@@ -10133,44 +10166,40 @@ function sortSnakes(list, sortBy){
 // signalés (refus répétés ou perte de poids), pour repérer une tendance récurrente
 // à travers la lignée plutôt qu'un cas isolé. Ne couvre que les gènes présents dans
 // au moins 2 reptiles de la collection (sinon rien à comparer).
+// v4.83 — « Santé des lignées » (nom choisi par Alex) : par famille réelle (couple, reproducteur), à partir des
+// observations notées — remplace l'ancien compte par gène, qui mélangeait des animaux non apparentés.
 function renderGeneticHealthReport(){
   const isEn = currentLang==='en';
   const container = document.getElementById('genetic-health-container');
   if(!container) return;
   savedSnakes.forEach(ensureSnakeMeta);
-  const byGene = {};
-  savedSnakes.forEach(s=>{
-    const flagged = isFeedingFlagged(s) || weightDropping(s);
-    Object.keys(s.genes||{}).forEach(geneId=>{
-      if(!byGene[geneId]) byGene[geneId] = { total:0, flagged:0 };
-      byGene[geneId].total++;
-      if(flagged) byGene[geneId].flagged++;
-    });
-  });
-  const entries = Object.entries(byGene).filter(([g,d])=>d.total>=2).sort((a,b)=>(b[1].flagged/b[1].total)-(a[1].flagged/a[1].total));
-  if(entries.length===0){ container.innerHTML = ''; return; }
-
+  const G = lineageHealthGroups();
+  if(!G.pairOut.length && !G.orphans.length){ container.innerHTML = ''; return; }
   const folderId = 'folder-genetic-health';
   const existing = document.getElementById(folderId);
   const isOpen = existing ? !existing.classList.contains('collapsed') : false;
-  const rows = entries.map(([geneId,d])=>{
-    const gene = GENES.find(g=>g.id===geneId);
-    const label = gene ? (isEn ? (gene.nameEn||gene.name) : gene.name) : geneId;
-    const pct = Math.round((d.flagged/d.total)*100);
-    const color = pct>=50 ? 'var(--rust)' : (pct>0 ? 'var(--gold)' : 'var(--sage)');
-    return '<div class="modal-row"><span>'+escapeHtml(label)+' <span style="color:var(--ink-dim);">('+d.total+' '+(isEn?'carriers':'porteurs')+')</span></span>'+
-      '<span style="color:'+color+';font-weight:600;">'+d.flagged+'/'+d.total+' '+(isEn?'flagged':'signalé(s)')+'</span></div>';
-  }).join('');
-
+  const nm = id=>{ const x = savedSnakes.find(s=>s.id===id); return x ? snakeName(x) : (isEn?'(deleted)':'(supprimé)'); };
+  let rows = '';
+  if(G.pairOut.length){
+    rows += '<div style="font-size:12px;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin:4px 0 6px;">'+(isEn?'By pair':'Par couple')+'</div>';
+    rows += G.pairOut.map(p=>'<div style="border-bottom:1px dashed var(--line);padding:6px 0;"><div style="font-size:14px;color:var(--ink);"><b>'+escapeHtml(nm(p.sid))+' × '+escapeHtml(nm(p.did))+'</b> <small style="color:var(--ink-dim);">— '+p.total+' '+(isEn?'babies':'bébé(s)')+', '+p.clutches+' '+(isEn?'clutch(es)':'ponte(s)')+'</small></div>'+lineageKindsLine(p.kinds, p.total, isEn)+'</div>').join('');
+  }
+  if(G.parOut.length){
+    rows += '<div style="font-size:12px;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 6px;">'+(isEn?'By breeder (all partners)':'Par reproducteur (tous partenaires)')+'</div>';
+    rows += G.parOut.map(p=>'<div style="border-bottom:1px dashed var(--line);padding:6px 0;"><div style="font-size:14px;color:var(--ink);"><b>'+escapeHtml(nm(p.pid))+'</b> <small style="color:var(--ink-dim);">— '+p.total+' '+(isEn?'babies with ':'bébé(s) avec ')+p.partners+' '+(isEn?'partners':'partenaires')+'</small></div>'+lineageKindsLine(p.kinds, p.total, isEn)+'</div>').join('');
+  }
+  if(G.orphans.length){
+    rows += '<div style="font-size:12px;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 6px;">'+(isEn?'No known parents':'Sans parents connus')+'</div>'+
+      '<div style="font-size:13.5px;">'+G.orphans.map(s=>{ const lv = traitLatestLevels(s); return escapeHtml(snakeName(s))+' ('+Object.keys(lv).map(k=>(TRAIT_KINDS[k]||TRAIT_KINDS.other).icon+' '+lv[k]).join(', ')+')'; }).join(' · ')+'</div>';
+  }
   container.innerHTML = '<div class="community-folder'+(isOpen?'':' collapsed')+'" id="'+folderId+'">'+
     '<button class="community-folder-header" onclick="toggleCommunityFolder(\''+folderId+'\')">'+
-      '<span class="folder-icon">▾</span><span>🧬 '+(isEn?'Health by genetics':'Santé par génétique')+'</span>'+
+      '<span class="folder-icon">▾</span><span>🧬 '+(isEn?'Lineage health':'Santé des lignées')+'</span>'+
     '</button>'+
     '<div class="community-folder-body">'+
-      '<p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 12px;">'+(isEn?
-        'Shows how many carriers of each gene (visual or het) are currently flagged for feeding refusals or weight loss — helps spot a recurring pattern across a line, not just one individual. Only genes shared by 2+ reptiles are shown.':
-        'Montre combien de porteurs de chaque gène (visuel ou het) sont actuellement signalés pour refus de repas ou perte de poids — aide à repérer une tendance récurrente à travers une lignée, pas juste un cas isolé. Seuls les gènes partagés par 2 reptiles ou plus sont affichés.')+
-      '</p>'+rows+
+      '<p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 10px;line-height:1.5;">'+(isEn
+        ? 'Built from the observations you log (wobble, eyes, etc.), grouped by real family. « Affected » = last level noted 1 or more. LOCUS scale 0-3.'
+        : 'Construit à partir des observations que tu notes (wobble, yeux, etc.), regroupées par vraie famille. « Touché » = dernier niveau noté de 1 ou plus. Échelle LOCUS 0-3.')+'</p>'+rows+
     '</div>'+
   '</div>';
 }
@@ -11987,6 +12016,315 @@ function renderVetVisitsHtml(s){
     '</div>'
   ).join('');
 }
+// ==================== v4.82 — Traits liés aux gènes + observations (Santé des lignées, gratuit) ====================
+// Liste validée par Alex le 23 oct. status : 'documented' (Morphpedia / étude, vérifié à l'audit de septembre),
+// 'community' (rapporté par la communauté — liste MorphMarket), 'uncertain' (un seul témoignage). Jamais inventé :
+// ajouter une règle ici seulement avec une source. Python royal seulement.
+var TRAIT_COMMUNITY_URL = 'https://community.morphmarket.com/t/morph-issues-ball-pythons/114';
+var TRAIT_KINDS = {
+  wobble:{ fr:'Wobble', en:'Wobble', icon:'🌀' },
+  eyes:{ fr:'Petits yeux (microphtalmie)', en:'Small eyes (microphthalmia)', icon:'👁' },
+  skeletal:{ fr:'Kinking / duckbill / croissance', en:'Kinking / duckbill / growth', icon:'🦴' },
+  fertility:{ fr:'Fertilité des femelles', en:'Female fertility', icon:'🥚' },
+  photophobia:{ fr:'Photophobie', en:'Light sensitivity', icon:'💡' },
+  thrive:{ fr:'Dépérissement', en:'Failure to thrive', icon:'📉' },
+  other:{ fr:'Autre', en:'Other', icon:'📝' }
+};
+function traitGene(genes, id){
+  const e = (genes||{})[id]; if(e==null) return null;
+  const g = GENES.find(x=>x.id===id); if(!g) return null;
+  const n = normalizeGeneEntry(e);
+  const lvl = g.type==='recessive' ? (n.status==='het' ? 'het' : 'visual') : (n.status==='single' ? 'single' : 'super');
+  return { lvl, possible:n.possible };
+}
+function traitExpr(genes, id){ const x = traitGene(genes, id); return x && x.lvl!=='het' ? x : null; } // exprimé (visuel / simple / super)
+function traitSuper(genes, id){ const x = traitGene(genes, id); return x && x.lvl==='super' ? x : null; }
+function traitBelSuper(genes){ // super d'un gène du complexe BEL, ou 2 gènes différents du complexe (BEL)
+  const ids = GENES.filter(g=>g.locus==='lesserComplex').map(g=>g.id);
+  const sup = ids.map(id=>traitSuper(genes,id)).find(Boolean); if(sup) return sup;
+  const ex = ids.map(id=>traitExpr(genes,id)).filter(Boolean);
+  return ex.length>=2 ? { possible: ex.some(x=>x.possible) } : null;
+}
+function traitAll(){ const xs = [].slice.call(arguments); return xs.every(Boolean) ? { possible: xs.some(x=>x.possible) } : null; }
+var GENE_HEALTH_TRAITS = [
+  { id:'w_spider', kind:'wobble', status:'documented', fr:'Spider : wobble chez la quasi-totalité des individus, même en simple.', en:'Spider: wobble in nearly all individuals, even single.', test:g=>traitExpr(g,'spider') },
+  { id:'w_champ', kind:'wobble', status:'documented', fr:'Champagne : wobble chez la quasi-totalité des porteurs, souvent plus léger que celui du Spider (de type Woma).', en:'Champagne: wobble in nearly all carriers, often milder than Spider\'s (Woma-like).', test:g=>traitExpr(g,'champagne') },
+  { id:'w_woma', kind:'wobble', status:'documented', fr:'Woma : wobble chez une partie des porteurs.', en:'Woma: wobble in some carriers.', test:g=>traitExpr(g,'woma') },
+  { id:'w_hgw', kind:'wobble', status:'documented', fr:'Hidden Gene Woma : wobble léger chez une partie des porteurs.', en:'Hidden Gene Woma: mild wobble in some carriers.', test:g=>traitExpr(g,'hgw') },
+  { id:'w_supersable', kind:'wobble', status:'documented', fr:'Super Sable : wobble.', en:'Super Sable: wobble.', test:g=>traitSuper(g,'sable') },
+  { id:'w_spot_spider', kind:'wobble', status:'community', fr:'Spotnose × Spider : wobble sévère, invalidant.', en:'Spotnose × Spider: severe, debilitating wobble.', test:g=>traitAll(traitExpr(g,'spotnose'), traitExpr(g,'spider')) },
+  { id:'w_spot_champ', kind:'wobble', status:'community', fr:'Spotnose × Champagne : wobble marqué.', en:'Spotnose × Champagne: noticeable wobble.', test:g=>traitAll(traitExpr(g,'spotnose'), traitExpr(g,'champagne')) },
+  { id:'w_spot_hgw', kind:'wobble', status:'community', fr:'Spotnose × HGW : wobble beaucoup plus léger.', en:'Spotnose × HGW: much milder wobble.', test:g=>traitAll(traitExpr(g,'spotnose'), traitExpr(g,'hgw')) },
+  { id:'w_superspot', kind:'wobble', status:'community', fr:'Super Spotnose : wobble, gravité variable.', en:'Super Spotnose: wobble, variable severity.', test:g=>traitSuper(g,'spotnose') },
+  { id:'w_supercyp', kind:'wobble', status:'uncertain', fr:'Super Cypress : wobble léger possible (un seul témoignage, non confirmé).', en:'Super Cypress: possible mild wobble (one report, unconfirmed).', test:g=>traitSuper(g,'cypress') },
+  { id:'t_champ_sable', kind:'thrive', status:'community', fr:'Champagne × Sable : bébés qui dépérissent rapportés (wobble non confirmé).', en:'Champagne × Sable: failure to thrive reported (wobble unconfirmed).', test:g=>traitAll(traitExpr(g,'champagne'), traitExpr(g,'sable')) },
+  { id:'e_superlesser', kind:'eyes', status:'community', fr:'Super Lesser : petits yeux (« bug eyes »).', en:'Super Lesser: small eyes (« bug eyes »).', test:g=>traitSuper(g,'lesser') },
+  { id:'e_lesser_albino', kind:'eyes', status:'community', fr:'Super Lesser × Albino : petits yeux.', en:'Super Lesser × Albino: small eyes.', test:g=>traitAll(traitSuper(g,'lesser'), traitExpr(g,'albino')) },
+  { id:'e_bel_pied', kind:'eyes', status:'community', fr:'Super du complexe BEL × Pied : petits yeux.', en:'BEL complex super × Pied: small eyes.', test:g=>traitAll(traitBelSuper(g), traitExpr(g,'piebald')) },
+  { id:'s_supercinn', kind:'skeletal', status:'documented', fr:'Super Cinnamon : risque de kinking, petits yeux, duckbill, retard de croissance.', en:'Super Cinnamon: risk of kinking, small eyes, duckbill, stunted growth.', test:g=>traitSuper(g,'cinnamon') },
+  { id:'s_superbp', kind:'skeletal', status:'documented', fr:'Super Black Pastel : même risque que Super Cinnamon.', en:'Super Black Pastel: same risk as Super Cinnamon.', test:g=>traitSuper(g,'blackpastel') },
+  { id:'s_caramel', kind:'skeletal', status:'community', fr:'Caramel Albino : kinking rapporté.', en:'Caramel Albino: kinking reported.', test:g=>traitExpr(g,'caramel') },
+  { id:'f_desert', kind:'fertility', status:'documented', female:true, fr:'Desert : les femelles sont réputées pratiquement infertiles — les éleveurs rapportent qu\'elles ne produisent presque jamais de ponte viable (Morphpedia : problèmes de fertilité des femelles ; témoignages d\'éleveurs sur ball-pythons.net).', en:'Desert: females are known to be practically infertile — breeders report they almost never produce a viable clutch (Morphpedia: female fertility issues; breeder reports on ball-pythons.net).', url:'https://morphmarket.com/morphpedia/ball-pythons/desert', test:g=>traitExpr(g,'desert') },
+  { id:'f_desert_male', kind:'fertility', status:'documented', male:true, fr:'Desert (mâle) : le problème connu touche les femelles — mais le gène est dominant, donc environ la moitié de ses petits seront Desert et ses filles Desert seront pratiquement infertiles (Morphpedia ; témoignages d\'éleveurs). À savoir avant de l\'acheter ou de le reproduire.', en:'Desert (male): the known issue affects females — but the gene is dominant, so about half of his babies will be Desert and his Desert daughters will be practically infertile (Morphpedia; breeder reports). Good to know before buying or breeding him.', url:'https://morphmarket.com/morphpedia/ball-pythons/desert', test:g=>traitExpr(g,'desert') },
+  { id:'f_caramel', kind:'fertility', status:'community', female:true, fr:'Caramel Albino : fertilité réduite des femelles rapportée.', en:'Caramel Albino: reduced female fertility reported.', test:g=>traitExpr(g,'caramel') },
+  { id:'p_albino', kind:'photophobia', status:'documented', fr:'Albino : sensibilité à la lumière — éclairage tamisé, cachettes ombragées.', en:'Albino: light sensitivity — dim lighting, shaded hides.', test:g=>traitExpr(g,'albino') },
+  { id:'p_candy', kind:'photophobia', status:'documented', fr:'Candy / Toffee : sensibilité à la lumière, comme l\'Albino.', en:'Candy / Toffee: light sensitivity, like Albino.', test:g=>traitExpr(g,'candy') }
+];
+function snakeGeneTraits(s){
+  if(!s || (s.species && s.species!=='ball_python')) return [];
+  const out = [];
+  GENE_HEALTH_TRAITS.forEach(r=>{
+    if(r.female && s.sex==='male') return;
+    if(r.male && s.sex!=='male') return; // v4.83
+    let m = null; try{ m = r.test(s.genes||{}); }catch(e){}
+    if(m) out.push({ rule:r, possible:!!m.possible });
+  });
+  return out;
+}
+// Échelle LOCUS (pas une norme officielle — aucune échelle reconnue trouvée, voir recherche du 23 oct)
+function traitLevelLabel(kind, lvl, isEn){
+  const W = isEn ? ['0 · None','1 · Mild','2 · Moderate','3 · Severe'] : ['0 · Aucun','1 · Léger','2 · Modéré','3 · Élevé'];
+  return W[lvl] || '';
+}
+function traitLevelHelp(kind, isEn){
+  if(kind==='wobble') return isEn
+    ? '0 none · 1 mild: tilt or tremor only under stress, handling or at feeding · 2 moderate: visible at rest, sometimes misses strikes · 3 severe: head twisting, rolls over, trouble striking or constricting, feeding affected.'
+    : '0 aucun · 1 léger : inclinaison ou tremblement seulement au stress, à la manipulation ou au repas · 2 modéré : visible au repos, rate parfois ses frappes · 3 élevé : la tête se tord, il se retourne, difficulté à frapper ou constricter, l\'alimentation en souffre.';
+  return isEn ? '0 none · 1 mild (barely visible) · 2 moderate (clearly visible) · 3 severe (affects daily life).' : '0 aucun · 1 léger (à peine visible) · 2 modéré (bien visible) · 3 élevé (nuit au quotidien).';
+}
+var TRAIT_LEVEL_SCALE_NOTE = { fr:'Échelle LOCUS — aucune échelle officielle n\'existe.', en:'LOCUS scale — no official scale exists.' };
+function traitStatusBadge(status, isEn){
+  const m = { documented:[isEn?'documented':'documenté','var(--sage)'], community:[isEn?'reported by the community':'rapporté par la communauté','var(--gold)'], uncertain:[isEn?'uncertain':'incertain','var(--ink-dim)'] }[status] || ['',''];
+  return '<span style="font-size:11px;color:'+m[1]+';border:1px solid '+m[1]+';border-radius:8px;padding:0 6px;white-space:nowrap;">'+m[0]+'</span>';
+}
+function traitTrend(obs){
+  const ok = (obs||[]).filter(o=>o.level!=null).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  if(ok.length<2) return null;
+  const a = ok[ok.length-2].level, b = ok[ok.length-1].level;
+  return b>a ? 'up' : b<a ? 'down' : 'flat';
+}
+// Fertilité d'une femelle d'après ses pontes : œufs non viables / slugs notés (slugCount, badEggCount)
+function femaleFertilityStats(s){
+  const cs = (clutches||[]).filter(c=>c.damId===s.id);
+  let total = 0, bad = 0, withData = 0;
+  cs.forEach(c=>{
+    const b = (c.slugCount||0) + (c.badEggCount||0);
+    const hasBad = c.slugCount!=null || c.badEggCount!=null;
+    const tot = c.eggCount!=null ? Number(c.eggCount) : ((c.liveCount||0)+(c.stillbornCount||0)+(c.slugCount||0)); // badEggCount = sous-ensemble des œufs pondus
+    if(hasBad && tot>0){ withData++; total += tot; bad += b; }
+  });
+  return { clutches:cs.length, withData, total, bad };
+}
+function geneTraitsSectionHtml(s){
+  const isEn = currentLang==='en';
+  const traits = snakeGeneTraits(s);
+  const obs = ((s.health && s.health.traitObs) || []).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  if(!traits.length && !obs.length) return '';
+  let h = '<div class="modal-section"><h3>🧬 '+(isEn?'Tracked traits':'Traits suivis')+'</h3>';
+  if(traits.length){
+    h += traits.map(x=>'<div class="modal-row" style="align-items:flex-start;gap:8px;"><span style="font-size:13.5px;line-height:1.45;">'+(TRAIT_KINDS[x.rule.kind]||TRAIT_KINDS.other).icon+' '+escapeHtml(isEn?x.rule.en:x.rule.fr)+
+      (x.possible?' <small style="color:var(--ink-dim);">('+(isEn?'if the gene is confirmed':'si le gène est confirmé')+')</small>':'')+
+      ' <a href="'+(x.rule.url || (x.rule.status!=='documented' ? TRAIT_COMMUNITY_URL : ''))+'" target="_blank" rel="noopener" style="font-size:11px;color:var(--ink-dim);'+((x.rule.url || x.rule.status!=='documented')?'':'display:none;')+'">'+(isEn?'source':'source')+'</a>'+
+      (!x.rule.url && x.rule.status==='documented' ? ' <small style="color:var(--ink-dim);">Morphpedia</small>' : '')+
+      '</span>'+traitStatusBadge(x.rule.status, isEn)+'</div>').join('');
+    if(traits.some(x=>x.rule.kind==='fertility') && s.sex==='female'){
+      const f = femaleFertilityStats(s);
+      h += '<div class="modal-row"><span style="font-size:13px;">🥚 '+(isEn?'Her fertility in LOCUS':'Sa fertilité dans LOCUS')+'</span><span style="font-size:13px;">'+
+        (f.withData ? (f.bad+' / '+f.total+(isEn?' non-viable eggs or slugs':' œufs non viables ou slugs')+' ('+f.withData+' '+(isEn?'clutch(es)':'ponte(s)')+')'+(f.total<15?' <small style="color:var(--ink-dim);">— '+(isEn?'little data':'peu de données')+'</small>':''))
+                    : '<small style="color:var(--ink-dim);">'+(isEn?'No data yet — non-viable eggs are counted when you note them at hatching.':'Pas encore de données — les œufs non viables sont comptés quand tu les notes à l\'éclosion.')+'</small>')+
+        '</span></div>';
+    }
+  }
+  if(obs.length){
+    const byKind = {};
+    obs.forEach(o=>{ (byKind[o.kind] = byKind[o.kind]||[]).push(o); });
+    Object.keys(byKind).forEach(k=>{
+      const tr = traitTrend(byKind[k]);
+      const trTxt = tr==='up' ? '↗ '+(isEn?'getting worse':'en hausse') : tr==='down' ? '↘ '+(isEn?'improving':'en baisse') : tr==='flat' ? '→ '+(isEn?'stable':'stable') : '';
+      h += '<div style="font-size:12.5px;color:var(--gold);margin:8px 0 2px;">'+(TRAIT_KINDS[k]||TRAIT_KINDS.other).icon+' '+escapeHtml(isEn?(TRAIT_KINDS[k]||TRAIT_KINDS.other).en:(TRAIT_KINDS[k]||TRAIT_KINDS.other).fr)+(trTxt?' · '+trTxt:'')+'</div>';
+      h += byKind[k].map(o=>'<div class="modal-row" style="align-items:flex-start;"><span style="font-size:13px;line-height:1.45;">'+escapeHtml(o.date||'')+' — <b>'+(o.level!=null?traitLevelLabel(k,o.level,isEn):(o.seen===false?(isEn?'not seen':'pas vu'):(isEn?'not sure yet':'pas encore sûr')))+'</b>'+(o.note?'<br/><small style="color:var(--ink-dim);">'+escapeHtml(o.note)+'</small>':'')+'</span>'+
+        '<button class="sc-btn danger" style="padding:2px 8px;font-size:11px;" onclick="deleteTraitObs(\''+s.id+'\',\''+o.id+'\')">×</button></div>').join('');
+    });
+  }
+  h += '<button class="sc-btn accent" style="width:100%;margin-top:8px;" onclick="openTraitObsModal(\''+s.id+'\')">➕ '+(isEn?'Log an observation':'Noter une observation')+'</button>';
+  h += '<p style="font-size:11px;color:var(--ink-dim);margin:6px 0 0;">'+(isEn?TRAIT_LEVEL_SCALE_NOTE.en:TRAIT_LEVEL_SCALE_NOTE.fr)+'</p>';
+  return h+'</div>';
+}
+function openTraitObsModal(snakeId, presetKind){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===snakeId); if(!s) return;
+  const kinds = [...new Set(snakeGeneTraits(s).map(x=>x.rule.kind))];
+  ['wobble','eyes','skeletal','thrive','other'].forEach(k=>{ if(!kinds.includes(k)) kinds.push(k); });
+  const first = presetKind || kinds[0];
+  const sel = (id, opts) => '<select id="'+id+'" style="width:100%;font-size:16px;padding:8px 10px;margin:4px 0 12px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"'+(id==='trait-obs-kind'?' onchange="document.getElementById(\'trait-obs-help\').textContent=traitLevelHelp(this.value, currentLang===\'en\')"':'')+'>'+opts+'</select>';
+  const body =
+    '<label style="font-size:13px;color:var(--ink-dim);">'+(isEn?'Trait':'Trait')+'</label>'+
+    sel('trait-obs-kind', kinds.filter(k=>k!=='fertility' && k!=='photophobia').map(k=>'<option value="'+k+'"'+(k===first?' selected':'')+'>'+TRAIT_KINDS[k].icon+' '+(isEn?TRAIT_KINDS[k].en:TRAIT_KINDS[k].fr)+'</option>').join(''))+
+    '<label style="font-size:13px;color:var(--ink-dim);">'+(isEn?'Level':'Niveau')+'</label>'+
+    sel('trait-obs-level', [0,1,2,3].map(l=>'<option value="'+l+'"'+(l===1?' selected':'')+'>'+traitLevelLabel('',l,isEn)+'</option>').join(''))+
+    '<p id="trait-obs-help" style="font-size:12.5px;color:var(--ink-dim);line-height:1.45;margin:-6px 0 12px;">'+escapeHtml(traitLevelHelp(first==='fertility'||first==='photophobia'?'other':first, isEn))+'</p>'+
+    '<label style="font-size:13px;color:var(--ink-dim);">'+(isEn?'Date':'Date')+'</label>'+
+    '<input type="date" id="trait-obs-date" value="'+localTodayStr()+'" style="width:100%;font-size:16px;padding:8px 10px;margin:4px 0 12px;"/>'+
+    '<label style="font-size:13px;color:var(--ink-dim);">'+(isEn?'Note (optional)':'Note (optionnel)')+'</label>'+
+    '<input type="text" id="trait-obs-note" maxlength="300" placeholder="'+(isEn?'e.g. only when feeding':'ex. seulement au repas')+'" style="width:100%;font-size:16px;padding:8px 10px;margin:4px 0 12px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
+    '<p style="font-size:11px;color:var(--ink-dim);margin:0 0 10px;">'+(isEn?TRAIT_LEVEL_SCALE_NOTE.en:TRAIT_LEVEL_SCALE_NOTE.fr)+'</p>'+
+    '<button class="save-btn" style="width:100%;" onclick="saveTraitObs(\''+snakeId+'\')">💾 '+(isEn?'Save':'Enregistrer')+'</button>';
+  showQuickModal('🧬 '+(isEn?'Observation — ':'Observation — ')+snakeName(s), body);
+}
+function addTraitObs(s, obs){
+  ensureSnakeMeta(s);
+  if(!Array.isArray(s.health.traitObs)) s.health.traitObs = [];
+  s.health.traitObs.push(Object.assign({ id:'to_'+Date.now()+'_'+Math.random().toString(36).slice(2,6) }, obs));
+  s.updatedAt = Date.now();
+}
+function saveTraitObs(snakeId){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===snakeId); if(!s) return;
+  const kind = document.getElementById('trait-obs-kind').value;
+  const level = parseInt(document.getElementById('trait-obs-level').value, 10);
+  const date = document.getElementById('trait-obs-date').value || localTodayStr();
+  const note = (document.getElementById('trait-obs-note').value||'').trim().slice(0,300);
+  addTraitObs(s, { kind: TRAIT_KINDS[kind] ? kind : 'other', level: (level>=0 && level<=3) ? level : null, date, note: note||null });
+  storage.save(savedSnakes);
+  closeQuickModal();
+  try{ if(currentLogbookId===snakeId) openLogbook(snakeId); }catch(e){}
+  try{ renderHealthAlerts(); }catch(e){}
+  showToast('🧬 '+(isEn?'Observation saved.':'Observation enregistrée.'), 'success');
+}
+function deleteTraitObs(snakeId, obsId){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this observation?':'Supprimer cette observation ?')) return;
+  const s = savedSnakes.find(x=>x.id===snakeId); if(!s) return;
+  ensureSnakeMeta(s);
+  s.health.traitObs = (s.health.traitObs||[]).filter(o=>o.id!==obsId);
+  s.updatedAt = Date.now();
+  storage.save(savedSnakes);
+  try{ openLogbook(snakeId); }catch(e){}
+}
+
+// ==================== v4.83 — Santé des lignées 2/2 : éclosion, rappel à 3 mois, vue par famille ====================
+function traitLatestLevels(s){ // dernier niveau noté par trait (les « pas encore sûr » ne comptent pas)
+  const out = {};
+  ((s.health && s.health.traitObs) || []).filter(o=>o.level!=null).sort((a,b)=>String(a.date).localeCompare(String(b.date))).forEach(o=>{ out[o.kind] = o.level; });
+  return out;
+}
+function snakeHasWobbleRisk(s){ return snakeGeneTraits(s).some(x=>x.rule.kind==='wobble'); }
+// Bloc ajouté à la fenêtre « bébés bien arrivés »
+var hatchTraitCtx = null;
+function hatchTraitsHtml(clutchId, createdIds){
+  const isEn = currentLang==='en';
+  const c = (clutches||[]).find(x=>x.id===clutchId);
+  const babies = (createdIds||[]).map(id=>savedSnakes.find(s=>s.id===id)).filter(Boolean);
+  const risky = babies.filter(snakeHasWobbleRisk);
+  hatchTraitCtx = { clutchId, ids:(createdIds||[]).slice(), risky:risky.map(s=>s.id) };
+  let h = '';
+  if(c && c.mode!=='ovovivipare'){
+    h += '<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 12px;">'+
+      '<div style="font-size:14px;color:var(--ink);margin-bottom:6px;">🥚 '+(isEn?'Non-viable eggs in this clutch?':'Œufs non viables dans cette ponte ?')+'</div>'+
+      '<div style="display:flex;gap:8px;align-items:center;"><input type="number" id="hatch-bad-eggs" min="0" max="'+(c.eggCount||50)+'" value="'+(c.badEggCount!=null?c.badEggCount:'')+'" placeholder="0" style="width:90px;font-size:16px;padding:8px 10px;"/>'+
+      '<button class="sc-btn" onclick="saveHatchBadEggs()">'+(isEn?'Save':'Enregistrer')+'</button><span id="hatch-bad-eggs-ok" style="font-size:13px;color:var(--sage);"></span></div>'+
+      '<small style="color:var(--ink-dim);">'+(isEn?'Used to follow the female\'s fertility (optional).':'Sert à suivre la fertilité de la femelle (facultatif).')+'</small></div>';
+  }
+  if(risky.length){
+    h += '<div id="hatch-wobble-box" style="border:1px solid var(--gold);border-radius:10px;padding:10px 12px;margin:0 0 12px;">'+
+      '<div style="font-size:14px;color:var(--ink);margin-bottom:8px;">🌀 '+(isEn?'Did you see any wobble?':'As-tu vu du wobble ?')+' <small style="color:var(--ink-dim);">('+risky.length+' '+(isEn?'baby(ies) carry a wobble gene':'bébé(s) porteur(s) d\'un gène à wobble')+')</small></div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+
+        '<button class="sc-btn" onclick="hatchWobbleAnswer(\'no\')">'+(isEn?'No':'Non')+'</button>'+
+        '<button class="sc-btn" onclick="hatchWobbleAnswer(\'unsure\')">'+(isEn?'Not sure yet':'Pas encore sûr')+'</button>'+
+        '<button class="sc-btn accent" onclick="hatchWobbleAnswer(\'yes\')">'+(isEn?'Yes':'Oui')+'</button>'+
+      '</div><small style="color:var(--ink-dim);">'+(isEn?'It often shows up later — LOCUS will ask again at 3 months.':'Ça se voit souvent plus tard — LOCUS te le redemandera à 3 mois.')+'</small></div>';
+  }
+  return h;
+}
+function saveHatchBadEggs(){
+  const isEn = currentLang==='en';
+  const ctx = hatchTraitCtx; if(!ctx) return;
+  const c = (clutches||[]).find(x=>x.id===ctx.clutchId); if(!c) return;
+  const n = parseInt((document.getElementById('hatch-bad-eggs')||{}).value, 10);
+  if(isNaN(n) || n<0 || (c.eggCount!=null && n>c.eggCount)){ alert(isEn?'Enter a number between 0 and the egg count.':'Entre un nombre entre 0 et le nombre d\'œufs.'); return; }
+  c.badEggCount = n; c.updatedAt = Date.now();
+  saveElevage();
+  const ok = document.getElementById('hatch-bad-eggs-ok'); if(ok) ok.textContent = '✓';
+}
+function hatchWobbleAnswer(ans){
+  const isEn = currentLang==='en';
+  const ctx = hatchTraitCtx; if(!ctx) return;
+  const box = document.getElementById('hatch-wobble-box');
+  const today = localTodayStr();
+  const note = isEn ? 'At hatching' : 'À l\'éclosion';
+  if(ans==='yes'){
+    if(!box) return;
+    box.innerHTML = '<div style="font-size:14px;margin-bottom:6px;">🌀 '+(isEn?'Level for each baby (leave blank if not seen):':'Niveau pour chaque bébé (vide si rien vu) :')+'</div>'+
+      ctx.risky.map(id=>{ const s = savedSnakes.find(x=>x.id===id); if(!s) return ''; return '<div class="modal-row"><span style="font-size:14px;">'+escapeHtml(snakeName(s))+'</span><select class="hatch-wob-lvl" data-id="'+id+'" style="font-size:16px;padding:6px 8px;"><option value="">—</option>'+[0,1,2,3].map(l=>'<option value="'+l+'">'+traitLevelLabel('wobble',l,isEn)+'</option>').join('')+'</select></div>'; }).join('')+
+      '<p style="font-size:12px;color:var(--ink-dim);line-height:1.45;margin:6px 0;">'+escapeHtml(traitLevelHelp('wobble', isEn))+'</p>'+
+      '<button class="save-btn" style="width:100%;" onclick="saveHatchWobbleLevels()">💾 '+(isEn?'Save':'Enregistrer')+'</button>';
+    return;
+  }
+  ctx.risky.forEach(id=>{ const s = savedSnakes.find(x=>x.id===id); if(!s) return;
+    addTraitObs(s, ans==='no' ? { kind:'wobble', level:0, seen:false, date:today, note } : { kind:'wobble', level:null, seen:null, date:today, note }); });
+  storage.save(savedSnakes);
+  if(box) box.innerHTML = '<span style="font-size:14px;color:var(--sage);">✓ '+(ans==='no'?(isEn?'Noted: no wobble seen.':'Noté : aucun wobble vu.'):(isEn?'Noted: not sure yet.':'Noté : pas encore sûr.'))+'</span>';
+}
+function saveHatchWobbleLevels(){
+  const isEn = currentLang==='en';
+  const today = localTodayStr(); let n = 0;
+  document.querySelectorAll('.hatch-wob-lvl').forEach(sel=>{
+    if(sel.value==='') return;
+    const s = savedSnakes.find(x=>x.id===sel.dataset.id); if(!s) return;
+    addTraitObs(s, { kind:'wobble', level:parseInt(sel.value,10), date:today, note:(isEn?'At hatching':'À l\'éclosion') }); n++;
+  });
+  storage.save(savedSnakes);
+  const box = document.getElementById('hatch-wobble-box');
+  if(box) box.innerHTML = '<span style="font-size:14px;color:var(--sage);">✓ '+n+' '+(isEn?'observation(s) saved.':'observation(s) enregistrée(s).')+'</span>';
+}
+// Rappel unique à 3 mois (choix d'Alex) : porteurs d'un gène à wobble, 3 à 18 mois, rien noté depuis 80 jours d'âge
+function wobbleCheckDue(s){
+  if(!s || !isActiveSnake(s) || !s.birthDate) return false;
+  ensureSnakeMeta(s);
+  if(s.health.wobbleCheckDone) return false;
+  if(!snakeHasWobbleRisk(s)) return false;
+  const ageM = ageInMonths(s.birthDate);
+  if(ageM==null || ageM<3 || ageM>=18) return false;
+  const birth = new Date(String(s.birthDate).slice(0,10)+(String(s.birthDate).length>=10?'':'-01')+'T00:00:00').getTime();
+  const after = (s.health.traitObs||[]).some(o=>o.kind==='wobble' && o.level!=null && (new Date(o.date+'T00:00:00').getTime()-birth)/86400000 >= 80);
+  return !after;
+}
+function wobbleCheckNothing(id){
+  const s = savedSnakes.find(x=>x.id===id); if(!s) return;
+  addTraitObs(s, { kind:'wobble', level:0, seen:false, date:localTodayStr(), note:(currentLang==='en'?'3-month check':'Vérification à 3 mois') });
+  s.health.wobbleCheckDone = true;
+  storage.save(savedSnakes); renderHealthAlerts();
+}
+function wobbleCheckDismiss(id){
+  const s = savedSnakes.find(x=>x.id===id); if(!s) return;
+  ensureSnakeMeta(s); s.health.wobbleCheckDone = true; s.updatedAt = Date.now();
+  storage.save(savedSnakes); renderHealthAlerts();
+}
+// Vue par famille (remplace « Santé par génétique ») — seulement les traits notés, jamais une simple liste de gènes
+function lineageHealthGroups(){
+  const withObs = savedSnakes.filter(s=>Object.keys(traitLatestLevels(s)).length);
+  const pairs = {}, parents = {}, orphans = [];
+  withObs.forEach(s=>{
+    if(s.sireId && s.damId){ const k = s.sireId+'|'+s.damId; pairs[k] = true; }
+    if(s.sireId) parents[s.sireId] = true; if(s.damId) parents[s.damId] = true;
+    if(!s.sireId && !s.damId) orphans.push(s);
+  });
+  const summarize = list=>{
+    const kinds = {};
+    list.forEach(s=>{ const lv = traitLatestLevels(s); Object.keys(lv).forEach(k=>{ const d = kinds[k] = kinds[k]||{ noted:0, affected:0, sum:0 }; d.noted++; if(lv[k]>=1){ d.affected++; d.sum += lv[k]; } }); });
+    return kinds;
+  };
+  const pairOut = Object.keys(pairs).map(k=>{ const [sid,did] = k.split('|'); const kids = savedSnakes.filter(s=>s.sireId===sid && s.damId===did); return { sid, did, total:kids.length, clutches:new Set(kids.map(s=>s.clutchRef||'?')).size, kinds:summarize(kids) }; });
+  const parOut = Object.keys(parents).map(pid=>{ const kids = savedSnakes.filter(s=>s.sireId===pid || s.damId===pid); const partners = new Set(kids.map(s=>s.sireId===pid ? s.damId : s.sireId).filter(Boolean)); return { pid, total:kids.length, partners:partners.size, kinds:summarize(kids) }; }).filter(x=>x.partners>1);
+  return { pairOut, parOut, orphans };
+}
+function lineageKindsLine(kinds, total, isEn){
+  return Object.keys(kinds).map(k=>{ const d = kinds[k]; const T = TRAIT_KINDS[k]||TRAIT_KINDS.other;
+    return '<div style="font-size:13.5px;line-height:1.5;">'+T.icon+' '+escapeHtml(isEn?T.en:T.fr)+' : <b>'+d.affected+'</b> '+(isEn?'affected out of':'touché(s) sur')+' '+d.noted+' '+(isEn?'checked':'vérifié(s)')+
+      (d.affected ? ' · '+(isEn?'avg level ':'niveau moyen ')+(isEn ? String(Math.round(d.sum/d.affected*10)/10) : String(Math.round(d.sum/d.affected*10)/10).replace('.',',')) : '')+'</div>'; }).join('')+
+    (total<5 ? '<small style="color:var(--ink-dim);">'+(isEn?'Little data ('+total+' babies) — not a trend yet.':'Peu de données ('+total+' bébé(s)) — pas encore une tendance.')+'</small>' : '');
+}
+
 function addVetVisit(id){
   const isEn = currentLang==='en';
   const s = savedSnakes.find(x=>x.id===id);
@@ -12762,6 +13100,7 @@ function openLogbook(id){
       [...s.geneticNotes].sort((a,b)=>b.date.localeCompare(a.date)).map(n=>'<div class="modal-row" style="align-items:flex-start;"><span style="font-size:11.5px;line-height:1.5;">'+escapeHtml(n.text)+'<br/><small style="color:var(--ink-dim);">'+n.date+'</small></span></div>').join('')+
     '</div>' : '')+
     breedingPerformanceHtml(s)+
+    geneTraitsSectionHtml(s)+ // v4.82
     '<div class="modal-section"><h3>'+t('weightHistoryTitle')+'</h3>'+weightSparklineSvg(s.health.weights)+weightDropNoteHtml(s)+weightsHtml+growthCompareHtml+growthTrendHtml+siblingGrowthHtml(s)+'</div>'+
     '<div class="modal-section"><h3>'+t('lengthHistoryTitle')+'</h3>'+lengthsHtml+'</div>'+
     '<div class="modal-section"><h3>'+t('vetJournalTitle')+'</h3>'+
@@ -24659,6 +24998,10 @@ function renderHealthAlerts(){
   let html = '';
   if(urgent.length) html += box('#e08a63', agendaGroupHtml('health_urgent', '🚨 '+(isEn?'Priority — reptiles to watch':'Priorité — reptiles à surveiller'), urgent, 'sale-list', x=>row(x, x.risk.signals.map(sig=>sig.label).join(', ')), o));
   if(watch.length) html += box('var(--gold)', agendaGroupHtml('health_watch', '⚠ '+(isEn?'Reptiles to watch':'Reptiles à surveiller'), watch, 'sale-list', x=>row(x, x.risk.signals.map(sig=>sig.label).join(', ')), o));
+  // v4.83 — rappel unique à 3 mois pour les porteurs d'un gène à wobble
+  const wobList = savedSnakes.filter(wobbleCheckDue).map(s=>({ s }));
+  if(wobList.length) html += box('var(--gold)', agendaGroupHtml('health_wobble', '🌀 '+(isEn?'Do you see any wobble? (3-month check)':'Revois-tu du wobble ? (vérification à 3 mois)'), wobList, 'sale-list', x=>'<div class="sale-row"><div class="sale-name">'+escapeHtml(snakeName(x.s))+'<small>'+escapeHtml(summarizeGenes(x.s.genes))+'</small></div>'+
+    '<span style="display:flex;gap:4px;flex-wrap:wrap;"><button class="sc-btn" onclick="wobbleCheckNothing(\''+x.s.id+'\')">'+(isEn?'Nothing seen':'Rien vu')+'</button><button class="sc-btn accent" onclick="openTraitObsModal(\''+x.s.id+'\',\'wobble\')">🌀 '+(isEn?'Log':'Noter')+'</button><button class="sc-btn" title="'+(isEn?'Don\'t ask again':'Ne plus demander')+'" onclick="wobbleCheckDismiss(\''+x.s.id+'\')">✕</button></span></div>', o));
   if(weighList.length) html += box('var(--line)', agendaGroupHtml('health_weigh', '⚖️ '+(isEn?'Weigh reminder':'Rappel de pesée'), weighList, 'sale-list', x=>row(x, x.why), o));
   wrap.innerHTML = html;
 }
@@ -26533,7 +26876,7 @@ function showHatchUndoModal(clutchId, createdIds, count, ref, sireId, damId){
     isEn
       ? '<p style="font-size:12.5px;color:var(--ink-dim);line-height:1.6;margin:0 0 14px;">Records <b>'+ref+'-01</b> to <b>'+ref+'-'+String(count).padStart(2,'0')+'</b> created with the exact genetics from the draw. Sex not set — remember to sex them and add photos. Genetics stay marked <b style="color:#d8bb46;">"to verify"</b> until visually confirmed on each record.</p>'
       : '<p style="font-size:12.5px;color:var(--ink-dim);line-height:1.6;margin:0 0 14px;">Fiches <b>'+ref+'-01</b> à <b>'+ref+'-'+String(count).padStart(2,'0')+'</b> créées avec la génétique exacte du tirage. Sexe non défini — pense à sexer et ajouter des photos. La génétique reste marquée <b style="color:#d8bb46;">« à vérifier »</b> jusqu\'à confirmation visuelle sur chaque fiche.</p>'
-      + waitlistMatchesHtml,
+      + waitlistMatchesHtml + (function(){ try{ return hatchTraitsHtml(clutchId, createdIds); }catch(e){ return ''; } })(),
     '<div style="display:flex;gap:8px;">'+
       '<button class="save-btn" style="flex:1;" onclick="closeQuickModal();">'+(isEn?'OK, continue':'OK, continuer')+'</button>'+
       '<button class="sc-btn danger" onclick="undoHatchCreation(\''+clutchId+'\', '+JSON.stringify(createdIds).replace(/"/g,'&quot;')+')">↩ '+(isEn?'Undo this creation':'Annuler cette création')+'</button>'+
