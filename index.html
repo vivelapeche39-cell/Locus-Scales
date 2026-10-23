@@ -2241,7 +2241,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.98';
+const APP_VERSION = '2026.09.01.4.99';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5284,6 +5284,17 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.99', date:'2026-10-23',
+    title:{ fr:'Éclosion : nombre d\'éclos, 0 possible, et couples normaux', en:'Hatching: hatched count, 0 allowed, and normal pairs' },
+    changes:{
+      fr:[ '🐣 « Marquer éclos » demande maintenant combien d\'œufs ont éclos (0 possible) : seuls ces bébés reçoivent une fiche, le reste compte comme œufs non viables. À 0, la ponte est simplement fermée.',
+           '🐍 Un couple sans aucun gène (normal × normal) crée maintenant ses bébés normalement — avant, le calculateur affichait « choisis un gène » et rien n\'était créé.',
+           '✕ Dans Portées, un accouplement en cours peut être terminé sans portée (bouton ✕) : il sort des suggestions et du Mode Verrou, son historique de locks est gardé.' ],
+      en:[ '🐣 « Mark hatched » now asks how many eggs hatched (0 allowed): only those babies get a record, the rest count as non-viable eggs. At 0, the clutch is simply closed.',
+           '🐍 A pair with no genes at all (normal × normal) now creates its babies normally — before, the calculator showed « pick a gene » and nothing was created.',
+           '✕ In Clutches, a pairing in progress can be ended without a clutch (✕ button): it leaves the suggestions and Lock mode, its lock history is kept.' ]
+    }
+  },
   { version:'4.98', date:'2026-10-23',
     title:{ fr:'Portée : vérification du couple', en:'Clutch: pair check' },
     changes:{
@@ -10079,7 +10090,7 @@ function snakeLastWeight(s){
 // après la date d'accouplement), ou s'il est « non retenu ». Avant, seule l'ovulation confirmée le sortait du Mode Verrou.
 function pairingIsDone(p){
   if(!p) return true;
-  if(p.ovulationConfirmed || p.outcome==='notSelected') return true;
+  if(p.ovulationConfirmed || p.outcome==='notSelected' || p.endedNoClutch) return true; // v4.99 — ✕ = terminé sans portée
   try{ return (clutches||[]).some(c=>c.pairingId===p.id || (c.damId===p.femaleId && c.sireId===p.maleId && p.pairedDate && c.layDate && String(c.layDate)>=String(p.pairedDate))); }catch(e){ return false; }
 }
 function activePairingsList(){ try{ return Array.isArray(pairings) ? pairings : []; }catch(e){ return []; } }
@@ -26740,11 +26751,20 @@ function renderClutchForm(){
 }
 // v4.95 — demande d'Alex : les accouplements en cours (Mode Verrou / Calendrier) sont proposés dans Portées.
 // Toucher un couple pré-remplit le formulaire et relie la portée à cet accouplement (createClutchFromPairing).
+function endPairingNoClutch(id){
+  const isEn = currentLang==='en';
+  const p = pairings.find(x=>x.id===id); if(!p) return;
+  const nm = sid=>{ const x = savedSnakes.find(y=>y.id===sid); return x ? snakeName(x) : '?'; };
+  if(!confirm(isEn ? 'End '+nm(p.maleId)+' × '+nm(p.femaleId)+' without a clutch? It leaves the suggestions and Lock mode; its lock history is kept.' : 'Terminer '+nm(p.maleId)+' × '+nm(p.femaleId)+' sans portée ? Il sort des suggestions et du Mode Verrou ; son historique de locks est gardé.')) return;
+  p.endedNoClutch = true; p.endedNoClutchDate = localTodayStr(); p.updatedAt = Date.now();
+  saveElevage(); renderClutchPairingSuggest(); try{ renderLockModeGrid(); }catch(e){}
+  showToast('✓ '+(isEn?'Pairing ended.':'Accouplement terminé.'), 'success');
+}
 function renderClutchPairingSuggest(){
   const isEn = currentLang==='en';
   const box = document.getElementById('clutch-pairing-suggest'); if(!box) return;
   const live = pairings.filter(p=>{
-    if(p.outcome==='notSelected') return false;
+    if(p.outcome==='notSelected' || p.endedNoClutch) return false;
     if(clutches.some(c=>c.pairingId===p.id)) return false;
     const m = savedSnakes.find(x=>x.id===p.maleId), f = savedSnakes.find(x=>x.id===p.femaleId);
     return m && f && isActiveSnake(f);
@@ -26756,9 +26776,10 @@ function renderClutchPairingSuggest(){
     '<div style="font-size:15px;color:var(--ink);margin-bottom:6px;">💞 <b>'+(isEn?'Pairings in progress':'Accouplements en cours')+'</b> ('+live.length+') <small style="color:var(--ink-dim);">— '+(isEn?'tap one to log its clutch':'touche-en un pour noter sa portée')+'</small></div>'+
     '<div style="max-height:38vh;overflow-y:auto;padding-right:4px;">'+
     live.map(p=>{ const locks = (p.lockDates||[]).length, d = days(p.pairedDate);
-      return '<button type="button" onclick="createClutchFromPairing(\''+p.id+'\')" style="display:block;width:100%;text-align:left;margin:0 0 5px;padding:8px 10px;border-radius:9px;border:1px solid var(--line);background:var(--bg-panel-2);color:var(--ink);cursor:pointer;line-height:1.35;'+(pendingPairingIdForClutch===p.id?'border:2px solid var(--gold);':'')+'">'+
+      return '<div style="display:flex;gap:6px;align-items:stretch;margin:0 0 5px;"><button type="button" onclick="createClutchFromPairing(\''+p.id+'\')" style="flex:1;min-width:0;display:block;text-align:left;margin:0;padding:8px 10px;border-radius:9px;border:1px solid var(--line);background:var(--bg-panel-2);color:var(--ink);cursor:pointer;line-height:1.35;'+(pendingPairingIdForClutch===p.id?'border:2px solid var(--gold);':'')+'">'+
         '<span style="font-size:15px;">♂ <b>'+escapeHtml(nm(p.maleId))+'</b> × ♀ <b>'+escapeHtml(nm(p.femaleId))+'</b></span><br/>'+
-        '<small style="color:var(--ink-dim);font-size:12.5px;">'+(d!=null?(isEn?'since ':'depuis ')+d+(isEn?' d':' j'):'')+' · 🔒 '+locks+' lock'+(locks>1?'s':'')+(p.ovulationConfirmed?' · '+(isEn?'ovulation ✓':'ovulation ✓'):'')+'</small></button>'; }).join('')+
+        '<small style="color:var(--ink-dim);font-size:12.5px;">'+(d!=null?(isEn?'since ':'depuis ')+d+(isEn?' d':' j'):'')+' · 🔒 '+locks+' lock'+(locks>1?'s':'')+(p.ovulationConfirmed?' · '+(isEn?'ovulation ✓':'ovulation ✓'):'')+'</small></button>'+
+        '<button type="button" class="sc-btn danger" style="min-width:44px;font-size:18px;" title="'+(isEn?'End this pairing without a clutch':'Terminer cet accouplement sans portée')+'" onclick="endPairingNoClutch(\''+p.id+'\')">✕</button></div>'; }).join('')+
     '</div></div>';
 }
 // Amorce le formulaire de ponte depuis une fiche d'accouplement (2 septembre) — pré-remplit
@@ -27096,8 +27117,25 @@ function markClutchHatched(id){
   // Ovovivipare (2 septembre) — pas de nombre d'œufs connu d'avance, on le demande maintenant
   // (nés vivants / mort-nés / slugs) plutôt qu'un simple oui/non comme pour une ponte ovipare.
   if(c.mode==='ovovivipare'){ openBirthCountsModal(id); return; }
-  if(!confirm(t('markHatchedConfirm').replace('__REF__', c.ref).replace('__COUNT__', c.eggCount))) return;
-  proceedWithClutchBirth(id);
+  // v4.99 — on demande combien ont éclos (0 possible) au lieu d'un simple OK : le reste = œufs non viables
+  showQuickModal('🐣 '+(isEn?'Hatching — ':'Éclosion — ')+c.ref,
+    '<p style="font-size:14px;line-height:1.5;margin:0 0 10px;">'+(isEn?'How many eggs hatched? ':'Combien d\'œufs ont éclos ? ')+'<small style="color:var(--ink-dim);">('+(isEn?'clutch of ':'ponte de ')+c.eggCount+(isEn?' eggs — the rest are counted as non-viable':' œufs — le reste compte comme non viables')+')</small></p>'+
+    '<input type="number" id="hatch-count-input" min="0" max="'+c.eggCount+'" value="'+c.eggCount+'" style="width:110px;font-size:20px;padding:8px 10px;margin-bottom:12px;"/>'+
+    '<button class="save-btn" style="width:100%;" onclick="confirmHatchCount(\''+c.id+'\')">🐣 '+(isEn?'Confirm':'Confirmer')+'</button>');
+}
+function confirmHatchCount(id){
+  const isEn = currentLang==='en';
+  const c = clutches.find(x=>x.id===id); if(!c) return;
+  const n = parseInt((document.getElementById('hatch-count-input')||{}).value, 10);
+  if(isNaN(n) || n<0 || n>c.eggCount){ alert(isEn?'Enter a number between 0 and '+c.eggCount+'.':'Entre un nombre entre 0 et '+c.eggCount+'.'); return; }
+  c.badEggCount = c.eggCount - n; c.updatedAt = Date.now();
+  closeQuickModal();
+  if(n===0){
+    c.hatched = true; c.hatchedAt = localTodayStr(); saveElevage(); renderClutches();
+    showToast('🥚 '+(isEn?'Clutch closed: no egg hatched.':'Ponte fermée : aucun œuf n\'a éclos.'), 'info');
+    return;
+  }
+  proceedWithClutchBirth(id, n);
 }
 // Modale de mise bas pour une portée ovovivipare — collecte les 3 compteurs distincts (voir
 // discussion boa : les "slugs" sont des œufs non fécondés, distincts des vrais mort-nés).
@@ -27131,12 +27169,27 @@ function confirmBirthCounts(id){
   closeQuickModal();
   proceedWithClutchBirth(id);
 }
-function proceedWithClutchBirth(id){
+function proceedWithClutchBirth(id, hatchedCount){
   const isEn = currentLang==='en';
   const c = clutches.find(x=>x.id===id);
   if(!c) return;
   const sire = savedSnakes.find(s=>s.id===c.sireId), dam = savedSnakes.find(s=>s.id===c.damId);
   if(!sire || !dam){ alert(t('parentDeletedAlert')); return; }
+  const nBabies = (hatchedCount!=null && hatchedCount>=0) ? hatchedCount : c.eggCount; // v4.99
+  // v4.99 — parents sans aucun gène (normal × normal) : le calculateur n'a rien à calculer (il affichait « choisis un gène »
+  // et ne créait pas les bébés) → bébés normaux créés directement.
+  if(!Object.keys(sire.genes||{}).length && !Object.keys(dam.genes||{}).length){
+    const today0 = localTodayStr(); const created0 = [];
+    for(let i=0;i<nBabies;i++){
+      const snake = { id:'snk_'+Date.now()+'_'+Math.random().toString(36).slice(2,6), name:c.ref+'-'+String(i+1).padStart(2,'0'), sex:null, genes:{}, sireId:c.sireId, damId:c.damId, candidateSireIds:c.candidateSireIds||null, birthDate:today0, clutchRef:c.ref, genesVerified:false, createdAt:Date.now(), species:(dam.species||sire.species||'ball_python') };
+      ensureSnakeMeta(snake); savedSnakes.push(snake); created0.push(snake);
+    }
+    storage.save(savedSnakes); renderSavedList();
+    c.hatched = true; c.hatchedAt = today0; saveElevage(); renderClutches();
+    try{ renderLastYearReference(); }catch(e){}
+    showHatchUndoModal(c.id, created0.map(s=>s.id), created0.length, c.ref, c.sireId, c.damId);
+    return;
+  }
 
   // Charge les parents dans le calculateur et calcule le croisement
   state.male = {...sire.genes};
@@ -27147,13 +27200,13 @@ function proceedWithClutchBirth(id){
 
   // Applique le nombre d'œufs réel de la portée (plafonné à l'échelle du simulateur, 1-12) puis simule
   const eggSel = document.getElementById('egg-count');
-  const clamped = Math.max(1, Math.min(12, c.eggCount));
+  const clamped = Math.max(1, Math.min(12, nBabies));
   eggSel.value = clamped;
   simulateClutch();
-  if(c.eggCount>12){
+  if(nBabies>12){
     document.getElementById('clutch-caption').textContent = isEn
-      ? 'Clutch of '+c.eggCount+' eggs — 12 records auto-created (simulator limit), add the rest manually in "My reptiles".'
-      : 'Portée de '+c.eggCount+' œufs — 12 fiches auto-créées (limite du simulateur), ajoute les suivantes manuellement dans « Mes reptiles ».';
+      ? 'Clutch of '+nBabies+' babies — 12 records auto-created (simulator limit), add the rest manually in "My reptiles".'
+      : 'Portée de '+nBabies+' bébés — 12 fiches auto-créées (limite du simulateur), ajoute les suivantes manuellement dans « Mes reptiles ».';
   }
 
   const today = localTodayStr();
@@ -27161,7 +27214,7 @@ function proceedWithClutchBirth(id){
   // Auto-création d'une fiche par œuf, génétique exacte reprise du tirage — sexe laissé "non sexé"
   // (le sexage réel se fait à la manipulation, pas à l'éclosion, sauf cas Male/Female Maker qui reste indicatif).
   const created = [];
-  lastClutchEggs.forEach((egg, i)=>{
+  lastClutchEggs.slice(0, nBabies).forEach((egg, i)=>{ // v4.99 — seulement les œufs éclos
     const genesDict = {...egg.genotype};
     lastFreewayLoci.forEach(locus=>{ genesDict['freeway__'+locus] = 'freeway'; });
     // Un gène "Possible" chez le parent reste incertain chez le bébé : on ne recalcule pas ici de
