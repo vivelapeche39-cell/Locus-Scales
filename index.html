@@ -1434,6 +1434,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <button class="sc-btn accent" style="margin-bottom:14px;" onclick="openMaintenanceJournal('all')">📒 <span data-i18n="maintenanceJournalBtn">Journal d'entretien</span></button>
       <!-- v3.75 — entretien en lot directement sur la page (même principe que le Mode Tournée) : pastille d'action → toucher les bacs/terrariums → Enregistrer. Rendu en JS (FR/EN). -->
       <div id="maint-bar" style="margin-bottom:10px;"></div>
+      <div id="unplaced-block"></div>
       <div id="racks-terrariums-wrap">
         <div class="elevage-block" id="block-racks">
           <div class="section-line-head">
@@ -1559,6 +1560,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <button class="sc-btn" id="rodent-multiselect-toggle-btn" style="margin-bottom:14px;margin-left:8px;" onclick="toggleRodentMultiSelectMode()" data-i18n="rodentMultiSelectBtn">☑️ Sélection multiple</button>
       <button class="sc-btn" id="rodent-selectall-btn" style="display:none;margin-bottom:14px;margin-left:8px;" onclick="selectAllEmptyRodentSlots()" data-i18n="rodentSelectAllBtn">☑️ Tout sélectionner</button>
       <button class="sc-btn" style="margin-bottom:14px;margin-left:8px;" onclick="openRodentLineageDirectoryModal()" data-i18n="rodentLineageDirectoryBtn">📋 Toutes les lignées</button>
+      <button class="sc-btn" style="margin-bottom:14px;margin-left:8px;" onclick="openRodentLineageHelp()" data-i18n="rodentLineageHelpBtn">❓ Comment marchent les lignées</button>
       <div id="rodent-multiselect-actionbar" style="display:none;margin-bottom:10px;"></div>
       <div id="rodent-racks-container"></div>
       <h3 style="font-size:14px;margin:18px 0 6px;color:var(--ink);" data-i18n="rodentStockSectionTitle">🐭 Bacs (détail et bacs Stock)</h3>
@@ -2235,7 +2237,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.78';
+const APP_VERSION = '2026.09.01.4.80';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5265,6 +5267,20 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.80', date:'2026-10-23',
+    title:{ fr:'Aide : comment marchent les lignées de rongeurs', en:'Help: how rodent lineages work' },
+    changes:{
+      fr:[ '❓ Nouveau bouton « Comment marchent les lignées » dans l\'onglet Rongeurs : une fiche courte en 7 points avec exemples (1 bac = 1 lignée, lire « 3.2b », quand la lettre ou la génération avance, lignées apparentées, avertissement de consanguinité, limites). Un petit ❓ à côté du code de lignée, des « Lignées apparentées » et de l\'avertissement ⚠️ ouvre directement la bonne section. Fait partie de la gestion des rongeurs : réservé au même palier qu\'elle après la bêta.' ],
+      en:[ '❓ New « How lineages work » button in the Rodents tab: a short 7-point sheet with examples (1 bin = 1 lineage, reading « 3.2b », when the letter or generation advances, related lineages, inbreeding warning, limits). A small ❓ next to the lineage code, « Related lineages » and the ⚠️ warning opens the right section directly. Part of rodent management: reserved for the same tier after the beta.' ]
+    }
+  },
+  { version:'4.79', date:'2026-10-23',
+    title:{ fr:'Animaux non assignés : leur propre section', en:'Unassigned animals: their own section' },
+    changes:{
+      fr:[ '📦 Les animaux qui ne sont dans aucun bac ni terrarium ont maintenant leur propre bloc « Non assignés » au-dessus des racks, au lieu d\'apparaître dans la section Terrariums comme s\'ils y étaient. Bouton « 📍 Placer » sur chacun (n\'importe quel bac vide ou terrarium libre) et « ⚡ Placer en enchaînement » qui part du premier bac vide.' ],
+      en:[ '📦 Animals that are in no tub and no terrarium now have their own « Not assigned » block above the racks, instead of showing in the Terrariums section as if they were in one. A « 📍 Place » button on each (any empty tub or free terrarium) and « ⚡ Place in a row » starting from the first empty tub.' ]
+    }
+  },
   { version:'4.78', date:'2026-10-22',
     title:{ fr:'Placer en enchaînement', en:'Chain placing' },
     changes:{
@@ -6696,6 +6712,7 @@ const I18N = {
     rodentMultiSelectBtn: '☑️ Sélection multiple',
     rodentSelectAllBtn: '☑️ Tout sélectionner',
     rodentLineageDirectoryBtn: '📋 Toutes les lignées',
+    rodentLineageHelpBtn: '❓ Comment marchent les lignées',
     subObjectif: '🎯 Objectif',
     subLockMode: '🔒 Mode Verrou',
     lockModeHint: 'Tape un accouplement actif pour noter un lock observé aujourd\'hui — même principe que Mode Tournée, mais pour la vérification des locks plutôt que les repas.',
@@ -7278,6 +7295,7 @@ const I18N = {
     rodentMultiSelectBtn: '☑️ Multi-select',
     rodentSelectAllBtn: '☑️ Select all',
     rodentLineageDirectoryBtn: '📋 All lineages',
+    rodentLineageHelpBtn: '❓ How lineages work',
     subObjectif: '🎯 Goal',
     subLockMode: '🔒 Lock Mode',
     lockModeHint: 'Tap an active pairing to log a lock observed today — same principle as Tour Mode, but for checking locks rather than meals.',
@@ -20152,7 +20170,7 @@ function rodentReproBinCardHtml(bin, isEn){
       : '<div class="modal-row"><span>'+(isEn?'No litter logged yet.':'Aucune portée enregistrée.')+'</span></div>';
     return (
       '<div class="clutch-ref">'+escapeHtml(bin.label)+
-        (bin.lineageNumber!=null ? ' <span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--gold);cursor:pointer;" title="'+(isEn?'Click to rename this lineage':'Clique pour renommer cette lignée')+'" onclick="renameRodentLineage(\''+bin.id+'\')">🧬 '+escapeHtml(rodentLineageCode(bin))+' ✎</span>'+
+        (bin.lineageNumber!=null ? ' <span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--gold);cursor:pointer;" title="'+(isEn?'Click to rename this lineage':'Clique pour renommer cette lignée')+'" onclick="renameRodentLineage(\''+bin.id+'\')">🧬 '+escapeHtml(rodentLineageCode(bin))+' ✎</span>'+rodentHelpQ('code', isEn)+
           ' <button class="sc-btn" style="padding:1px 6px;font-size:9.5px;" title="'+(isEn?'Male replaced / bin aging':'Mâle remplacé / vieillissement du bac')+'" onclick="openRodentLineageLetterModal(\''+bin.id+'\')">🔄</button>'+
           ' <button class="sc-btn" style="padding:1px 6px;font-size:9.5px;" title="'+(isEn?'Lineage history':'Historique de la lignée')+'" onclick="openRodentLineageHistoryModal(\''+bin.id+'\')">🕒</button>'+
           ' <button class="sc-btn" style="padding:1px 6px;font-size:9.5px;" title="'+(isEn?'Move male/female to another bin':'Déplacer un mâle/une femelle vers un autre bac')+'" onclick="openRodentMoveAnimalModal(\''+bin.id+'\')">↔️</button>'
@@ -20161,7 +20179,7 @@ function rodentReproBinCardHtml(bin, isEn){
       '<div class="clutch-body">'+
         mrow(isEn?'Species':'Espèce', rodentSpeciesIconLabel(bin.species, isEn))+
         mrow(isEn?'Ratio':'Ratio', bin.ratio ? escapeHtml(bin.ratio) : (bin.ratioBadFromImport ? '<span style="color:var(--rust);">'+(isEn?'to fix (unreadable in the import)':'à corriger (illisible à l\'import)')+'</span>' : '—'))+
-        (bin.cumulativeFootprint && bin.cumulativeFootprint.length ? mrow(isEn?'Related lineages':'Lignées apparentées', bin.cumulativeFootprint.map(e=>e.number+'.'+e.generation).join(', ')) : '')+
+        (bin.cumulativeFootprint && bin.cumulativeFootprint.length ? mrow((isEn?'Related lineages':'Lignées apparentées')+rodentHelpQ('footprint', isEn), bin.cumulativeFootprint.map(e=>e.number+'.'+e.generation).join(', ')) : '')+
         (function(){ const n = rodentBinNoteParts(bin); return (n.warn ? '<div class="modal-row"><span style="color:var(--rust);">⚠️ '+(isEn?'Not independent: ':'Pas indépendante : ')+escapeHtml(n.warn)+'</span></div>' : '')+(n.info ? '<div class="modal-row"><span style="color:var(--ink-dim);">📝 '+escapeHtml(n.info)+'</span></div>' : ''); })()+
         (bin.room ? mrow(isEn?'Room':'Pièce', escapeHtml(bin.room)) : '')+
         mrow(isEn?'Male':'Mâle', bin.maleRemovedDate
@@ -20826,6 +20844,39 @@ function rodentSexeGroupeLabel(sexeGroupe, isEn){
 // change ou que le bac est renouvelé pour vieillissement (jamais pour un changement de femelle
 // seule — voir mémoire pour le raisonnement complet). La lettre elle-même et le chaînage entre
 // lettres liées arrivent en Phase 2 ; ici, juste l'identité de base et le renommage manuel.
+// v4.80 — fiche d'aide « Comment marchent les lignées » (demande d'Alex : consultation rapide, même pour lui).
+// Décrit EXACTEMENT ce que le code fait (rodentLineageCode, nextRodentLetter, confirmRodentLineageLetterIncrement,
+// rodentBinFootprint, rodentFootprintConflict) — à garder synchronisé si cette logique change.
+function rodentHelpQ(section, isEn){
+  return ' <button type="button" class="sc-btn" style="padding:0 7px;font-size:11px;line-height:18px;border-radius:50%;" title="'+(isEn?'How lineages work':'Comment marchent les lignées')+'" onclick="event.stopPropagation();openRodentLineageHelp(\''+section+'\')">❓</button>';
+}
+function openRodentLineageHelp(section){
+  const isEn = currentLang==='en';
+  const S = (id, title, body, ex) => '<div id="rlh-'+id+'" style="border:1px solid '+(section===id?'var(--gold)':'var(--line)')+';border-radius:10px;padding:10px 12px;margin-bottom:10px;">'+
+    '<div style="font-size:15px;font-weight:700;color:var(--gold);margin-bottom:4px;">'+title+'</div>'+
+    '<div style="font-size:14px;line-height:1.5;color:var(--ink);">'+body+'</div>'+
+    (ex ? '<div style="font-size:13px;line-height:1.5;color:var(--ink-dim);margin-top:6px;padding-left:8px;border-left:2px solid var(--line);">'+(isEn?'Example: ':'Exemple : ')+ex+'</div>' : '')+'</div>';
+  const fr = [
+    S('base','1. Un bac = une lignée', 'Chaque bac Reproduction reçoit un numéro de lignée de 1 à 100, donné automatiquement (le premier numéro libre). Les bacs Stock / Croissance n\'ont pas de lignée.', 'tu crées ton premier bac → lignée 1, le suivant → lignée 2.'),
+    S('code','2. Lire le code « 3.2b »', '<b>3</b> = le numéro de la lignée (tu peux le renommer, ex. « Albinos » ; le reste du code reste automatique). <b>.2</b> = la génération. <b>b</b> = la lettre : combien de fois le mâle a été remplacé dans cette génération (aucune lettre = mâle d\'origine).', '3.1 → 3.1a (1er mâle remplacé) → 3.1b (2e mâle remplacé).'),
+    S('letter','3. Quand la lettre avance', 'Bouton 🔄 du bac, réponse « Oui, les femelles restent les mêmes ». C\'est un remplacement de mâle seulement : même génération, lettre suivante. Les femelles étant les mêmes, la lignée reste liée à avant.', '2.1 + nouveau mâle, mêmes femelles → 2.1a.'),
+    S('generation','4. Quand la génération avance', 'Bouton 🔄 du bac, réponse « Non, les femelles sont différentes » (reset complet, typiquement au vieillissement du bac). La génération monte de 1 et la lettre disparaît. C\'est le SEUL moment où LOCUS considère que le lien de parenté est vraiment coupé. LOCUS ne le fait jamais tout seul : c\'est toi qui le déclares.', '2.1b + mâle ET femelles remplacés → 2.2.'),
+    S('footprint','5. Les lignées apparentées (empreinte)', 'Quand tu crées un bac avec des femelles venant d\'autres bacs, ou que tu déplaces un animal avec ↔️, le bac garde la liste des lignées d\'où viennent ses animaux (numéro + génération). C\'est la ligne « Lignées apparentées » du bac. Elle s\'additionne : les femelles apportent aussi les lignées de leur propre bac.', 'femelles du bac 1 (1.1) mises dans un nouveau bac → il devient 4.1 avec « Lignées apparentées : 1.1 ».'),
+    S('inbreeding','6. L\'avertissement de consanguinité ⚠️', 'Quand tu choisis d\'où vient un mâle, LOCUS regarde la lignée de son bac d\'origine. Si ce même numéro ET cette même génération sont dans l\'empreinte du bac qui le reçoit, il affiche ⚠️ (ex. frère et sœurs). Si la génération du bac d\'origine a avancé depuis, ce n\'est plus considéré comme apparenté. C\'est un avertissement, jamais un blocage : tu peux confirmer quand même.', 'bac 4.1 (empreinte 1.1) + mâle du bac 1 encore en 1.1 → ⚠️. Si le bac 1 est passé à 1.2 → aucun avertissement.'),
+    S('limits','7. Ce que LOCUS ne sait pas', 'LOCUS ne connaît que ce que tu lui dis : un mâle noté « Externe » n\'a aucun lien connu, et un bac d\'origine supprimé est traité par prudence comme apparenté. Il ne calcule pas de pourcentage de consanguinité pour les rongeurs (seulement pour les reptiles) et ne lit pas la génétique de couleur.', ''),
+  ].join('');
+  const en = [
+    S('base','1. One bin = one lineage', 'Each Breeding bin gets a lineage number from 1 to 100, given automatically (the first free number). Stock / Grow-out bins have no lineage.', 'your first bin → lineage 1, the next one → lineage 2.'),
+    S('code','2. Reading the code « 3.2b »', '<b>3</b> = the lineage number (you can rename it, e.g. « Albino »; the rest of the code stays automatic). <b>.2</b> = the generation. <b>b</b> = the letter: how many times the male was replaced in this generation (no letter = original male).', '3.1 → 3.1a (1st male replaced) → 3.1b (2nd male replaced).'),
+    S('letter','3. When the letter advances', 'The bin\'s 🔄 button, answer « Yes, the females stay the same ». It\'s a male replacement only: same generation, next letter. Since the females are the same, the lineage stays linked to before.', '2.1 + new male, same females → 2.1a.'),
+    S('generation','4. When the generation advances', 'The bin\'s 🔄 button, answer « No, the females are different » (full reset, usually when the bin ages out). The generation goes up by 1 and the letter goes away. It\'s the ONLY time LOCUS considers the family link truly broken. LOCUS never does it on its own: you declare it.', '2.1b + male AND females replaced → 2.2.'),
+    S('footprint','5. Related lineages (footprint)', 'When you create a bin with females from other bins, or move an animal with ↔️, the bin keeps the list of lineages its animals come from (number + generation). That\'s the bin\'s « Related lineages » line. It adds up: females also bring the lineages of their own bin.', 'females from bin 1 (1.1) put in a new bin → it becomes 4.1 with « Related lineages: 1.1 ».'),
+    S('inbreeding','6. The inbreeding warning ⚠️', 'When you pick where a male comes from, LOCUS looks at his source bin\'s lineage. If that same number AND that same generation are in the receiving bin\'s footprint, it shows ⚠️ (e.g. brother and sisters). If the source bin\'s generation has moved on since, it\'s no longer considered related. It\'s a warning, never a block: you can confirm anyway.', 'bin 4.1 (footprint 1.1) + male from bin 1 still at 1.1 → ⚠️. If bin 1 moved to 1.2 → no warning.'),
+    S('limits','7. What LOCUS doesn\'t know', 'LOCUS only knows what you tell it: a male marked « External » has no known link, and a deleted source bin is treated as related, to be safe. It doesn\'t compute an inbreeding percentage for rodents (only for reptiles) and doesn\'t read color genetics.', ''),
+  ].join('');
+  showQuickModal('🧬 '+(isEn?'How lineages work':'Comment marchent les lignées'), isEn ? en : fr);
+  if(section){ setTimeout(()=>{ const el = document.getElementById('rlh-'+section); if(el && el.scrollIntoView) el.scrollIntoView({block:'start'}); }, 60); }
+}
 function rodentLineageCode(bin){
   const base = bin.lineageCustomName || String(bin.lineageNumber);
   const gen = bin.lineageGeneration || 1;
@@ -21261,7 +21312,7 @@ function rodentFootprintConflict(footprint, candidateNumber){
 // autrement : un encadré qui se met à jour à chaque changement de choix, directement dans la modale.
 function rodentConflictPreviewHtml(hasConflict, isEn){
   return hasConflict
-    ? '<p style="background:rgba(163,77,44,.15);border:1px solid var(--rust);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--rust);margin:0 0 10px;">⚠️ '+(isEn?'This male shares a lineage with the selected females.':'Ce mâle partage une lignée avec les femelles choisies.')+'</p>'
+    ? '<p style="background:rgba(163,77,44,.15);border:1px solid var(--rust);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--rust);margin:0 0 10px;">⚠️ '+(isEn?'This male shares a lineage with the selected females.':'Ce mâle partage une lignée avec les femelles choisies.')+rodentHelpQ('inbreeding', isEn)+'</p>'
     : '<p style="background:rgba(124,131,99,.15);border:1px solid var(--sage);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--sage);margin:0 0 10px;">✓ '+(isEn?'No conflict detected.':'Aucun conflit détecté.')+'</p>';
 }
 function updateRodentSlotConflictPreview(){
@@ -22464,7 +22515,7 @@ function setMaintMode(mode){
 }
 // ==================== v4.45 — rangement des animaux (placement en lot, déplacer, rangement auto) ====================
 // Gratuit (décision d'Alex, 22 oct). Un animal « à classer » = mode terrarium sans terrarium.
-function snakeIsUnplaced(s){ ensureSnakeMeta(s); return s.placement.mode==='terrarium' && !s.placement.terrariumId; }
+function snakeIsUnplaced(s){ ensureSnakeMeta(s); return (s.placement.mode==='terrarium' && !s.placement.terrariumId) || (s.placement.mode==='rack' && (!s.placement.rackId || !s.placement.row || !s.placement.tub)); } // v4.79 — rack sans rangée/bac = nulle part non plus — ni bac ni terrarium, peu importe le mode enregistré
 function snakeIsActiveForPlacement(s){ return !['sold','deceased'].includes(s.status); }
 // Identifiant d'emplacement lisible, repris à l'export et compris à l'import : « Rack A-R2-B5 » ou le nom du terrarium.
 function placementCode(s){
@@ -23505,6 +23556,49 @@ function confirmTubPick(snakeId){
   showToast('📍 '+snakeName(s)+(isEn?' placed.':' placé(e).'), 'success');
   openNextTubPick(tg);
 }
+function firstEmptyTub(){
+  const list = racksOrdered().filter(r=>!r.hidden);
+  for(const rk of list){ const rows = rk.rows||[]; for(let r=1;r<=rows.length;r++) for(let b=1;b<=(rows[r-1]||0);b++) if(!tubIsTaken(rk.id,r,b)) return { rackId:rk.id, row:r, tub:b }; }
+  return null;
+}
+function startTubChain(){
+  const isEn = currentLang==='en';
+  const f = firstEmptyTub();
+  if(!f){ showToast(isEn?'No empty tub in your racks — add a rack or a terrarium.':'Aucun bac vide dans tes racks — ajoute un rack ou un terrarium.', 'info'); return; }
+  assignToTub(f.rackId, f.row, f.tub);
+}
+// v4.79 — « Placer » un animal non assigné : choisir un bac vide (n'importe quel rack) ou un terrarium
+function openPlaceChoice(snakeId){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===snakeId); if(!s) return;
+  let opts = '';
+  racksOrdered().filter(r=>!r.hidden).forEach(rk=>{ const rows = rk.rows||[]; for(let r=1;r<=rows.length;r++) for(let b=1;b<=(rows[r-1]||0);b++) if(!tubIsTaken(rk.id,r,b)) opts += '<option value="tub|'+rk.id+'|'+r+'|'+b+'">🗄️ '+escapeHtml(rk.name)+' — '+(isEn?'Row ':'Rangée ')+r+(isEn?' / Tub ':' / Bac ')+b+'</option>'; });
+  terrariums.forEach(te=>{ const occ = terrariumOccupants(te.id); if(occ.length < terrariumCapacity(te)) opts += '<option value="te|'+te.id+'">🏠 '+escapeHtml(te.name)+(occ.length?' — '+escapeHtml(occ.map(x=>snakeName(x)).join(', ')):(isEn?' — empty':' — vide'))+'</option>'; });
+  if(!opts){ alert(isEn?'No free tub or terrarium — add a rack or a terrarium first.':'Aucun bac ni terrarium libre — ajoute d\'abord un rack ou un terrarium.'); return; }
+  const body = '<select id="place-choice-select" style="width:100%;font-size:16px;padding:9px 10px;margin-bottom:12px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+opts+'</select>'+
+    '<button class="sc-btn accent" style="width:100%;font-size:15px;" onclick="confirmPlaceChoice(\''+snakeId+'\')">📍 '+(isEn?'Place here':'Placer ici')+'</button>';
+  showQuickModal((isEn?'Place ':'Placer ')+snakeName(s), body);
+}
+function confirmPlaceChoice(snakeId){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===snakeId); const v = (document.getElementById('place-choice-select')||{}).value || '';
+  if(!s || !v) return;
+  ensureSnakeMeta(s);
+  const p = v.split('|');
+  if(p[0]==='tub'){
+    if(tubIsTaken(p[1], +p[2], +p[3])){ alert(isEn?'This tub is already taken.':'Ce bac est déjà occupé.'); return; }
+    s.placement = { mode:'rack', rackId:p[1], row:+p[2], tub:+p[3] };
+  } else {
+    const te = getTerrarium(p[1]); if(!te || terrariumOccupants(te.id).length >= terrariumCapacity(te)){ alert(isEn?'That terrarium is full.':'Ce terrarium est plein.'); return; }
+    s.placement = { mode:'terrarium', terrariumId:te.id };
+    try{ refreshTerrariumStatus(te); }catch(e){}
+  }
+  s.updatedAt = Date.now();
+  storage.save(savedSnakes); try{ saveElevage(); }catch(e){}
+  closeQuickModal();
+  renderRackGrid(); renderTerrariumList(); try{ renderTourGrid(); }catch(e){}
+  showToast('📍 '+snakeName(s)+(isEn?' placed.':' placé(e).'), 'success');
+}
 function skipTubPick(){ const tg = tubPickTarget; if(!tg) return; closeQuickModal(); openNextTubPick(tg); }
 function openNextTubPick(tg){
   const isEn = currentLang==='en';
@@ -23856,13 +23950,16 @@ function renderTerrariumList(){
 
   // Reptiles en mode terrarium sans terrarium assigné (migration des anciennes fiches, ou juste
   // créés) — bandeau "à classer" pleine largeur, distinct des vraies cartes de terrarium.
-  const unassigned = savedSnakes.filter(s=>s.placement.mode==='terrarium' && !s.placement.terrariumId && matchesSearch(s, elevageSearchTerm));
+  // v4.79 — demande d'Alex : les non assignés ne sont PAS des animaux en terrarium → bloc à part, au-dessus des racks
+  const unBlock = document.getElementById('unplaced-block');
+  if(unBlock) unBlock.innerHTML = '';
+  const unassigned = savedSnakes.filter(s=>snakeIsUnplaced(s) && snakeIsActiveForPlacement(s) && matchesSearch(s, elevageSearchTerm));
   if(unassigned.length){
     const card = document.createElement('div');
     card.className = 'terra-card terra-card-wide';
-    card.style.borderStyle = 'dashed';
-    card.innerHTML = '<div class="terra-card-head"><span style="font-weight:700;font-size:12px;">⚠ '+(isEn?'To assign':'À classer')+'</span></div>'+
-      '<p class="terra-empty-note">'+(isEn?'These reptiles aren\'t linked to a terrarium yet.':'Ces reptiles ne sont pas encore rattachés à un terrarium.')+'</p>';
+    card.style.borderStyle = 'dashed'; card.style.marginBottom = '14px';
+    card.innerHTML = '<div class="terra-card-head"><span style="font-weight:700;font-size:15px;color:var(--gold);">📦 '+(isEn?'Not assigned':'Non assignés')+' ('+unassigned.length+')</span></div>'+
+      '<p class="terra-empty-note" style="font-size:14px;">'+(isEn?'These animals are in no rack tub and no terrarium yet.':'Ces animaux ne sont dans aucun bac de rack ni aucun terrarium.')+'</p>';
     // v4.48 — en grille (plusieurs de large) au lieu d'une longue file; les 24 premiers, puis « tout afficher »
     const gridU = document.createElement('div');
     gridU.className = 'terra-unplaced-grid';
@@ -23870,8 +23967,8 @@ function renderTerrariumList(){
     unassigned.slice(0, showAllU ? unassigned.length : 24).forEach(s=>{
       const row = document.createElement('div');
       row.className = 'terra-occupant';
-      row.innerHTML = '<span class="terra-occupant-name" data-open="'+s.id+'">'+escapeHtml(snakeName(s))+' ('+(s.sex==='male'?'♂':s.sex==='female'?'♀':'?')+')</span>'+
-        '<span class="terra-occupant-actions"><button class="sc-btn" data-move="'+s.id+'">'+(isEn?'Assign':'Assigner')+'</button></span>';
+      row.innerHTML = '<span class="terra-occupant-name" style="cursor:pointer;" onclick="openLogbook(\''+s.id+'\')">'+escapeHtml(snakeName(s))+' ('+(s.sex==='male'?'♂':s.sex==='female'?'♀':'?')+')</span>'+
+        '<span class="terra-occupant-actions"><button class="sc-btn" onclick="openPlaceChoice(\''+s.id+'\')">📍 '+(isEn?'Place':'Placer')+'</button></span>';
       gridU.appendChild(row);
     });
     card.appendChild(gridU);
@@ -23882,12 +23979,17 @@ function renderTerrariumList(){
       more.addEventListener('click', ()=>{ window.__terraUnplacedAll = !showAllU; renderTerrariumList(); });
       card.appendChild(more);
     }
+    const chainBtn = document.createElement('button');
+    chainBtn.className = 'sc-btn accent'; chainBtn.style.marginTop = '6px'; chainBtn.style.marginRight = '6px';
+    chainBtn.textContent = '⚡ '+(isEn?'Place in a row (first empty tub)':'Placer en enchaînement (1er bac vide)');
+    chainBtn.addEventListener('click', ()=>startTubChain());
+    card.appendChild(chainBtn);
     const helpBtn = document.createElement('button');
     helpBtn.className = 'sc-btn accent'; helpBtn.style.marginTop = '6px';
     helpBtn.textContent = '🧭 '+(isEn?'Placement help':'Aide au rangement');
     helpBtn.addEventListener('click', ()=>openAutoPlaceModal());
     card.appendChild(helpBtn);
-    wrap.appendChild(card);
+    (unBlock || wrap).appendChild(card);
   }
 
   if(terrariums.length===0){
