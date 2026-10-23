@@ -2238,7 +2238,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.85';
+const APP_VERSION = '2026.09.01.4.87';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5268,6 +5268,22 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'4.87', date:'2026-10-23',
+    title:{ fr:'Santé des lignées : familles et arbre descendant', en:'Lineage health: families and descendant tree' },
+    changes:{
+      fr:[ '🌳 « Santé des lignées » est maintenant toujours visible dans Mes reptiles : nombre de familles (animaux reliés par des parents connus), de fondateurs et d\'animaux sans lien. Chaque famille a un bouton « Arbre » : les fondateurs en haut, puis chaque génération avec qui × qui, et les traits notés sur chaque animal (ex. 🌀2). Touche un animal pour ouvrir sa fiche.' ],
+      en:[ '🌳 « Lineage health » is now always visible in My reptiles: number of families (animals linked by known parents), founders and unlinked animals. Each family has a « Tree » button: founders on top, then each generation with who × who, and the traits noted on each animal (e.g. 🌀2). Tap an animal to open its record.' ]
+    }
+  },
+  { version:'4.86', date:'2026-10-23',
+    title:{ fr:'Non assignés : tri, filtres et cases lisibles', en:'Not assigned: sort, filters and readable tiles' },
+    changes:{
+      fr:[ '📦 Le bloc « Non assignés » a son propre tri (âge, poids, sexe, espèce, gènes, ID, nom) et ses filtres (âge : bébé / juvénile / adulte, sexe). Chaque animal montre son âge et son dernier poids, pour ne pas mélanger bébés et adultes. « Placer en enchaînement » suit ce tri et ce filtre.',
+           '📍 Dans « Placer », les cases sont plus grandes : en pointillé « ＋ Libre » pour une place libre, en plein avec l\'ID, l\'âge et le poids pour une place occupée (toucher = échanger).' ],
+      en:[ '📦 The « Not assigned » block has its own sort (age, weight, sex, species, genes, ID, name) and filters (age: baby / juvenile / adult, sex). Each animal shows its age and last weight, so babies and adults don\'t get mixed. « Place in a row » follows this sort and filter.',
+           '📍 In « Place », tiles are bigger: dashed « ＋ Free » for a free spot, filled with ID, age and weight for a taken spot (tap = swap).' ]
+    }
+  },
   { version:'4.85', date:'2026-10-23',
     title:{ fr:'Placer : voir les places vides et échanger', en:'Place: see empty spots and swap' },
     changes:{
@@ -10181,12 +10197,21 @@ function renderGeneticHealthReport(){
   if(!container) return;
   savedSnakes.forEach(ensureSnakeMeta);
   const G = lineageHealthGroups();
-  if(!G.pairOut.length && !G.orphans.length){ container.innerHTML = ''; return; }
+  const FM = snakeFamilies(); // v4.87 — toujours visible dès qu'il y a des reptiles (familles + arbre)
+  if(!savedSnakes.length){ container.innerHTML = ''; return; }
   const folderId = 'folder-genetic-health';
   const existing = document.getElementById(folderId);
   const isOpen = existing ? !existing.classList.contains('collapsed') : false;
   const nm = id=>{ const x = savedSnakes.find(s=>s.id===id); return x ? snakeName(x) : (isEn?'(deleted)':'(supprimé)'); };
-  let rows = '';
+  let rows = '<div style="font-size:14.5px;color:var(--ink);margin:0 0 8px;"><b>'+FM.fams.length+'</b> '+(isEn?'family(ies)':'famille(s)')+' · <b>'+FM.fams.reduce((n,f)=>n+f.founders.length,0)+'</b> '+(isEn?'founder(s)':'fondateur(s)')+' · <b>'+FM.unlinked.length+'</b> '+(isEn?'animal(s) with no known link':'animal(aux) sans lien connu')+'</div>';
+  if(FM.fams.length){
+    rows += FM.fams.slice(0,30).map((f,i)=>{ const aff = f.members.filter(s=>Object.values(traitLatestLevels(s)).some(v=>v>=1)).length;
+      return '<div class="modal-row" style="align-items:center;"><span style="font-size:14px;line-height:1.35;"><b>'+escapeHtml(familyLabel(f))+'</b><br/><small style="color:var(--ink-dim);">'+f.members.length+' '+(isEn?'animals':'animaux')+' · '+f.depth+' '+(isEn?'gen.':'gén.')+(aff?' · <span style="color:var(--rust);">'+aff+' '+(isEn?'with a trait noted':'avec un trait noté')+'</span>':'')+'</small></span>'+
+        '<button class="sc-btn accent" style="padding:4px 10px;" onclick="openFamilyTree('+i+')">🌳 '+(isEn?'Tree':'Arbre')+'</button></div>'; }).join('');
+  } else {
+    rows += '<p style="font-size:13px;color:var(--ink-dim);margin:0 0 8px;">'+(isEn?'No family yet — add the sire and dam on your records to link them.':'Aucune famille encore — indique le père et la mère sur les fiches pour les relier.')+'</p>';
+  }
+  if(!G.pairOut.length && !G.orphans.length) rows += '<p style="font-size:13px;color:var(--ink-dim);margin:10px 0 0;">'+(isEn?'No health observation yet — log wobble or another trait from a carrier\'s record (🧬 Tracked traits).':'Aucune observation santé encore — note le wobble ou un autre trait depuis la fiche d\'un porteur (🧬 Traits suivis).')+'</p>';
   if(G.pairOut.length){
     rows += '<div style="font-size:12px;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin:4px 0 6px;">'+(isEn?'By pair':'Par couple')+'</div>';
     rows += G.pairOut.map(p=>'<div style="border-bottom:1px dashed var(--line);padding:6px 0;"><div style="font-size:14px;color:var(--ink);"><b>'+escapeHtml(nm(p.sid))+' × '+escapeHtml(nm(p.did))+'</b> <small style="color:var(--ink-dim);">— '+p.total+' '+(isEn?'babies':'bébé(s)')+', '+p.clutches+' '+(isEn?'clutch(es)':'ponte(s)')+'</small></div>'+lineageKindsLine(p.kinds, p.total, isEn)+'</div>').join('');
@@ -12324,6 +12349,58 @@ function lineageHealthGroups(){
   const pairOut = Object.keys(pairs).map(k=>{ const [sid,did] = k.split('|'); const kids = savedSnakes.filter(s=>s.sireId===sid && s.damId===did); return { sid, did, total:kids.length, clutches:new Set(kids.map(s=>s.clutchRef||'?')).size, kinds:summarize(kids) }; });
   const parOut = Object.keys(parents).map(pid=>{ const kids = savedSnakes.filter(s=>s.sireId===pid || s.damId===pid); const partners = new Set(kids.map(s=>s.sireId===pid ? s.damId : s.sireId).filter(Boolean)); return { pid, total:kids.length, partners:partners.size, kinds:summarize(kids) }; }).filter(x=>x.partners>1);
   return { pairOut, parOut, orphans };
+}
+// v4.87 — familles (choix d'Alex : « famille reliée » = animaux reliés par des parents connus) + arbre descendant
+function snakeFamilies(){
+  const byId = {}; savedSnakes.forEach(s=>{ byId[s.id] = s; });
+  const adj = {}; const link = (a,b)=>{ (adj[a]=adj[a]||new Set()).add(b); (adj[b]=adj[b]||new Set()).add(a); };
+  savedSnakes.forEach(s=>{ [s.sireId, s.damId].forEach(p=>{ if(p && byId[p]) link(s.id, p); }); });
+  const seen = new Set(), fams = [];
+  Object.keys(adj).forEach(start=>{
+    if(seen.has(start)) return;
+    const comp = []; const stack = [start]; seen.add(start);
+    while(stack.length){ const x = stack.pop(); comp.push(x); (adj[x]||[]).forEach(y=>{ if(!seen.has(y)){ seen.add(y); stack.push(y); } }); }
+    if(comp.length<2) return;
+    const members = comp.map(id=>byId[id]);
+    const inFam = new Set(comp);
+    const founders = members.filter(s=>!(s.sireId && inFam.has(s.sireId)) && !(s.damId && inFam.has(s.damId)));
+    const gen = {}; const genOf = (s, depth)=>{ if(gen[s.id]!=null) return gen[s.id]; if(depth>30) return 0; const ps = [s.sireId, s.damId].filter(p=>p && inFam.has(p)).map(p=>byId[p]); const g = ps.length ? Math.max(...ps.map(p=>genOf(p, depth+1)))+1 : 0; gen[s.id] = g; return g; };
+    members.forEach(s=>genOf(s,0));
+    fams.push({ members, founders, gen, depth: Math.max(...members.map(s=>gen[s.id]))+1 });
+  });
+  fams.sort((a,b)=>b.members.length-a.members.length);
+  const linked = new Set(); fams.forEach(f=>f.members.forEach(s=>linked.add(s.id)));
+  return { fams, unlinked: savedSnakes.filter(s=>!linked.has(s.id)) };
+}
+function familyLabel(f){ return f.founders.slice(0,3).map(s=>snakeName(s)).join(' · ') + (f.founders.length>3 ? ' +'+(f.founders.length-3) : ''); }
+function snakeTreeChip(s, isEn){
+  const lv = traitLatestLevels(s);
+  const tr = Object.keys(lv).filter(k=>lv[k]>=1).map(k=>(TRAIT_KINDS[k]||TRAIT_KINDS.other).icon+lv[k]).join(' ');
+  const st = s.status==='deceased' ? ' 🕊' : s.status==='sold' ? (isEn?' (sold)':' (vendu)') : '';
+  return '<button type="button" onclick="closeQuickModal();openLogbook(\''+s.id+'\')" style="display:inline-block;margin:3px;padding:6px 9px;border-radius:8px;border:1px solid var(--line);background:var(--bg-panel-2);color:var(--ink);font-size:13.5px;line-height:1.3;cursor:pointer;text-align:left;">'+
+    (s.sex==='male'?'♂':s.sex==='female'?'♀':'?')+' '+escapeHtml(snakeName(s))+st+(tr?' <b style="color:var(--rust);">'+tr+'</b>':'')+'</button>';
+}
+function openFamilyTree(index){
+  const isEn = currentLang==='en';
+  const F = snakeFamilies().fams[index]; if(!F) return;
+  const inFam = new Set(F.members.map(s=>s.id));
+  const nm = id=>{ const x = savedSnakes.find(s=>s.id===id); return x ? snakeName(x) : '?'; };
+  let h = '<p style="font-size:13px;color:var(--ink-dim);margin:0 0 10px;">'+F.members.length+' '+(isEn?'animals':'animaux')+' · '+F.depth+' '+(isEn?'generation(s)':'génération(s)')+'. '+(isEn?'Tap an animal to open its record. 🌀2 = last level noted.':'Touche un animal pour ouvrir sa fiche. 🌀2 = dernier niveau noté.')+'</p>';
+  for(let g=0; g<F.depth; g++){
+    const inGen = F.members.filter(s=>F.gen[s.id]===g);
+    if(!inGen.length) continue;
+    h += '<div style="border-left:3px solid var(--gold);padding:4px 0 6px 10px;margin:0 0 10px '+(Math.min(g,4)*10)+'px;">'+
+      '<div style="font-size:13px;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">'+(g===0?(isEn?'Founders':'Fondateurs'):(isEn?'Generation ':'Génération ')+(g+1))+'</div>';
+    if(g===0){ h += inGen.map(s=>snakeTreeChip(s,isEn)).join(''); }
+    else {
+      const groups = {};
+      inGen.forEach(s=>{ const k = (s.sireId && inFam.has(s.sireId) ? s.sireId : '?')+'|'+(s.damId && inFam.has(s.damId) ? s.damId : '?'); (groups[k]=groups[k]||[]).push(s); });
+      Object.keys(groups).forEach(k=>{ const [a,b] = k.split('|');
+        h += '<div style="font-size:13.5px;color:var(--ink);margin:4px 0 2px;">'+escapeHtml(a==='?'?(isEn?'unknown':'inconnu'):nm(a))+' × '+escapeHtml(b==='?'?(isEn?'unknown':'inconnue'):nm(b))+' →</div><div>'+groups[k].map(s=>snakeTreeChip(s,isEn)).join('')+'</div>'; });
+    }
+    h += '</div>';
+  }
+  showQuickModal('🌳 '+(isEn?'Family of ':'Famille de ')+familyLabel(F), h);
 }
 function lineageKindsLine(kinds, total, isEn){
   return Object.keys(kinds).map(k=>{ const d = kinds[k]; const T = TRAIT_KINDS[k]||TRAIT_KINDS.other;
@@ -23834,13 +23911,14 @@ function snakePickLabelHtml(s, isEn){
   let genes = ''; try{ genes = Object.keys(s.genes||{}).length ? summarizeGenes(s.genes) : (isEn?'Normal':'Normal'); }catch(e){}
   const where = snakeIsUnplaced(s) ? '' : (placementCode(s) || '');
   return '<span style="font-size:16px;color:var(--ink);">'+sex+' '+escapeHtml(nm)+'</span>'+id+
-    '<br/><small style="color:var(--ink-dim);font-size:12.5px;">'+escapeHtml(genes)+(where?' · 📍 '+escapeHtml(where):'')+'</small>';
+    '<br/><small style="color:var(--ink-dim);font-size:12.5px;">'+escapeHtml(snakeBriefInfo(s, isEn))+' · '+escapeHtml(genes)+(where?' · 📍 '+escapeHtml(where):'')+'</small>';
 }
 function snakePickListHtml(targetFn, filterTxt, isEn, excludeFn){
   const q = normalizeHeaderKey(filterTxt||'');
   const list = savedSnakes.filter(s=>{ ensureSnakeMeta(s); return snakeIsActiveForPlacement(s) && !(excludeFn && excludeFn(s)); })
     .filter(s=>{ if(!q) return true; let g=''; try{ g = summarizeGenes(s.genes); }catch(e){} return normalizeHeaderKey([snakeName(s), s.animalId||'', g].join(' ')).includes(q); })
-    .sort((a,b)=>(snakeIsUnplaced(b)?1:0)-(snakeIsUnplaced(a)?1:0) || snakeName(a).localeCompare(snakeName(b), undefined, {numeric:true}));
+    .sort((a,b)=>{ const o = window.__chainOrder || []; const ia = o.indexOf(a.id), ib = o.indexOf(b.id); // v4.86 — ordre du bloc Non assignés
+      return (snakeIsUnplaced(b)?1:0)-(snakeIsUnplaced(a)?1:0) || ((ia<0?1e6:ia)-(ib<0?1e6:ib)) || snakeName(a).localeCompare(snakeName(b), undefined, {numeric:true}); });
   if(!list.length) return '<p style="color:var(--ink-dim);font-size:14px;">'+(isEn?'No animal matches.':'Aucun animal ne correspond.')+'</p>';
   let h = '', lastUn = null;
   list.slice(0,150).forEach(s=>{
@@ -23925,6 +24003,27 @@ function startTubChain(){
 // de bacs à deviner. Mini-racks à toucher : bac vide = placer ; bac occupé = échanger (l'occupant passe dans
 // « Non assignés »). Terrariums en dessous, avec leurs occupants.
 var placeChoiceSnakeId = null;
+// v4.86 — tri / filtre du bloc « Non assignés » (idée d'Alex : le même genre de panneau que Mes reptiles)
+function unplacedViewState(){
+  if(!window.__unplacedView){ let v = null; try{ v = JSON.parse(localStorage.getItem('locus_unplaced_view_v1')||'null'); }catch(e){} window.__unplacedView = Object.assign({ sort:'age_old', sex:'all', age:'all' }, v||{}); }
+  return window.__unplacedView;
+}
+function setUnplacedView(k, v){ const st = unplacedViewState(); st[k] = v; try{ localStorage.setItem('locus_unplaced_view_v1', JSON.stringify(st)); }catch(e){} renderTerrariumList(); }
+function unplacedControlsHtml(UV, shown, total, isEn){
+  const sel = (k, opts) => '<select onchange="setUnplacedView(\''+k+'\', this.value)" style="font-size:15px;padding:7px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+opts.map(o=>'<option value="'+o[0]+'"'+(UV[k]===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select>';
+  return '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 8px;">'+
+    sel('sort', [['age_old',isEn?'Sort: oldest first':'Trier : plus vieux d\'abord'],['age',isEn?'Sort: youngest first':'Trier : plus jeune d\'abord'],['weight',isEn?'Sort: heaviest first':'Trier : plus lourd d\'abord'],['weight_light',isEn?'Sort: lightest first':'Trier : plus léger d\'abord'],['sex',isEn?'Sort: sex':'Trier : sexe'],['species',isEn?'Sort: species':'Trier : espèce'],['genes',isEn?'Sort: number of genes':'Trier : nombre de gènes'],['id',isEn?'Sort: ID':'Trier : ID'],['name',isEn?'Sort: name':'Trier : nom']])+
+    sel('age', [['all',isEn?'All ages':'Tous les âges'],['baby',placeGroupLabel('baby',isEn)],['juvenile',placeGroupLabel('juvenile',isEn)],['adult',placeGroupLabel('adult',isEn)],['unknown',placeGroupLabel('unknown',isEn)]])+
+    sel('sex', [['all',isEn?'All sexes':'Tous les sexes'],['female',isEn?'♀ Females':'♀ Femelles'],['male',isEn?'♂ Males':'♂ Mâles'],['unknown',isEn?'? Unsexed':'? Non sexés']])+
+    (shown<total ? '<span style="font-size:13px;color:var(--ink-dim);">'+shown+' / '+total+'</span>' : '')+
+  '</div>';
+}
+function snakeBriefInfo(s, isEn){ // âge (groupe) + dernier poids — pour savoir qui est quoi
+  const g = placeAgeGroup(s);
+  const lbl = ({ baby:isEn?'baby':'bébé', juvenile:isEn?'juvenile':'juvénile', adult:isEn?'adult':'adulte', unknown:isEn?'age ?':'âge ?' })[g];
+  const w = snakeLastWeight(s);
+  return lbl + (w!=null ? ' · '+w+' g' : '');
+}
 function tubOccupant(rackId, row, tub){
   return savedSnakes.find(x=>{ ensureSnakeMeta(x); return x.placement.mode==='rack' && x.placement.rackId===rackId && +x.placement.row===+row && +x.placement.tub===+tub && snakeIsActiveForPlacement(x); }) || null;
 }
@@ -23932,35 +24031,37 @@ function openPlaceChoice(snakeId){
   const isEn = currentLang==='en';
   const s = savedSnakes.find(x=>x.id===snakeId); if(!s) return;
   placeChoiceSnakeId = snakeId;
-  const cell = (label, sub, onclick, empty) => '<button type="button" onclick="'+onclick+'" style="flex:1 1 0;min-width:0;min-height:52px;padding:4px 3px;border-radius:8px;font-size:12px;line-height:1.25;cursor:pointer;overflow:hidden;'+
-    (empty ? 'border:2px solid var(--sage);background:rgba(124,131,99,.18);color:var(--ink);' : 'border:1px solid var(--line);background:var(--bg-panel-2);color:var(--ink-dim);')+'">'+
-    '<b style="display:block;font-size:12.5px;color:'+(empty?'var(--sage)':'var(--ink)')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+label+'</b>'+(sub?'<span style="display:block;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+sub+'</span>':'')+'</button>';
-  let h = '<p style="font-size:13.5px;color:var(--ink-dim);line-height:1.45;margin:0 0 10px;">'+(isEn
-    ? '<b style="color:var(--sage);">Green = empty</b>: tap to place. An occupied tub: tap to <b>swap</b> (the animal in it goes to « Not assigned »).'
-    : '<b style="color:var(--sage);">Vert = vide</b> : touche pour placer. Un bac occupé : touche pour <b>échanger</b> (l\'animal qui y est passe dans « Non assignés »).')+'</p>';
+  // v4.86 — cases plus grandes (lisibles au cellulaire), « Libre » en pointillé gris, occupé en plein avec ID + âge + poids
+  const cell = (label, sub, onclick, empty) => '<button type="button" onclick="'+onclick+'" style="min-height:62px;padding:6px 5px;border-radius:9px;line-height:1.25;cursor:pointer;text-align:center;overflow:hidden;'+
+    (empty ? 'border:2px dashed var(--ink-dim);background:transparent;color:var(--ink);' : 'border:2px solid var(--gold);background:rgba(201,151,62,.14);color:var(--ink);')+'">'+
+    '<b style="display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+label+'</b>'+(sub?'<span style="display:block;font-size:12px;color:var(--ink-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+sub+'</span>':'')+'</button>';
+  const grid = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px;">';
+  let h = '<div style="border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:0 0 10px;font-size:15px;">📦 <b>'+escapeHtml(snakeName(s))+'</b> '+(s.sex==='male'?'♂':s.sex==='female'?'♀':'?')+' · '+escapeHtml(snakeBriefInfo(s, isEn))+'</div>'+
+    '<p style="font-size:14px;color:var(--ink);line-height:1.45;margin:0 0 10px;">'+(isEn
+      ? '<b>Dashed = free</b>: tap to place. <b style="color:var(--gold);">Filled = taken</b>: tap to <b>swap</b> (that animal goes to « Not assigned »).'
+      : '<b>Pointillé = libre</b> : touche pour placer. <b style="color:var(--gold);">Plein = occupé</b> : touche pour <b>échanger</b> (cet animal passe dans « Non assignés »).')+'</p>';
   const rks = racksOrdered().filter(r=>!r.hidden);
   rks.forEach(rk=>{
-    const rows = rk.rows||[]; let free = 0;
-    let g = '';
+    const rows = rk.rows||[]; let free = 0; let g = '';
     for(let r=1;r<=rows.length;r++){
-      g += '<div style="display:flex;gap:4px;margin-bottom:4px;align-items:stretch;"><span style="flex:0 0 22px;font-size:11px;color:var(--ink-dim);align-self:center;">R'+r+'</span>';
+      g += '<div style="font-size:12.5px;color:var(--ink-dim);margin:6px 0 3px;">'+(isEn?'Row ':'Rangée ')+r+'</div>'+grid;
       for(let b=1;b<=(rows[r-1]||0);b++){
         const occ = tubOccupant(rk.id, r, b);
         if(!occ) free++;
-        g += occ ? cell(escapeHtml(snakeName(occ)), (isEn?'Tub ':'Bac ')+b+' · ↔', "pickPlaceTub('"+rk.id+"',"+r+","+b+")", false)
-                 : cell((isEn?'Empty':'Vide'), (isEn?'Tub ':'Bac ')+b, "pickPlaceTub('"+rk.id+"',"+r+","+b+")", true);
+        g += occ ? cell(escapeHtml(snakeName(occ)), (isEn?'T':'B')+b+' · '+escapeHtml(snakeBriefInfo(occ, isEn)), "pickPlaceTub('"+rk.id+"',"+r+","+b+")", false)
+                 : cell('＋ '+(isEn?'Free':'Libre'), (isEn?'Tub ':'Bac ')+b, "pickPlaceTub('"+rk.id+"',"+r+","+b+")", true);
       }
       g += '</div>';
     }
-    h += '<div style="border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:10px;"><div style="font-size:14px;color:var(--gold);margin-bottom:6px;">🗄️ '+escapeHtml(rk.name)+' <small style="color:var(--ink-dim);">— '+free+' '+(isEn?'empty':'vide(s)')+'</small></div>'+g+'</div>';
+    h += '<div style="border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:10px;"><div style="font-size:15px;color:var(--gold);">🗄️ '+escapeHtml(rk.name)+' <small style="color:var(--ink-dim);">— '+free+' '+(isEn?'free':'libre(s)')+'</small></div>'+g+'</div>';
   });
   if((terrariums||[]).length){
-    h += '<div style="border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:10px;"><div style="font-size:14px;color:var(--gold);margin-bottom:6px;">🏠 '+(isEn?'Terrariums':'Terrariums')+'</div><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;">';
+    h += '<div style="border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:10px;"><div style="font-size:15px;color:var(--gold);margin-bottom:6px;">🏠 '+(isEn?'Terrariums':'Terrariums')+'</div>'+grid;
     terrariums.forEach(te=>{
       const occ = terrariumOccupants(te.id);
       const full = occ.length >= terrariumCapacity(te);
-      h += full ? cell(escapeHtml(te.name), escapeHtml(occ.map(x=>snakeName(x)).join(', '))+' · ↔', "pickPlaceTerrarium('"+te.id+"')", false)
-                : cell(escapeHtml(te.name), occ.length ? '+ '+escapeHtml(occ.map(x=>snakeName(x)).join(', ')) : (isEn?'Empty':'Vide'), "pickPlaceTerrarium('"+te.id+"')", true);
+      h += (full || occ.length) ? cell(escapeHtml(te.name), escapeHtml(occ.map(x=>snakeName(x)).join(', '))+(full?' · ↔':' · +1'), "pickPlaceTerrarium('"+te.id+"')", false)
+                : cell('＋ '+escapeHtml(te.name), (isEn?'Free':'Libre'), "pickPlaceTerrarium('"+te.id+"')", true);
     });
     h += '</div></div>';
   }
@@ -24357,13 +24458,17 @@ function renderTerrariumList(){
   // v4.79 — demande d'Alex : les non assignés ne sont PAS des animaux en terrarium → bloc à part, au-dessus des racks
   const unBlock = document.getElementById('unplaced-block');
   if(unBlock) unBlock.innerHTML = '';
-  const unassigned = savedSnakes.filter(s=>snakeIsUnplaced(s) && snakeIsActiveForPlacement(s) && matchesSearch(s, elevageSearchTerm));
-  if(unassigned.length){
+  const unassignedAll = savedSnakes.filter(s=>snakeIsUnplaced(s) && snakeIsActiveForPlacement(s) && matchesSearch(s, elevageSearchTerm));
+  const UV = unplacedViewState();
+  const unassigned = sortSnakes(unassignedAll.filter(s=>(UV.sex==='all' || (UV.sex==='unknown' ? !['male','female'].includes(s.sex) : s.sex===UV.sex)) && (UV.age==='all' || placeAgeGroup(s)===UV.age)), UV.sort);
+  window.__chainOrder = unassigned.map(s=>s.id); // v4.86 — l'enchaînement suit ce tri / ce filtre
+  if(unassignedAll.length){
     const card = document.createElement('div');
     card.className = 'terra-card terra-card-wide';
     card.style.borderStyle = 'dashed'; card.style.marginBottom = '14px';
-    card.innerHTML = '<div class="terra-card-head"><span style="font-weight:700;font-size:15px;color:var(--gold);">📦 '+(isEn?'Not assigned':'Non assignés')+' ('+unassigned.length+')</span></div>'+
-      '<p class="terra-empty-note" style="font-size:14px;">'+(isEn?'These animals are in no rack tub and no terrarium yet.':'Ces animaux ne sont dans aucun bac de rack ni aucun terrarium.')+'</p>';
+    card.innerHTML = '<div class="terra-card-head"><span style="font-weight:700;font-size:15px;color:var(--gold);">📦 '+(isEn?'Not assigned':'Non assignés')+' ('+unassignedAll.length+')</span></div>'+
+      '<p class="terra-empty-note" style="font-size:14px;">'+(isEn?'These animals are in no rack tub and no terrarium yet.':'Ces animaux ne sont dans aucun bac de rack ni aucun terrarium.')+'</p>'+
+      unplacedControlsHtml(UV, unassigned.length, unassignedAll.length, isEn);
     // v4.48 — en grille (plusieurs de large) au lieu d'une longue file; les 24 premiers, puis « tout afficher »
     const gridU = document.createElement('div');
     gridU.className = 'terra-unplaced-grid';
@@ -24371,7 +24476,7 @@ function renderTerrariumList(){
     unassigned.slice(0, showAllU ? unassigned.length : 24).forEach(s=>{
       const row = document.createElement('div');
       row.className = 'terra-occupant';
-      row.innerHTML = '<span class="terra-occupant-name" style="cursor:pointer;" onclick="openLogbook(\''+s.id+'\')">'+escapeHtml(snakeName(s))+' ('+(s.sex==='male'?'♂':s.sex==='female'?'♀':'?')+')</span>'+
+      row.innerHTML = '<span class="terra-occupant-name" style="cursor:pointer;" onclick="openLogbook(\''+s.id+'\')">'+escapeHtml(snakeName(s))+' ('+(s.sex==='male'?'♂':s.sex==='female'?'♀':'?')+')<br/><small style="color:var(--ink-dim);font-weight:400;">'+escapeHtml(snakeBriefInfo(s, isEn))+'</small></span>'+
         '<span class="terra-occupant-actions"><button class="sc-btn" onclick="openPlaceChoice(\''+s.id+'\')">📍 '+(isEn?'Place':'Placer')+'</button></span>';
       gridU.appendChild(row);
     });
