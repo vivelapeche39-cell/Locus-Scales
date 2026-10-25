@@ -2241,7 +2241,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.4.99';
+const APP_VERSION = '2026.09.01.5.02';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4191,7 +4191,7 @@ const GENES = [
   {id:'axanthictsk', name:'Axanthic (TSK)', type:'recessive', locus:'axanthictsk', cat:'Récessif'},
   {id:'axanthicjolliff', name:'Axanthic (Jolliff)', type:'recessive', locus:'axanthicjolliff', cat:'Récessif'},
   {id:'axanthicmj', name:'Axanthic (MJ)', type:'recessive', locus:'axanthicmj', cat:'Récessif'},
-  {id:'hypo', name:'Hypomélanistique', type:'recessive', locus:'hypo', cat:'Récessif'},
+  {id:'hypo', name:'Hypo', type:'recessive', locus:'hypo', cat:'Récessif'}, // v5.02 — « Hypo » tout court (choix d'Alex), comme dans le milieu
   // v3.29 — renommé « Caramel » → « Caramel Albino » (nom Morphpedia, aussi appelé T+ Albino ; Morphpedia n'a
   // aucune entrée « Caramel » seule). Même id/locus : aucune fiche existante n'est touchée.
   {id:'caramel', name:'Caramel Albino', type:'recessive', locus:'caramel', cat:'Récessif'},
@@ -4359,7 +4359,7 @@ function isFreewayKey(gid){ return typeof gid==='string' && gid.indexOf('freeway
 function freewayLocusFromKey(gid){ return gid.slice('freeway__'.length); }
 function freewayLabel(locus){
   const members = GENES_BY_LOCUS[locus] || [];
-  return 'Freeway — '+members.map(g=>g.name).join('/')+' (non confirmé)';
+  return 'Freeway — '+members.map(g=>g.name).join('/')+(currentLang==='en'?' (unconfirmed)':' (non confirmé)'); // v5.01 — traduit
 }
 
 // v3.55 — noms courts demandés par Alex (« on garde ça simple en terminologie ») : plus de
@@ -5036,7 +5036,7 @@ function saveProfileData(){
   try{ localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); }catch(e){}
   mirrorSnakesRemote(); // pousse le profil au cloud (anti-rebond + résistant aux collisions, voir plus bas)
   closeQuickModal();
-  showToast('Profil enregistré.', 'success');
+  showToast(currentLang==='en'?'Profile saved.':'Profil enregistré.', 'success'); // v5.01 — traduit
 }
 function openProfileModal(){
   const isEn = currentLang==='en';
@@ -5284,6 +5284,28 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.02', date:'2026-10-24',
+    title:{ fr:'Gène « Hypo »', en:'« Hypo » gene' },
+    changes:{
+      fr:[ '🧬 Le gène « Hypomélanistique » s\'appelle maintenant « Hypo », comme dans le milieu, en français comme en anglais. Tes fiches ne changent pas, et « hypomélanistique » reste compris à l\'import.' ],
+      en:[ '🧬 The « Hypomélanistique » gene is now called « Hypo », as in the hobby, in French and English. Your records don\'t change, and « hypomelanistic » is still understood on import.' ]
+    }
+  },
+  { version:'5.01', date:'2026-10-24',
+    title:{ fr:'Revue complète : corrections', en:'Full review: fixes' },
+    changes:{
+      fr:[ '🐣 La fenêtre « bébés bien arrivés » affiche enfin ses boutons « OK, continuer » et « ↩ Annuler cette création » (ils n\'apparaissaient jamais), et en anglais elle montre aussi les correspondances de liste d\'attente, les œufs non viables, la question wobble et « Gènes et sexes ».',
+           '📊 Pontes d\'œufs (python royal…) : le nombre de bébés éclos est maintenant compté dans les statistiques (taux d\'éclosion, meilleure femelle, résumé de saison, performance de reproduction) et le trophée « L\'Incubateur d\'Or » devient possible — avant, seuls les vivipares étaient comptés.',
+           '🏷️ Un animal vendu libère son bac ou son terrarium (comme un décès) et n\'apparaît plus comme occupant.',
+           '🍽 « Prochain : » s\'affiche de nouveau correctement avec la date du prochain repas (deux traductions portaient le même nom).',
+           '🌐 Traductions anglaises ajoutées : « Profil enregistré », « Freeway (non confirmé) ».' ],
+      en:[ '🐣 The « babies arrived » window finally shows its « OK, continue » and « ↩ Undo this creation » buttons (they never appeared), and in English it now also shows waitlist matches, non-viable eggs, the wobble question and « Genetics & sex ».',
+           '📊 Egg clutches (ball python…): hatched babies are now counted in statistics (hatch rate, best female, season summary, breeding performance) and the « Golden Incubator » trophy becomes possible — before, only live-bearers were counted.',
+           '🏷️ A sold animal frees its tub or terrarium (like a death) and no longer shows as an occupant.',
+           '🍽 « Next: » shows correctly again with the next meal date (two translations had the same name).',
+           '🌐 English translations added: « Profile saved », « Freeway (unconfirmed) ».' ]
+    }
+  },
   { version:'4.99', date:'2026-10-23',
     title:{ fr:'Éclosion : nombre d\'éclos, 0 possible, et couples normaux', en:'Hatching: hatched count, 0 allowed, and normal pairs' },
     changes:{
@@ -6412,7 +6434,7 @@ const I18N = {
     lastNextMealTitle: '🍽 Dernier repas / Prochain repas',
     neverFedLabel: 'Jamais nourri',
     lastMealLabel: 'Dernier : ',
-    nextMealLabel: 'Prochain : ',
+    nextMealPrefix: 'Prochain : ', // v5.01 — clé en double renommée (la 2e écrasait celle-ci)
     nextHatchesTitle: '🥚 Prochaines éclosions',
     facebookBannerTitle: 'Rejoins-nous sur Facebook',
     facebookBannerSubtitle: 'Annonces, nouveautés et communauté d\'éleveurs — LOCUS Scales',
@@ -6995,7 +7017,7 @@ const I18N = {
     lastNextMealTitle: '🍽 Last meal / Next meal',
     neverFedLabel: 'Never fed',
     lastMealLabel: 'Last: ',
-    nextMealLabel: 'Next: ',
+    nextMealPrefix: 'Next: ',
     nextHatchesTitle: '🥚 Upcoming hatches',
     facebookBannerTitle: 'Join us on Facebook',
     facebookBannerSubtitle: 'Announcements, updates, and a breeder community — LOCUS Scales',
@@ -16622,7 +16644,7 @@ function matchImportSpecies(raw){
 // python royal avec le bon statut. Plus long nom d'abord (Black Pastel avant Pastel). Les mots non
 // reconnus sont rendus pour l'aperçu. Toujours marqué « à vérifier » (genesVerified:false).
 // Raccourcis du milieu, seulement quand ils ne sont pas ambigus (« Axanthic » seul = 5 lignées différentes → pas d'alias).
-var IMPORT_GENE_ALIASES = { hypo:['hypo','hypomelanistic','ghost'], yellowbelly:['yb','yellow belly'], orangedream:['od'], piebald:['pied'], mojave:['mojo'], desertghost:['dg'], highintensityod:['hi od','high intensity orange dream'], lavenderalbino:['lavender','lav albino'], spotnose:['spot nose'], lg_tremper:['tremper','tremper albino'], lg_bell:['bell','bell albino'], lg_rainwater:['rainwater','rainwater albino','las vegas albino','las vegas'], lg_murphy:['murphy'], lg_wy:['w y','white and yellow'] }; // v4.15 — gecko léopard : noms courts du milieu
+var IMPORT_GENE_ALIASES = { hypo:['hypo','hypomelanistic','hypomelanistique','ghost'], yellowbelly:['yb','yellow belly'], orangedream:['od'], piebald:['pied'], mojave:['mojo'], desertghost:['dg'], highintensityod:['hi od','high intensity orange dream'], lavenderalbino:['lavender','lav albino'], spotnose:['spot nose'], lg_tremper:['tremper','tremper albino'], lg_bell:['bell','bell albino'], lg_rainwater:['rainwater','rainwater albino','las vegas albino','las vegas'], lg_murphy:['murphy'], lg_wy:['w y','white and yellow'] }; // v4.15 — gecko léopard : noms courts du milieu
 function importGeneNorm(str){ return String(str||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[|,;\/+&()\[\]_]/g,' ').replace(/(^|\s)-+|-+(?=\s|$)|(?<=[a-z])-(?=[a-z])/g,' ').replace(/\s+/g,' ').trim(); }
 function importGeneVariants(species){
   const sp = species || 'ball_python';
@@ -19604,7 +19626,7 @@ function makeKeyboardClickable(el, label){
 
 function tubKey(rackId,row,tub){ return rackId+'|'+row+'|'+tub; }
 function snakeAt(rackId,row,tub){
-  return savedSnakes.find(s=>{ ensureSnakeMeta(s); return s.placement.mode==='rack' && s.placement.rackId===rackId && s.placement.row===row && s.placement.tub===tub; });
+  return savedSnakes.find(s=>{ ensureSnakeMeta(s); return s.placement.mode==='rack' && s.placement.rackId===rackId && s.placement.row===row && s.placement.tub===tub && s.status!=='sold' && s.status!=='deceased'; }); // v5.01 — un vendu ne bloque plus son ancien bac
 }
 // ==================== v4.51 — ordre des racks, racks masqués, dimensions sans perdre d'occupant ====================
 function racksOrdered(){
@@ -24423,7 +24445,7 @@ function resolveFieldValue(selectId, customInputId, kind){
 
 function getTerrarium(id){ return (terrariums||[]).find(te=>te.id===id); } // v4.56
 function terrariumOccupants(terrariumId){
-  return savedSnakes.filter(s=>{ ensureSnakeMeta(s); return s.placement.mode==='terrarium' && s.placement.terrariumId===terrariumId; });
+  return savedSnakes.filter(s=>{ ensureSnakeMeta(s); return s.placement.mode==='terrarium' && s.placement.terrariumId===terrariumId && s.status!=='sold' && s.status!=='deceased'; }); // v5.01
 }
 function terrariumCapacity(te){ return 2; } // tout terrarium peut temporairement accueillir 2 animaux (introduction pour accouplement) — le statut suit automatiquement, voir refreshTerrariumStatus()
 // Dérive le statut du terrarium à partir du nombre d'occupants — plus besoin de le régler à la
@@ -26675,7 +26697,7 @@ function breedingPerformanceStats(snakeId){
     const d = ensureYear(year);
     d.clutches++;
     if(c.eggCount!=null) d.eggs += c.eggCount;
-    if(c.liveCount!=null) d.live += c.liveCount;
+    if(c.liveCount!=null || c.hatched) d.live += clutchLiveCount(c); // v5.01
     if(c.stillbornCount!=null) d.stillborn += c.stillbornCount;
     if(c.slugCount!=null) d.slugs += c.slugCount;
   });
@@ -27123,12 +27145,21 @@ function markClutchHatched(id){
     '<input type="number" id="hatch-count-input" min="0" max="'+c.eggCount+'" value="'+c.eggCount+'" style="width:110px;font-size:20px;padding:8px 10px;margin-bottom:12px;"/>'+
     '<button class="save-btn" style="width:100%;" onclick="confirmHatchCount(\''+c.id+'\')">🐣 '+(isEn?'Confirm':'Confirmer')+'</button>');
 }
+// v5.01 — bébés vivants d'une ponte : liveCount (vivipares, ou ponte d'œufs notée depuis 4.99), sinon œufs − non viables,
+// sinon le nombre de fiches créées à l'éclosion (anciennes pontes d'œufs, où liveCount n'était jamais rempli)
+function clutchLiveCount(c){
+  if(!c) return 0;
+  if(c.liveCount!=null) return Number(c.liveCount)||0;
+  if(!c.hatched) return 0;
+  if(c.badEggCount!=null && c.eggCount!=null) return Math.max(0, Number(c.eggCount)-Number(c.badEggCount));
+  try{ return savedSnakes.filter(s=>s.clutchRef===c.ref && s.damId===c.damId).length; }catch(e){ return 0; }
+}
 function confirmHatchCount(id){
   const isEn = currentLang==='en';
   const c = clutches.find(x=>x.id===id); if(!c) return;
   const n = parseInt((document.getElementById('hatch-count-input')||{}).value, 10);
   if(isNaN(n) || n<0 || n>c.eggCount){ alert(isEn?'Enter a number between 0 and '+c.eggCount+'.':'Entre un nombre entre 0 et '+c.eggCount+'.'); return; }
-  c.badEggCount = c.eggCount - n; c.updatedAt = Date.now();
+  c.badEggCount = c.eggCount - n; c.liveCount = n; c.updatedAt = Date.now(); // v5.01 — liveCount sert aux stats d'éclosion
   closeQuickModal();
   if(n===0){
     c.hatched = true; c.hatchedAt = localTodayStr(); saveElevage(); renderClutches();
@@ -27301,12 +27332,12 @@ function showHatchUndoModal(clutchId, createdIds, count, ref, sireId, damId){
   showQuickModal(isEn
       ? '🎉 '+count+' '+(count>1?'babies':'baby')+' '+(isOvo?'born':'hatched')+'!'
       : '🎉 '+count+' bébé'+(count>1?'s':'')+' bien arrivé'+(count>1?'s':'')+' !',
-    isEn
+    (isEn
       ? '<p style="font-size:12.5px;color:var(--ink-dim);line-height:1.6;margin:0 0 14px;">Records <b>'+ref+'-01</b> to <b>'+ref+'-'+String(count).padStart(2,'0')+'</b> created with the exact genetics from the draw. Sex not set — remember to sex them and add photos. Genetics stay marked <b style="color:#d8bb46;">"to verify"</b> until visually confirmed on each record.</p>'
-      : '<p style="font-size:12.5px;color:var(--ink-dim);line-height:1.6;margin:0 0 14px;">Fiches <b>'+ref+'-01</b> à <b>'+ref+'-'+String(count).padStart(2,'0')+'</b> créées avec la génétique exacte du tirage. Sexe non défini — pense à sexer et ajouter des photos. La génétique reste marquée <b style="color:#d8bb46;">« à vérifier »</b> jusqu\'à confirmation visuelle sur chaque fiche.</p>'
+      : '<p style="font-size:12.5px;color:var(--ink-dim);line-height:1.6;margin:0 0 14px;">Fiches <b>'+ref+'-01</b> à <b>'+ref+'-'+String(count).padStart(2,'0')+'</b> créées avec la génétique exacte du tirage. Sexe non défini — pense à sexer et ajouter des photos. La génétique reste marquée <b style="color:#d8bb46;">« à vérifier »</b> jusqu\'à confirmation visuelle sur chaque fiche.</p>')
       + waitlistMatchesHtml + (function(){ try{ return hatchTraitsHtml(clutchId, createdIds); }catch(e){ return ''; } })()
-      + '<button class="sc-btn accent" style="width:100%;margin:0 0 12px;" onclick="closeQuickModal();openClutchReview(\''+clutchId+'\')">🧬 '+(isEn?'Set sexes and verify genetics now':'Indiquer les sexes et vérifier les gènes maintenant')+'</button>',
-    '<div style="display:flex;gap:8px;">'+
+      + '<button class="sc-btn accent" style="width:100%;margin:0 0 12px;" onclick="closeQuickModal();openClutchReview(\''+clutchId+'\')">🧬 '+(isEn?'Set sexes and verify genetics now':'Indiquer les sexes et vérifier les gènes maintenant')+'</button>'
+    + '<div style="display:flex;gap:8px;">'+
       '<button class="save-btn" style="flex:1;" onclick="closeQuickModal();">'+(isEn?'OK, continue':'OK, continuer')+'</button>'+
       '<button class="sc-btn danger" onclick="undoHatchCreation(\''+clutchId+'\', '+JSON.stringify(createdIds).replace(/"/g,'&quot;')+')">↩ '+(isEn?'Undo this creation':'Annuler cette création')+'</button>'+
     '</div>'
@@ -27934,7 +27965,7 @@ function statsReproByYear(){
     if(!by[y]) by[y] = { clutches:0, eggs:0, live:0 };
     by[y].clutches++;
     by[y].eggs += Number(c.eggCount||0);
-    if(c.hatched) by[y].live += Number(c.liveCount||0);
+    if(c.hatched) by[y].live += clutchLiveCount(c); // v5.01
   });
   return Object.keys(by).sort().map(y=>Object.assign({ year:y }, by[y]));
 }
@@ -28149,7 +28180,7 @@ function computeTrophyGroups(){
   const proven = all.filter(isProvenSnake);
   // v4.06 — Incubateur d'Or : œufs > 0 et autant de bébés vivants que d'œufs
   let gold = null;
-  hatchedCl.forEach(c=>{ const eggs = Number(c.eggCount)||0, live = Number(c.liveCount)||0; if(eggs>0 && live>=eggs){ const d = String(c.hatchedAt||c.hatchDate||c.layDate||'').slice(0,10)||null; if(!gold || (d && (!gold.date || d<gold.date))) gold = { date:d, ref:c.ref||'' }; } });
+  hatchedCl.forEach(c=>{ const eggs = Number(c.eggCount)||0, live = clutchLiveCount(c); /* v5.01 — pontes d'œufs : liveCount n'était jamais rempli */ if(eggs>0 && live>=eggs){ const d = String(c.hatchedAt||c.hatchDate||c.layDate||'').slice(0,10)||null; if(!gold || (d && (!gold.date || d<gold.date))) gold = { date:d, ref:c.ref||'' }; } });
   // v4.06 — Briseur de Glace : premier repas d'un bébé né chez toi
   let ice = null;
   all.filter(isLocusBorn).forEach(s=>{ const f = ((s.health&&s.health.events)||[]).filter(e=>e && e.type==='fed' && e.date).map(e=>e.date).sort()[0]; if(f && (!ice || f<ice.date)) ice = { date:f, name:s.name }; });
@@ -28461,7 +28492,7 @@ function computeRecords(){
   let bestDam = null;
   Object.keys(byDam).forEach(id=>{
     const list = byDam[id]; if(list.length<2) return;
-    const eggs = list.reduce((a,c)=>a+Number(c.eggCount||0),0), live = list.reduce((a,c)=>a+Number(c.liveCount||0),0);
+    const eggs = list.reduce((a,c)=>a+Number(c.eggCount||0),0), live = list.reduce((a,c)=>a+clutchLiveCount(c),0); // v5.01
     if(!eggs) return;
     const r = live/eggs;
     if(!bestDam || r>bestDam.r) bestDam = { id, r, n:list.length, eggs, live };
@@ -28858,7 +28889,7 @@ function computeSeasonRecap(year){
   locks.delete(null);
   const cl = (clutches||[]).filter(c=>c && inY(c.layDate));
   const eggs = cl.reduce((a,c)=>a+Number(c.eggCount||0),0);
-  const hatched = cl.filter(c=>c.hatched).reduce((a,c)=>a+Number(c.liveCount||0),0);
+  const hatched = cl.filter(c=>c.hatched).reduce((a,c)=>a+clutchLiveCount(c),0); // v5.01
   const babies = all.filter(s=>inY(s.birthDate) && isLocusBorn(s));
   const combos = new Set(babies.map(s=>{ try{ return summarizeGenes(s.genes||{}); }catch(e){ return ''; } }).filter(Boolean)).size;
   const proven = all.filter(s=>{
@@ -29161,6 +29192,8 @@ function confirmSold(id){
   const parsedPrice = parseFloat(priceVal);
   const price = priceVal!=='' ? (isNaN(parsedPrice) ? null : parsedPrice) : s.askingPrice;
   s.status = 'sold'; s.buyer = buyer; s.soldDate = localTodayStr(); s.soldPrice = price; s.paidViaStripe = false;
+  // v5.01 — comme pour un décès : le bac / terrarium est libéré
+  try{ ensureSnakeMeta(s); if(!snakeIsUnplaced(s)){ const oldTe = s.placement.mode==='terrarium' ? getTerrarium(s.placement.terrariumId) : null; s.placement = { mode:'terrarium', terrariumId:null }; if(oldTe) refreshTerrariumStatus(oldTe); } }catch(e){}
   storage.save(savedSnakes);
   closeQuickModal();
   renderSavedList();
@@ -30528,7 +30561,7 @@ function renderDashboard(){
         const last = lastFedInfo(s);
         const preyIcon = last && last.preyType ? (last.preyType==='live'?' 🐭':' ❄️') : '';
         const lastTxt = last ? (last.date+preyIcon) : t('neverFedLabel');
-        const sub = t('lastMealLabel')+lastTxt+'<br>'+t('nextMealLabel')+nextFeedingDate(s);
+        const sub = t('lastMealLabel')+lastTxt+'<br>'+t('nextMealPrefix')+nextFeedingDate(s);
         return miniAnimalCardHtml(snakeName(s), sub, '<button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button>');
       }).join('')+lnPg.bottom;
   }
