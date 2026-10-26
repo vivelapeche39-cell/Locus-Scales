@@ -1490,6 +1490,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <span style="font-size:11px;color:var(--ink-dim);"><span data-i18n="categoryFilterLabel">Type</span> :</span>
         <select id="tour-category-filter" class="egg-select" onchange="setTourCategoryFilter(this.value)"></select>
       </div>
+      <div id="tour-batch-weigh-resume" style="display:none;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;padding:10px 14px;background:var(--bg-panel-2);border:1px solid var(--gold);border-radius:10px;font-size:13px;"></div>
       <div id="tour-rack-filter-banner" style="display:none;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;padding:10px 14px;background:var(--bg-panel-2);border:1px solid var(--gold);border-radius:10px;font-size:12px;"></div>
       <button class="sc-btn" id="tour-show-all-btn" style="margin-bottom:14px;" onclick="showAllRacksTerrariums()">🔄 <span data-i18n="showAllSectionsBtn">Tout réafficher</span></button>
       <div id="tour-wrap">
@@ -1769,6 +1770,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <button class="sc-btn accent" onclick="quickAddPairingFromLockMode()" data-i18n="lockModeAddPairingBtn">+ Nouvel accouplement</button>
       </div>
       <div id="lockmode-grid"></div>
+      <div id="lockmode-constancy" style="margin-top:14px;"></div>
     </div>
   </div>
 
@@ -2241,7 +2243,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.02';
+const APP_VERSION = '2026.09.01.5.04';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5284,6 +5286,26 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.04', date:'2026-10-26',
+    title:{ fr:'Refus d\'accouplement, prix par combo, proie refusée', en:'Pairing refusals, price per combo, refused prey' },
+    changes:{
+      fr:[ '🙅 Mode Verrou : nouveau bouton « Refus » sur chaque accouplement — note qui a refusé (le mâle, la femelle ou je ne sais pas), à la date voulue. La nouvelle section « 📊 Constance des reproducteurs » montre pour chaque mâle et chaque femelle, tous accouplements confondus : séances, locks, refus et % de refus. Après 3 refus d\'affilée, un avertissement dit si c\'est avec plusieurs partenaires (ça pointe vers l\'animal) ou toujours le même (peut-être ce couple-là). Réservé aux paliers Première ponte et Illimité après la bêta.',
+           '💰 Prix : quand tu entres un prix demandé, LOCUS propose de mettre le même prix sur tes autres animaux à vendre du combo identique (mêmes gènes, hets et possibles compris). Cochés d\'office : même sexe et sans prix ; l\'autre sexe et ceux qui ont déjà un prix sont proposés mais décochés. Réservé au palier Illimité après la bêta.',
+           '⚠ Mode Tournée : « Refus » demande maintenant ce qui est arrivé à la proie — 🗑 gaspillée, 🔁 passée à un autre reptile (le repas est noté pour celui qui l\'a mangée, une seule proie sort du stock) ou ↩ retournée au bac (vivante). Un choix pour tous, modifiable animal par animal. Le journal l\'affiche.' ],
+      en:[ '🙅 Lock Mode: new « Refusal » button on each pairing — log who refused (the male, the female or not sure), on any date. The new « 📊 Breeder consistency » section shows, for each male and female across all pairings: sessions, locks, refusals and refusal %. After 3 refusals in a row, a warning tells whether it was with several partners (points to that animal) or always the same one (maybe that pair). Reserved for the First Clutch and Unlimited tiers after the beta.',
+           '💰 Price: when you enter an asking price, LOCUS offers to put the same price on your other animals for sale with the identical combo (same genes, hets and possibles included). Checked by default: same sex with no price; the other sex and those already priced are listed but unchecked. Reserved for the Unlimited tier after the beta.',
+           '⚠ Tour Mode: « Refused » now asks what happened to the prey — 🗑 wasted, 🔁 given to another reptile (the meal is logged for the one who ate it, only one prey leaves the stock) or ↩ back in the bin (live). One choice for all, adjustable per animal. The journal shows it.' ]
+    }
+  },
+  { version:'5.03', date:'2026-10-26',
+    title:{ fr:'Pesée en lot plus sûre', en:'Safer batch weigh-in' },
+    changes:{
+      fr:[ '⚖ Pesée en lot (Mode Tournée) : si un poids est au moins 3 fois plus lourd ou moitié moins que la pesée précédente, LOCUS t\'avertit et demande de confirmer (pratique contre les fautes de frappe comme 14500 au lieu de 1450).',
+           '⏸ Si tu fermes la fenêtre en plein milieu d\'une pesée en lot, un bandeau « Reprendre » apparaît dans le Mode Tournée avec le nombre d\'animaux restants — même après avoir rechargé la page. « Abandonner » efface la file.' ],
+      en:[ '⚖ Batch weigh-in (Tour Mode): if a weight is at least 3 times heavier or half of the previous weigh-in, LOCUS warns you and asks you to confirm (handy against typos like 14500 instead of 1450).',
+           '⏸ If you close the window in the middle of a batch weigh-in, a « Resume » banner shows up in Tour Mode with the number of reptiles left — even after reloading the page. « Drop » clears the queue.' ]
+    }
+  },
   { version:'5.02', date:'2026-10-24',
     title:{ fr:'Gène « Hypo »', en:'« Hypo » gene' },
     changes:{
@@ -14490,6 +14512,68 @@ function saveAddPastEvent(id){
 
 // Mode Tournée : qualité de la mue pour tous les animaux sélectionnés (gros boutons)
 var tourShedQualityPending = null;
+// v5.04 — choix d'Alex (option 3B, gratuit) : après « Refus » dans le Mode Tournée, ce qui est arrivé
+// à la proie. Gaspillée = retirée du stock (comme avant pour une congelée) ; passée à un autre =
+// retirée une seule fois et un repas est noté pour le reptile qui l'a mangée ; retournée au bac
+// (vivante) = rien ne bouge. Un choix pour toute la sélection, modifiable animal par animal.
+var tourRefusalPlan = null;
+var tourRefusalPassedCount = 0;
+function tourRefusalFateOptions(selected){
+  const isEn = currentLang==='en';
+  return [['lost','🗑 '+(isEn?'Wasted':'Gaspillée')],['passed','🔁 '+(isEn?'Given to another':'Passée à un autre')],['returned','↩ '+(isEn?'Back in the bin (live)':'Retournée au bac (vivante)')]]
+    .map(([v,l])=>'<option value="'+v+'"'+(v===selected?' selected':'')+'>'+l+'</option>').join('');
+}
+function openTourRefusalPreyModal(){
+  const isEn = currentLang==='en';
+  const refusers = [...tourSelection].map(snakeFromKey).filter(Boolean);
+  if(!refusers.length) return;
+  const refIds = new Set(refusers.map(x=>x.id));
+  const others = savedSnakes.filter(x=>!refIds.has(x.id) && x.status!=='sold' && x.status!=='deceased').sort((a,b)=>snakeName(a).localeCompare(snakeName(b)));
+  const recipientOpts = '<option value="">'+(isEn?'— who ate it? —':'— qui l\'a mangée ? —')+'</option>'+others.map(x=>'<option value="'+escapeHtml(String(x.id))+'">'+escapeHtml(snakeName(x))+(x.preySpecies&&x.preySize?' ('+escapeHtml(x.preySpecies+' '+x.preySize)+')':'')+'</option>').join('');
+  const sel = 'width:100%;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);';
+  const rows = refusers.map(x=>{
+    ensureSnakeMeta(x);
+    const def = (x.preyType||'frozen')==='frozen' ? 'lost' : 'returned';
+    const prey = (x.preySpecies && x.preySize) ? escapeHtml(x.preySpecies+' '+x.preySize)+' '+((x.preyType||'frozen')==='frozen'?'❄️':'🐭') : (isEn?'prey not set':'proie non renseignée');
+    return '<div class="trp-row" data-id="'+escapeHtml(String(x.id))+'" style="border-bottom:1px solid var(--line);padding:9px 0;">'+
+      '<div style="font-size:14px;margin-bottom:6px;"><b>'+escapeHtml(snakeName(x))+'</b> <small style="color:var(--ink-dim);">— '+prey+'</small></div>'+
+      '<select class="trp-fate" style="'+sel+'" onchange="this.parentNode.querySelector(\'.trp-to\').style.display=this.value===\'passed\'?\'block\':\'none\'">'+tourRefusalFateOptions(def)+'</select>'+
+      '<select class="trp-to" style="'+sel+'margin-top:6px;display:none;">'+recipientOpts+'</select>'+
+    '</div>';
+  }).join('');
+  const allBtn = (v,l)=>'<button class="sc-btn" style="font-size:13px;" onclick="tourRefusalSetAll(\''+v+'\')">'+l+'</button>';
+  showQuickModal('⚠ '+(isEn?'Refusal — the prey?':'Refus — et la proie ?'),
+    (refusers.length>1 ? '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;font-size:12px;">'+(isEn?'All:':'Tous :')+' '+allBtn('lost','🗑')+allBtn('passed','🔁')+allBtn('returned','↩')+'</div>' : '')+
+    '<div style="max-height:52vh;overflow-y:auto;">'+rows+'</div>'+
+    '<div style="font-size:11.5px;color:var(--ink-dim);margin-top:8px;">'+(isEn?'Given to another: the meal is logged for the one who ate it, and only one prey leaves the stock.':'Passée à un autre : le repas est noté pour celui qui l\'a mangée, et une seule proie sort du stock.')+'</div>'+
+    '<button class="save-btn" style="margin-top:14px;width:100%;" onclick="confirmTourRefusalPrey()">'+(isEn?'Save refusal(s)':'Enregistrer le(s) refus')+'</button>'
+  );
+}
+function tourRefusalSetAll(v){
+  document.querySelectorAll('.trp-row').forEach(r=>{
+    const f = r.querySelector('.trp-fate'); if(f) f.value = v;
+    const to = r.querySelector('.trp-to'); if(to) to.style.display = v==='passed' ? 'block' : 'none';
+  });
+}
+function confirmTourRefusalPrey(){
+  const isEn = currentLang==='en';
+  const plan = {};
+  let missing = false;
+  document.querySelectorAll('.trp-row').forEach(r=>{
+    const id = r.getAttribute('data-id');
+    const sn = savedSnakes.find(x=>String(x.id)===id);
+    if(!sn) return;
+    const fate = (r.querySelector('.trp-fate')||{}).value || 'lost';
+    const toVal = (r.querySelector('.trp-to')||{}).value || '';
+    const to = toVal ? savedSnakes.find(x=>String(x.id)===toVal) : null;
+    if(fate==='passed' && !to) missing = true;
+    plan[sn.id] = { fate, toId: to ? to.id : null };
+  });
+  if(missing){ showToast(isEn?'Pick who ate the prey (or choose Wasted).':'Choisis qui a mangé la proie (ou « Gaspillée »).', 'error'); return; }
+  closeQuickModal();
+  tourRefusalPlan = plan;
+  try{ applyTourAction('refused'); } finally { tourRefusalPlan = null; }
+}
 function openTourShedQualityModal(){
   const isEn = currentLang==='en';
   const n = tourSelection.size;
@@ -14777,6 +14861,59 @@ function deleteDefecation(id, defecationId){
 // sauvegardée (pesée d'Angela perdue le 18 oct). On relit maintenant la fiche fraîche à chaque étape.
 var batchWeighQueue = [];
 var batchWeighIndex = 0;
+var batchWeighOpen = false; // v5.03 — vrai pendant que la fenêtre de pesée en lot est affichée
+var batchWeighWarnedVal = null; // v5.03 — poids inhabituel déjà signalé pour l'animal courant
+const BATCH_WEIGH_KEY = 'locus_batch_weigh_v1'; // v5.03 — file en cours (effacée avec les autres clés locus_)
+function saveBatchWeighState(){
+  try{
+    if(batchWeighIndex < batchWeighQueue.length) localStorage.setItem(BATCH_WEIGH_KEY, JSON.stringify({ids:batchWeighQueue, index:batchWeighIndex, date:batchWeighDate||null}));
+    else localStorage.removeItem(BATCH_WEIGH_KEY);
+  }catch(e){}
+}
+function loadBatchWeighState(){
+  // Rechargement de page (Safari iPhone) : on retrouve la file si elle n'est pas en mémoire.
+  if(batchWeighQueue.length) return;
+  try{
+    const raw = localStorage.getItem(BATCH_WEIGH_KEY);
+    if(!raw) return;
+    const st = JSON.parse(raw);
+    if(st && Array.isArray(st.ids) && typeof st.index==='number'){
+      batchWeighQueue = st.ids.filter(x=>typeof x==='string' || typeof x==='number');
+      batchWeighIndex = Math.max(0, st.index|0);
+      batchWeighDate = (typeof st.date==='string' && /^\d{4}-\d{2}-\d{2}$/.test(st.date)) ? st.date : null;
+    }
+  }catch(e){}
+}
+function batchWeighRemainingCount(){
+  let n = 0;
+  for(let i=batchWeighIndex;i<batchWeighQueue.length;i++){ if(savedSnakes.some(x=>x.id===batchWeighQueue[i])) n++; }
+  return n;
+}
+function renderBatchWeighResume(){
+  const box = document.getElementById('tour-batch-weigh-resume');
+  if(!box) return;
+  loadBatchWeighState();
+  const left = batchWeighOpen ? 0 : batchWeighRemainingCount();
+  if(!left){ box.style.display = 'none'; box.innerHTML = ''; return; }
+  const isEn = currentLang==='en';
+  const dateNote = (batchWeighDate && batchWeighDate!==localTodayStr()) ? ' ('+escapeHtml(batchWeighDate)+')' : '';
+  box.style.display = 'flex';
+  box.innerHTML = '<span>⚖ '+(isEn?'Batch weigh-in interrupted: <b>'+left+'</b> reptile(s) left'+dateNote+'.':'Pesée en lot interrompue : <b>'+left+'</b> reptile(s) restant(s)'+dateNote+'.')+'</span>'+
+    '<span style="display:flex;gap:8px;">'+
+      '<button class="save-btn" onclick="resumeBatchWeigh()">'+(isEn?'Resume':'Reprendre')+'</button>'+
+      '<button class="sc-btn" onclick="abandonBatchWeigh()">'+(isEn?'Drop':'Abandonner')+'</button>'+
+    '</span>';
+}
+function resumeBatchWeigh(){
+  loadBatchWeighState();
+  if(!batchWeighRemainingCount()){ abandonBatchWeigh(); return; }
+  showNextBatchWeigh();
+}
+function abandonBatchWeigh(){
+  batchWeighQueue = []; batchWeighIndex = 0; batchWeighDate = null; batchWeighOpen = false;
+  saveBatchWeighState();
+  renderBatchWeighResume();
+}
 function startBatchWeigh(snakes, index){
   batchWeighQueue = (snakes||[]).map(s=>s && s.id).filter(Boolean);
   batchWeighIndex = index;
@@ -14786,31 +14923,63 @@ function currentBatchWeighSnake(){
   const id = batchWeighQueue[batchWeighIndex];
   return id ? savedSnakes.find(x=>x.id===id) : null;
 }
+// v5.03 — poids de référence : la pesée la plus récente à la date choisie ou avant (sinon la toute dernière).
+function batchWeighReference(s){
+  const w = (s.health && s.health.weights) || [];
+  if(!w.length) return null;
+  const d = batchWeighDate || localTodayStr();
+  const before = w.filter(x=>String(x.date)<=d);
+  const ref = before.length ? before[before.length-1] : w[w.length-1];
+  const v = Number(ref && ref.value);
+  return (v>0) ? {value:v, date:ref.date} : null;
+}
+// v5.03 — écart inhabituel : au moins 3 fois plus lourd, ou moitié moins (faute de frappe probable : 14500 au lieu de 1450).
+function batchWeighIsUnusual(val, ref){
+  if(!ref) return false;
+  return val >= ref.value*3 || val <= ref.value*0.5;
+}
 function showNextBatchWeigh(){
   const isEn = currentLang==='en';
+  batchWeighWarnedVal = null;
   if(batchWeighIndex >= batchWeighQueue.length){
+    const total = batchWeighQueue.length;
+    batchWeighQueue = []; batchWeighIndex = 0; batchWeighDate = null;
+    saveBatchWeighState();
+    batchWeighOpen = false;
     closeQuickModal();
-    showToast('⚖ '+(isEn?'Batch weigh-in complete (':'Pesée en lot terminée (')+batchWeighQueue.length+(isEn?' reptile(s)).':' reptile(s)).'), 'success');
+    showToast('⚖ '+(isEn?'Batch weigh-in complete (':'Pesée en lot terminée (')+total+(isEn?' reptile(s)).':' reptile(s)).'), 'success');
     renderRackGrid(); renderTerrariumList(); renderTourGrid();
     return;
   }
   const s = currentBatchWeighSnake();
   if(!s){ batchWeighIndex++; showNextBatchWeigh(); return; } // fiche supprimée entre-temps
+  saveBatchWeighState();
   ensureSnakeMeta(s);
   const w = s.health.weights;
   const lastLine = w.length ? '<div style="font-size:11.5px;color:var(--ink-dim);margin-bottom:10px;">'+(isEn?'Last weigh-in: ':'Dernière pesée : ')+w[w.length-1].value+(isEn?'g on ':'g le ')+w[w.length-1].date+'</div>' : '';
-  showQuickModal((isEn?'Weigh ':'Peser ')+s.name+' ('+(batchWeighIndex+1)+'/'+batchWeighQueue.length+')',
+  batchWeighOpen = true;
+  try{ renderBatchWeighResume(); }catch(e){}
+  showQuickModal((isEn?'Weigh ':'Peser ')+snakeName(s)+' ('+(batchWeighIndex+1)+'/'+batchWeighQueue.length+')',
     lastLine+
     '<div style="display:flex;gap:8px;align-items:center;">'+
-      '<input type="number" id="quick-weight-input" class="price-input" style="width:110px;font-size:16px;padding:9px 10px;" placeholder="'+(isEn?'Weight':'Poids')+'" min="0"/>'+
+      '<input type="number" id="quick-weight-input" class="price-input" inputmode="decimal" style="width:110px;font-size:16px;padding:9px 10px;" placeholder="'+(isEn?'Weight':'Poids')+'" min="0"/>'+
       '<span style="color:var(--ink-dim);font-family:\'Courier New\',monospace;">'+(isEn?'grams':'grammes')+'</span>'+
     '</div>'+
+    '<div id="batch-weigh-warn" class="warn" style="display:none;margin-top:12px;font-size:13px;"></div>'+
     '<div style="display:flex;gap:8px;margin-top:16px;">'+
-      '<button class="save-btn" style="flex:1;" onclick="confirmBatchWeigh()">'+(isEn?'Save':'Enregistrer')+'</button>'+
+      '<button class="save-btn" id="batch-weigh-save-btn" style="flex:1;" onclick="confirmBatchWeigh()">'+(isEn?'Save':'Enregistrer')+'</button>'+
       '<button class="sc-btn" onclick="skipBatchWeigh()">'+(isEn?'Skip':'Passer')+'</button>'+
-    '</div>'
+    '</div>'+
+    '<div style="font-size:11px;color:var(--ink-dim);margin-top:10px;">'+(isEn?'You can close this window: a « Resume » button stays in Tour Mode.':'Tu peux fermer cette fenêtre : un bouton « Reprendre » reste dans le Mode Tournée.')+'</div>'
   );
-  setTimeout(()=>{ const inp = document.getElementById('quick-weight-input'); if(inp){ inp.focus(); inp.addEventListener('keydown', e=>{ if(e.key==='Enter') confirmBatchWeigh(); }); } }, 60);
+  setTimeout(()=>{ const inp = document.getElementById('quick-weight-input'); if(inp){ inp.focus(); inp.addEventListener('keydown', e=>{ if(e.key==='Enter') confirmBatchWeigh(); }); inp.addEventListener('input', resetBatchWeighWarn); } }, 60);
+}
+function resetBatchWeighWarn(){
+  if(batchWeighWarnedVal==null) return;
+  batchWeighWarnedVal = null;
+  const isEn = currentLang==='en';
+  const box = document.getElementById('batch-weigh-warn'); if(box){ box.style.display='none'; box.innerHTML=''; }
+  const btn = document.getElementById('batch-weigh-save-btn'); if(btn) btn.textContent = isEn?'Save':'Enregistrer';
 }
 function confirmBatchWeigh(){
   const isEn = currentLang==='en';
@@ -14820,6 +14989,23 @@ function confirmBatchWeigh(){
   const s = currentBatchWeighSnake();
   if(!s){ showToast(isEn?'This reptile no longer exists — skipped.':'Ce reptile n\'existe plus — passé.', 'error'); batchWeighIndex++; showNextBatchWeigh(); return; }
   ensureSnakeMeta(s);
+  // v5.03 — poids inhabituel : on demande une 2e confirmation au lieu d'enregistrer tout de suite.
+  const ref = batchWeighReference(s);
+  if(batchWeighIsUnusual(val, ref) && batchWeighWarnedVal!==val){
+    batchWeighWarnedVal = val;
+    const ratio = val/ref.value;
+    const how = ratio>=1
+      ? (isEn?'×'+(Math.round(ratio*10)/10)+' the previous weigh-in':'×'+String(Math.round(ratio*10)/10).replace('.',',')+' la pesée précédente')
+      : (isEn?Math.round((1-ratio)*100)+'% less than the previous weigh-in':Math.round((1-ratio)*100)+' % de moins que la pesée précédente');
+    const box = document.getElementById('batch-weigh-warn');
+    if(box){
+      box.style.display = 'block';
+      box.innerHTML = '⚠️ <b>'+val+' g</b>'+(isEn?' is ':', c\'est ')+how+' ('+ref.value+' g'+(isEn?' on ':' le ')+escapeHtml(String(ref.date))+'). '+(isEn?'Check the number.':'Vérifie le chiffre.');
+    }
+    const btn = document.getElementById('batch-weigh-save-btn');
+    if(btn) btn.textContent = isEn?('Yes, save '+val+' g'):('Oui, enregistrer '+val+' g');
+    return;
+  }
   // v3.68 — date choisie dans le Mode Tournée (peut être antérieure) ; pesées gardées en ordre chronologique.
   const today = batchWeighDate || localTodayStr();
   s.health.weights.push({date:today, value:val});
@@ -24942,6 +25128,7 @@ function clearTourRackFilter(){
 function renderTourGrid(){
   const isEn = currentLang==='en';
   renderTourDateBar();
+  try{ renderBatchWeighResume(); }catch(e){} // v5.03
   // v3.52 — bouton « Assiette » seulement si la collection compte une espèce nourrie à l'assiette.
   const plateBtn = document.getElementById('tour-plate-btn');
   if(plateBtn){
@@ -25169,6 +25356,8 @@ function applyTourAction(action){
 
   // v3.90 — « A mué » demande la qualité (une fois pour tous les animaux sélectionnés)
   if(action==='shed' && !tourShedQualityPending){ openTourShedQualityModal(); return; }
+  // v5.04 — « Refus » demande ce qui est arrivé à la proie (gaspillée / passée à un autre / retournée)
+  if(action==='refused' && !tourRefusalPlan){ openTourRefusalPreyModal(); return; }
 
   if(action==='weigh'){
     const snakes = [...tourSelection].map(snakeFromKey).filter(Boolean);
@@ -25181,6 +25370,7 @@ function applyTourAction(action){
   }
 
   let fedCount = 0;
+  tourRefusalPassedCount = 0; // v5.04
   const defecationUndo = []; // v3.77
   let stockTouched = false;
   let lowStockMsgs = [];
@@ -25212,15 +25402,33 @@ function applyTourAction(action){
     }
     else if(action==='refused'){
       snake.health.consecutiveRefusals = (snake.health.consecutiveRefusals||0)+1;
-      // v3.21 — proie congelée refusée = jetée (ne se recongèle pas) → décomptée ; Annuler la remet.
-      const isFrozen = (snake.preyType||'frozen')==='frozen';
-      const event = {date:today, type:'refused', reason:'unknown', lostPrey:isFrozen};
-      if(isFrozen && snake.preySpecies && snake.preySize){
-        const rec = consumePreyForEvent(snake, 'frozen', 1);
-        if(rec){ event.stockDraw = rec; stockTouched = true; }
+      // v5.04 — sort de la proie choisi dans la fenêtre (avant : congelée = jetée d'office, vivante = rien).
+      const preyType = snake.preyType||'frozen';
+      const plan = (tourRefusalPlan && tourRefusalPlan[snake.id]) || { fate: preyType==='frozen' ? 'lost' : 'returned' };
+      const recipient = plan.fate==='passed' ? savedSnakes.find(x=>x.id===plan.toId && x.id!==snake.id) : null;
+      const fate = (plan.fate==='passed' && !recipient) ? 'lost' : plan.fate;
+      const event = {date:today, type:'refused', reason:'unknown', lostPrey: fate==='lost', preyFate: fate};
+      if(recipient) event.passedTo = snakeName(recipient);
+      let rec = null;
+      if(fate!=='returned' && snake.preySpecies && snake.preySize){
+        rec = consumePreyForEvent(snake, preyType, 1);
+        if(rec) stockTouched = true;
       }
+      if(fate==='lost' && rec) event.stockDraw = rec;
       snake.health.events.push(event);
       undoPairs.push({snakeId:snake.id, event});
+      if(recipient){
+        // La proie est mangée par un autre : repas noté pour lui, sans retirer une 2e proie du stock.
+        ensureSnakeMeta(recipient);
+        recipient.health.consecutiveRefusals = 0;
+        const fedEv = {date:today, type:'fed', preyType, passedFrom: snakeName(snake)};
+        if(snake.preySpecies && snake.preySize){ fedEv.preySpecies = snake.preySpecies; fedEv.preySize = snake.preySize; }
+        if(today===localTodayStr()) fedEv.at = new Date().toISOString();
+        if(rec) fedEv.stockDraw = rec;
+        recipient.health.events.push(fedEv);
+        undoPairs.push({snakeId:recipient.id, event:fedEv});
+        tourRefusalPassedCount++;
+      }
     }
     else if(action==='plate'){
       if(!isPlateFeeder(snake)) return; // seulement les espèces à l'assiette
@@ -25277,7 +25485,7 @@ function applyTourAction(action){
     const actionLabels = {
       fed_frozen: isEn ? n+' reptile(s) fed.' : n+' reptile(s) nourri(s).',
       fed_live: isEn ? n+' reptile(s) fed.' : n+' reptile(s) nourri(s).',
-      refused: isEn ? n+' refusal(s) noted.' : n+' refus noté(s).',
+      refused: (()=>{ const r = n - tourRefusalPassedCount; return (isEn ? r+' refusal(s) noted.' : r+' refus noté(s).') + (tourRefusalPassedCount ? (isEn ? ' '+tourRefusalPassedCount+' prey passed to another reptile (meal logged).' : ' '+tourRefusalPassedCount+' proie(s) passée(s) à un autre reptile (repas noté).') : ''); })(), // v5.04
       shed: isEn ? n+' shed(s) noted.' : n+' mue(s) notée(s).',
       inshed: isEn ? n+' animal(s) in shed — refusals won\'t be flagged.' : n+' animal(aux) en mue — les refus ne seront pas signalés.', // v3.90
       skipped: isEn ? n+' meal(s) skipped on purpose — not counted as refusals.' : n+' repas sauté(s) volontairement — pas comptés comme refus.', // v3.92
@@ -29223,6 +29431,71 @@ function setAskingPrice(id, value){
   s.askingPrice = parseFloat(value) || null;
   storage.save(savedSnakes);
   renderSavedList();
+  if(s.askingPrice>0){ try{ suggestComboPrice(s); }catch(e){} } // v5.04
+}
+// v5.04 — choix d'Alex (option 2A) : un prix entré sur un animal est proposé aux autres animaux À VENDRE
+// du combo IDENTIQUE (même espèce, mêmes gènes avec le même statut, possibles et % de het compris).
+// Cases cochées d'office : même sexe ET sans prix. Autre sexe / déjà un prix = proposé mais décoché.
+// Palier : comme le prix en lot (bulkListingPrices = Illimité après la bêta).
+function priceComboKey(s){
+  const genes = s.genes || {};
+  const parts = Object.keys(genes).sort().map(gid=>{
+    let n; try{ n = normalizeGeneEntry(genes[gid]); }catch(e){ n = null; }
+    if(!n) return gid+':'+JSON.stringify(genes[gid]);
+    return gid+':'+(n.status||'')+':'+(n.possible?1:0)+':'+(n.percent||'');
+  });
+  return String(s.species||'').toLowerCase()+'|'+parts.join(',');
+}
+var comboPriceCtx = null;
+function suggestComboPrice(src){
+  if(!hasAccess('bulkListingPrices')) return;
+  const isEn = currentLang==='en';
+  const key = priceComboKey(src);
+  const cands = savedSnakes.filter(x=>x.id!==src.id && x.status==='forsale' && priceComboKey(x)===key);
+  if(!cands.length) return;
+  const price = src.askingPrice;
+  const sameSex = x=>(x.sex||'unknown')===(src.sex||'unknown');
+  const sexSym = x=>x.sex==='male'?'♂':x.sex==='female'?'♀':'?';
+  cands.sort((a,b)=> (sameSex(b)-sameSex(a)) || snakeName(a).localeCompare(snakeName(b)));
+  comboPriceCtx = { price, ids:cands.map(x=>x.id) };
+  const combo = escapeHtml(showGenesText(src.genes, isEn));
+  const fmt = v=>isEn ? '$'+v : v+' $';
+  showQuickModal('💰 '+(isEn?'Same price for the same combo?':'Même prix pour le même combo ?'),
+    '<p style="font-size:14px;margin:0 0 10px;">'+(isEn?'Put <b>'+fmt(price)+'</b> on your other <b>'+combo+'</b> for sale too?':'Mettre <b>'+fmt(price)+'</b> aussi sur tes autres <b>'+combo+'</b> à vendre ?')+'</p>'+
+    '<div style="font-size:11.5px;color:var(--ink-dim);margin-bottom:10px;">'+(isEn?'Identical combo only (hets and possibles included). Checked: same sex with no price yet.':'Combo identique seulement (hets et possibles compris). Cochés d\'office : même sexe et pas encore de prix.')+'</div>'+
+    cands.map(x=>{
+      const checked = sameSex(x) && !(x.askingPrice>0);
+      return '<label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px;">'+
+        '<input type="checkbox" class="combo-price-cb" value="'+escapeHtml(String(x.id))+'" style="width:20px;height:20px;"'+(checked?' checked':'')+'/>'+
+        '<span style="flex:1;">'+sexSym(x)+' '+escapeHtml(snakeName(x))+'</span>'+
+        '<span style="font-size:12.5px;color:var(--ink-dim);">'+(x.askingPrice>0 ? (isEn?'now ':'actuel ')+fmt(x.askingPrice) : (isEn?'no price':'aucun prix'))+'</span>'+
+      '</label>';
+    }).join('')+
+    '<div style="display:flex;gap:8px;margin-top:16px;">'+
+      '<button class="save-btn" style="flex:1;" onclick="applyComboPrice()">'+(isEn?'Apply':'Appliquer')+'</button>'+
+      '<button class="sc-btn" onclick="comboPriceCtx=null;closeQuickModal();">'+(isEn?'No thanks':'Non merci')+'</button>'+
+    '</div>'
+  );
+}
+function applyComboPrice(){
+  const isEn = currentLang==='en';
+  if(!comboPriceCtx){ closeQuickModal(); return; }
+  const picked = [...document.querySelectorAll('.combo-price-cb')].filter(cb=>cb.checked).map(cb=>cb.value);
+  let n = 0;
+  picked.forEach(id=>{
+    const x = savedSnakes.find(y=>String(y.id)===id && comboPriceCtx.ids.includes(y.id));
+    if(!x) return;
+    ensureSnakeMeta(x);
+    x.askingPrice = comboPriceCtx.price; n++;
+  });
+  comboPriceCtx = null;
+  closeQuickModal();
+  if(n){
+    storage.save(savedSnakes);
+    renderSavedList();
+    try{ renderSalesView(); }catch(e){}
+    showToast('💰 '+(isEn?'Price set for ':'Prix appliqué à ')+n+(isEn?' more reptile(s).':' autre(s) reptile(s).'), 'success');
+  }
 }
 function setPurchasePrice(id, value){
   const s = savedSnakes.find(x=>x.id===id);
@@ -30009,6 +30282,8 @@ function showQuickModal(title, bodyHtml){
 }
 function closeQuickModal(){
   document.getElementById('quick-modal-overlay').style.display = 'none';
+  // v5.03 — pesée en lot fermée en plein milieu : le bandeau « Reprendre » apparaît dans le Mode Tournée
+  if(batchWeighOpen){ batchWeighOpen = false; try{ renderBatchWeighResume(); }catch(e){} }
 }
 document.getElementById('quick-modal-overlay').addEventListener('click', (e)=>{ if(e.target.id==='quick-modal-overlay') closeQuickModal(); });
 
@@ -31694,7 +31969,8 @@ function renderLockModeGrid(){
   const isEn = currentLang==='en';
   const wrap = document.getElementById('lockmode-grid');
   if(!wrap) return;
-  if(!hasAccess('lockMode')){ wrap.innerHTML = lockedFeatureHtml(); return; }
+  if(!hasAccess('lockMode')){ wrap.innerHTML = lockedFeatureHtml(); const cb = document.getElementById('lockmode-constancy'); if(cb) cb.innerHTML = ''; return; }
+  try{ renderBreederConstancy(); }catch(e){} // v5.04
   const active = pairings.filter(p=>!pairingIsDone(p)); // v4.97 — une portée notée termine l'accouplement
   if(!active.length){
     wrap.innerHTML = '<div class="empty">'+(isEn?'No active pairing right now — add one above or start one from the Season plan.':'Aucun accouplement actif pour l\'instant — ajoutes-en un ci-dessus ou démarre-le depuis le Plan de saison.')+'</div>';
@@ -31712,12 +31988,15 @@ function renderLockModeGrid(){
     const locks = p.lockDates||[];
     const lockedToday = locks.some(l=>l.date===today);
     const lastLock = locks.length ? locks[locks.length-1].date : null;
+    const refusals = p.refusals||[]; // v5.04
+    const refusedToday = refusals.some(r=>r.date===today);
     const stateTxt = st ? (together ? '🤝 '+(isEn?'together ':'ensemble ')+spDaysBetween(st.date,today)+(isEn?' d':' j') : '⏸ '+(isEn?'apart ':'séparés ')+spDaysBetween(st.date,today)+(isEn?' d':' j')) : (isEn?'not started':'pas commencé');
     const open = !!lockModeOpen[p.id];
     return '<div style="border:1px solid '+(together?'var(--sage)':'var(--line)')+';border-radius:12px;padding:8px 10px;margin-bottom:6px;">'+
       '<div style="display:flex;align-items:center;gap:6px;">'+
         '<span style="flex:1;min-width:0;font-size:13px;"><b>♀ '+escapeHtml(spSnakeName(p.femaleId))+'</b> × ♂ '+escapeHtml(spSnakeName(p.maleId))+'<br/><small style="color:var(--ink-dim);">'+stateTxt+(lastLock?' · '+(isEn?'last lock ':'dernier lock ')+spFmt(lastLock):'')+'</small></span>'+
         '<button class="sc-btn'+(lockedToday?' accent':'')+'" style="min-width:64px;" onclick="quickAddLockToday(\''+p.id+'\')">🔒 '+locks.length+(lockedToday?' ✓':' +')+'</button>'+
+        '<button class="sc-btn'+(refusedToday?' accent':'')+'" title="'+(isEn?'Refusal':'Refus')+'" onclick="openPairRefusal(\''+p.id+'\')">🙅 '+refusals.length+'</button>'+ // v5.04
         '<button class="sc-btn" onclick="togglePairSession(\''+p.id+'\')">'+(together?'⏸':'🤝')+'</button>'+
         '<button class="sc-btn" onclick="lockModeOpen[\''+p.id+'\']=!lockModeOpen[\''+p.id+'\'];renderLockModeGrid();">'+(open?'▴':'▾')+'</button>'+
       '</div>'+
@@ -31726,6 +32005,7 @@ function renderLockModeGrid(){
           '<input type="date" id="lm-date-'+p.id+'" max="'+today+'" style="font-size:16px;padding:4px 6px;"/>'+
           '<button class="sc-btn accent" onclick="addLockOnDate(\''+p.id+'\', document.getElementById(\'lm-date-'+p.id+'\').value)">+ 🔒</button></div>'+
         (locks.length ? locks.slice().reverse().map(l=>'<div class="modal-row"><span>🔒 '+spFmt(l.date)+'</span><button class="sc-btn danger" onclick="deleteLockDate(\''+p.id+'\',\''+l.id+'\')">×</button></div>').join('') : '<div style="color:var(--ink-dim);">'+(isEn?'No lock yet.':'Aucun lock pour l\'instant.')+'</div>')+
+        (refusals.length ? refusals.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(r=>'<div class="modal-row"><span>🙅 '+spFmt(r.date)+' — '+pairRefusalByLabel(r.by)+'</span><button class="sc-btn danger" onclick="deletePairRefusal(\''+p.id+'\',\''+r.id+'\')">×</button></div>').join('') : '')+ // v5.04
         (lastLock ? '<div style="color:var(--ink-dim);margin-top:6px;">👀 '+(isEn?'Watch for ovulation roughly ':'Ovulation à surveiller environ ')+spFmt(spAddDays(lastLock,20))+' → '+spFmt(spAddDays(lastLock,35))+'</div>' : '')+
       '</div>' : '')+
     '</div>';
@@ -31740,6 +32020,144 @@ function renderLockModeGrid(){
   wrap.innerHTML = picker+
     (togetherList.length ? '<div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--sage);margin:4px 0 6px;">🤝 '+(isEn?'Together tonight':'Ensemble ce soir')+' — '+togetherList.length+'</div>'+togetherList.sort(sortByName).map(rowHtml).join('') : '')+
     (others.length ? '<div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);margin:12px 0 6px;">'+(isEn?'Other active pairings':'Autres accouplements actifs')+' — '+others.length+'</div>'+others.sort(sortByName).map(rowHtml).join('') : '');
+}
+
+
+/* ==================== v5.04 — Refus d'accouplement + constance des reproducteurs ====================
+   Choix d'Alex (option 1B) : bouton 🙅 par accouplement (qui a refusé : mâle / femelle / inconnu),
+   et une section « Constance des reproducteurs » qui montre, toutes femelles confondues, si un mâle
+   refuse de façon répétée (ou une femelle avec tous les mâles). Gardé dans p.refusals (data jsonb des
+   pairings : aucune migration). Pas dans le journal de santé : rien ne doit fausser les repas/refus
+   alimentaires. Palier : celui du Mode Verrou (Première ponte + Illimité après la bêta). */
+function pairRefusalByLabel(by){
+  const isEn = currentLang==='en';
+  if(by==='male') return '♂ '+(isEn?'male refused':'refus du mâle');
+  if(by==='female') return '♀ '+(isEn?'female refused':'refus de la femelle');
+  return '? '+(isEn?'not sure who':'je ne sais pas qui');
+}
+function openPairRefusal(pairingId){
+  const isEn = currentLang==='en';
+  if(!hasAccess('lockMode')) return;
+  const p = pairings.find(x=>x.id===pairingId);
+  if(!p) return;
+  const today = spToday();
+  const big = 'display:block;width:100%;font-size:16px;padding:13px;margin-bottom:10px;text-align:left;';
+  showQuickModal('🙅 '+(isEn?'Refusal — ':'Refus — ')+'♀ '+spSnakeName(p.femaleId)+' × ♂ '+spSnakeName(p.maleId),
+    '<label style="display:block;font-size:12px;color:var(--ink-dim);margin-bottom:6px;">'+(isEn?'Date':'Date')+'</label>'+
+    '<input type="date" id="pair-refusal-date" value="'+today+'" max="'+today+'" style="font-size:16px;padding:6px 8px;margin-bottom:14px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
+    '<div style="font-size:14px;margin-bottom:10px;">'+(isEn?'Who refused?':'Qui a refusé ?')+'</div>'+
+    '<button class="sc-btn" style="'+big+'" onclick="addPairRefusal(\''+p.id+'\',\'male\')">♂ '+(isEn?'The male (no interest)':'Le mâle (aucun intérêt)')+'</button>'+
+    '<button class="sc-btn" style="'+big+'" onclick="addPairRefusal(\''+p.id+'\',\'female\')">♀ '+(isEn?'The female (pushed him away)':'La femelle (l\'a repoussé)')+'</button>'+
+    '<button class="sc-btn" style="'+big+'" onclick="addPairRefusal(\''+p.id+'\',\'unknown\')">? '+(isEn?'Not sure':'Je ne sais pas')+'</button>'
+  );
+}
+function addPairRefusal(pairingId, by){
+  const isEn = currentLang==='en';
+  const p = pairings.find(x=>x.id===pairingId);
+  if(!p) return;
+  const dEl = document.getElementById('pair-refusal-date');
+  const today = spToday();
+  const date = (dEl && /^\d{4}-\d{2}-\d{2}$/.test(dEl.value) && dEl.value<=today) ? dEl.value : today;
+  if(!['male','female','unknown'].includes(by)) by = 'unknown';
+  p.refusals = p.refusals || [];
+  if(p.refusals.some(r=>r.date===date && r.by===by)){ showToast(isEn?'Already logged for that date.':'Déjà noté pour cette date.'); return; }
+  p.refusals.push({ id:'rf_'+Date.now(), date, by });
+  p.refusals.sort((a,b)=>a.date.localeCompare(b.date));
+  p.updatedAt = Date.now();
+  saveElevage();
+  closeQuickModal();
+  showToast('🙅 '+(isEn?'Refusal logged — ':'Refus noté — ')+pairRefusalByLabel(by)+' ('+spFmt(date)+').', 'success');
+  refreshBreedingViews();
+}
+function deletePairRefusal(pairingId, refusalId){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this refusal?':'Supprimer ce refus ?')) return;
+  const p = pairings.find(x=>x.id===pairingId);
+  if(!p) return;
+  p.refusals = (p.refusals||[]).filter(r=>r.id!==refusalId);
+  p.updatedAt = Date.now();
+  saveElevage();
+  refreshBreedingViews();
+}
+// Statistiques par reproducteur, tous accouplements confondus (terminés compris).
+// streak = refus de CET animal d'affilée depuis son dernier lock (un lock remet à zéro).
+function breederConstancyStats(){
+  const by = {};
+  const get = (id, sex)=>{ if(!by[id]) by[id] = { id, sex, partners:new Set(), sessions:0, locks:0, refMine:0, refPartner:0, refUnknown:0, timeline:[] }; return by[id]; };
+  pairings.forEach(p=>{
+    if(!p || !p.maleId || !p.femaleId) return;
+    const ins = (p.pairSessions||[]).filter(x=>x.state==='in').length || (p.pairedDate ? 1 : 0);
+    [['male', p.maleId, p.femaleId], ['female', p.femaleId, p.maleId]].forEach(([role, id, other])=>{
+      const st = get(id, role);
+      st.partners.add(other);
+      st.sessions += ins;
+      (p.lockDates||[]).forEach(l=>{ st.locks++; st.timeline.push({ date:l.date, kind:'lock', partner:other }); });
+      (p.refusals||[]).forEach(r=>{
+        if(r.by===role){ st.refMine++; st.timeline.push({ date:r.date, kind:'refusal', partner:other }); }
+        else if(r.by==='unknown') st.refUnknown++;
+        else st.refPartner++;
+      });
+    });
+  });
+  return Object.values(by).map(st=>{
+    // même date : le refus d'abord, le lock ensuite (un lock le même jour l'emporte)
+    st.timeline.sort((a,b)=> a.date===b.date ? (a.kind==='refusal'?-1:1) : a.date.localeCompare(b.date));
+    let streak = 0, streakPartners = new Set();
+    st.timeline.forEach(ev=>{ if(ev.kind==='lock'){ streak = 0; streakPartners = new Set(); } else { streak++; streakPartners.add(ev.partner); } });
+    st.streak = streak; st.streakPartners = streakPartners;
+    const noted = st.refMine + st.locks;
+    st.refusalPct = noted ? Math.round(st.refMine*100/noted) : null;
+    return st;
+  });
+}
+function renderBreederConstancy(){
+  const isEn = currentLang==='en';
+  const box = document.getElementById('lockmode-constancy');
+  if(!box) return;
+  const all = breederConstancyStats().filter(st=>savedSnakes.some(x=>x.id===st.id) && (st.refMine+st.refUnknown+st.refPartner)>0);
+  if(!all.length){
+    const anyPair = pairings.length>0;
+    box.innerHTML = anyPair ? '<div style="font-size:12px;color:var(--ink-dim);">📊 '+(isEn?'Breeder consistency: log a refusal with 🙅 to see if a male (or a female) refuses again and again.':'Constance des reproducteurs : note un refus avec 🙅 pour voir si un mâle (ou une femelle) refuse de façon répétée.')+'</div>' : '';
+    return;
+  }
+  all.sort((a,b)=> (b.streak-a.streak) || (b.refMine-a.refMine) || spSnakeName(a.id).localeCompare(spSnakeName(b.id)));
+  const anyAlert = all.some(st=>st.streak>=3);
+  const row = st=>{
+    const male = st.sex==='male';
+    const sym = male ? '♂' : '♀';
+    const name = escapeHtml(spSnakeName(st.id));
+    let alert = '';
+    if(st.streak>=3){
+      const names = [...st.streakPartners].map(id=>escapeHtml(spSnakeName(id)));
+      if(st.streakPartners.size>=2){
+        alert = '⚠️ '+(isEn
+          ? st.streak+' refusals in a row with '+st.streakPartners.size+' different '+(male?'females':'males')+' ('+names.join(', ')+') — this points to '+(male?'him':'her')+' rather than one partner.'
+          : st.streak+' refus d\'affilée avec '+st.streakPartners.size+' '+(male?'femelles':'mâles')+' différent'+(male?'e':'')+'s ('+names.join(', ')+') — ça pointe vers '+(male?'lui':'elle')+' plutôt qu\'un'+(male?'e partenaire':' partenaire')+' en particulier.');
+      } else {
+        alert = '⚠️ '+(isEn
+          ? st.streak+' refusals in a row, always with '+names[0]+' — maybe this pair; compare with another '+(male?'female':'male')+'.'
+          : st.streak+' refus d\'affilée, toujours avec '+names[0]+' — peut-être ce couple-là ; à comparer avec '+(male?'une autre femelle':'un autre mâle')+'.');
+      }
+    }
+    const pct = st.refusalPct!=null ? ' · '+st.refusalPct+(isEn?'% refusals':' % de refus') : '';
+    return '<div style="border:1px solid '+(st.streak>=3?'var(--rust)':'var(--line)')+';border-radius:10px;padding:8px 10px;margin-bottom:6px;font-size:13px;">'+
+      '<div><b>'+sym+' '+name+'</b> <small style="color:var(--ink-dim);">— '+st.partners.size+' '+(male?(isEn?'female(s)':'femelle(s)'):(isEn?'male(s)':'mâle(s)'))+'</small></div>'+
+      '<div style="color:var(--ink-dim);font-size:12px;margin-top:2px;">'+
+        st.sessions+(isEn?' session(s)':' séance(s)')+' · 🔒 '+st.locks+' · 🙅 '+st.refMine+(isEn?' by '+(male?'him':'her'):' par '+(male?'lui':'elle'))+
+        (st.refPartner?' · '+st.refPartner+(isEn?' by partner':' par '+(male?'la femelle':'le mâle')):'')+
+        (st.refUnknown?' · '+st.refUnknown+(isEn?' unsure':' incertain(s)'):'')+pct+
+        (st.streak>0 && st.streak<3 ? ' · '+st.streak+(isEn?' in a row':' d\'affilée') : '')+
+      '</div>'+
+      (alert ? '<div style="margin-top:5px;font-size:12.5px;">'+alert+'</div>' : '')+
+    '</div>';
+  };
+  const males = all.filter(st=>st.sex==='male'), females = all.filter(st=>st.sex==='female');
+  box.innerHTML = '<details'+(anyAlert?' open':'')+' style="border:1px solid var(--line);border-radius:12px;padding:10px 12px;">'+
+    '<summary style="cursor:pointer;font-size:14px;color:var(--gold);">📊 '+(isEn?'Breeder consistency':'Constance des reproducteurs')+(anyAlert?' ⚠️':'')+'</summary>'+
+    '<div style="font-size:11.5px;color:var(--ink-dim);margin:8px 0;">'+(isEn?'All pairings combined, finished ones too. « % refusals » = refusals ÷ (refusals + locks) logged. A lock resets the run.':'Tous les accouplements, terminés compris. « % de refus » = refus ÷ (refus + locks) notés. Un lock remet la série à zéro.')+'</div>'+
+    (males.length ? '<div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);margin:8px 0 6px;">♂ '+(isEn?'Males':'Mâles')+'</div>'+males.map(row).join('') : '')+
+    (females.length ? '<div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);margin:10px 0 6px;">♀ '+(isEn?'Females':'Femelles')+'</div>'+females.map(row).join('') : '')+
+  '</details>';
 }
 
 function deleteLockDate(pairingId, lockId){
@@ -32080,6 +32498,17 @@ function eventLabel(type){
 // pour eux plutôt qu'une valeur inventée.
 function feedPreyTag(e){
   if(e.type==='supplement') return ' — '+supplementKindLabel(e.kind); // v3.53
+  // v5.04 — sort de la proie d'un refus (Mode Tournée) et repas « reçu » d'un autre reptile
+  if(e.type==='refused' && e.preyFate){
+    const en = currentLang==='en';
+    if(e.preyFate==='passed') return ' — 🔁 '+(en?'prey given to ':'proie passée à ')+escapeHtml(e.passedTo||'?');
+    if(e.preyFate==='returned') return ' — ↩ '+(en?'prey back in the bin':'proie retournée au bac');
+    return ' — 🗑 '+(en?'prey wasted':'proie gaspillée');
+  }
+  if(e.type==='fed' && e.passedFrom){
+    const en = currentLang==='en';
+    return (e.preyType==='live'?' 🐭':' ❄️')+' — 🔁 '+(en?'refused by ':'refusée par ')+escapeHtml(e.passedFrom);
+  }
   if(e.type==='fed' && e.plate) return ' 🥗'; // v3.52 — assiette
   if(e.type!=='fed' || !e.preyType) return '';
   const countTag = (e.preyCount && e.preyCount>1) ? ' ×'+e.preyCount : '';
