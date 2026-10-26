@@ -3,17 +3,20 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Features | LOCUS Scales</title>
-<meta name="description" content="What LOCUS Scales does: sourced genetic calculator, rack/terrarium management, breeding, smart feeding reminders, sales, feeder rodent management, and more — free during the current beta phase."/>
+<title>Features | LOCUS Scales — reptiles and feeder rodent colonies</title>
+<meta name="description" content="LOCUS Scales: breeding management for ball pythons and other reptiles (sourced genetics, gene-linked health notes) and feeder rodent colonies tracked by lineage, with an inbreeding warning."/>
 <meta name="robots" content="index, follow"/>
 <link rel="canonical" href="https://app.locusscales.com/guides/features.html"/>
 <link rel="alternate" hreflang="fr" href="https://app.locusscales.com/guides/fonctionnalites.html"/>
 <link rel="alternate" hreflang="en" href="https://app.locusscales.com/guides/features.html"/>
-<meta property="og:title" content="Features | LOCUS Scales"/>
-<meta property="og:description" content="What LOCUS Scales does: sourced genetic calculator, rack/terrarium management, breeding, smart feeding reminders, sales, feeder rodent management, and more."/>
+<link rel="alternate" hreflang="x-default" href="https://app.locusscales.com/guides/features.html"/>
+<meta property="og:title" content="Features | LOCUS Scales — reptiles and feeder rodent colonies"/>
+<meta property="og:description" content="LOCUS Scales: breeding management for ball pythons and other reptiles (sourced genetics, gene-linked health notes) and feeder rodent colonies tracked by lineage, with an inbreeding warning."/>
 <meta property="og:type" content="website"/>
 <meta property="og:url" content="https://app.locusscales.com/guides/features.html"/>
+<meta property="og:locale" content="en_US"/>
 <meta property="og:site_name" content="LOCUS Scales"/>
+<meta property="og:image" content="https://app.locusscales.com/og-image.png?v=3.70"/>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -21,11 +24,33 @@
   "name": "LOCUS Scales",
   "applicationCategory": "BusinessApplication",
   "operatingSystem": "Web",
-  "description": "Reptile breeding management application — sourced genetic calculator, rack and terrarium tracking, breeding (egg-laying and gestation), smart feeding reminders, health journal, sales, and feeder rodent colony management. Bilingual French/English.",
   "url": "https://app.locusscales.com",
-  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CAD", "description": "Free during the current testing phase." },
-  "publisher": { "@type": "Organization", "name": "LOCUS Scales", "url": "https://app.locusscales.com" },
-  "inLanguage": ["fr", "en"]
+  "description": "Web app for reptile breeding records (ball python first) and feeder rodent colonies. Sourced genetics (Morphpedia), gene-linked health notes with level of evidence, rodent colonies tracked by lineage with an inbreeding warning. Bilingual English/French.",
+  "featureList": [
+    "Feeder rodent colonies",
+    "Gene-linked health notes (ball python)",
+    "Genetics",
+    "Day-to-day husbandry",
+    "Breeding",
+    "Import and export",
+    "Sales",
+    "Privacy"
+  ],
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "CAD",
+    "description": "Free during the beta. After the beta, rodent management will be reserved for the Unlimited tier."
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "LOCUS Scales",
+    "url": "https://app.locusscales.com"
+  },
+  "inLanguage": [
+    "fr",
+    "en"
+  ]
 }
 </script>
 <script type="application/ld+json">
@@ -33,9 +58,54 @@
   "@context": "https://schema.org",
   "@type": "FAQPage",
   "mainEntity": [
-    { "@type": "Question", "name": "Is LOCUS Scales free?", "acceptedAnswer": { "@type": "Answer", "text": "Yes, LOCUS Scales is currently free during its testing phase. Paid tiers are planned eventually, always announced in advance before any change." } },
-    { "@type": "Question", "name": "What reptile species does LOCUS Scales support?", "acceptedAnswer": { "@type": "Answer", "text": "Ball Python is the core species with the most complete content, but LOCUS also supports corn snakes, several king snakes, hognose, leopard gecko, crested gecko, bearded dragon, and crocodile skinks — with a system that adapts to the chosen species (prey list, incubation length, etc.)." } },
-    { "@type": "Question", "name": "Does LOCUS Scales work for a breeder who produces their own feeder rodents?", "acceptedAnswer": { "@type": "Answer", "text": "Yes — LOCUS has a dedicated section for feeder rodent colony management (mice, rats, ASF), separate from reptile tracking, with loss tracking, a per-bin profitability report, and a budget with ROI calculation." } }
+    {
+      "@type": "Question",
+      "name": "Can LOCUS Scales manage my feeder rodent colonies?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Each breeding bin is a lineage with a code (e.g. 3.2b: lineage 3, generation 2, 2nd male replacement). LOCUS tracks litters, ratios, losses and stock by stage, and can import your colony spreadsheet."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How does LOCUS help me avoid inbreeding in my rodent bins?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Each bin keeps the footprint of the lineages its animals come from. When you pick a male from a lineage (same number and same generation) already in that footprint, LOCUS shows a ⚠️ warning. It's a warning, never a block."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does LOCUS know the history of the rats I bought?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. LOCUS only knows what you tell it: an animal marked « External » has no known family link. It doesn't compute an inbreeding percentage for rodents. Its strength is rigorous records from now on."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Which gene-linked health issues does LOCUS flag for ball pythons?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Among others, wobble in the Spider complex, Champagne and Woma, the skeletal risks of Super Black Pastel and Super Cinnamon, and fertility problems in Desert females. Each note says whether it's documented, reported by the community or uncertain."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is LOCUS Scales free?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, during the beta. After the beta, paid tiers are planned and announced ahead of time: rodent management will be reserved for the Unlimited tier, advanced breeding (Lock Mode, Season plan) for the First Clutch and Unlimited tiers. Reliability, offline mode, backup, export and installation always stay free."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Which species are supported?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The ball python is the core species. LOCUS also supports corn snakes, several kingsnakes, hognoses, boas, leopard geckos, crested geckos, bearded dragons, blue-tongue skinks, crocodile skinks and uromastyx, among others."
+      }
+    }
   ]
 }
 </script>
@@ -63,6 +133,12 @@ li{font-size:13px;line-height:1.8;color:var(--ink);}
 .backlink a{color:var(--ink-dim);font-size:11px;text-decoration:underline;text-decoration-color:var(--gold);}
 .cta{margin-top:34px;padding-top:20px;border-top:1px dashed var(--line);text-align:center;}
 .cta a.btn{display:inline-block;background:var(--gold);color:#1a1410;font-weight:600;padding:12px 24px;border-radius:24px;text-decoration:none;font-size:13px;}
+.note{background:var(--bg-panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:12.5px;line-height:1.7;color:var(--ink-dim);margin:10px 0;}
+.note b{color:var(--ink);}
+code{font-family:'Courier New',monospace;color:var(--gold);}
+.faq h3{font-size:13.5px;color:var(--ink);margin:16px 0 4px;}
+.faq p{font-size:13px;line-height:1.75;color:var(--ink-dim);margin:0;}
+li .tier{color:var(--ink-dim);font-size:11.5px;}
 </style>
 </head>
 <body>
@@ -74,56 +150,79 @@ li{font-size:13px;line-height:1.8;color:var(--ink);}
     <div class="brand-tag">Features</div>
   </div>
   <h1>What LOCUS Scales does</h1>
-  <p class="intro">A reptile breeding management app, built around ball pythons and expanded to several other species — meant to replace paper/spreadsheet tracking with a complete system, without overselling what it does.</p>
+  <p class="intro">A web app for breeding and husbandry records, built around the ball python and extended to several other species, with a full module for feeder rodent colonies. It replaces paper and spreadsheets, without pretending to know what you haven't told it.</p>
 
+  <h2>🐭 Feeder rodent colonies</h2>
+  <ul>
+    <li>Mice, rats and ASF: breeding bins, Stock / Grow-out bins, litters, male:female ratios, losses and stock by stage.</li>
+    <li><b>One bin = one lineage.</b> Each breeding bin gets a code like <code>3.2b</code>: <code>3</code> = the lineage, <code>.2</code> = the generation, <code>b</code> = how many times the male was replaced in this generation.</li>
+    <li>Replace only the male (same females): the letter moves up (<code>3.1</code> → <code>3.1a</code>). Replace the male AND the females: the generation moves up (<code>3.1b</code> → <code>3.2</code>). You declare it — LOCUS never does it on its own.</li>
+    <li><b>Footprint:</b> a bin keeps the list of lineages its animals come from (« Related lineages »). Females from bin <code>1.1</code> moved to a new bin bring <code>1.1</code> with them.</li>
+    <li><b>Inbreeding warning ⚠️:</b> when the chosen male comes from a lineage (same number and same generation) already in the bin's footprint, LOCUS warns you — brother and sisters, for example. It's a warning, never a block.</li>
+    <li>Import your colony spreadsheet (bins, litters, stock), with a preview before you confirm.</li>
+    <li>Profitability per bin, budget and return on investment.</li>
+  </ul>
+  <div class="note"><b>What LOCUS doesn't pretend to know.</b> It only knows what you tell it. A bought rat or a male marked « External » has no known family link: LOCUS doesn't invent its past. A deleted source bin is treated as related, to be safe. There is no inbreeding percentage for rodents (only for reptiles) and LOCUS doesn't read rodent color genetics. The value is in rigorous records from today on.</div>
+  <h2>🩺 Gene-linked health notes (ball python)</h2>
+  <ul>
+    <li>On an animal's record, the known issues tied to its genes: wobble in the Spider complex, Champagne and Woma, Super Black Pastel and Super Cinnamon (risk of kinking, small eyes, duckbill), female fertility in Desert, light sensitivity in albinos, and more.</li>
+    <li>Each note shows its level of evidence: <b>documented</b>, <b>reported by the community</b> or <b>uncertain</b>. Nothing is presented as more certain than it is.</li>
+    <li>Tracked over time per animal (0 to 3 scale) and per lineage: wobble question at hatching, 3-month reminder, « Lineage health » section.</li>
+  </ul>
   <h2>🧬 Genetics</h2>
   <ul>
-    <li>Ball python cross calculator — 78 genes, exclusive sources Morphpedia and ReptiDex</li>
-    <li>Allelic complexes modeled (e.g. Spider Complex), bilingual health warnings</li>
-    <li>Automatic detection of unexpected genetic surprises in a baby, with retroactive resolution</li>
+    <li>Ball python pairing calculator — over 150 genes, Morphpedia as the main source, World of Ball Pythons as a complement.</li>
+    <li>Allelic complexes (Spider, BEL, Yellow Belly…), super and combo names as used in the hobby, possible hets in %.</li>
+    <li>Multi-generation family tree, inbreeding coefficient for reptiles.</li>
   </ul>
-
-  <h2>🏠 Husbandry</h2>
+  <h2>🏠 Day-to-day husbandry</h2>
   <ul>
-    <li>Rack and terrarium management — lighting, heating, substrate, cleaning with reminders</li>
-    <li>Round Mode — quick bulk actions (fed, shed, refused, water change) across a whole collection</li>
-    <li>QR code per animal or per whole rack — scanning jumps straight to quick actions</li>
-    <li>Feeding reminders based on each animal's real history, not identical thresholds for everyone</li>
+    <li>Racks and terrariums, animal placement, upkeep and cleaning.</li>
+    <li>Tour Mode: batch actions (fed, refused, shed, quick batch weigh-in) across a whole collection. A refusal asks what happened to the prey (wasted, given to another reptile, back in the bin).</li>
+    <li>Feeding reminders based on each animal's real history.</li>
+    <li>Works offline, installs on the home screen.</li>
   </ul>
-
   <h2>🐣 Breeding</h2>
   <ul>
-    <li>Complete pairing tracking — locks, follicle sizing, ovulation, pre-lay shed</li>
-    <li>Support for egg-laying and live birth — the form adapts to the parents' species</li>
-    <li>Goal-based pairing planner</li>
+    <li>Lock Mode: sessions, locks, pairing refusals, and how consistent each male and female is across seasons.</li>
+    <li>Season plan, ovulation and clutch tracking, incubation, hatching with a check of the babies' genes and sexes.</li>
+    <li>Egg-laying and live-bearing species.</li>
+  </ul>
+  <h2>📥 Import and export</h2>
+  <ul>
+    <li>Excel, CSV, Word and MorphMarket import, with a preview before you confirm. All imports are free.</li>
+    <li>Excel and PDF exports, full backup.</li>
+  </ul>
+  <h2>💰 Sales</h2>
+  <ul>
+    <li>Statuses (kept, for sale, reserved, sold), deposit and balance due, PDF invoices and receipts.</li>
+    <li>Record transfer to the buyer: the baby's history and pedigree.</li>
+  </ul>
+  <h2>🔒 Privacy</h2>
+  <ul>
+    <li>Customer data encrypted server-side; public links never show purchase price, buyer or location.</li>
+    <li>Self-service account deletion. Fully bilingual English / French interface.</li>
   </ul>
 
-  <h2>🐭 Feeder rodents</h2>
-  <ul>
-    <li>Colony tracking separate from reptiles — bins, ratios, litters</li>
-    <li>Loss tracking (cannibalism, transfers, euthanasia), not just births</li>
-    <li>Profitability report that flags your least productive bins</li>
-    <li>Dedicated budget with ROI calculation</li>
-  </ul>
-
-  <h2>💰 Sales and finances</h2>
-  <ul>
-    <li>Sale statuses (kept/for sale/reserved/sold) with deposit and balance-due tracking</li>
-    <li>Invoice and receipt PDF generation</li>
-    <li>KPI dashboard — collection value, fertility, feeding compliance, profit</li>
-    <li>Exportable reports in Excel and PDF</li>
-  </ul>
-
-  <h2>🔒 Security and privacy</h2>
-  <ul>
-    <li>Column-level encryption for sensitive customer data</li>
-    <li>Self-service account deletion</li>
-    <li>Fully bilingual French/English interface</li>
-  </ul>
+  <h2>❓ Frequently asked questions</h2>
+  <div class="faq">
+    <h3>Can LOCUS Scales manage my feeder rodent colonies?</h3>
+    <p>Yes. Each breeding bin is a lineage with a code (e.g. 3.2b: lineage 3, generation 2, 2nd male replacement). LOCUS tracks litters, ratios, losses and stock by stage, and can import your colony spreadsheet.</p>
+    <h3>How does LOCUS help me avoid inbreeding in my rodent bins?</h3>
+    <p>Each bin keeps the footprint of the lineages its animals come from. When you pick a male from a lineage (same number and same generation) already in that footprint, LOCUS shows a ⚠️ warning. It&#x27;s a warning, never a block.</p>
+    <h3>Does LOCUS know the history of the rats I bought?</h3>
+    <p>No. LOCUS only knows what you tell it: an animal marked « External » has no known family link. It doesn&#x27;t compute an inbreeding percentage for rodents. Its strength is rigorous records from now on.</p>
+    <h3>Which gene-linked health issues does LOCUS flag for ball pythons?</h3>
+    <p>Among others, wobble in the Spider complex, Champagne and Woma, the skeletal risks of Super Black Pastel and Super Cinnamon, and fertility problems in Desert females. Each note says whether it&#x27;s documented, reported by the community or uncertain.</p>
+    <h3>Is LOCUS Scales free?</h3>
+    <p>Yes, during the beta. After the beta, paid tiers are planned and announced ahead of time: rodent management will be reserved for the Unlimited tier, advanced breeding (Lock Mode, Season plan) for the First Clutch and Unlimited tiers. Reliability, offline mode, backup, export and installation always stay free.</p>
+    <h3>Which species are supported?</h3>
+    <p>The ball python is the core species. LOCUS also supports corn snakes, several kingsnakes, hognoses, boas, leopard geckos, crested geckos, bearded dragons, blue-tongue skinks, crocodile skinks and uromastyx, among others.</p>
+  </div>
 
   <div class="pricing">
-    <b>Free during the current testing phase</b>
-    <p style="font-size:11px;color:var(--ink-dim);margin:6px 0 0;">Paid tiers are planned eventually, always announced in advance.</p>
+    <b>Free during the beta</b>
+    <p style="font-size:11px;color:var(--ink-dim);margin:6px 0 0;line-height:1.6;">After the beta: rodent management will be reserved for the Unlimited tier, advanced breeding for the First Clutch and Unlimited tiers. Reliability, offline mode, backup, export and installation always stay free. Any change is announced ahead of time.</p>
   </div>
 
   <div class="cta">

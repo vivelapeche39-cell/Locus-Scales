@@ -3,17 +3,20 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Fonctionnalités | LOCUS Scales</title>
-<meta name="description" content="Ce que fait LOCUS Scales : calculateur génétique sourcé, gestion de racks/terrariums, reproduction, rappels de nourrissage intelligents, ventes, rongeurs nourriciers, et plus — gratuit pendant la phase bêta."/>
+<title>Fonctionnalités | LOCUS Scales — reptiles et colonies de rongeurs nourriciers</title>
+<meta name="description" content="LOCUS Scales : gestion d&#x27;élevage de pythons royaux et autres reptiles (génétique sourcée, notes de santé par gène) et de colonies de rongeurs nourriciers suivies par lignée, avec avertissement de consanguinité."/>
 <meta name="robots" content="index, follow"/>
 <link rel="canonical" href="https://app.locusscales.com/guides/fonctionnalites.html"/>
-<link rel="alternate" hreflang="en" href="https://app.locusscales.com/guides/features.html"/>
 <link rel="alternate" hreflang="fr" href="https://app.locusscales.com/guides/fonctionnalites.html"/>
-<meta property="og:title" content="Fonctionnalités | LOCUS Scales"/>
-<meta property="og:description" content="Ce que fait LOCUS Scales : calculateur génétique sourcé, gestion de racks/terrariums, reproduction, rappels de nourrissage intelligents, ventes, rongeurs nourriciers, et plus."/>
+<link rel="alternate" hreflang="en" href="https://app.locusscales.com/guides/features.html"/>
+<link rel="alternate" hreflang="x-default" href="https://app.locusscales.com/guides/features.html"/>
+<meta property="og:title" content="Fonctionnalités | LOCUS Scales — reptiles et colonies de rongeurs nourriciers"/>
+<meta property="og:description" content="LOCUS Scales : gestion d&#x27;élevage de pythons royaux et autres reptiles (génétique sourcée, notes de santé par gène) et de colonies de rongeurs nourriciers suivies par lignée, avec avertissement de consanguinité."/>
 <meta property="og:type" content="website"/>
 <meta property="og:url" content="https://app.locusscales.com/guides/fonctionnalites.html"/>
+<meta property="og:locale" content="fr_CA"/>
 <meta property="og:site_name" content="LOCUS Scales"/>
+<meta property="og:image" content="https://app.locusscales.com/og-image.png?v=3.70"/>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -21,11 +24,33 @@
   "name": "LOCUS Scales",
   "applicationCategory": "BusinessApplication",
   "operatingSystem": "Web",
-  "description": "Application de gestion d'élevage de reptiles — calculateur génétique sourcé, suivi de racks et terrariums, reproduction (ponte et gestation), rappels de nourrissage intelligents, journal de santé, ventes, et gestion de colonies de rongeurs nourriciers. Bilingue français/anglais.",
   "url": "https://app.locusscales.com",
-  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CAD", "description": "Gratuit pendant la phase de test actuelle." },
-  "publisher": { "@type": "Organization", "name": "LOCUS Scales", "url": "https://app.locusscales.com" },
-  "inLanguage": ["fr", "en"]
+  "description": "Application web de gestion d'élevage de reptiles (python royal en priorité) et de colonies de rongeurs nourriciers. Génétique sourcée (Morphpedia), notes de santé liées aux gènes avec niveau de preuve, suivi des colonies de rongeurs par lignée avec avertissement de consanguinité. Bilingue français/anglais.",
+  "featureList": [
+    "Colonies de rongeurs nourriciers",
+    "Notes de santé liées aux gènes (python royal)",
+    "Génétique",
+    "Élevage au quotidien",
+    "Reproduction",
+    "Imports et exports",
+    "Ventes",
+    "Confidentialité"
+  ],
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "CAD",
+    "description": "Gratuit pendant la bêta. Après la bêta, la gestion des rongeurs sera réservée au palier Illimité."
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "LOCUS Scales",
+    "url": "https://app.locusscales.com"
+  },
+  "inLanguage": [
+    "fr",
+    "en"
+  ]
 }
 </script>
 <script type="application/ld+json">
@@ -33,9 +58,54 @@
   "@context": "https://schema.org",
   "@type": "FAQPage",
   "mainEntity": [
-    { "@type": "Question", "name": "Est-ce que LOCUS Scales est gratuit ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui, LOCUS Scales est actuellement gratuit pendant sa phase de test. Des paliers payants sont prévus éventuellement, annoncés à l'avance avant tout changement." } },
-    { "@type": "Question", "name": "Quelles espèces de reptiles LOCUS Scales supporte-t-il ?", "acceptedAnswer": { "@type": "Answer", "text": "Le python royal (Ball Python) est l'espèce centrale avec le contenu le plus complet, mais LOCUS supporte aussi le corn snake, plusieurs king snakes, le hognose, le gecko léopard, le gecko à crête, le dragon barbu, et les skinks crocodiles — avec un système qui s'adapte à l'espèce choisie (liste de proies, durée d'incubation, etc.)." } },
-    { "@type": "Question", "name": "Est-ce que LOCUS Scales fonctionne pour un éleveur qui produit ses propres rongeurs nourriciers ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui — LOCUS a une section dédiée à la gestion de colonies de rongeurs nourriciers (souris, rats, ASF), séparée du suivi des reptiles, avec suivi des pertes, rapport de rentabilité par bac, et budget avec calcul de retour sur investissement." } }
+    {
+      "@type": "Question",
+      "name": "Est-ce que LOCUS Scales peut gérer mes colonies de rongeurs nourriciers ?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Oui. Chaque bac de reproduction est une lignée avec un code (ex. 3.2b : lignée 3, génération 2, 2e remplacement du mâle). LOCUS suit les portées, les ratios, les pertes et le stock par stade, et peut importer ton fichier Excel de colonie."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Comment LOCUS m'aide à éviter la consanguinité dans mes bacs de rongeurs ?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Chaque bac garde l'empreinte des lignées d'où viennent ses animaux. Quand tu choisis un mâle qui vient d'une lignée (même numéro et même génération) déjà présente dans cette empreinte, LOCUS affiche un avertissement ⚠️. C'est un avertissement, jamais un blocage."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Est-ce que LOCUS connaît le passé de mes rats achetés ?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Non. LOCUS ne connaît que ce que tu lui dis : un animal noté « Externe » n'a aucun lien de parenté connu. Il ne calcule pas de pourcentage de consanguinité pour les rongeurs. Sa force, c'est la rigueur du suivi à partir de maintenant."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Quels problèmes de santé liés aux gènes LOCUS signale-t-il pour le python royal ?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Entre autres le wobble du complexe Spider, du Champagne et du Woma, les risques squelettiques du Super Black Pastel et du Super Cinnamon, et les problèmes de fertilité des femelles Desert. Chaque note indique si elle est documentée, rapportée par la communauté ou incertaine."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Est-ce que LOCUS Scales est gratuit ?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Oui, pendant la bêta. Après la bêta, des paliers payants sont prévus et annoncés à l'avance : la gestion des rongeurs sera réservée au palier Illimité, la reproduction avancée (Mode Verrou, Plan de saison) aux paliers Première ponte et Illimité. La fiabilité, le mode hors ligne, la sauvegarde, l'export et l'installation restent toujours gratuits."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Quelles espèces sont supportées ?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Le python royal est l'espèce centrale. LOCUS supporte aussi le serpent des blés, plusieurs serpents-rois, le hognose, des boas, le gecko léopard, le gecko à crête, le dragon barbu, le scinque à langue bleue, des scinques crocodiles et des uromastyx, entre autres."
+      }
+    }
   ]
 }
 </script>
@@ -63,6 +133,12 @@ li{font-size:13px;line-height:1.8;color:var(--ink);}
 .backlink a{color:var(--ink-dim);font-size:11px;text-decoration:underline;text-decoration-color:var(--gold);}
 .cta{margin-top:34px;padding-top:20px;border-top:1px dashed var(--line);text-align:center;}
 .cta a.btn{display:inline-block;background:var(--gold);color:#1a1410;font-weight:600;padding:12px 24px;border-radius:24px;text-decoration:none;font-size:13px;}
+.note{background:var(--bg-panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:12.5px;line-height:1.7;color:var(--ink-dim);margin:10px 0;}
+.note b{color:var(--ink);}
+code{font-family:'Courier New',monospace;color:var(--gold);}
+.faq h3{font-size:13.5px;color:var(--ink);margin:16px 0 4px;}
+.faq p{font-size:13px;line-height:1.75;color:var(--ink-dim);margin:0;}
+li .tier{color:var(--ink-dim);font-size:11.5px;}
 </style>
 </head>
 <body>
@@ -74,56 +150,79 @@ li{font-size:13px;line-height:1.8;color:var(--ink);}
     <div class="brand-tag">Fonctionnalités</div>
   </div>
   <h1>Ce que fait LOCUS Scales</h1>
-  <p class="intro">Une application de gestion d'élevage de reptiles, bâtie autour du python royal et étendue à plusieurs autres espèces — pensée pour remplacer le suivi papier/chiffrier par un système complet, sans survendre ce qu'elle fait.</p>
+  <p class="intro">Une application web de gestion d'élevage, bâtie autour du python royal et étendue à plusieurs autres espèces, avec un module complet pour les colonies de rongeurs nourriciers. Elle remplace le papier et le chiffrier, sans prétendre savoir ce que tu ne lui as pas dit.</p>
 
+  <h2>🐭 Colonies de rongeurs nourriciers</h2>
+  <ul>
+    <li>Souris, rats et ASF : bacs de reproduction, bacs Stock / Croissance, portées, ratios mâles:femelles, pertes et stock par stade.</li>
+    <li><b>Un bac = une lignée.</b> Chaque bac de reproduction reçoit un code comme <code>3.2b</code> : <code>3</code> = la lignée, <code>.2</code> = la génération, <code>b</code> = le nombre de fois où le mâle a été remplacé dans cette génération.</li>
+    <li>Tu remplaces seulement le mâle (mêmes femelles) : la lettre avance (<code>3.1</code> → <code>3.1a</code>). Tu remplaces le mâle ET les femelles : la génération avance (<code>3.1b</code> → <code>3.2</code>). C'est toi qui le déclares, jamais LOCUS tout seul.</li>
+    <li><b>Empreinte :</b> un bac garde la liste des lignées d'où viennent ses animaux (« Lignées apparentées »). Des femelles du bac <code>1.1</code> placées dans un nouveau bac apportent <code>1.1</code> avec elles.</li>
+    <li><b>Avertissement ⚠️ de consanguinité :</b> quand le mâle choisi vient d'une lignée (même numéro et même génération) déjà présente dans l'empreinte du bac, LOCUS t'avertit — frère et sœurs, par exemple. C'est un avertissement, jamais un blocage.</li>
+    <li>Import de ton fichier Excel de colonie (bacs, portées, stock), avec un aperçu avant de confirmer.</li>
+    <li>Rapport de rentabilité par bac, budget et retour sur investissement.</li>
+  </ul>
+  <div class="note"><b>Ce que LOCUS ne prétend pas savoir.</b> Il ne connaît que ce que tu lui dis. Un rat acheté ou un mâle noté « Externe » n'a aucun lien de parenté connu : LOCUS n'invente pas son passé. Un bac d'origine supprimé est traité, par prudence, comme apparenté. Il n'y a pas de pourcentage de consanguinité pour les rongeurs (seulement pour les reptiles) et LOCUS ne lit pas la génétique de couleur des rongeurs. La valeur est dans la rigueur du suivi à partir d'aujourd'hui.</div>
+  <h2>🩺 Notes de santé liées aux gènes (python royal)</h2>
+  <ul>
+    <li>Sur la fiche d'un animal, les problèmes connus associés à ses gènes : wobble du complexe Spider, du Champagne et du Woma, Super Black Pastel et Super Cinnamon (risque de kinking, petits yeux, duckbill), fertilité des femelles Desert, sensibilité à la lumière des albinos, et d'autres.</li>
+    <li>Chaque note indique son niveau de preuve : <b>documenté</b>, <b>rapporté par la communauté</b> ou <b>incertain</b>. Rien n'est présenté comme plus sûr que ce qu'on sait.</li>
+    <li>Suivi dans le temps par animal (échelle 0 à 3) et par lignée : question wobble à l'éclosion, rappel à 3 mois, section « Santé des lignées ».</li>
+  </ul>
   <h2>🧬 Génétique</h2>
   <ul>
-    <li>Calculateur de croisement pour le python royal — 78 gènes, sources exclusives Morphpedia et ReptiDex</li>
-    <li>Complexes alléliques modélisés (ex. Spider Complex), avertissements de santé bilingues</li>
-    <li>Détection automatique des divergences génétiques inattendues chez un bébé, avec résolution rétroactive</li>
+    <li>Calculateur de croisement pour le python royal — plus de 150 gènes, Morphpedia en source principale, World of Ball Pythons en complément.</li>
+    <li>Complexes alléliques (Spider, BEL, Yellow Belly…), noms de super et de combos tels qu'utilisés dans le milieu, hets possibles en %.</li>
+    <li>Arbre généalogique sur plusieurs générations, coefficient de consanguinité pour les reptiles.</li>
   </ul>
-
-  <h2>🏠 Élevage</h2>
+  <h2>🏠 Élevage au quotidien</h2>
   <ul>
-    <li>Gestion de racks et terrariums — éclairage, chauffage, substrat, nettoyage avec rappels</li>
-    <li>Mode Tournée — actions rapides en lot (nourri, mue, refus, changement d'eau) sur toute une collection</li>
-    <li>QR code par animal ou par rack entier — scanner ouvre directement les actions rapides</li>
-    <li>Rappels de nourrissage basés sur l'historique réel de chaque animal, pas des seuils identiques pour tous</li>
+    <li>Racks et terrariums, placement des animaux, entretien et nettoyage.</li>
+    <li>Mode Tournée : actions en lot (nourri, refus, mue, pesée en rafale) sur toute une collection. Un refus demande ce qui est arrivé à la proie (gaspillée, passée à un autre reptile, retournée au bac).</li>
+    <li>Rappels de repas basés sur l'historique réel de chaque animal.</li>
+    <li>Fonctionne hors ligne, s'installe sur l'écran d'accueil.</li>
   </ul>
-
   <h2>🐣 Reproduction</h2>
   <ul>
-    <li>Suivi d'accouplement complet — verrouillage, folliculaire, ovulation, mue pré-ponte</li>
-    <li>Support ponte (ovipare) et mise bas (ovovivipare) — le formulaire s'adapte à l'espèce des parents</li>
-    <li>Planificateur de pairing par objectif génétique</li>
+    <li>Mode Verrou : séances, locks, refus d'accouplement, et constance de chaque mâle et femelle d'une saison à l'autre.</li>
+    <li>Plan de saison, suivi d'ovulation et de ponte, incubation, éclosion avec vérification des gènes et des sexes des bébés.</li>
+    <li>Ponte (ovipare) et mise bas (vivipare), selon l'espèce.</li>
+  </ul>
+  <h2>📥 Imports et exports</h2>
+  <ul>
+    <li>Import Excel, CSV, Word et MorphMarket, avec aperçu avant de confirmer. Tous les imports sont gratuits.</li>
+    <li>Exports Excel et PDF, sauvegarde complète.</li>
+  </ul>
+  <h2>💰 Ventes</h2>
+  <ul>
+    <li>Statuts (gardé, à vendre, réservé, vendu), acompte et solde, factures et reçus en PDF.</li>
+    <li>Transfert de dossier à l'acheteur : historique et pedigree du bébé.</li>
+  </ul>
+  <h2>🔒 Confidentialité</h2>
+  <ul>
+    <li>Données clients chiffrées côté serveur ; les liens publics n'affichent jamais prix d'achat, acheteur ni emplacement.</li>
+    <li>Suppression de compte en libre-service. Interface entièrement bilingue français / anglais.</li>
   </ul>
 
-  <h2>🐭 Rongeurs nourriciers</h2>
-  <ul>
-    <li>Suivi de colonie séparé des reptiles — bacs, ratios, portées</li>
-    <li>Suivi des pertes (cannibalisme, transferts, euthanasie), pas juste les naissances</li>
-    <li>Rapport de rentabilité qui identifie les bacs les moins productifs</li>
-    <li>Budget dédié avec calcul de retour sur investissement</li>
-  </ul>
-
-  <h2>💰 Ventes et finances</h2>
-  <ul>
-    <li>Statuts de vente (conservé/à vendre/réservé/vendu) avec suivi d'acompte et solde dû</li>
-    <li>Génération de factures et reçus en PDF</li>
-    <li>Tableau de bord KPI — valeur du cheptel, fertilité, conformité de nourrissage, profit</li>
-    <li>Rapports exportables en Excel et PDF</li>
-  </ul>
-
-  <h2>🔒 Sécurité et confidentialité</h2>
-  <ul>
-    <li>Chiffrement niveau colonne pour les données clients sensibles</li>
-    <li>Suppression de compte en libre-service</li>
-    <li>Interface entièrement bilingue français/anglais</li>
-  </ul>
+  <h2>❓ Questions fréquentes</h2>
+  <div class="faq">
+    <h3>Est-ce que LOCUS Scales peut gérer mes colonies de rongeurs nourriciers ?</h3>
+    <p>Oui. Chaque bac de reproduction est une lignée avec un code (ex. 3.2b : lignée 3, génération 2, 2e remplacement du mâle). LOCUS suit les portées, les ratios, les pertes et le stock par stade, et peut importer ton fichier Excel de colonie.</p>
+    <h3>Comment LOCUS m&#x27;aide à éviter la consanguinité dans mes bacs de rongeurs ?</h3>
+    <p>Chaque bac garde l&#x27;empreinte des lignées d&#x27;où viennent ses animaux. Quand tu choisis un mâle qui vient d&#x27;une lignée (même numéro et même génération) déjà présente dans cette empreinte, LOCUS affiche un avertissement ⚠️. C&#x27;est un avertissement, jamais un blocage.</p>
+    <h3>Est-ce que LOCUS connaît le passé de mes rats achetés ?</h3>
+    <p>Non. LOCUS ne connaît que ce que tu lui dis : un animal noté « Externe » n&#x27;a aucun lien de parenté connu. Il ne calcule pas de pourcentage de consanguinité pour les rongeurs. Sa force, c&#x27;est la rigueur du suivi à partir de maintenant.</p>
+    <h3>Quels problèmes de santé liés aux gènes LOCUS signale-t-il pour le python royal ?</h3>
+    <p>Entre autres le wobble du complexe Spider, du Champagne et du Woma, les risques squelettiques du Super Black Pastel et du Super Cinnamon, et les problèmes de fertilité des femelles Desert. Chaque note indique si elle est documentée, rapportée par la communauté ou incertaine.</p>
+    <h3>Est-ce que LOCUS Scales est gratuit ?</h3>
+    <p>Oui, pendant la bêta. Après la bêta, des paliers payants sont prévus et annoncés à l&#x27;avance : la gestion des rongeurs sera réservée au palier Illimité, la reproduction avancée (Mode Verrou, Plan de saison) aux paliers Première ponte et Illimité. La fiabilité, le mode hors ligne, la sauvegarde, l&#x27;export et l&#x27;installation restent toujours gratuits.</p>
+    <h3>Quelles espèces sont supportées ?</h3>
+    <p>Le python royal est l&#x27;espèce centrale. LOCUS supporte aussi le serpent des blés, plusieurs serpents-rois, le hognose, des boas, le gecko léopard, le gecko à crête, le dragon barbu, le scinque à langue bleue, des scinques crocodiles et des uromastyx, entre autres.</p>
+  </div>
 
   <div class="pricing">
-    <b>Gratuit pendant la phase de test actuelle</b>
-    <p style="font-size:11px;color:var(--ink-dim);margin:6px 0 0;">Des paliers payants sont prévus éventuellement, toujours annoncés à l'avance.</p>
+    <b>Gratuit pendant la bêta</b>
+    <p style="font-size:11px;color:var(--ink-dim);margin:6px 0 0;line-height:1.6;">Après la bêta : la gestion des rongeurs sera réservée au palier Illimité, la reproduction avancée aux paliers Première ponte et Illimité. Fiabilité, hors ligne, sauvegarde, export et installation restent toujours gratuits. Tout changement est annoncé à l'avance.</p>
   </div>
 
   <div class="cta">
