@@ -33,11 +33,11 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<title>LOCUS Scales — Gestion de reptiles et rongeurs nourriciers</title>
+<title>LOCUS Scales — Gestion d'élevage de reptiles et de colonies de rongeurs nourriciers</title>
 <meta charset="utf-8"/>
 <meta name="google-site-verification" content="JvUPiLwoAimf2vx9x4kqqqydcunxFbFnx1G2QHtY4-o" />
 <meta name="msvalidate.01" content="F9680D5238A61FFBF76C0E2CD15117E2" />
-<meta name="description" content="LOCUS Scales — gestion d'élevage de reptiles : calculateur génétique python royal, suivi de racks, ventes, incubation et administration."/>
+<meta name="description" content="Gestion d'élevage de pythons royaux et autres reptiles (génétique sourcée, notes de santé par gène) et de colonies de rongeurs nourriciers suivies par lignée, avec avertissement de consanguinité."/>
 <!-- Icône du site (7 oct) — l'ancien emoji serpent en data-URI a été retiré : Google ne peut pas
      l'utiliser (ce n'est pas un fichier crawlable) et il risquait d'être choisi à la place du vrai
      logo. Google exige un carré dont le côté est un multiple de 48 px (48, 96, 192…). -->
@@ -70,7 +70,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black"/>
 <meta name="apple-mobile-web-app-title" content="LOCUS"/>
 <meta property="og:title" content="LOCUS Scales"/>
-<meta property="og:description" content="Application de gestion pour reptiles et rongeurs nourriciers : repas, mues, pesées, génétique et reproduction. Simple, modulable, en français et en anglais."/>
+<meta property="og:description" content="Application de gestion pour reptiles et colonies de rongeurs nourriciers : génétique sourcée et notes de santé par gène pour le python royal, lignées de rongeurs avec avertissement de consanguinité, repas, mues, pesées et reproduction. En français et en anglais."/>
 <meta property="og:type" content="website"/>
 <meta property="og:url" content="https://app.locusscales.com/"/>
 <meta property="og:locale" content="fr_CA"/>
@@ -87,16 +87,33 @@
   "name": "LOCUS Scales",
   "applicationCategory": "BusinessApplication",
   "operatingSystem": "Web",
-  "description": "Application de gestion d'élevage de reptiles — calculateur génétique sourcé, suivi de racks et terrariums, reproduction (ponte et gestation), rappels de nourrissage intelligents, journal de santé, ventes, et gestion de colonies de rongeurs nourriciers. Bilingue français/anglais.",
   "url": "https://app.locusscales.com",
+  "description": "Application web de gestion d'élevage de reptiles (python royal en priorité) et de colonies de rongeurs nourriciers. Génétique sourcée (Morphpedia), notes de santé liées aux gènes avec niveau de preuve (documenté, rapporté par la communauté, incertain), colonies de rongeurs suivies par lignée (un bac = une lignée, codes comme 3.2b) avec empreinte et avertissement de consanguinité. Bilingue français/anglais.",
+  "featureList": [
+    "Colonies de rongeurs nourriciers (souris, rats, ASF) : un bac = une lignée, code lignée.génération+lettre, empreinte des lignées apparentées, avertissement de consanguinité jamais bloquant",
+    "Notes de santé liées aux gènes du python royal : wobble (complexe Spider, Champagne, Woma), Super Black Pastel et Super Cinnamon, fertilité des femelles Desert — avec niveau de preuve",
+    "Calculateur génétique python royal, plus de 150 gènes, Morphpedia en source principale",
+    "Racks, terrariums et Mode Tournée (repas, refus, mues, pesées en lot)",
+    "Reproduction : Mode Verrou, refus d'accouplement, Plan de saison, pontes et incubation",
+    "Imports Excel, CSV, Word et MorphMarket gratuits ; exports Excel et PDF",
+    "Ventes, factures et transfert de dossier à l'acheteur",
+    "Fonctionne hors ligne, bilingue français/anglais"
+  ],
   "offers": {
     "@type": "Offer",
     "price": "0",
     "priceCurrency": "CAD",
-    "description": "Gratuit pendant la phase de test actuelle."
+    "description": "Gratuit pendant la bêta. Après la bêta, la gestion des rongeurs sera réservée au palier Illimité."
   },
-  "publisher": { "@type": "Organization", "name": "LOCUS Scales" },
-  "inLanguage": ["fr", "en"]
+  "publisher": {
+    "@type": "Organization",
+    "name": "LOCUS Scales",
+    "url": "https://app.locusscales.com"
+  },
+  "inLanguage": [
+    "fr",
+    "en"
+  ]
 }
 </script>
 <!-- Anti-cache : double protection depuis le 29 août 2026. checkForNewVersion() plus bas reste le
@@ -2243,7 +2260,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.04';
+const APP_VERSION = '2026.09.01.5.05';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
