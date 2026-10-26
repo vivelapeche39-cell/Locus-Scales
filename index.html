@@ -2260,7 +2260,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.05';
+const APP_VERSION = '2026.09.01.5.06';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5303,6 +5303,17 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.06', date:'2026-10-26',
+    title:{ fr:'Proies : remplir 100 animaux sans effort', en:'Prey: fill in 100 animals without effort' },
+    changes:{
+      fr:[ '🐭 Nourriture › Proie non renseignée : choisis « Tous mes animaux sans proie » (pas seulement ceux qui mangent bientôt), filtre par rack ou terrarium et par poids (< 100 g, 100–300 g, 300–500 g…, jamais pesé). La liste est triée du plus léger au plus lourd et chaque animal montre son poids, sa place et une proie suggérée.',
+           '✨ Nouveau bouton « Taille selon le poids » : chaque animal coché reçoit SA taille — d\'après la charte poids → proie (python royal), sinon comme l\'animal de même espèce au poids le plus proche, sinon la taille la plus courante de son rack. Un rack qui mélange des serpents de 300 g et de 800 g est donc bien réglé. Annulable.',
+           '🍽 Mode Tournée : quand tu notes « A mangé » et que des animaux de la sélection n\'ont pas de taille de proie, une seule fenêtre te les montre avec la proie suggérée. « Tout confirmer » l\'enregistre comme proie habituelle et note les repas — on ne te la redemande plus. « Passer » note les repas comme avant.' ],
+      en:[ '🐭 Food › Prey not set: choose « All my animals without prey » (not only those eating soon), filter by rack or terrarium and by weight (< 100 g, 100–300 g, 300–500 g…, never weighed). The list goes from lightest to heaviest and each animal shows its weight, place and a suggested prey.',
+           '✨ New « Size by weight » button: each checked animal gets ITS own size — from the weight → prey chart (ball python), otherwise like the same-species animal with the closest weight, otherwise the most common size in its rack. A rack mixing 300 g and 800 g snakes is set right. Undoable.',
+           '🍽 Tour Mode: when you log « Ate » and some selected animals have no prey size, one window shows them with a suggested prey. « Confirm all » saves it as their usual prey and logs the meals — you won\'t be asked again. « Skip » logs the meals as before.' ]
+    }
+  },
   { version:'5.04', date:'2026-10-26',
     title:{ fr:'Refus d\'accouplement, prix par combo, proie refusée', en:'Pairing refusals, price per combo, refused prey' },
     changes:{
@@ -14529,6 +14540,69 @@ function saveAddPastEvent(id){
 
 // Mode Tournée : qualité de la mue pour tous les animaux sélectionnés (gros boutons)
 var tourShedQualityPending = null;
+// v5.06 — choix d'Alex (option B, gratuit) : apprendre la proie en nourrissant. Quand une sélection du Mode Tournée
+// contient des animaux sans taille de proie, une seule fenêtre les liste avec une proie suggérée (charte selon le
+// poids, animal semblable au poids le plus proche, ou le plus courant du rack). « Tout confirmer » enregistre ces
+// proies comme proie habituelle, puis note les repas (avec la bonne proie retirée du stock).
+var tourFedPreyChecked = false;
+function tourFedSizeOptions(sp, selected){
+  const isEn = currentLang==='en';
+  const sizes = (sp && PREY_TYPES[sp]) ? PREY_TYPES[sp].sizes : [];
+  return '<option value="">'+(isEn?'Size…':'Taille…')+'</option>'+sizes.map(z=>'<option value="'+escapeHtml(z)+'"'+(z===selected?' selected':'')+'>'+escapeHtml(z)+'</option>').join('');
+}
+function tourFedSpeciesChanged(sel){
+  const row = sel.closest('.tfp-row'); if(!row) return;
+  const size = row.querySelector('.tfp-size'); if(size) size.innerHTML = tourFedSizeOptions(sel.value, '');
+  const why = row.querySelector('.tfp-why'); if(why) why.textContent = '';
+}
+var tourFedPendingAction = null;
+function openTourFedPreyModal(action, missing){
+  const isEn = currentLang==='en';
+  tourFedPendingAction = action;
+  const sel = 'font-size:16px;padding:7px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);flex:1;min-width:110px;';
+  missing.sort((a,b)=>(snakeLastWeight(a)||Infinity)-(snakeLastWeight(b)||Infinity));
+  const rows = missing.map(x=>{
+    ensureSnakeMeta(x);
+    const sug = suggestPreyFor(x);
+    let allowed = []; try{ allowed = preyTypesForSpecies(x.species||'ball_python').filter(k=>PREY_TYPES[k]); }catch(e){ allowed = ['mouse','rat']; }
+    if(sug.sp && !allowed.includes(sug.sp)) allowed.unshift(sug.sp);
+    const w = snakeLastWeight(x);
+    return '<div class="tfp-row" data-id="'+escapeHtml(String(x.id))+'" style="border-bottom:1px solid var(--line);padding:9px 0;">'+
+      '<div style="font-size:14px;margin-bottom:6px;"><b>'+escapeHtml(snakeName(x))+'</b> <small style="color:var(--ink-dim);">— '+(w?w+' g':(isEn?'not weighed':'pas pesé'))+'</small></div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+
+        '<select class="tfp-sp" style="'+sel+'" onchange="tourFedSpeciesChanged(this)"><option value="">'+(isEn?'Prey…':'Proie…')+'</option>'+allowed.map(k=>'<option value="'+k+'"'+(k===sug.sp?' selected':'')+'>'+PREY_TYPES[k].icon+' '+escapeHtml(isEn?PREY_TYPES[k].labelEn:PREY_TYPES[k].labelFr)+'</option>').join('')+'</select>'+
+        '<select class="tfp-size" style="'+sel+'">'+tourFedSizeOptions(sug.sp, sug.size)+'</select>'+
+      '</div>'+
+      '<div class="tfp-why" style="font-size:11.5px;color:var(--ink-dim);margin-top:4px;">'+(sug.size ? '✨ '+escapeHtml(sug.why) : (isEn?'No suggestion — pick the size.':'Aucune suggestion — choisis la taille.'))+'</div>'+
+    '</div>';
+  }).join('');
+  showQuickModal('🍽 '+(isEn?'Prey for '+missing.length+' animal(s) without size':'Proie de '+missing.length+' animal(aux) sans taille'),
+    '<div style="font-size:12.5px;color:var(--ink-dim);margin-bottom:8px;">'+(isEn?'Check the suggested prey and fix it if needed. It becomes each animal\'s usual prey, and you won\'t be asked again.':'Vérifie la proie suggérée et corrige au besoin. Elle devient la proie habituelle de chaque animal, et on ne te la redemandera plus.')+'</div>'+
+    '<div style="max-height:52vh;overflow-y:auto;">'+rows+'</div>'+
+    '<button class="save-btn" style="margin-top:14px;width:100%;font-size:16px;" onclick="confirmTourFedPrey(true)">✅ '+(isEn?'Confirm all and log the meals':'Tout confirmer et noter les repas')+'</button>'+
+    '<button class="sc-btn" style="margin-top:8px;width:100%;" onclick="confirmTourFedPrey(false)">'+(isEn?'Skip — log the meals without size':'Passer — noter les repas sans taille')+'</button>'
+  );
+}
+function confirmTourFedPrey(save){
+  const isEn = currentLang==='en';
+  let n = 0;
+  if(save){
+    document.querySelectorAll('.tfp-row').forEach(r=>{
+      const x = savedSnakes.find(y=>String(y.id)===r.getAttribute('data-id')); if(!x) return;
+      const sp = (r.querySelector('.tfp-sp')||{}).value || '';
+      const size = (r.querySelector('.tfp-size')||{}).value || '';
+      if(!sp || !PREY_TYPES[sp] || !size || !PREY_TYPES[sp].sizes.includes(size)) return;
+      x.preySpecies = sp; x.preySize = size; x.preySizeEstimated = false; x.updatedAt = Date.now(); n++;
+    });
+    if(n){ storage.save(savedSnakes); showToast('🐭 '+n+(isEn?' usual prey saved.':' proie(s) habituelle(s) enregistrée(s).'), 'success'); }
+  }
+  closeQuickModal();
+  const action = tourFedPendingAction; tourFedPendingAction = null;
+  if(!action) return;
+  tourFedPreyChecked = true;
+  try{ applyTourAction(action); } finally { tourFedPreyChecked = false; }
+  try{ renderFoodView(); }catch(e){}
+}
 // v5.04 — choix d'Alex (option 3B, gratuit) : après « Refus » dans le Mode Tournée, ce qui est arrivé
 // à la proie. Gaspillée = retirée du stock (comme avant pour une congelée) ; passée à un autre =
 // retirée une seule fois et un repas est noté pour le reptile qui l'a mangée ; retournée au bac
@@ -20436,7 +20510,100 @@ function backfillPreyDefaults(){
 }
 setTimeout(backfillPreyDefaults, 0); // une fois au chargement, pour les fiches déjà importées
 // ==================== v4.59 — remplir la proie habituelle en lot ====================
-function preyBulkState(){ if(!window.__preyBulk) window.__preyBulk = { sel:new Set(), sp:'', size:'' }; return window.__preyBulk; }
+function preyBulkState(){ if(!window.__preyBulk) window.__preyBulk = { sel:new Set(), sp:'', size:'', scope:'due', rack:'', wband:'' }; return window.__preyBulk; }
+// v5.06 — demande d'Alex : un éleveur à 100 animaux n'a pas le temps de remplir chaque taille de proie.
+// Proie suggérée pour UN animal, d'après ce qu'on sait déjà (jamais inventée) :
+// 1) espèce de proie : celle de la fiche, sinon la plus courante chez les animaux de la même espèce, sinon la 1re possible ;
+// 2) taille : charte poids → proie (python royal pesé), sinon l'animal de même espèce et même proie au poids le plus proche,
+//    sinon la taille la plus courante dans le même rack ; sinon rien.
+function suggestPreyFor(s){
+  if(!s) return { sp:'', size:'', why:'' };
+  const isEn = currentLang==='en';
+  const species = s.species||'ball_python';
+  let allowed = []; try{ allowed = preyTypesForSpecies(species).filter(k=>PREY_TYPES[k]); }catch(e){ allowed = ['mouse','rat']; }
+  let sp = (s.preySpecies && PREY_TYPES[s.preySpecies]) ? s.preySpecies : '';
+  const peers = savedSnakes.filter(x=>x.id!==s.id && isActiveSnake(x) && (x.species||'ball_python')===species && x.preySpecies && PREY_TYPES[x.preySpecies]);
+  if(!sp){
+    const cnt = {}; peers.forEach(x=>{ if(allowed.includes(x.preySpecies)) cnt[x.preySpecies] = (cnt[x.preySpecies]||0)+1; });
+    sp = Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0] || allowed[0] || '';
+  }
+  if(!sp) return { sp:'', size:'', why:'' };
+  const sizes = PREY_TYPES[sp].sizes||[];
+  if(s.preySize && sizes.includes(s.preySize) && s.preySpecies===sp) return { sp, size:s.preySize, why:'' };
+  const w = snakeLastWeight(s);
+  if(w){
+    let est = null; try{ est = estimatePreySizeFromWeight(Object.assign({}, s, { preySpecies:sp })); }catch(e){ est = null; }
+    if(est && sizes.includes(est)) return { sp, size:est, why:(isEn?'weight chart ('+w+' g)':'charte selon le poids ('+w+' g)') };
+    let best = null;
+    peers.forEach(x=>{
+      if(x.preySpecies!==sp || !x.preySize || !sizes.includes(x.preySize)) return;
+      const xw = snakeLastWeight(x); if(!xw) return;
+      const d = Math.abs(xw-w);
+      if(!best || d<best.d) best = { d, x, xw };
+    });
+    if(best && best.d <= Math.max(150, w*0.3)) return { sp, size:best.x.preySize, why:(isEn?'like ':'comme ')+snakeName(best.x)+' ('+best.xw+' g)' };
+  }
+  if(s.placement && s.placement.mode==='rack' && s.placement.rackId){
+    const cnt = {};
+    savedSnakes.forEach(x=>{ if(x.id!==s.id && isActiveSnake(x) && x.placement && x.placement.mode==='rack' && x.placement.rackId===s.placement.rackId && x.preySpecies===sp && x.preySize && sizes.includes(x.preySize)) cnt[x.preySize] = (cnt[x.preySize]||0)+1; });
+    const top = Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0];
+    if(top){ const rk = getRack(s.placement.rackId); return { sp, size:top, why:(isEn?'most common in ':'le plus courant dans ')+(rk?rk.name:'rack') }; }
+  }
+  return { sp, size:'', why:'' };
+}
+var PREY_WEIGHT_BANDS = [['lt100',0,100],['100-300',100,300],['300-500',300,500],['500-800',500,800],['800-1200',800,1200],['1200-1800',1200,1800],['ge1800',1800,Infinity]];
+function preyBulkWeightBandLabel(k, isEn){
+  if(k==='nowt') return isEn?'Never weighed':'Jamais pesé';
+  const b = PREY_WEIGHT_BANDS.find(x=>x[0]===k); if(!b) return isEn?'All weights':'Tous les poids';
+  if(b[1]===0) return '< '+b[2]+' g';
+  if(b[2]===Infinity) return '≥ '+b[1]+' g';
+  return b[1]+'–'+b[2]+' g';
+}
+function preyBulkPlaceKey(s){
+  const pl = s.placement||{};
+  if(pl.mode==='rack' && pl.rackId) return 'r:'+pl.rackId;
+  if(pl.mode==='terrarium' && pl.terrariumId) return 'terra';
+  return 'none';
+}
+function preyBulkPlaceLabel(s, isEn){
+  const k = preyBulkPlaceKey(s);
+  if(k==='terra') return isEn?'Terrarium':'Terrarium';
+  if(k==='none') return isEn?'Not placed':'Non placé';
+  const rk = getRack(s.placement.rackId);
+  return (rk?rk.name:'Rack')+(s.placement.row?' · R'+s.placement.row:'')+(s.placement.tub?'/B'+s.placement.tub:'');
+}
+function preyBulkFilter(list){
+  const pb = preyBulkState();
+  return list.filter(s=>{
+    if(pb.rack && preyBulkPlaceKey(s)!==pb.rack) return false;
+    if(pb.wband){
+      const w = snakeLastWeight(s);
+      if(pb.wband==='nowt') return !w;
+      const b = PREY_WEIGHT_BANDS.find(x=>x[0]===pb.wband);
+      if(!b || !w || w<b[1] || w>=b[2]) return false;
+    }
+    return true;
+  }).sort((a,b)=>(snakeLastWeight(a)||Infinity)-(snakeLastWeight(b)||Infinity) || snakeName(a).localeCompare(snakeName(b)));
+}
+function preyBulkSetFilter(k, v){ const pb = preyBulkState(); pb[k] = v; pb.sel = new Set(); renderFoodView(); }
+function preyBulkApplySuggested(){
+  const isEn = currentLang==='en';
+  const pb = preyBulkState();
+  if(!pb.sel.size) return;
+  const undo = []; let skipped = 0;
+  [...pb.sel].forEach(id=>{
+    const s = savedSnakes.find(x=>x.id===id); if(!s) return;
+    const sug = suggestPreyFor(s);
+    if(!sug.sp || !sug.size){ skipped++; return; }
+    undo.push({ id, sp:s.preySpecies, size:s.preySize, est:!!s.preySizeEstimated });
+    s.preySpecies = sug.sp; s.preySize = sug.size; s.preySizeEstimated = false; s.updatedAt = Date.now();
+  });
+  window.__preyBulkUndo = undo;
+  pb.sel = new Set();
+  storage.save(savedSnakes);
+  renderFoodView();
+  showToast('✨ '+undo.length+(isEn?' animal(s) filled from their weight or similar animals.':' animal(s) rempli(s) selon leur poids ou des animaux semblables.')+(skipped?(isEn?' '+skipped+' without a suggestion (no weight or no similar animal) — pick the size by hand.':' '+skipped+' sans suggestion (pas de poids ni d\'animal semblable) — choisis la taille à la main.'):''), 'success', 'preyBulkUndo()');
+}
 function preyBulkToggle(id, on){ const pb = preyBulkState(); if(on) pb.sel.add(id); else pb.sel.delete(id); renderFoodView(); }
 function preyBulkPick(kind){
   const pb = preyBulkState();
@@ -20455,8 +20622,23 @@ function preyBulkBarHtml(list){
   const selStyle = 'font-size:16px;padding:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);flex:1;min-width:130px;';
   const pickBtn = (k, label, n)=>'<button type="button" class="sc-btn" style="font-size:14px;" onclick="preyBulkPick(\''+k+'\')">'+label+' ('+n+')</button>';
   const n = pb.sel.size;
+  // v5.06 — filtres : quels animaux (repas prévu / tous), rack, tranche de poids
+  const fSel = 'font-size:16px;padding:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);flex:1;min-width:120px;';
+  const rackOpts = '<option value="">'+(isEn?'All places':'Tous les emplacements')+'</option>'+
+    racksOrdered().map(r=>'<option value="r:'+escapeHtml(String(r.id))+'"'+(pb.rack==='r:'+r.id?' selected':'')+'>🗄 '+escapeHtml(r.name||'Rack')+'</option>').join('')+
+    '<option value="terra"'+(pb.rack==='terra'?' selected':'')+'>🏠 '+(isEn?'Terrariums':'Terrariums')+'</option>'+
+    '<option value="none"'+(pb.rack==='none'?' selected':'')+'>📦 '+(isEn?'Not placed':'Non placés')+'</option>';
+  const wOpts = ['', ...PREY_WEIGHT_BANDS.map(b=>b[0]), 'nowt'].map(k=>'<option value="'+k+'"'+(pb.wband===k?' selected':'')+'>⚖ '+preyBulkWeightBandLabel(k, isEn)+'</option>').join('');
   return '<div style="grid-column:1 / -1;border:1px dashed var(--gold);border-radius:12px;padding:10px 12px;margin-bottom:6px;">'+
     '<div style="font-size:15px;margin-bottom:8px;">⚡ <b>'+(isEn?'Fill in many at once':'Remplir plusieurs d\'un coup')+'</b> — '+(isEn?'check the animals (or use a shortcut), pick the prey, apply.':'coche les animaux (ou un raccourci), choisis la proie, applique.')+'</div>'+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">'+
+      '<select style="'+fSel+'" onchange="preyBulkSetFilter(\'scope\', this.value)">'+
+        '<option value="due"'+(pb.scope!=='all'?' selected':'')+'>'+(isEn?'Meal due soon':'Repas prévu bientôt')+'</option>'+
+        '<option value="all"'+(pb.scope==='all'?' selected':'')+'>'+(isEn?'All my animals without prey':'Tous mes animaux sans proie')+'</option>'+
+      '</select>'+
+      '<select style="'+fSel+'" onchange="preyBulkSetFilter(\'rack\', this.value)">'+rackOpts+'</select>'+
+      '<select style="'+fSel+'" onchange="preyBulkSetFilter(\'wband\', this.value)">'+wOpts+'</select>'+
+    '</div>'+
     '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">'+
       pickBtn('all', isEn?'✓ All':'✓ Tous', list.length)+
       Object.keys(spCount).filter(k=>k!=='__nosp' && PREY_TYPES[k]).map(k=>pickBtn(k, PREY_TYPES[k].icon+' '+(isEn?PREY_TYPES[k].labelEn:PREY_TYPES[k].labelFr)+(isEn?' without size':' sans taille'), spCount[k])).join('')+
@@ -20467,7 +20649,10 @@ function preyBulkBarHtml(list){
       '<select style="'+selStyle+'" onchange="preyBulkSet(\'sp\', this.value)"><option value="">'+(isEn?'Prey…':'Proie…')+'</option>'+spOpts.filter(k=>PREY_TYPES[k]).map(k=>'<option value="'+k+'"'+(pb.sp===k?' selected':'')+'>'+PREY_TYPES[k].icon+' '+escapeHtml(isEn?PREY_TYPES[k].labelEn:PREY_TYPES[k].labelFr)+'</option>').join('')+'</select>'+
       '<select style="'+selStyle+'"'+(pb.sp?'':' disabled')+' onchange="preyBulkSet(\'size\', this.value)"><option value="">'+(isEn?'Size…':'Taille…')+'</option>'+(pb.sp && PREY_TYPES[pb.sp] ? PREY_TYPES[pb.sp].sizes.map(z=>'<option value="'+escapeHtml(z)+'"'+(pb.size===z?' selected':'')+'>'+escapeHtml(z)+'</option>').join('') : '')+'</select>'+
       '<button type="button" class="save-btn" style="font-size:15px;padding:10px 14px;"'+(n && pb.sp && pb.size ? '' : ' disabled')+' onclick="preyBulkApply()">✅ '+(isEn?'Apply to '+n+' checked':'Appliquer aux '+n+' coché'+(n>1?'s':''))+'</button>'+
-    '</div></div>';
+    '</div>'+
+    // v5.06 — chaque animal coché reçoit SA taille (poids / animal semblable), utile quand un rack mélange 300 g et 800 g
+    '<div style="margin-top:8px;"><button type="button" class="sc-btn accent" style="font-size:15px;padding:10px 14px;width:100%;"'+(n?'':' disabled')+' onclick="preyBulkApplySuggested()">✨ '+(isEn?'Size by weight for the '+n+' checked (each its own)':'Taille selon le poids pour les '+n+' coché'+(n>1?'s':'')+' (chacun la sienne)')+'</button></div>'+
+    '</div>';
 }
 function preyBulkApply(){
   const isEn = currentLang==='en';
@@ -20639,18 +20824,25 @@ function renderFoodView(){
   const horizon = addDays(todayStr, foodHorizonDays-1);
   const due = savedSnakes.filter(s=> nextFeedingDate(s) <= horizon);
 
-  const withoutPrey = due.filter(s=>!s.preySpecies || !s.preySize);
+  const pbF = preyBulkState(); // v5.06 — portée + filtres rack / poids
+  const missingAll = (pbF.scope==='all' ? savedSnakes.filter(isActiveSnake) : due).filter(s=>!s.preySpecies || !s.preySize);
+  const withoutPrey = preyBulkFilter(missingAll);
   renderDefrostList();
 
   const missingWrap = document.getElementById('prey-missing-list');
-  missingWrap.className = withoutPrey.length ? 'mini-animal-grid' : '';
+  missingWrap.className = (withoutPrey.length || missingAll.length) ? 'mini-animal-grid' : '';
   window.__preyMissingIds = withoutPrey.map(s=>s.id); // v4.59
   const pb = preyBulkState();
   [...pb.sel].forEach(id=>{ if(!window.__preyMissingIds.includes(id)) pb.sel.delete(id); });
-  missingWrap.innerHTML = withoutPrey.length===0
-    ? '<div class="empty">✅ '+(isEn?'All reptiles with a meal due have their prey filled in.':'Tous les reptiles avec un repas prévu ont leur proie renseignée.')+'</div>'
+  missingWrap.innerHTML = missingAll.length===0
+    ? (pbF.scope==='all'
+        ? '<div class="empty">✅ '+(isEn?'All your animals have their prey filled in.':'Tous tes animaux ont leur proie renseignée.')+'</div>'
+        : '<div class="empty">✅ '+(isEn?'All reptiles with a meal due have their prey filled in.':'Tous les reptiles avec un repas prévu ont leur proie renseignée.')+' <button class="sc-btn" style="margin-left:6px;" onclick="preyBulkSetFilter(\'scope\',\'all\')">'+(isEn?'See all my animals':'Voir tous mes animaux')+'</button></div>')
+    : withoutPrey.length===0
+    ? preyBulkBarHtml(withoutPrey)+'<div class="empty" style="grid-column:1 / -1;">'+(isEn?'No animal matches these filters.':'Aucun animal ne correspond à ces filtres.')+'</div>'
     : preyBulkBarHtml(withoutPrey) + (function(){ const pg = pagerSlice('preymissing', withoutPrey, renderFoodView); return pg.top+pg.items.map(s=>miniAnimalCardHtml( // v4.50
         snakeName(s),
+        (function(){ const w = snakeLastWeight(s); const sug = suggestPreyFor(s); return '⚖ '+(w ? w+' g' : (isEn?'not weighed':'pas pesé'))+' · '+escapeHtml(preyBulkPlaceLabel(s, isEn))+'<br>'+(sug.size ? '✨ '+(isEn?'Suggested: ':'Suggéré : ')+escapeHtml((isEn?PREY_TYPES[sug.sp].labelEn:PREY_TYPES[sug.sp].labelFr)+' '+sug.size)+' <small style="color:var(--ink-dim);">('+escapeHtml(sug.why)+')</small><br>' : ''); })()+ // v5.06
         (isEn?'Meal due ':'Repas prévu le ')+nextFeedingDate(s)+(s.preySpecies && PREY_TYPES[s.preySpecies] ? '<br>'+PREY_TYPES[s.preySpecies].icon+' '+escapeHtml(isEn?PREY_TYPES[s.preySpecies].labelEn:PREY_TYPES[s.preySpecies].labelFr)+' — '+(isEn?'size?':'taille ?') : ''),
         '<label style="display:flex;align-items:center;gap:6px;font-size:14px;margin:4px 0;"><input type="checkbox" style="width:22px;height:22px;accent-color:var(--gold);"'+(pb.sel.has(s.id)?' checked':'')+' onchange="preyBulkToggle(\''+s.id+'\', this.checked)"/>'+(isEn?'Select':'Cocher')+'</label>'+
         '<button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">'+t('fillPreyBtn')+'</button>'
@@ -25373,6 +25565,11 @@ function applyTourAction(action){
 
   // v3.90 — « A mué » demande la qualité (une fois pour tous les animaux sélectionnés)
   if(action==='shed' && !tourShedQualityPending){ openTourShedQualityModal(); return; }
+  // v5.06 — « A mangé » : les animaux sans taille de proie reçoivent une proie suggérée à confirmer, une seule fenêtre
+  if((action==='fed_frozen' || action==='fed_live') && !tourFedPreyChecked){
+    const missing = [...tourSelection].map(snakeFromKey).filter(x=>x && (!x.preySpecies || !x.preySize));
+    if(missing.length){ openTourFedPreyModal(action, missing); return; }
+  }
   // v5.04 — « Refus » demande ce qui est arrivé à la proie (gaspillée / passée à un autre / retournée)
   if(action==='refused' && !tourRefusalPlan){ openTourRefusalPreyModal(); return; }
 
