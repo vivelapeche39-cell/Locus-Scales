@@ -1507,6 +1507,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <span style="font-size:11px;color:var(--ink-dim);"><span data-i18n="categoryFilterLabel">Type</span> :</span>
         <select id="tour-category-filter" class="egg-select" onchange="setTourCategoryFilter(this.value)"></select>
       </div>
+      <div id="tour-lock-bar" style="display:none;margin-bottom:14px;"></div>
       <div id="tour-batch-weigh-resume" style="display:none;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;padding:10px 14px;background:var(--bg-panel-2);border:1px solid var(--gold);border-radius:10px;font-size:13px;"></div>
       <div id="tour-rack-filter-banner" style="display:none;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;padding:10px 14px;background:var(--bg-panel-2);border:1px solid var(--gold);border-radius:10px;font-size:12px;"></div>
       <button class="sc-btn" id="tour-show-all-btn" style="margin-bottom:14px;" onclick="showAllRacksTerrariums()">🔄 <span data-i18n="showAllSectionsBtn">Tout réafficher</span></button>
@@ -2260,7 +2261,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.06';
+const APP_VERSION = '2026.09.01.5.08';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5303,6 +5304,28 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.08', date:'2026-10-27',
+    title:{ fr:'Locks : une ligne par couple', en:'Locks: one line per pair' },
+    changes:{
+      fr:[ '📖 Journal d\'un animal : les locks et les mises ensemble d\'un même accouplement forment une seule ligne (« 🔒 ×5 · 🤝 ×3 — Banana Pied, 2 sept → 14 oct ») au lieu d\'une ligne par lock. Touche-la pour voir chaque date, la modifier ou la supprimer.',
+           '🏷 Mode Verrou : chaque couple affiche ses pastilles d\'étape, tirées de ce qui est déjà noté — saison, ❄️ cooling, follicules, ⏳ en attente d\'ovulation, 🥚 ovulation, ✨ mue pré-ponte. Réservé aux paliers Première ponte et Illimité après la bêta.',
+           '🔒 Mode Tournée : un bandeau « Ensemble en ce moment » liste les couples réunis avec un bouton 🔒+ pour noter le lock du jour pendant ta tournée, et 🤝 s\'affiche sur leurs bacs. Réservé aux paliers Première ponte et Illimité après la bêta.' ],
+      en:[ '📖 Animal journal: the locks and pair-ups of the same pairing make a single line (« 🔒 ×5 · 🤝 ×3 — Banana Pied, Sep 2 → Oct 14 ») instead of one line per lock. Tap it to see each date, edit or delete it.',
+           '🏷 Lock Mode: each pair shows its stage pills, taken from what is already logged — season, ❄️ cooling, follicles, ⏳ waiting for ovulation, 🥚 ovulation, ✨ pre-lay shed. Reserved for the First Clutch and Unlimited tiers after the beta.',
+           '🔒 Tour Mode: a « Together now » banner lists the pairs that are together with a 🔒+ button to log today\'s lock during your round, and 🤝 shows on their tubs. Reserved for the First Clutch and Unlimited tiers after the beta.' ]
+    }
+  },
+  { version:'5.07', date:'2026-10-27',
+    title:{ fr:'Image « parents + bébé » à partager', en:'« Parents + baby » image to share' },
+    changes:{
+      fr:[ '👪 Image à partager : nouvelle mise en page « Parents + bébé » (portrait 4:5, faite pour Facebook) — photo du père et de la mère en haut avec leur nom et leurs gènes, et le bébé en grand en bas (nom, gènes, sexe, prix en option). Les parents viennent de l\'arbre généalogique : leur photo actuelle, une autre de leurs photos, ou une photo choisie sur le moment.',
+           '📝 Parents qui ne sont pas dans ta collection : entre leur nom, leurs gènes et leur photo directement dans la fenêtre — c\'est gardé sur la fiche du bébé, et un bouton les applique aux frères et sœurs de la même portée.',
+           '📋 Animal avec un lien MorphMarket : bouton « Copier le lien » pour le coller dans ta publication (un lien dans une image n\'est pas cliquable sur Facebook).' ],
+      en:[ '👪 Image to share: new « Parents + baby » layout (portrait 4:5, made for Facebook) — the father\'s and mother\'s photos on top with their name and genes, and the baby large at the bottom (name, genes, sex, optional price). Parents come from the family tree: their current photo, another of their photos, or a photo picked on the spot.',
+           '📝 Parents not in your collection: enter their name, genes and photo right in the window — saved on the baby\'s record, and a button applies them to the siblings of the same clutch.',
+           '📋 Animal with a MorphMarket link: « Copy the link » button to paste it in your post (a link inside an image isn\'t clickable on Facebook).' ]
+    }
+  },
   { version:'5.06', date:'2026-10-26',
     title:{ fr:'Proies : remplir 100 animaux sans effort', en:'Prey: fill in 100 animals without effort' },
     changes:{
@@ -12766,16 +12789,30 @@ function siblingGrowthHtml(s){
 // L'éleveur choisit une de ses photos (ou en prend une nouvelle, jamais enregistrée sur la fiche) ;
 // l'app la redonne avec un bandeau nom + gènes (convention du milieu, summarizeGenes) et un petit
 // logo LOCUS discret. Tout se fait dans le navigateur (canvas) — rien n'est envoyé au serveur.
-var shareImg = { snakeId:null, src:null, format:'square', showName:true, showGenes:true, showSex:true, showPrice:false };
+var shareImg = { snakeId:null, src:null, format:'square', showName:true, showGenes:true, showSex:true, showPrice:false, layout:'single', sireSrc:null, damSrc:null };
 var shareLogoImg = null;
-function openShareImageModal(id){
+function openShareImageModal(id, keep){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
   const isEn = currentLang==='en';
-  shareImg.snakeId = id;
-  shareImg.src = (s.photos && s.photos.length) ? s.photos[s.photos.length-1].dataUrl : null;
-  const thumbs = (s.photos||[]).map((ph,i)=>'<img src="'+escapeHtml(ph.dataUrl)+'" onclick="pickSharePhoto('+i+')" style="width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--line);cursor:pointer;" alt="Photo"/>').join('');
-  const body =
+  ensureSnakeMeta(s);
+  if(!keep || shareImg.snakeId!==id){
+    shareImg.snakeId = id;
+    shareImg.src = (s.photos && s.photos.length) ? sharePhotoSrc(s.photos[s.photos.length-1]) : null;
+    // v5.07 — parents + bébé par défaut quand au moins un parent est connu (arbre ou parents hors collection)
+    const sp = shareParentInfo(s,'sire'), dp = shareParentInfo(s,'dam');
+    shareImg.layout = (sp.known || dp.known) ? 'parents' : 'single';
+    shareImg.sireSrc = sp.photos[0] || null;
+    shareImg.damSrc = dp.photos[0] || null;
+  }
+  const thumbs = (s.photos||[]).map((ph,i)=>'<img src="'+escapeHtml(sharePhotoSrc(ph))+'" onclick="pickSharePhoto('+i+')" style="width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid '+(sharePhotoSrc(ph)===shareImg.src?'var(--gold)':'var(--line)')+';cursor:pointer;" alt="Photo"/>').join('');
+  const parentsMode = shareImg.layout==='parents';
+  const layoutSel = '<div style="display:flex;gap:6px;margin-bottom:10px;">'+
+      '<button class="'+(parentsMode?'sc-btn':'save-btn')+'" style="flex:1;font-size:14px;" onclick="setShareLayout(\'single\')">🖼️ '+(isEn?'Animal only':'Animal seul')+'</button>'+
+      '<button class="'+(parentsMode?'save-btn':'sc-btn')+'" style="flex:1;font-size:14px;" onclick="setShareLayout(\'parents\')">👪 '+(isEn?'Parents + baby':'Parents + bébé')+'</button>'+
+    '</div>';
+  const body = layoutSel +
+    (parentsMode ? shareParentPickerHtml(s,'sire')+shareParentPickerHtml(s,'dam')+'<div style="font-size:13px;margin:10px 0 6px;"><b>'+(isEn?'Baby':'Bébé')+'</b> — '+escapeHtml(snakeName(s))+'</div>' : '') +
     '<p style="font-size:12px;color:var(--ink-dim);margin:0 0 10px;">'+(isEn
       ? 'Pick a photo — LOCUS adds the name, genetics and a small logo. Everything stays on your device.'
       : 'Choisis une photo — LOCUS ajoute le nom, la génétique et un petit logo. Tout reste sur ton appareil.')+'</p>'+
@@ -12787,26 +12824,219 @@ function openShareImageModal(id){
       '<label><input type="checkbox" '+(shareImg.showGenes?'checked':'')+' onchange="shareImg.showGenes=this.checked;drawShareImage();"/> '+(isEn?'Genetics':'Génétique')+'</label>'+
       '<label><input type="checkbox" '+(shareImg.showSex?'checked':'')+' onchange="shareImg.showSex=this.checked;drawShareImage();"/> '+(isEn?'Sex':'Sexe')+'</label>'+
       (s.askingPrice ? '<label><input type="checkbox" '+(shareImg.showPrice?'checked':'')+' onchange="shareImg.showPrice=this.checked;drawShareImage();"/> '+(isEn?'Price':'Prix')+'</label>' : '')+
+      (parentsMode ? '<span style="font-size:12px;color:var(--ink-dim);">'+(isEn?'Portrait 4:5 (Facebook)':'Portrait 4:5 (Facebook)')+'</span>' :
       '<select style="font-size:16px;padding:6px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" onchange="shareImg.format=this.value;drawShareImage();">'+
         '<option value="square"'+(shareImg.format==='square'?' selected':'')+'>'+(isEn?'Square (1:1)':'Carré (1:1)')+'</option>'+
         '<option value="portrait"'+(shareImg.format==='portrait'?' selected':'')+'>'+(isEn?'Portrait (4:5)':'Portrait (4:5)')+'</option>'+
-      '</select>'+
+      '</select>')+
     '</div>'+
+    '<div id="share-siblings-box"></div>'+ // v5.07
     '<canvas id="share-canvas" style="width:100%;height:auto;border-radius:10px;border:1px solid var(--line);background:#000;"></canvas>'+
     '<p id="share-empty" style="font-size:12px;color:var(--ink-dim);display:none;">'+(isEn?'Add a photo to start.':'Ajoute une photo pour commencer.')+'</p>'+
     '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">'+
       '<button class="save-btn" style="flex:1;" onclick="shareShareImage()">📤 '+(isEn?'Share':'Partager')+'</button>'+
       '<button class="sc-btn" style="flex:1;" onclick="downloadShareImage()">⬇️ '+(isEn?'Download':'Télécharger')+'</button>'+
-    '</div>';
+    '</div>'+
+    (s.listingUrl ? '<button class="sc-btn" style="width:100%;margin-top:8px;" onclick="copyShareListingUrl()">📋 '+(isEn?'Copy the MorphMarket link (to paste in your post)':'Copier le lien MorphMarket (à coller dans ta publication)')+'</button>' : '');
   showQuickModal('🖼️ '+(isEn?'Image to share':'Image à partager'), body);
   ensureShareLogo(drawShareImage);
   drawShareImage();
+  renderShareSiblingsBtn(); // v5.07
 }
 function pickSharePhoto(i){
   const s = savedSnakes.find(x=>x.id===shareImg.snakeId);
   if(!s || !s.photos || !s.photos[i]) return;
-  shareImg.src = s.photos[i].dataUrl;
+  shareImg.src = sharePhotoSrc(s.photos[i]);
+  openShareImageModal(s.id, true);
+}
+/* ==================== v5.07 — Image « parents + bébé » ====================
+   Demande d'Alex : pour un animal à vendre, une image avec la photo du père, de la mère (nom + gènes) et du bébé,
+   partageable sur Facebook (portrait 4:5, 1080×1350). Parents connus par l'arbre (sireId/damId) : leur photo
+   actuelle ou une autre de leurs photos, ou une photo choisie sur le moment (pas enregistrée sur leur fiche).
+   Parents hors collection : nom, gènes et photo enregistrés sur la fiche du bébé (s.saleParents, colonne
+   snakes.sale_parents), copiables aux frères et sœurs de la même portée. Gratuit (image d'une fiche). */
+function sharePhotoSrc(ph){ return ph ? (ph.dataUrl || ph.publicUrl || null) : null; }
+function shareParentInfo(s, role){
+  const pid = role==='sire' ? s.sireId : s.damId;
+  const par = pid ? savedSnakes.find(x=>x.id===pid) : null;
+  if(par){
+    return { known:true, external:false, id:par.id, name:snakeName(par), genes:summarizeGenes(par.genes||{}), photos:(par.photos||[]).slice().reverse().map(sharePhotoSrc).filter(Boolean) };
+  }
+  const ext = s.saleParents && s.saleParents[role];
+  const has = !!(ext && (ext.name || ext.genes || ext.photo));
+  return { known:has, external:true, id:null, name:(ext&&ext.name)||'', genes:(ext&&ext.genes)||'', photos: ext && ext.photo ? [ext.photo] : [] };
+}
+function setShareLayout(l){ shareImg.layout = l==='parents' ? 'parents' : 'single'; openShareImageModal(shareImg.snakeId, true); }
+function shareParentPickerHtml(s, role){
+  const isEn = currentLang==='en';
+  const info = shareParentInfo(s, role);
+  const sym = role==='sire' ? '♂' : '♀';
+  const title = role==='sire' ? (isEn?'Father':'Père') : (isEn?'Mother':'Mère');
+  const cur = role==='sire' ? shareImg.sireSrc : shareImg.damSrc;
+  const inp = 'font-size:16px;padding:7px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);width:100%;margin-top:6px;';
+  const thumbs = info.photos.map((src,i)=>'<img src="'+escapeHtml(src)+'" onclick="pickShareParentPhoto(\''+role+'\','+i+')" style="width:48px;height:48px;object-fit:cover;border-radius:8px;border:1px solid '+(src===cur?'var(--gold)':'var(--line)')+';cursor:pointer;" alt=""/>').join('');
+  let html = '<div style="border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:8px;">'+
+    '<div style="font-size:13px;margin-bottom:6px;"><b>'+sym+' '+title+'</b>'+(info.external ? ' <small style="color:var(--ink-dim);">— '+(isEn?'not in your collection: saved on this animal':'pas dans ta collection : enregistré sur cet animal')+'</small>' : ' — '+escapeHtml(info.name)+' <small style="color:var(--ink-dim);">'+escapeHtml(info.genes)+'</small>')+'</div>';
+  if(info.external){
+    const ext = (s.saleParents && s.saleParents[role]) || {};
+    html += '<input type="text" style="'+inp+'" placeholder="'+(isEn?'Name':'Nom')+'" value="'+escapeHtml(ext.name||'')+'" onchange="setShareExtParent(\''+role+'\',\'name\',this.value)"/>'+
+            '<input type="text" style="'+inp+'" placeholder="'+(isEn?'Genes (e.g. Pastel Enchi het Clown)':'Gènes (ex. Pastel Enchi het Clown)')+'" value="'+escapeHtml(ext.genes||'')+'" onchange="setShareExtParent(\''+role+'\',\'genes\',this.value)"/>';
+  }
+  html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;">'+thumbs+
+    '<input type="file" accept="image/*" id="share-'+role+'-input" style="display:none;" onchange="loadShareParentFile(\''+role+'\', this.files[0])"/>'+
+    '<button class="sc-btn" style="font-size:13px;" onclick="document.getElementById(\'share-'+role+'-input\').click()">📷 '+(info.photos.length?(isEn?'Other photo':'Autre photo'):(isEn?'Add a photo':'Ajouter une photo'))+'</button>'+
+  '</div></div>';
+  return html;
+}
+function pickShareParentPhoto(role, i){
+  const s = savedSnakes.find(x=>x.id===shareImg.snakeId); if(!s) return;
+  const src = shareParentInfo(s, role).photos[i] || null;
+  if(role==='sire') shareImg.sireSrc = src; else shareImg.damSrc = src;
+  openShareImageModal(s.id, true);
+}
+function setShareExtParent(role, field, value){
+  const s = savedSnakes.find(x=>x.id===shareImg.snakeId); if(!s) return;
+  s.saleParents = s.saleParents || {};
+  s.saleParents[role] = s.saleParents[role] || {};
+  s.saleParents[role][field] = String(value||'').trim().slice(0,120);
+  s.updatedAt = Date.now();
+  storage.save(savedSnakes);
   drawShareImage();
+  renderShareSiblingsBtn();
+}
+function compressShareImage(file, cb){
+  const reader = new FileReader();
+  reader.onload = e=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const scale = Math.min(1, 900/img.width);
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width*scale); c.height = Math.round(img.height*scale);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      cb(c.toDataURL('image/jpeg', 0.75));
+    };
+    img.onerror = ()=>showToast(currentLang==='en'?'Could not load this photo.':'Impossible de charger cette photo.', 'error');
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function loadShareParentFile(role, file){
+  if(!file) return;
+  const s = savedSnakes.find(x=>x.id===shareImg.snakeId); if(!s) return;
+  const info = shareParentInfo(s, role);
+  compressShareImage(file, dataUrl=>{
+    if(info.external){
+      // parent hors collection : photo enregistrée sur la fiche du bébé (synchronisée)
+      s.saleParents = s.saleParents || {};
+      s.saleParents[role] = s.saleParents[role] || {};
+      s.saleParents[role].photo = dataUrl;
+      s.updatedAt = Date.now();
+      storage.save(savedSnakes);
+    }
+    // parent de la collection : utilisée pour cette image seulement (sa fiche ne change pas)
+    if(role==='sire') shareImg.sireSrc = dataUrl; else shareImg.damSrc = dataUrl;
+    openShareImageModal(s.id, true);
+  });
+}
+// Frères et sœurs : même portée (clutchRef), encore actifs — pour ne pas ressaisir les parents hors collection.
+function shareSiblingsOf(s){
+  if(!s.clutchRef) return [];
+  return savedSnakes.filter(x=>x.id!==s.id && isActiveSnake(x) && x.clutchRef===s.clutchRef && (x.damId||null)===(s.damId||null) && (x.sireId||null)===(s.sireId||null));
+}
+function renderShareSiblingsBtn(){
+  const box = document.getElementById('share-siblings-box'); if(!box) return;
+  const s = savedSnakes.find(x=>x.id===shareImg.snakeId); if(!s){ box.innerHTML=''; return; }
+  const isEn = currentLang==='en';
+  const ext = s.saleParents && (s.saleParents.sire || s.saleParents.dam);
+  const sib = shareSiblingsOf(s);
+  box.innerHTML = (ext && sib.length) ? '<button class="sc-btn" style="width:100%;margin-bottom:8px;font-size:13px;" onclick="copyShareParentsToSiblings()">👪 '+(isEn?'Apply these parents to the '+sib.length+' sibling(s) of the same clutch':'Appliquer ces parents aux '+sib.length+' frère(s) et sœur(s) de la même portée')+'</button>' : '';
+}
+function copyShareParentsToSiblings(){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===shareImg.snakeId); if(!s || !s.saleParents) return;
+  const sib = shareSiblingsOf(s);
+  sib.forEach(x=>{ x.saleParents = JSON.parse(JSON.stringify(s.saleParents)); x.updatedAt = Date.now(); });
+  storage.save(savedSnakes);
+  showToast('👪 '+(isEn?'Parents applied to '+sib.length+' sibling(s).':'Parents appliqués à '+sib.length+' frère(s) et sœur(s).'), 'success');
+}
+function copyShareListingUrl(){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===shareImg.snakeId); if(!s || !s.listingUrl) return;
+  const url = /^https?:\/\//i.test(s.listingUrl) ? s.listingUrl : 'https://'+s.listingUrl;
+  const done = ()=>showToast('📋 '+(isEn?'Link copied — paste it in your post.':'Lien copié — colle-le dans ta publication.'), 'success');
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(done).catch(()=>prompt(isEn?'Copy this link:':'Copie ce lien :', url)); }
+    else prompt(isEn?'Copy this link:':'Copie ce lien :', url);
+  }catch(e){ prompt(isEn?'Copy this link:':'Copie ce lien :', url); }
+}
+// Rendu 1080×1350 : père | mère en haut (nom + gènes), bébé en grand en bas (nom, gènes, sexe, prix en option).
+function renderParentsShareCanvas(canvas, imgs, s, opts){
+  const isEn = currentLang==='en';
+  const W = 1080, H = 1350, TOP = 520;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const font = 'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+  const cover = (img, x, y, w, h)=>{
+    ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+    if(img){ const sc = Math.max(w/img.width, h/img.height); const dw = img.width*sc, dh = img.height*sc; ctx.drawImage(img, x+(w-dw)/2, y+(h-dh)/2, dw, dh); }
+    else { ctx.fillStyle = '#1a1512'; ctx.fillRect(x, y, w, h); }
+    ctx.restore();
+  };
+  ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
+  const half = W/2;
+  [['sire',0],['dam',half]].forEach(([role, x])=>{
+    const info = shareParentInfo(s, role);
+    cover(imgs[role], x, 0, half, TOP);
+    if(!imgs[role]){
+      ctx.fillStyle = 'rgba(216,178,90,.35)'; ctx.font = '700 150px '+font; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(role==='sire'?'♂':'♀', x+half/2, TOP/2-40); ctx.textAlign = 'left';
+    }
+    const grad = ctx.createLinearGradient(0, TOP-230, 0, TOP);
+    grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(.45,'rgba(0,0,0,.75)'); grad.addColorStop(1,'rgba(0,0,0,.92)');
+    ctx.fillStyle = grad; ctx.fillRect(x, TOP-230, half, 230);
+    const pad = 28; ctx.textBaseline = 'top';
+    ctx.font = '700 40px '+font;
+    const nm = (role==='sire'?'♂ ':'♀ ')+(info.name || (role==='sire'?(isEn?'Father':'Père'):(isEn?'Mother':'Mère')));
+    const genesLines = info.genes ? (ctx.font = '600 30px '+font, shareWrapLines(ctx, info.genes, half-pad*2).slice(0,2)) : [];
+    let y = TOP - 30 - genesLines.length*38 - 50;
+    ctx.font = '700 40px '+font; ctx.fillStyle = '#ffffff';
+    ctx.fillText(shareWrapLines(ctx, nm, half-pad*2)[0]||'', x+pad, y); y += 52;
+    ctx.font = '600 30px '+font; ctx.fillStyle = '#d8b25a';
+    genesLines.forEach(l=>{ ctx.fillText(l, x+pad, y); y += 38; });
+  });
+  // séparation + « × »
+  ctx.fillStyle = '#000'; ctx.fillRect(half-3, 0, 6, TOP); ctx.fillRect(0, TOP-3, W, 6);
+  ctx.beginPath(); ctx.arc(half, TOP/2-40, 38, 0, Math.PI*2); ctx.fillStyle = 'rgba(0,0,0,.8)'; ctx.fill();
+  ctx.strokeStyle = '#d8b25a'; ctx.lineWidth = 3; ctx.stroke();
+  ctx.fillStyle = '#d8b25a'; ctx.font = '700 46px '+font; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('×', half, TOP/2-38); ctx.textAlign = 'left';
+  // bébé
+  const BY = TOP+3, BH = H-BY;
+  cover(imgs.baby, 0, BY, W, BH);
+  const pad = 56;
+  ctx.font = '600 44px '+font;
+  const geneLines = (opts.showGenes && s) ? shareWrapLines(ctx, summarizeGenes(s.genes||{}), W-pad*2).slice(0,2) : [];
+  const sexSym = (opts.showSex && s) ? (s.sex==='male'?' ♂':s.sex==='female'?' ♀':'') : '';
+  const nameText = (opts.showName && s && s.name) ? s.name+sexSym : (sexSym ? sexSym.trim() : '');
+  const priceText = (opts.showPrice && s && s.askingPrice) ? (isEn ? '$'+s.askingPrice : s.askingPrice+' $') : '';
+  const nameH = nameText ? 80 : 0, priceH = priceText ? 66 : 0;
+  const bandH = pad + nameH + geneLines.length*56 + priceH + 40;
+  const grad = ctx.createLinearGradient(0, H-bandH-120, 0, H);
+  grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(.35,'rgba(0,0,0,.72)'); grad.addColorStop(1,'rgba(0,0,0,.9)');
+  ctx.fillStyle = grad; ctx.fillRect(0, H-bandH-120, W, bandH+120);
+  let y = H-bandH+pad/2; ctx.textBaseline = 'top';
+  if(nameH){ ctx.fillStyle = '#ffffff'; ctx.font = '700 66px '+font; ctx.fillText(shareWrapLines(ctx, nameText, W-pad*2-200)[0]||'', pad, y); y += nameH; }
+  ctx.fillStyle = '#d8b25a'; ctx.font = '600 44px '+font;
+  geneLines.forEach(l=>{ ctx.fillText(l, pad, y); y += 56; });
+  if(priceH){ y += 6; ctx.fillStyle = '#ffffff'; ctx.font = '800 52px '+font; ctx.fillText(priceText, pad, y); }
+  // petit logo discret en bas à droite
+  const logoSize = 56, lx = W-pad-logoSize, ly = H-pad-logoSize+10;
+  ctx.globalAlpha = .9;
+  if(shareLogoImg && shareLogoImg.complete && shareLogoImg.naturalWidth && !shareLogoImg.failed) ctx.drawImage(shareLogoImg, lx, ly, logoSize, logoSize);
+  ctx.textBaseline = 'middle'; ctx.textAlign = 'right'; ctx.font = '700 26px '+font; ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 8;
+  ctx.fillText('LOCUS Scales', lx-12, ly+logoSize/2);
+  ctx.shadowBlur = 0; ctx.globalAlpha = 1; ctx.textAlign = 'left';
 }
 function loadShareFile(file){
   if(!file) return;
@@ -12890,9 +13120,15 @@ function drawShareImage(){
   const canvas = document.getElementById('share-canvas');
   const empty = document.getElementById('share-empty');
   if(!canvas) return;
+  const s = savedSnakes.find(x=>x.id===shareImg.snakeId);
+  if(shareImg.layout==='parents' && s){ // v5.07 — une photo manquante est remplacée par un fond sobre avec ♂ / ♀
+    canvas.style.display='block'; if(empty) empty.style.display='none';
+    const ld = src=>src ? loadImageAsync(src).catch(()=>null) : Promise.resolve(null);
+    Promise.all([ld(shareImg.sireSrc), ld(shareImg.damSrc), ld(shareImg.src)]).then(([sire, dam, baby])=>renderParentsShareCanvas(canvas, {sire, dam, baby}, s, shareImg));
+    return;
+  }
   if(!shareImg.src){ canvas.style.display='none'; if(empty) empty.style.display='block'; return; }
   canvas.style.display='block'; if(empty) empty.style.display='none';
-  const s = savedSnakes.find(x=>x.id===shareImg.snakeId);
   loadImageAsync(shareImg.src).then(img=>renderShareCanvas(canvas, img, s, shareImg))
     .catch(()=>showToast(currentLang==='en'?'Could not load this photo.':'Impossible de charger cette photo.', 'error'));
 }
@@ -12903,7 +13139,7 @@ function shareImageFileName(){
 }
 function shareImageBlob(cb){
   const canvas = document.getElementById('share-canvas');
-  if(!canvas || !shareImg.src){ showToast(currentLang==='en'?'Add a photo first.':'Ajoute une photo d\'abord.', 'error'); return; }
+  if(!canvas || (!shareImg.src && shareImg.layout!=='parents')){ showToast(currentLang==='en'?'Add a photo first.':'Ajoute une photo d\'abord.', 'error'); return; }
   try{ canvas.toBlob(b=>cb(b), 'image/jpeg', 0.9); }
   catch(e){ showToast(currentLang==='en'?'This photo can\'t be exported (protected source).':'Cette photo ne peut pas être exportée (source protégée).', 'error'); }
 }
@@ -12920,7 +13156,12 @@ function shareShareImage(){
   shareImageBlob(b=>{
     if(!b) return;
     const file = new File([b], shareImageFileName(), { type:'image/jpeg' });
-    if(navigator.canShare && navigator.canShare({ files:[file] })){
+    // v5.07 — lien MorphMarket ajouté au texte quand l'app de destination l'accepte (Facebook l'ignore souvent : bouton « Copier le lien »)
+    const sMM = savedSnakes.find(x=>x.id===shareImg.snakeId);
+    const mm = sMM && sMM.listingUrl ? (/^https?:\/\//i.test(sMM.listingUrl) ? sMM.listingUrl : 'https://'+sMM.listingUrl) : '';
+    if(mm && navigator.canShare && navigator.canShare({ files:[file], text:mm })){
+      navigator.share({ files:[file], text:mm }).catch(()=>{});
+    } else if(navigator.canShare && navigator.canShare({ files:[file] })){
       navigator.share({ files:[file] }).catch(()=>{});
     } else {
       downloadShareImage();
@@ -13125,14 +13366,15 @@ function openLogbook(id){
   // sur la fiche, sans devoir attendre la fenêtre de 7s du bouton "Annuler" du toast. indexOf() sur
   // la référence exacte de l'objet (pas une recherche par date/type) — fiable même si 2 événements
   // identiques se ressemblent en tout point, exactement le cas d'un doublon.
-  const eventsHtml = eventsSorted.length
-    ? eventsSorted.map(e=>{
+  const eventRowHtml = e=>{
         const idx = s.health.events.indexOf(e);
         const label = eventLabelFor(e)+(e.type==='weigh'?' ('+e.value+'g)':'')+(e.type==='length'?' ('+e.value+'cm)':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(currentLang==='en'?'partial':'partiel'):'')+feedPreyTag(e)+(e.partner?' — '+escapeHtml(e.partner):'');
         const swapBtn = (e.type==='shed' || e.type==='inshed') ? '<button class="sc-btn" style="padding:2px 8px;font-size:12px;line-height:1.2;" onclick="toggleShedEventType(\''+id+'\','+idx+')" title="'+(currentLang==='en'?(e.type==='shed'?'Change to « In shed »':'Change to « Shed »'):(e.type==='shed'?'Changer en « En mue »':'Changer en « A mué »'))+'">⇄ '+(e.type==='shed'?(currentLang==='en'?'In shed':'En mue'):(currentLang==='en'?'Shed':'A mué'))+'</button>' : ''; // v3.90
         const editBtn = '<button class="sc-btn" style="padding:2px 8px;font-size:12px;line-height:1.2;" onclick="openEditEventModal(\''+id+'\','+idx+')" aria-label="'+(currentLang==='en'?'Edit':'Modifier')+'">✏️</button>'; // v3.92
         return '<div class="modal-row"><span>'+e.date+'</span><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">'+label+editBtn+swapBtn+'<button class="sc-btn danger" style="padding:2px 8px;font-size:11px;line-height:1;" onclick="deleteHealthEvent(\''+id+'\','+idx+')">×</button></span></div>';
-      }).join('')
+      };
+  const eventsHtml = eventsSorted.length
+    ? journalGroupedHtml(eventsSorted, eventRowHtml) // v5.08 — locks / mises ensemble d'un même couple regroupés
     : '<div class="modal-row"><span>'+t('noEventRecorded')+'</span></div>';
 
   const sire = s.sireId ? savedSnakes.find(x=>x.id===s.sireId) : null;
@@ -15341,6 +15583,36 @@ function spPrepChecks(femaleId, maleId){
 // du mâle se calcule à partir de là. Chaque geste (ensemble, retiré, lock) s'inscrit aussi dans le
 // journal des 2 animaux, comme un repas.
 function pairCurrentState(p){ const ss = p.pairSessions||[]; return ss.length ? ss[ss.length-1] : null; }
+// v5.08 — journal condensé (demande d'Alex) : les locks et mises ensemble / séparations d'un même accouplement
+// forment UNE ligne (« 🔒 ×5 · 🤝 ×3 — Banana Pied, 2 sept → 14 oct »), placée à la date la plus récente ;
+// un toucher l'ouvre avec chaque entrée (modifiable / supprimable comme avant). Une seule entrée = ligne normale.
+function journalGroupedHtml(sortedDesc, rowFn){
+  const isEn = currentLang==='en';
+  const PAIR_TYPES = ['lock','pair_in','pair_out'];
+  const groups = {};
+  sortedDesc.forEach(e=>{ if(e && PAIR_TYPES.includes(e.type) && e.pairingId) (groups[e.pairingId] = groups[e.pairingId] || []).push(e); });
+  const done = new Set();
+  return sortedDesc.map(e=>{
+    if(!(e && PAIR_TYPES.includes(e.type) && e.pairingId)) return rowFn(e);
+    const g = groups[e.pairingId];
+    if(!g || g.length<2) return rowFn(e);
+    if(done.has(e.pairingId)) return '';
+    done.add(e.pairingId);
+    const nLock = g.filter(x=>x.type==='lock').length, nIn = g.filter(x=>x.type==='pair_in').length;
+    const dates = g.map(x=>x.date).sort();
+    const partner = (g.find(x=>x.partner)||{}).partner || '?';
+    const parts = [];
+    if(nLock) parts.push('🔒 ×'+nLock);
+    if(nIn) parts.push('🤝 ×'+nIn);
+    return '<details style="border-bottom:1px solid var(--line);padding:6px 0;">'+
+      '<summary style="cursor:pointer;display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:13px;">'+
+        '<span>'+escapeHtml(dates[dates.length-1])+'</span>'+
+        '<span style="text-align:right;">'+parts.join(' · ')+' — '+escapeHtml(partner)+' <small style="color:var(--ink-dim);">('+escapeHtml(dates[0])+' → '+escapeHtml(dates[dates.length-1])+')</small> ▾</span>'+
+      '</summary>'+
+      '<div style="padding-left:12px;border-left:2px solid var(--line);margin-top:4px;">'+g.map(rowFn).join('')+'</div>'+
+    '</details>';
+  }).join('');
+}
 function logPairingJournal(p, type, date, extra){
   [p.maleId, p.femaleId].forEach(id=>{
     const s = savedSnakes.find(x=>x.id===id); if(!s) return;
@@ -15372,6 +15644,7 @@ function spOnPairOut(p, date){
 }
 function refreshBreedingViews(){
   try{ renderLockModeGrid(); }catch(e){}
+  try{ renderTourLockBar(); }catch(e){} // v5.08
   try{ renderSeasonPlans(); }catch(e){}
   try{ if(currentLogbookId) openLogbook(currentLogbookId); }catch(e){}
 }
@@ -16015,7 +16288,7 @@ function snakeToRow(s){
     health: s.health||{}, placement: s.placement||{}, photos: s.photos||[],
     feeding_interval_days: s.feedingIntervalDays||null, prey_species: s.preySpecies||null,
     prey_size: s.preySize||null, prey_size_estimated: !!(s.preySize && s.preySizeEstimated), prey_type: s.preyType||'frozen', // v4.60 asking_price: s.askingPrice||null, listed_date: s.listedDate||null,
-    listing_url: s.listingUrl||null, buyer: s.buyer||null, sold_date: s.soldDate||null, sold_price: s.soldPrice||null,
+    listing_url: s.listingUrl||null, sale_parents: s.saleParents||null, buyer: s.buyer||null, // v5.07 — colonne migrée et vérifiée le 27 oct sold_date: s.soldDate||null, sold_price: s.soldPrice||null,
     quarantine: s.quarantine||{active:false,startDate:null,durationDays:60}, custom_tags: s.customTags||[], species: s.species||'ball_python',
     paid_via_stripe: !!s.paidViaStripe, care_params: s.careParams||{}, public_token: s.publicToken||null, feed_cost: s.feedCost||null, transfer_token: s.transferToken||null,
     shipping_carrier: s.shippingCarrier||null, shipping_tracking: s.shippingTracking||null, shipping_date: s.shippingDate||null, shipping_delivered: !!s.shippingDelivered,
@@ -16038,7 +16311,7 @@ function rowToSnake(r){
     sireId: r.sire_id, damId: r.dam_id, birthDate: r.birth_date, provenance: r.provenance, acquisitionDate: r.acquisition_date||null,
     status: r.status, health: r.health||{}, placement: r.placement||{}, photos: r.photos||[],
     feedingIntervalDays: r.feeding_interval_days, preySpecies: r.prey_species, preySize: r.prey_size, preySizeEstimated: !!r.prey_size_estimated, preyType: r.prey_type || 'frozen',
-    askingPrice: r.asking_price, listedDate: r.listed_date, listingUrl: r.listing_url,
+    askingPrice: r.asking_price, listedDate: r.listed_date, listingUrl: r.listing_url, saleParents: r.sale_parents || null, // v5.07
     buyer: r.buyer, soldDate: r.sold_date, soldPrice: r.sold_price, createdAt: r.created_at ? Date.parse(r.created_at) : Date.now(),
     quarantine: r.quarantine || {active:false,startDate:null,durationDays:60}, customTags: r.custom_tags || [], species: r.species || 'ball_python',
     paidViaStripe: !!r.paid_via_stripe, careParams: r.care_params || {}, publicToken: r.public_token || null, feedCost: r.feed_cost!=null ? r.feed_cost : null, transferToken: r.transfer_token || null,
@@ -19669,6 +19942,7 @@ function ensureSnakeMeta(s){
   if(s.paidViaStripe===undefined) s.paidViaStripe = false;
   if(s.listedDate===undefined) s.listedDate = null;
   if(s.listingUrl===undefined) s.listingUrl = null;
+  if(s.saleParents===undefined) s.saleParents = null; // v5.07 — parents hors collection (image parents + bébé)
   if(s.provenance===undefined) s.provenance = null; // éleveur d'origine si le reptile a été acheté
   if(s.feedingIntervalDays===undefined) s.feedingIntervalDays = null; // null = intervalle générique (seuils par défaut)
   if(s.genesVerified===undefined) s.genesVerified = true; // true par défaut (fiches existantes/saisies manuellement) — false explicitement à l'éclosion auto
@@ -25338,6 +25612,7 @@ function renderTourGrid(){
   const isEn = currentLang==='en';
   renderTourDateBar();
   try{ renderBatchWeighResume(); }catch(e){} // v5.03
+  try{ renderTourLockBar(); }catch(e){} // v5.08
   // v3.52 — bouton « Assiette » seulement si la collection compte une espèce nourrie à l'assiette.
   const plateBtn = document.getElementById('tour-plate-btn');
   if(plateBtn){
@@ -25409,6 +25684,7 @@ function renderTourGrid(){
             var hlT = handlingHoursLeft(snake); // v3.77
             if(hlT>0) tag = (tag ? tag+' · ' : '')+'🤚'+hlT+'h';
             if(isInShed(snake)) tag = (tag ? tag+' · ' : '')+'🔵'; // v3.90 — en mue
+            if(tourTogetherIds().has(snake.id)) tag = (tag ? tag+' · ' : '')+'🤝'; // v5.08 — couple ensemble
             cell.setAttribute('data-tooltip', snakeTooltip(snake));
           }
           if(tubIdx>tubCount){ cell.style.border = '2px dashed #e08a63'; tag = (tag ? tag+' · ' : '')+'⚠ '+(isEn?'to move':'à déplacer'); } // v4.51
@@ -32206,9 +32482,10 @@ function renderLockModeGrid(){
     const refusedToday = refusals.some(r=>r.date===today);
     const stateTxt = st ? (together ? '🤝 '+(isEn?'together ':'ensemble ')+spDaysBetween(st.date,today)+(isEn?' d':' j') : '⏸ '+(isEn?'apart ':'séparés ')+spDaysBetween(st.date,today)+(isEn?' d':' j')) : (isEn?'not started':'pas commencé');
     const open = !!lockModeOpen[p.id];
+    const pills = lockModeStagePills(p, locks); // v5.08
     return '<div style="border:1px solid '+(together?'var(--sage)':'var(--line)')+';border-radius:12px;padding:8px 10px;margin-bottom:6px;">'+
       '<div style="display:flex;align-items:center;gap:6px;">'+
-        '<span style="flex:1;min-width:0;font-size:13px;"><b>♀ '+escapeHtml(spSnakeName(p.femaleId))+'</b> × ♂ '+escapeHtml(spSnakeName(p.maleId))+'<br/><small style="color:var(--ink-dim);">'+stateTxt+(lastLock?' · '+(isEn?'last lock ':'dernier lock ')+spFmt(lastLock):'')+'</small></span>'+
+        '<span style="flex:1;min-width:0;font-size:13px;"><b>♀ '+escapeHtml(spSnakeName(p.femaleId))+'</b> × ♂ '+escapeHtml(spSnakeName(p.maleId))+'<br/><small style="color:var(--ink-dim);">'+stateTxt+(lastLock?' · '+(isEn?'last lock ':'dernier lock ')+spFmt(lastLock):'')+'</small>'+(pills?'<br/>'+pills:'')+'</span>'+
         '<button class="sc-btn'+(lockedToday?' accent':'')+'" style="min-width:64px;" onclick="quickAddLockToday(\''+p.id+'\')">🔒 '+locks.length+(lockedToday?' ✓':' +')+'</button>'+
         '<button class="sc-btn'+(refusedToday?' accent':'')+'" title="'+(isEn?'Refusal':'Refus')+'" onclick="openPairRefusal(\''+p.id+'\')">🙅 '+refusals.length+'</button>'+ // v5.04
         '<button class="sc-btn" onclick="togglePairSession(\''+p.id+'\')">'+(together?'⏸':'🤝')+'</button>'+
@@ -32374,6 +32651,53 @@ function renderBreederConstancy(){
   '</details>';
 }
 
+// v5.08 — pastilles d'étape tirées de ce qui est déjà noté (aucune saisie de plus) : saison, cooling,
+// follicules, attente d'ovulation / ovulation / mue pré-ponte.
+function lockModeStagePills(p, locks){
+  const isEn = currentLang==='en';
+  const pill = (txt, col)=>'<span style="display:inline-block;font-size:11px;padding:1px 7px;border-radius:10px;border:1px solid '+(col||'var(--line)')+';margin:3px 4px 0 0;color:var(--ink);">'+txt+'</span>';
+  const out = [];
+  const year = String(p.pairedDate||'').slice(0,4);
+  if(year) out.push(pill((isEn?'Season ':'Saison ')+escapeHtml(year)));
+  if(p.coolingDate) out.push(pill('❄️ Cooling'));
+  const fol = (p.follicleSizes||[]).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  if(fol.length && !p.ovulationConfirmed) out.push(pill('🔬 '+(isEn?'Follicles ':'Follicules ')+escapeHtml(String(fol[fol.length-1].sizeMm))+' mm'));
+  if(p.preLayShedDate) out.push(pill('✨ '+(isEn?'Pre-lay shed':'Mue pré-ponte'), 'var(--gold)'));
+  else if(p.ovulationConfirmed) out.push(pill('🥚 '+(isEn?'Ovulation ✓':'Ovulation ✓'), 'var(--gold)'));
+  else if((locks||[]).length) out.push(pill('⏳ '+(isEn?'Waiting for ovulation':'En attente d\'ovulation')));
+  return out.join('');
+}
+// v5.08 — Mode Tournée : les couples ENSEMBLE en ce moment, avec 🔒+ pour noter le lock du jour pendant la tournée
+// (même fonction que le Mode Verrou : un 2e toucher le même jour ne crée pas de doublon). Palier du Mode Verrou.
+function tourTogetherPairings(){
+  if(typeof hasAccess==='function' && !hasAccess('lockMode')) return [];
+  return (pairings||[]).filter(p=>{ if(pairingIsDone(p)) return false; const st = pairCurrentState(p); return st && st.state==='in'; });
+}
+function tourTogetherIds(){
+  const ids = new Set();
+  try{ tourTogetherPairings().forEach(p=>{ ids.add(p.maleId); ids.add(p.femaleId); }); }catch(e){}
+  return ids;
+}
+function renderTourLockBar(){
+  const box = document.getElementById('tour-lock-bar');
+  if(!box) return;
+  const list = tourTogetherPairings();
+  if(!list.length){ box.style.display = 'none'; box.innerHTML = ''; return; }
+  const isEn = currentLang==='en';
+  const today = spToday();
+  box.style.display = 'block';
+  box.innerHTML = '<div style="border:1px solid var(--sage);border-radius:12px;padding:8px 10px;">'+
+    '<div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--sage);margin-bottom:6px;">🤝 '+(isEn?'Together now':'Ensemble en ce moment')+' — '+list.length+'</div>'+
+    list.map(p=>{
+      const locks = p.lockDates||[];
+      const doneToday = locks.some(l=>l.date===today);
+      return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;">'+
+        '<span style="flex:1;min-width:0;">♀ <b>'+escapeHtml(spSnakeName(p.femaleId))+'</b> × ♂ '+escapeHtml(spSnakeName(p.maleId))+'</span>'+
+        '<button class="sc-btn'+(doneToday?' accent':'')+'" style="min-width:74px;" onclick="quickAddLockToday(\''+p.id+'\')">🔒 '+locks.length+(doneToday?' ✓':' +')+'</button>'+
+      '</div>';
+    }).join('')+
+  '</div>';
+}
 function deleteLockDate(pairingId, lockId){
   const isEn = currentLang==='en';
   if(!confirm(isEn?'Delete this lock date?':'Supprimer cette date de verrouillage ?')) return;
