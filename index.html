@@ -1136,7 +1136,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
     <div class="dash-greeting" id="dash-greeting"></div>
     <button type="button" class="onboarding-banner commit-card" onclick="window.open(currentLang==='en'?'guides/trust.html':'guides/engagements.html','_blank','noopener');">
       <span class="ob-icon">🛡</span>
-      <span class="ob-body"><span class="ob-title" data-i18n="commitCardTitle">Nos engagements</span><span data-i18n="commitCardText">Tes données restent au Canada, aucun pistage, aucune police Google, et la liste complète des services externes — chaque point est vérifiable.</span> <span class="commit-card-link" data-i18n="commitCardLink">Lire nos engagements →</span></span>
+      <span class="ob-body"><span class="ob-title" data-i18n="commitCardTitle">Nos engagements</span><span data-i18n="commitCardText">Données hébergées au Canada, aucun pistage, aucune police Google, et liste complète des services externes — chaque point est vérifiable.</span> <span class="commit-card-link" data-i18n="commitCardLink">Lire nos engagements →</span></span>
     </button>
     <div id="dash-species-filter-wrap" style="display:none;margin-bottom:14px;"></div>
     <div id="dash-sortable-wrap">
@@ -2270,7 +2270,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.12';
+const APP_VERSION = '2026.09.01.5.13';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5344,6 +5344,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.13', date:'2026-10-27',
+    title:{ fr:'Engagements : formulation plus neutre', en:'Commitments: more neutral wording' },
+    changes:{
+      fr:[ '🛡 Page « Nos engagements » et carte de l\'Agenda : les phrases sur les données de clientèle, le prix d\'achat, l\'acheteur et l\'emplacement des animaux sont reformulées de façon neutre, sans s\'adresser à toi. Le sens et les engagements restent les mêmes.' ],
+      en:[ '🛡 « Our commitments » page and Agenda card: the lines about customer data, purchase price, buyer and animal location are reworded neutrally, without addressing you. The meaning and the commitments are unchanged.' ]
+    }
+  },
   { version:'5.12', date:'2026-10-27',
     title:{ fr:'Nos engagements en vue', en:'Our commitments up front' },
     changes:{
@@ -6644,7 +6651,7 @@ const I18N = {
     menuPrivacy: 'Confidentialité',
     menuCommitments: 'Nos engagements', // v5.10
     commitCardTitle: 'Nos engagements', // v5.12
-    commitCardText: 'Tes données restent au Canada, aucun pistage, aucune police Google, et la liste complète des services externes — chaque point est vérifiable.',
+    commitCardText: 'Données hébergées au Canada, aucun pistage, aucune police Google, et liste complète des services externes — chaque point est vérifiable.',
     commitCardLink: 'Lire nos engagements →',
     menuBugReport: 'Signaler un bug',
     menuAdmin: 'Admin — résumé',
@@ -7231,7 +7238,7 @@ const I18N = {
     menuPrivacy: 'Privacy',
     menuCommitments: 'Our commitments', // v5.10
     commitCardTitle: 'Our commitments', // v5.12
-    commitCardText: 'Your data stays in Canada, no tracking, no Google fonts, and the full list of external services — every point can be checked.',
+    commitCardText: 'Data hosted in Canada, no tracking, no Google fonts, and the full list of external services — every point can be checked.',
     commitCardLink: 'Read our commitments →',
     menuBugReport: 'Report a bug',
     menuAdmin: 'Admin — summary',
