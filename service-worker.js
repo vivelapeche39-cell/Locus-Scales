@@ -8,16 +8,16 @@
      est donc reçue dès que le réseau répond.
    - version.txt : JAMAIS intercepté (le mécanisme anti-cache de l'app l'utilise tel quel, en no-store).
    - Supabase (API, auth, storage), Stripe et tout autre domaine : JAMAIS interceptés ni mis en cache.
-   - Seules exceptions externes : les 2 bibliothèques CDN listées dans CDN_LIBS (cache d'abord, puis
-     rafraîchies en arrière-plan).
+   - Bibliothèques : depuis v5.10 (SW 2), servies par notre propre site (dossier lib/, LIB_FILES) — plus aucun
+     CDN externe. Cache d'abord, puis rafraîchies en arrière-plan.
    - Toute autre page (guides/, sitemap, etc.) : non interceptée.
    Ce fichier change rarement : le nom du cache est fixe, pas lié à APP_VERSION (index.html est de
    toute façon toujours redemandé au réseau). Si la logique ci-dessous change, incrémenter SW_VERSION.
    Échappatoire côté utilisateur : ouvrir l'app avec ?nosw=1 désactive le service worker et vide ses
    caches ; ?nosw=0 le réactive. */
-var SW_VERSION = '1';
+var SW_VERSION = '2';
 var SHELL_CACHE = 'locus-shell-v1';
-var LIB_CACHE = 'locus-libs-v1';
+var LIB_CACHE = 'locus-libs-v2'; // v2 : l'ancien cache des CDN (v1) est supprimé à l'activation
 var NAV_TIMEOUT_MS = 4000; // réseau « connecté mais qui ne répond pas » : on bascule sur la copie locale
 
 var SCOPE_URL = self.registration.scope;
@@ -26,10 +26,8 @@ var INDEX_URL = new URL('index.html', SCOPE_URL).href;
 var SHELL_FILES = ['manifest.json', 'favicon.ico', 'icons/icon-192.png', 'icons/icon-512.png',
                    'icons/apple-touch-icon.png', 'icons/favicon-48.png']
   .map(function(p){ return new URL(p, SCOPE_URL).href; });
-var CDN_LIBS = [
-  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js',
-  'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
-];
+var LIB_FILES = ['lib/supabase.js', 'lib/xlsx.full.min.js']
+  .map(function(p){ return new URL(p, SCOPE_URL).href; });
 
 self.addEventListener('install', function(event){
   event.waitUntil((async function(){
@@ -45,8 +43,8 @@ self.addEventListener('install', function(event){
         if(r && r.ok) return shell.put(u, r);
       }).catch(function(){}));
     });
-    CDN_LIBS.forEach(function(u){
-      jobs.push(fetch(u, { mode: 'cors', credentials: 'omit' }).then(function(r){
+    LIB_FILES.forEach(function(u){
+      jobs.push(fetch(new Request(u, { cache: 'reload' })).then(function(r){
         if(r && r.ok) return libs.put(u, r);
       }).catch(function(){}));
     });
@@ -131,8 +129,12 @@ self.addEventListener('fetch', function(event){
   var url = new URL(req.url);
 
   if(url.origin !== self.location.origin){
-    if(CDN_LIBS.indexOf(req.url) >= 0){ event.respondWith(staleWhileRevalidateLib(event)); }
     return; // Supabase, Stripe, tout le reste : réseau direct, rien en cache
+  }
+
+  if(LIB_FILES.indexOf(url.origin + url.pathname) >= 0){
+    event.respondWith(staleWhileRevalidateLib(event));
+    return;
   }
 
   var isIndex = (url.pathname === SCOPE_PATH || url.pathname === SCOPE_PATH + 'index.html');

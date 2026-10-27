@@ -1054,8 +1054,9 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   .hdr::after{inset:0 0 auto 0;height:165px;background:linear-gradient(180deg, rgba(11,18,14,.05) 0%, rgba(11,18,14,.25) 60%, #0b120e 100%);}
 }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
+<!-- v5.10 — bibliothèques servies par notre propre site (plus de jsDelivr : aucune IP envoyée à un CDN tiers, et version figée) -->
+<script src="lib/supabase.js"></script>
+<script src="lib/xlsx.full.min.js"></script>
 </head>
 <body>
 <div id="public-view-overlay" style="display:none;position:fixed;inset:0;z-index:99999;background:var(--bg);overflow-y:auto;"></div>
@@ -2182,6 +2183,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
     <button class="app-menu-item" onclick="closeAppMenu(); openConfigModal();"><span>⚙️</span> <span data-i18n="menuConfig">Configuration</span></button>
     <button class="app-menu-item" onclick="closeAppMenu(); openTermsModal();"><span>📄</span> <span data-i18n="menuTerms">Conditions d'utilisation</span></button>
     <button class="app-menu-item" onclick="closeAppMenu(); openPrivacyModal();"><span>🔒</span> <span data-i18n="menuPrivacy">Confidentialité</span></button>
+    <button class="app-menu-item" onclick="closeAppMenu(); window.open(currentLang==='en'?'guides/trust.html':'guides/engagements.html','_blank','noopener');"><span>🛡</span> <span data-i18n="menuCommitments">Nos engagements</span></button>
     <button class="app-menu-item" onclick="closeAppMenu(); openBugReportModal();"><span>🐛</span> <span data-i18n="menuBugReport">Signaler un bug</span></button>
     <button class="app-menu-item" id="app-menu-admin" style="display:none;" onclick="closeAppMenu(); openAdminOverview();"><span>📊</span> <span data-i18n="menuAdmin">Admin</span></button>
     <div class="app-menu-foot">LOCUS Scales — Gestion d'élevage Python royal</div>
@@ -2261,7 +2263,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.08';
+const APP_VERSION = '2026.09.01.5.10';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4379,7 +4381,8 @@ function isFreewayKey(gid){ return typeof gid==='string' && gid.indexOf('freeway
 function freewayLocusFromKey(gid){ return gid.slice('freeway__'.length); }
 function freewayLabel(locus){
   const members = GENES_BY_LOCUS[locus] || [];
-  return 'Freeway — '+members.map(g=>g.name).join('/')+(currentLang==='en'?' (unconfirmed)':' (non confirmé)'); // v5.01 — traduit
+  // v5.09 — « Freeway » est le nom du combo Asphalt + Yellow Belly dans le milieu (WOBP) : ne plus l'utiliser pour un locus incertain
+  return (currentLang==='en'?'Uncertain locus — ':'Locus incertain — ')+members.map(g=>g.name).join('/')+(currentLang==='en'?' (unconfirmed)':' (non confirmé)');
 }
 
 // v3.55 — noms courts demandés par Alex (« on garde ça simple en terminologie ») : plus de
@@ -5165,8 +5168,8 @@ const AIDE_ITEMS = [
 ];
 const FAQ_APP_ITEMS = [
   {qFr:'C\'est quoi le badge orange « Possible » ou « ? » sur un gène ?', qEn:'What\'s the orange "Possible" or "?" badge on a gene?',
-   aFr:'Le gène n\'est pas confirmé à 100% (hérité d\'un parent non prouvé, ou identité incertaine type Freeway). Il est volontairement exclu du calcul mendélien plutôt que de fausser un pourcentage.',
-   aEn:'The gene isn\'t confirmed 100% (inherited from an unproven parent, or an uncertain Freeway-type identity). It\'s deliberately excluded from the Mendelian calculation rather than skewing a percentage.'},
+   aFr:'Le gène n\'est pas confirmé à 100% (hérité d\'un parent non prouvé, ou identité incertaine sur un locus partagé). Il est volontairement exclu du calcul mendélien plutôt que de fausser un pourcentage.',
+   aEn:'The gene isn\'t confirmed 100% (inherited from an unproven parent, or an uncertain identity on a shared locus). It\'s deliberately excluded from the Mendelian calculation rather than skewing a percentage.'},
   {qFr:'Pourquoi un gène que je connais n\'est pas dans la liste ?', qEn:'Why is a gene I know not on the list?',
    aFr:'Chaque gène est vérifié individuellement avant ajout (mode de transmission confirmé par une source fiable). Demande-le en Configuration ou par courriel — on vérifie et on l\'ajoute.',
    aEn:'Every gene is individually verified before being added (mode of inheritance confirmed by a reliable source). Request it in Settings or by email — we\'ll verify and add it.'},
@@ -5304,6 +5307,22 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.10', date:'2026-10-27',
+    title:{ fr:'Nos engagements', en:'Our commitments' },
+    changes:{
+      fr:[ '🛡 Nouvelle page « Nos engagements » (menu ☰ et Confidentialité) : où sont tes données (Canada), aucun pistage, aucune police Google, la liste complète des services externes et nos règles contre le marketing agressif — chaque point vérifiable.',
+           '🔧 Les bibliothèques de l\'app (connexion Supabase, lecture Excel) sont maintenant servies par notre propre site au lieu d\'un service externe (jsDelivr) : ton adresse IP ne lui est plus envoyée, et leur version ne change plus sans qu\'on le décide.' ],
+      en:[ '🛡 New « Our commitments » page (☰ menu and Privacy): where your data lives (Canada), no tracking, no Google fonts, the full list of external services and our rules against aggressive marketing — every point can be checked.',
+           '🔧 The app\'s libraries (Supabase sign-in, Excel reading) are now served by our own site instead of an external service (jsDelivr): your IP address is no longer sent to it, and their version no longer changes unless we decide.' ]
+    }
+  },
+  { version:'5.09', date:'2026-10-27',
+    title:{ fr:'Correction : « Freeway »', en:'Fix: « Freeway »' },
+    changes:{
+      fr:[ '🧬 Glossaire corrigé : « Freeway » est le nom du combo Asphalt + Yellow Belly (World of Ball Pythons), pas un gène non confirmé. Le statut interne d\'un gène dont l\'identité sur un locus partagé n\'est pas confirmée s\'appelle maintenant « Locus incertain » partout (fiches, aide). L\'import traduisait déjà Freeway en Asphalt + Yellow Belly.' ],
+      en:[ '🧬 Glossary fixed: « Freeway » is the name of the Asphalt + Yellow Belly combo (World of Ball Pythons), not an unconfirmed gene. The internal status of a gene whose identity on a shared locus isn\'t confirmed is now called « Uncertain locus » everywhere (records, help). Import already translated Freeway into Asphalt + Yellow Belly.' ]
+    }
+  },
   { version:'5.08', date:'2026-10-27',
     title:{ fr:'Locks : une ligne par couple', en:'Locks: one line per pair' },
     changes:{
@@ -6468,14 +6487,14 @@ function openFaqModal(){
   showQuickModal('📖 FAQ',
     '<div style="font-size:12px;line-height:1.65;color:var(--ink);max-height:62vh;overflow-y:auto;">'+
     (isEn ?
-      '<p><b style="color:var(--gold);">What\'s the orange "Possible" or "?" badge on a gene?</b><br/>The gene isn\'t confirmed 100% (inherited from an unproven parent, or an uncertain Freeway-type identity). It\'s deliberately excluded from the Mendelian calculation rather than skewing a percentage.</p>'+
+      '<p><b style="color:var(--gold);">What\'s the orange "Possible" or "?" badge on a gene?</b><br/>The gene isn\'t confirmed 100% (inherited from an unproven parent, or an uncertain identity on a shared locus). It\'s deliberately excluded from the Mendelian calculation rather than skewing a percentage.</p>'+
       '<p><b style="color:var(--gold);">Why is a gene I know not on the list?</b><br/>Every gene is individually verified before being added (mode of inheritance confirmed by a reliable source). Request it in Settings or by email — we\'ll verify and add it.</p>'+
       '<p><b style="color:var(--gold);">Where is my data?</b><br/>Stored locally on this device and synced to a secure cloud database while you\'re logged in — never sold or shared. One exception: generating a tub-label QR code sends that reptile\'s internal ID (not its name or genetics) to an external service (qrserver.com) to produce the image. Without an account, your data stays local only and is not backed up.</p>'+
       '<p><b style="color:var(--gold);">What does the "🧬 To verify" badge on a baby mean?</b><br/>Its genetics come from an exact statistical draw at hatching time, but haven\'t been visually confirmed by you yet. A "Confirm exact" button is on its record.</p>'+
       '<p><b style="color:var(--gold);">Can I have several racks of different shapes?</b><br/>Yes — each rack has its own name, and each row can have a different number of tubs, to recreate your exact physical setup.</p>'+
       '<p style="margin-bottom:0;"><b style="color:var(--gold);">Does LOCUS work across multiple devices at once?</b><br/>Yes — once you\'re logged into an account, your data syncs across every device automatically.</p>'
     :
-      '<p><b style="color:var(--gold);">C\'est quoi le badge orange « Possible » ou « ? » sur un gène ?</b><br/>Le gène n\'est pas confirmé à 100% (hérité d\'un parent non prouvé, ou identité incertaine type Freeway). Il est volontairement exclu du calcul mendélien plutôt que de fausser un pourcentage.</p>'+
+      '<p><b style="color:var(--gold);">C\'est quoi le badge orange « Possible » ou « ? » sur un gène ?</b><br/>Le gène n\'est pas confirmé à 100% (hérité d\'un parent non prouvé, ou identité incertaine sur un locus partagé). Il est volontairement exclu du calcul mendélien plutôt que de fausser un pourcentage.</p>'+
       '<p><b style="color:var(--gold);">Pourquoi un gène que je connais n\'est pas dans la liste ?</b><br/>Chaque gène est vérifié individuellement avant ajout (mode de transmission confirmé par une source fiable). Demande-le en Configuration ou par courriel — on vérifie et on l\'ajoute.</p>'+
       '<p><b style="color:var(--gold);">Où sont mes données ?</b><br/>Stockées localement sur cet appareil et synchronisées sur une base de données cloud sécurisée tant que tu es connecté — jamais vendues ni partagées. Une exception : générer un QR code d\'étiquette envoie l\'identifiant interne (pas le nom ni la génétique) du reptile concerné à un service externe (qrserver.com) pour fabriquer l\'image. Sans compte, tes données restent locales uniquement et ne sont pas sauvegardées.</p>'+
       '<p><b style="color:var(--gold);">Le badge « 🧬 À vérifier » sur un bébé, ça veut dire quoi ?</b><br/>Sa génétique vient d\'un tirage statistique exact au moment de l\'éclosion, mais n\'a pas encore été confirmée visuellement par toi. Un bouton « Confirmer exacte » est sur sa fiche.</p>'+
@@ -6572,6 +6591,7 @@ const I18N = {
     menuConfig: 'Configuration',
     menuTerms: 'Conditions d\'utilisation',
     menuPrivacy: 'Confidentialité',
+    menuCommitments: 'Nos engagements', // v5.10
     menuBugReport: 'Signaler un bug',
     menuAdmin: 'Admin — résumé',
     bugReportTitle: 'Signaler un bug',
@@ -7155,6 +7175,7 @@ const I18N = {
     menuConfig: 'Settings',
     menuTerms: 'Terms of Use',
     menuPrivacy: 'Privacy',
+    menuCommitments: 'Our commitments', // v5.10
     menuBugReport: 'Report a bug',
     menuAdmin: 'Admin — summary',
     bugReportTitle: 'Report a bug',
@@ -7822,7 +7843,7 @@ function openTermsModal(){
       '<p><b style="color:var(--gold);">Minimum age</b><br/>Use of this site requires that you have reached the legal age of majority in your place of residence, or have obtained the consent of a parent or legal guardian.</p>'+
       '<p><b style="color:var(--gold);">Tax and regulatory tools — not a substitute for a professional</b><br/>The tax-tracking features (income, expenses) and province-by-province regulatory information are organizational tools, not accounting or legal advice. Consult a qualified accountant or legal professional before making any real tax or regulatory decision.</p>'+
       '<p><b style="color:var(--gold);">Value report (insurance)</b><br/>The generated value report is based solely on the prices you have manually entered — it does not constitute an independent appraisal or professional valuation. It may be insufficient to support an actual insurance claim; consult your insurer regarding their requirements.</p>'+
-      '<p><b style="color:var(--gold);">Uncertain genetic statuses ("Possible", "Freeway", "To verify")</b><br/>These statuses indicate genetics that are not 100% confirmed — statistical, inherited from a draw, or pending visual confirmation. They must never be presented as certain to a buyer before confirmation (test breeding, visual identification, or DNA testing, as applicable). You remain solely responsible for the genetic representations made to your clients.</p>'+
+      '<p><b style="color:var(--gold);">Uncertain genetic statuses ("Possible", "Uncertain locus", "To verify")</b><br/>These statuses indicate genetics that are not 100% confirmed — statistical, inherited from a draw, or pending visual confirmation. They must never be presented as certain to a buyer before confirmation (test breeding, visual identification, or DNA testing, as applicable). You remain solely responsible for the genetic representations made to your clients.</p>'+
       '<p><b style="color:var(--gold);">Loss of local data</b><br/>Your data is synced to our secured servers once you are signed in, but the app also keeps a local copy on your device for offline access. We cannot be held liable for data loss caused by a cache clear, a change of device or browser, or any hardware failure before that sync completes. Regularly exporting your data remains good practice.</p>'+
       '<p><b style="color:var(--gold);">Notifications</b><br/>Notifications depend on the permissions and proper functioning of your browser and device, and only work while the Application is open in a tab. They do not constitute a guaranteed alert system — do not rely on them as your sole protection against a critical event (hatching, feeding, etc.).</p>'+
       '<p style="margin-bottom:0;"><b style="color:var(--gold);">Gene database</b><br/>Each gene is verified through recognized public sources (Morphpedia, World of Ball Pythons, among others). These third-party sources may themselves contain errors, be incomplete, or change over time without our being notified. We do not guarantee the absolute and permanent accuracy of each genetic classification.</p>'+
@@ -7862,7 +7883,7 @@ function openTermsModal(){
       '<p><b style="color:var(--gold);">Âge minimum</b><br/>L\'utilisation de ce site requiert d\'avoir atteint la majorité légale de votre lieu de résidence, ou d\'avoir obtenu le consentement d\'un parent ou tuteur légal.</p>'+
       '<p><b style="color:var(--gold);">Outils fiscal et réglementaire — ne remplacent pas un professionnel</b><br/>Les fonctionnalités de suivi fiscal (revenus, dépenses) et de réglementation par province sont des outils d\'organisation, pas des avis comptables ou juridiques. Consultez un comptable ou un professionnel du droit qualifié avant toute décision fiscale ou réglementaire réelle.</p>'+
       '<p><b style="color:var(--gold);">Rapport de valeur (assurance)</b><br/>Le rapport de valeur généré se base uniquement sur les prix que vous avez renseignés manuellement — il ne constitue pas une expertise indépendante ni une évaluation professionnelle. Il peut être insuffisant pour appuyer une réclamation d\'assurance réelle ; consultez votre assureur pour connaître ses exigences.</p>'+
-      '<p><b style="color:var(--gold);">Statuts génétiques incertains (« Possible », « Freeway », « À vérifier »)</b><br/>Ces statuts indiquent une génétique non confirmée à 100 % — statistique, héritée d\'un tirage, ou en attente de confirmation visuelle. Ils ne doivent jamais être présentés comme une certitude à un acheteur avant confirmation (élevage-test, identification visuelle ou test ADN, selon le cas). Vous demeurez seul responsable des représentations génétiques faites à vos clients.</p>'+
+      '<p><b style="color:var(--gold);">Statuts génétiques incertains (« Possible », « Locus incertain », « À vérifier »)</b><br/>Ces statuts indiquent une génétique non confirmée à 100 % — statistique, héritée d\'un tirage, ou en attente de confirmation visuelle. Ils ne doivent jamais être présentés comme une certitude à un acheteur avant confirmation (élevage-test, identification visuelle ou test ADN, selon le cas). Vous demeurez seul responsable des représentations génétiques faites à vos clients.</p>'+
       '<p><b style="color:var(--gold);">Perte de données locales</b><br/>Vos données sont synchronisées vers nos serveurs sécurisés une fois connecté, mais l\'application garde aussi une copie locale sur votre appareil pour l\'accès hors ligne. Nous ne pouvons être tenus responsables d\'une perte de données causée par un vidage de cache, un changement d\'appareil ou de navigateur, ou une défaillance matérielle survenant avant que cette synchronisation soit complétée. L\'exportation régulière de vos données demeure une bonne pratique.</p>'+
       '<p><b style="color:var(--gold);">Notifications</b><br/>Les notifications dépendent des permissions et du bon fonctionnement de votre navigateur et de votre appareil, et ne fonctionnent que pendant que l\'Application est ouverte dans un onglet. Elles ne constituent pas un système d\'alerte garanti — ne vous y fiez pas comme seule protection contre un événement critique (éclosion, repas, etc.).</p>'+
       '<p style="margin-bottom:0;"><b style="color:var(--gold);">Base de données des gènes</b><br/>Chaque gène est vérifié via des sources publiques reconnues (Morphpedia, World of Ball Pythons, entre autres). Ces sources tierces peuvent elles-mêmes contenir des erreurs, être incomplètes, ou changer avec le temps sans que nous en soyons avisés. Nous ne garantissons pas l\'exactitude absolue et permanente de chaque classification génétique.</p>'+
@@ -7880,6 +7901,7 @@ function openPrivacyModal(){
   const isEn = currentLang==='en';
   showQuickModal(isEn ? '🔒 Privacy' : '🔒 Confidentialité',
     '<div style="font-size:11.5px;line-height:1.65;color:var(--ink);max-height:62vh;overflow-y:auto;">'+
+    '<p style="font-size:13px;margin:0 0 12px;">🛡 <a href="'+(isEn?'guides/trust.html':'guides/engagements.html')+'" target="_blank" rel="noopener" style="color:var(--gold);">'+(isEn?'Our commitments in plain words — hosting in Canada, no tracking, no Google fonts, full list of external services':'Nos engagements en clair — hébergement au Canada, aucun pistage, aucune police Google, liste complète des services externes')+' →</a></p>'+ // v5.10
     (isEn ?
       '<div style="background:rgba(216,187,70,.16);border:1px solid #d8bb46;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:10.5px;color:var(--ink);">📋 This document is based on a LawDepot.ca template. Accounts and cloud sync (Supabase) are <b>active</b>: your reptile, rack, sale, and expense data is stored both locally on your device and on our secured servers once you are signed in. Paid subscriptions and Stripe payments are <b>not active yet</b> — this section will be updated once billing goes live.</div>'+
       '<p style="text-align:center;"><strong>PRIVACY POLICY</strong><br/><strong>www.locusscales.com</strong><br/>Alexandre Young<br/>Site type: online store</p>'+
@@ -27074,7 +27096,7 @@ var GLOSSARY_TERMS = [
   { term:'Wobble', fr:'Syndrome neurologique (tremblement de tête, désorientation) associé à certains gènes comme Spider — enjeu de bien-être animal débattu dans la communauté.', en:'Neurological syndrome (head tremor, disorientation) linked to certain genes like Spider — a debated animal-welfare issue in the community.' },
   { term:'Line-bred (lignée fixée)', termEn:'Line-bred', fr:'Une lignée reproduite de façon répétée pour renforcer un trait ou une qualité particulière au fil des générations.', en:'A line bred repeatedly to reinforce a particular trait or quality across generations.' },
   { term:'Codominant', fr:'Un gène qui donne un look distinct avec une seule copie, et un look encore différent (forme « super ») avec deux copies.', en:'A gene that gives a distinct look with one copy, and a further-different look (the "super" form) with two copies.' },
-  { term:'Freeway', fr:'Un gène dont l\'identité exacte n\'est pas confirmée sur son locus — visuellement présent mais pas encore identifié avec certitude.', en:'A gene whose exact identity isn\'t confirmed at its locus — visually present but not yet identified with certainty.' },
+  { term:'Freeway', fr:'Nom du combo Asphalt + Yellow Belly (ex. « Spider Freeway » = Asphalt Spider Yellow Belly, selon World of Ball Pythons).', en:'Name of the Asphalt + Yellow Belly combo (e.g. « Spider Freeway » = Asphalt Spider Yellow Belly, per World of Ball Pythons).' }, // v5.09 — corrigé (Alex)
   { term:'Sondage / Probing / Popping', termEn:'Probing / Popping', fr:'Méthodes utilisées par un professionnel pour déterminer le sexe d\'un python royal avec certitude.', en:'Methods used by a professional to determine a ball python\'s sex with certainty.' },
   { term:'Brumation', fr:'Une période de température/lumière réduite parfois utilisée pour stimuler la reproduction — débattue et généralement moins nécessaire chez le python royal que chez d\'autres espèces.', en:'A period of reduced temperature/light sometimes used to stimulate breeding — debated and generally less necessary for ball pythons than other species.' },
 ];
