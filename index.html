@@ -1119,7 +1119,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   <div id="sample-data-banner" class="onboarding-banner" style="display:none;"></div>
 
   <div class="global-search-wrap">
-    <input type="text" id="global-search-input" class="global-search-input" data-i18n-placeholder="globalSearchPlaceholder" placeholder="🔍 Recherche unifiée — nom, gène, provenance, client…" autocomplete="off"/>
+    <input type="text" id="global-search-input" class="global-search-input" data-i18n-placeholder="globalSearchPlaceholder" placeholder="🔍 Recherche unifiée — nom, gène, provenance, client…" name="locus-global-search" autocomplete="off" autocapitalize="off" spellcheck="false"/>
     <div id="global-search-results" class="global-search-results"></div>
   </div>
 
@@ -2270,7 +2270,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.13';
+const APP_VERSION = '2026.09.01.5.14';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5344,6 +5344,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.14', date:'2026-10-27',
+    title:{ fr:'Correction : courriel dans la recherche', en:'Fix: email in the search box' },
+    changes:{
+      fr:[ '🔍 Correctif : sur certains ordinateurs, le navigateur remplissait la « Recherche unifiée » avec un courriel mémorisé à chaque ouverture. Le champ est maintenant vidé tant qu\'on n\'y a pas touché.' ],
+      en:[ '🔍 Fix: on some computers, the browser filled the « Unified search » box with a remembered email at every load. The box is now cleared until you touch it.' ]
+    }
+  },
   { version:'5.13', date:'2026-10-27',
     title:{ fr:'Engagements : formulation plus neutre', en:'Commitments: more neutral wording' },
     changes:{
@@ -31534,6 +31541,13 @@ var globalSearchInputEl = document.getElementById('global-search-input');
 if(globalSearchInputEl){
   globalSearchInputEl.addEventListener('input', (e)=>runGlobalSearch(e.target.value));
   globalSearchInputEl.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeGlobalSearch(); });
+  // v5.14 — certains navigateurs (Chrome/Edge) ignorent autocomplete="off" et remplissent ce champ avec un
+  // courriel mémorisé. Tant que la personne n'a pas touché au champ, on le vide après le chargement.
+  var globalSearchTouched = false;
+  ['focus','keydown','pointerdown','touchstart'].forEach(ev=>globalSearchInputEl.addEventListener(ev, ()=>{ globalSearchTouched = true; }, {once:true}));
+  var scrubGlobalSearchAutofill = function(){ if(!globalSearchTouched && globalSearchInputEl.value) globalSearchInputEl.value = ''; };
+  [0, 300, 1000, 2500].forEach(ms=>setTimeout(scrubGlobalSearchAutofill, ms));
+  window.addEventListener('pageshow', ()=>{ globalSearchTouched = false; setTimeout(scrubGlobalSearchAutofill, 0); setTimeout(scrubGlobalSearchAutofill, 500); });
   document.addEventListener('click', (e)=>{
     if(!e.target.closest('.global-search-wrap')) document.getElementById('global-search-results').style.display='none';
   });
