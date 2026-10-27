@@ -322,6 +322,9 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 .onboarding-banner .ob-title{font-weight:600;color:var(--sage);display:block;margin-bottom:3px;}
 .onboarding-banner .ob-close{background:transparent;border:none;color:var(--ink-dim);font-size:16px;cursor:pointer;flex-shrink:0;line-height:1;padding:2px;}
 .onboarding-banner .ob-close:hover{color:var(--ink);}
+.commit-card{width:100%;text-align:left;font-family:inherit;font-size:12.5px;line-height:1.6;color:var(--ink);cursor:pointer;border-color:var(--gold);}
+.commit-card:hover{background:linear-gradient(135deg, rgba(124,131,99,.22), rgba(201,151,62,.18));}
+.commit-card-link{color:var(--gold);white-space:nowrap;}
 .storage-banner b{color:var(--rust);}
 .storage-banner .sc-btn{flex-shrink:0;}
 
@@ -1131,6 +1134,10 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
     <div id="welcome-hero" class="welcome-hero" style="display:none;"></div>
     <div id="beta-banner" class="onboarding-banner" style="display:none;"></div>
     <div class="dash-greeting" id="dash-greeting"></div>
+    <button type="button" class="onboarding-banner commit-card" onclick="window.open(currentLang==='en'?'guides/trust.html':'guides/engagements.html','_blank','noopener');">
+      <span class="ob-icon">🛡</span>
+      <span class="ob-body"><span class="ob-title" data-i18n="commitCardTitle">Nos engagements</span><span data-i18n="commitCardText">Tes données restent au Canada, aucun pistage, aucune police Google, et la liste complète des services externes — chaque point est vérifiable.</span> <span class="commit-card-link" data-i18n="commitCardLink">Lire nos engagements →</span></span>
+    </button>
     <div id="dash-species-filter-wrap" style="display:none;margin-bottom:14px;"></div>
     <div id="dash-sortable-wrap">
     <div class="dash-sortable" id="dash-sec-alerts">
@@ -1427,7 +1434,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <input class="combo-input" id="input-draft" data-i18n-placeholder="searchGenePlaceholder" placeholder="Rechercher un gène (ex. Pastel, Mojave, Piebald)…" autocomplete="off"/>
         <div class="combo-list" id="list-draft"></div>
       </div>
-      <p id="species-gene-note" style="display:none;font-size:10.5px;color:var(--ink-dim);margin:6px 18px 0;line-height:1.5;" data-i18n="speciesGeneNote">⚠ Le calculateur génétique de LOCUS couvre actuellement le python royal et le gecko léopard. Tu peux quand même suivre cet animal (fiche, poids, nourriture, reproduction) sans gène associé.</p>
+      <p id="species-gene-note" style="display:none;font-size:10.5px;color:var(--ink-dim);margin:6px 18px 0;line-height:1.5;" data-i18n="speciesGeneNote">⚠ Le calculateur génétique de LOCUS couvre actuellement le python royal, le gecko léopard et le corn snake. Tu peux quand même suivre cet animal (fiche, poids, nourriture, reproduction) sans gène associé.</p>
       <div class="tags" id="tags-draft"></div>
       <div class="save-bar">
         <button class="save-btn" id="save-btn" data-i18n="saveNewBtn" onclick="saveDraft()">Enregistrer ce reptile</button>
@@ -2263,7 +2270,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.10';
+const APP_VERSION = '2026.09.01.5.12';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4362,10 +4369,36 @@ const GENES = [
   {id:'lg_wy', name:'White & Yellow', type:'dominant', locus:'lg_wy', cat:'Dominant', species:'leopard_gecko'},
   {id:'lg_tugsnow', name:'TUG Snow', type:'dominant', locus:'lg_tugsnow', cat:'Dominant', species:'leopard_gecko'},
   {id:'lg_gemsnow', name:'Gem Snow', type:'dominant', locus:'lg_gemsnow', cat:'Dominant', species:'leopard_gecko'},
+  // ==================== Corn snake (v5.11) — champ species:'corn_snake', ids préfixés cs_ ====================
+  // Source : MorphMarket Morphpedia (fiche par trait, lue le 27 oct 2026 ; catégorie « en développement »).
+  // Loci partagés (allèles du même gène) : Amelanistic + Ultra (cs_amel → Ultramel) ; Hypo + Strawberry
+  // (cs_hypo). Séparés : Anery A, Charcoal (Anery B), Sunkissed (Hypo B), Lava (Hypo C), Caramel.
+  // Exclus : Motley/Stripe (Motley domine Stripe — hiérarchie que le moteur ne gère pas encore), Cinder
+  // (lié au sexe, suspecté), phases polygéniques (Okeetee, Miami…). Validé par Alex.
+  {id:'cs_amel', name:'Amelanistic', type:'recessive', locus:'cs_amel', cat:'Récessif', species:'corn_snake'},
+  {id:'cs_ultra', name:'Ultra', type:'recessive', locus:'cs_amel', cat:'Récessif', species:'corn_snake'},
+  {id:'cs_anery', name:'Anerythristic (Anery A)', type:'recessive', locus:'cs_anery', cat:'Récessif', species:'corn_snake'},
+  {id:'cs_charcoal', name:'Charcoal (Anery B)', type:'recessive', locus:'cs_charcoal', cat:'Récessif', species:'corn_snake'},
+  {id:'cs_caramel', name:'Caramel', type:'recessive', locus:'cs_caramel', cat:'Récessif', species:'corn_snake'},
+  {id:'cs_diffused', name:'Diffused', type:'recessive', locus:'cs_diffused', cat:'Récessif', species:'corn_snake'},
+  {id:'cs_hypo', name:'Hypomelanistic (Hypo A)', type:'recessive', locus:'cs_hypo', cat:'Récessif', species:'corn_snake'},
+  {id:'cs_strawberry', name:'Strawberry', type:'recessive', locus:'cs_hypo', cat:'Récessif', species:'corn_snake'},
+  {id:'cs_sunkissed', name:'Sunkissed (Hypo B)', type:'recessive', locus:'cs_sunkissed', cat:'Récessif', species:'corn_snake'},
+  {id:'cs_lava', name:'Lava (Hypo C)', type:'recessive', locus:'cs_lava', cat:'Récessif', species:'corn_snake'},
+  {id:'cs_lavender', name:'Lavender', type:'recessive', locus:'cs_lavender', cat:'Récessif', species:'corn_snake',
+    warning:"Certains Lavender naissent avec des déformations de la colonne (« kinking »). Aucun test d'élevage n'a prouvé que c'est lié au gène, et la plupart des Lavender actuels sont issus de croisements externes, donc le risque est probablement plus faible. Source : Morphpedia.",
+    warningEn:"Some Lavenders hatch with spinal kinks. No breeding trial has shown it is linked to the gene, and most Lavenders today are outcrossed, so the risk is probably lower. Source: Morphpedia."},
+  {id:'cs_kastanie', name:'Kastanie', type:'recessive', locus:'cs_kastanie', cat:'Récessif', species:'corn_snake'},
+  {id:'cs_tessera', name:'Tessera', type:'dominant', locus:'cs_tessera', cat:'Dominant', species:'corn_snake'},
+  // Palmetto : MorphMarket appelle « Palmetto » le blanc (2 copies) et « Het Palmetto » la forme à 1 copie (hypo-like).
+  {id:'cs_palmetto', name:'Het Palmetto', type:'incdom', locus:'cs_palmetto', cat:'Codominant / Incomplet dominant', superLabel:'Palmetto', species:'corn_snake',
+    warning:"Certains Palmetto éclosent avec les yeux agrandis (« bug eyes »), comme plusieurs morphs leucistiques. Source : Morphpedia.",
+    warningEn:"Some Palmettos hatch with enlarged eyes (\"bug eyes\"), as with many leucistic morphs. Source: Morphpedia."},
+  {id:'cs_masque', name:'Masque', type:'incdom', locus:'cs_masque', cat:'Codominant / Incomplet dominant', species:'corn_snake'},
 ];
 
 // v3.54 — espèces ayant une génétique dans LOCUS. Un gène sans champ species = python royal.
-const GENETIC_SPECIES = ['ball_python','leopard_gecko'];
+const GENETIC_SPECIES = ['ball_python','leopard_gecko','corn_snake'];
 function geneSpecies(g){ return (g && g.species) || 'ball_python'; }
 function hasGenetics(speciesId){ return GENETIC_SPECIES.includes(speciesId||'ball_python'); }
 
@@ -4396,6 +4429,10 @@ const COMPOUND_NAMES = {
   },
   cinnamonComplex: {
     'blackpastel+cinnamon': '8 Ball',
+  },
+  // v5.11 — corn snake : Amel × Ultra = Ultramel (Morphpedia, complexe Ultramel).
+  cs_amel: {
+    'cs_amel+cs_ultra': 'Ultramel',
   }
 };
 
@@ -5307,6 +5344,20 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.12', date:'2026-10-27',
+    title:{ fr:'Nos engagements en vue', en:'Our commitments up front' },
+    changes:{
+      fr:[ '🛡 « Nos engagements » a maintenant sa carte en haut de l\'Agenda, la page d\'accueil : données au Canada, aucun pistage, aucune police Google, liste complète des services externes. Un toucher ouvre la page.' ],
+      en:[ '🛡 « Our commitments » now has its own card at the top of the Agenda, the home page: data in Canada, no tracking, no Google fonts, full list of external services. One tap opens the page.' ]
+    }
+  },
+  { version:'5.11', date:'2026-10-27',
+    title:{ fr:'Génétique du corn snake', en:'Corn snake genetics' },
+    changes:{
+      fr:[ '🌽 Calculateur génétique du corn snake : choisis « Corn snake » en haut du calculateur (ou charge un de tes corns) — 15 gènes lus sur Morphpedia (MorphMarket) : Amelanistic, Ultra (même gène → Amel × Ultra = Ultramel), Anery A, Charcoal (Anery B), Caramel, Diffused, Hypo, Strawberry (même gène que Hypo), Sunkissed (Hypo B), Lava (Hypo C), Lavender, Kastanie, Tessera, Palmetto et Masque. Pas encore inclus : Motley/Stripe (Motley domine Stripe — à prévoir), Cinder (probablement lié au sexe) et les noms de combos. Gratuit, comme les autres calculateurs.' ],
+      en:[ '🌽 Corn snake genetics calculator: pick "Corn snake" at the top of the calculator (or load one of your corns) — 15 genes read on Morphpedia (MorphMarket): Amelanistic, Ultra (same gene → Amel × Ultra = Ultramel), Anery A, Charcoal (Anery B), Caramel, Diffused, Hypo, Strawberry (same gene as Hypo), Sunkissed (Hypo B), Lava (Hypo C), Lavender, Kastanie, Tessera, Palmetto and Masque. Not included yet: Motley/Stripe (Motley is dominant over Stripe — planned), Cinder (probably sex-linked) and combo names. Free, like the other calculators.' ]
+    }
+  },
   { version:'5.10', date:'2026-10-27',
     title:{ fr:'Nos engagements', en:'Our commitments' },
     changes:{
@@ -6592,6 +6643,9 @@ const I18N = {
     menuTerms: 'Conditions d\'utilisation',
     menuPrivacy: 'Confidentialité',
     menuCommitments: 'Nos engagements', // v5.10
+    commitCardTitle: 'Nos engagements', // v5.12
+    commitCardText: 'Tes données restent au Canada, aucun pistage, aucune police Google, et la liste complète des services externes — chaque point est vérifiable.',
+    commitCardLink: 'Lire nos engagements →',
     menuBugReport: 'Signaler un bug',
     menuAdmin: 'Admin — résumé',
     bugReportTitle: 'Signaler un bug',
@@ -6836,7 +6890,7 @@ const I18N = {
     speciesIsBallPython: 'Python royal (Ball Python)',
     speciesOtherLabel: 'Espèce (texte libre)',
     speciesOtherPlaceholder: 'Précise l\'espèce…',
-    speciesGeneNote: '⚠ Le calculateur génétique de LOCUS couvre actuellement le python royal et le gecko léopard. Tu peux quand même suivre cet animal (fiche, poids, nourriture, reproduction) sans gène associé.',
+    speciesGeneNote: '⚠ Le calculateur génétique de LOCUS couvre actuellement le python royal, le gecko léopard et le corn snake. Tu peux quand même suivre cet animal (fiche, poids, nourriture, reproduction) sans gène associé.',
     quarantineTitle: 'Quarantaine',
     quarantineNotActive: 'Pas en quarantaine',
     quarantineStartBtn: '🔒 Démarrer la quarantaine',
@@ -7176,6 +7230,9 @@ const I18N = {
     menuTerms: 'Terms of Use',
     menuPrivacy: 'Privacy',
     menuCommitments: 'Our commitments', // v5.10
+    commitCardTitle: 'Our commitments', // v5.12
+    commitCardText: 'Your data stays in Canada, no tracking, no Google fonts, and the full list of external services — every point can be checked.',
+    commitCardLink: 'Read our commitments →',
     menuBugReport: 'Report a bug',
     menuAdmin: 'Admin — summary',
     bugReportTitle: 'Report a bug',
@@ -7420,7 +7477,7 @@ const I18N = {
     speciesIsBallPython: 'Ball Python',
     speciesOtherLabel: 'Species (free text)',
     speciesOtherPlaceholder: 'Specify the species…',
-    speciesGeneNote: '⚠ LOCUS\'s genetic calculator currently covers ball pythons and leopard geckos. You can still track this animal (sheet, weight, feeding, breeding) without an associated gene.',
+    speciesGeneNote: '⚠ LOCUS\'s genetic calculator currently covers ball pythons, leopard geckos and corn snakes. You can still track this animal (sheet, weight, feeding, breeding) without an associated gene.',
     quarantineTitle: 'Quarantine',
     quarantineNotActive: 'Not in quarantine',
     quarantineStartBtn: '🔒 Start quarantine',
@@ -8327,12 +8384,13 @@ function renderCalcSpeciesBar(){
   const isEn = currentLang==='en';
   const bar = document.getElementById('calc-species-bar');
   if(!bar) return;
-  const opts = [['ball_python', '🐍 '+(isEn?'Ball python':'Python royal')], ['leopard_gecko', '🦎 '+(isEn?'Leopard gecko':'Gecko léopard')]];
+  const opts = [['ball_python', '🐍 '+(isEn?'Ball python':'Python royal')], ['leopard_gecko', '🦎 '+(isEn?'Leopard gecko':'Gecko léopard')], ['corn_snake', '🌽 '+(isEn?'Corn snake':'Corn snake')]];
   bar.innerHTML = opts.map(([v,l])=>'<button class="sex-btn'+(calcSpecies===v?' active':'')+'" style="font-size:15px;padding:9px 14px;" onclick="setCalcSpecies(\''+v+'\')">'+l+'</button>').join('');
-  const isLeo = (typeof calcSpecies!=='undefined') && calcSpecies==='leopard_gecko';
-  ['input-male','input-female'].forEach(i=>{ const el = document.getElementById(i); if(el) el.placeholder = isLeo ? (isEn?'Search a gene (e.g. Tremper, Mack Snow, Eclipse)…':'Rechercher un gène (ex. Tremper, Mack Snow, Eclipse)…') : t('searchGenePlaceholder'); });
+  const notBP = (typeof calcSpecies!=='undefined') && calcSpecies!=='ball_python';
+  const phByLang = { leopard_gecko: isEn?'Search a gene (e.g. Tremper, Mack Snow, Eclipse)…':'Rechercher un gène (ex. Tremper, Mack Snow, Eclipse)…', corn_snake: isEn?'Search a gene (e.g. Amelanistic, Anery, Hypo, Tessera)…':'Rechercher un gène (ex. Amelanistic, Anery, Hypo, Tessera)…' };
+  ['input-male','input-female'].forEach(i=>{ const el = document.getElementById(i); if(el) el.placeholder = phByLang[calcSpecies] || t('searchGenePlaceholder'); });
   // Simulateur de rêverie et Chemin optimal : python royal seulement pour l'instant.
-  document.querySelectorAll('.calc-bar .calc-btn[onclick*="openDreamSimModal"], .calc-bar .calc-btn[onclick*="openGoalPathModal"]').forEach(b=>{ b.style.display = isLeo ? 'none' : ''; });
+  document.querySelectorAll('.calc-bar .calc-btn[onclick*="openDreamSimModal"], .calc-bar .calc-btn[onclick*="openGoalPathModal"]').forEach(b=>{ b.style.display = notBP ? 'none' : ''; });
 }
 function buildCombobox(sex){
   const isEn = currentLang==='en';
