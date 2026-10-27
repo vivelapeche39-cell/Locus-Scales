@@ -99,11 +99,13 @@ li .tier{color:var(--ink-dim);font-size:11.5px;}
 
   <h2>🔒 Tes données</h2>
   <ul>
-    <li>Hébergées au Canada : base de données, connexion et photos chez Supabase, région ca-central-1 (Montréal).</li>
-    <li>Les données de clientèle saisies dans l'app (nom, coordonnées) sont chiffrées côté serveur.</li>
+    <li>Stockées au Canada : base de données, connexion et photos chez Supabase, région ca-central-1 (Montréal). Supabase et GitHub sont toutefois des entreprises américaines.</li>
+    <li>Les communications passent par HTTPS, et chaque compte ne voit que ses propres données (sécurité par ligne, activée sur toutes les tables de la base).</li>
+    <li>Les données de clientèle saisies dans l'app (nom, coordonnées) sont, en plus, chiffrées côté serveur.</li>
     <li>Les liens publics (fiche partagée, QR, vitrine) n'affichent jamais le prix d'achat, l'acheteur ni l'emplacement des animaux.</li>
     <li>Tu peux tout exporter en tout temps, gratuitement : sauvegarde complète, Excel, PDF. Tu peux supprimer ton compte toi-même.</li>
     <li>Tes données sont aussi gardées sur ton appareil : LOCUS fonctionne hors ligne.</li>
+    <li>Les photos sont stockées dans un espace aux adresses publiques : quiconque possède l'adresse exacte d'une photo peut la voir. C'est nécessaire, par exemple, pour l'export MorphMarket.</li>
   </ul>
   <h2>👁 Aucun pistage</h2>
   <ul>
@@ -111,18 +113,23 @@ li .tier{color:var(--ink-dim);font-size:11.5px;}
     <li><b>Aucune police téléchargée.</b> LOCUS utilise les polices déjà installées sur ton appareil. Aucune requête ne part vers Google Fonts, donc ton adresse IP n'y est pas envoyée. Ce n'est pas un détail : en 2022, un tribunal allemand (Munich) a jugé que transmettre l'adresse IP d'un visiteur à Google Fonts sans son consentement contrevenait au RGPD.</li>
     <li>Les bibliothèques utilisées par l'app (connexion Supabase, lecture des fichiers Excel) sont servies par notre propre site, pas par un service externe.</li>
     <li>Les balises Google et Bing présentes dans la page servent seulement à prouver que le site nous appartient (Search Console). Elles ne suivent personne.</li>
+    <li>Le développeur dispose d'un tableau de bord réservé qui affiche, pour chaque compte : le courriel, la date d'inscription, la dernière connexion et le nombre d'animaux, d'accouplements et de pontes. Aucun prix, acheteur, emplacement ni contenu de fiche n'y figure. Les visites de pages ne sont pas mesurées.</li>
   </ul>
   <h2>🤝 Services externes : la liste complète</h2>
   <ul>
     <li><b>GitHub Pages</b> héberge le site. Comme tout hébergeur, il reçoit ton adresse IP quand tu ouvres une page.</li>
-    <li><b>Supabase</b> stocke tes données, ta connexion et tes photos, au Canada.</li>
-    <li><b>Stripe</b> traite les paiements, seulement au moment où tu paies (les abonnements ne sont pas encore actifs).</li>
+    <li><b>Supabase</b> stocke tes données, ta connexion et tes photos, au Canada. Comme tout service en ligne, il reçoit l'adresse IP et le type d'appareil de chaque requête, qui figurent dans ses journaux techniques.</li>
+    <li><b>qrserver.com</b> fabrique l'image des codes QR (étiquettes de bacs, fiche partagée). Il reçoit l'adresse encodée dans le code (identifiant interne d'un animal ou d'un rack, ou lien public de la fiche partagée) et l'adresse IP de l'appareil, seulement quand un code QR est généré.</li>
+    <li><b>Stripe</b> traite les paiements. Les abonnements ne sont pas encore actifs. Un utilisateur peut connecter son propre compte Stripe (Mon profil › Paiements) : il est alors redirigé vers le site de Stripe, qui reçoit ses informations directement. LOCUS ne garde que l'identifiant du compte Stripe.</li>
+    <li><b>Zoho Mail</b> héberge la boîte support@locusscales.com : les courriels échangés avec le développeur y transitent.</li>
+    <li><b>Namecheap</b> gère les noms de domaine (locusscales.com et locusscales.ca).</li>
     <li>Les liens externes (MorphMarket, World of Ball Pythons, sources) ne sont contactés que si tu touches le lien.</li>
   </ul>
   <h2>📣 Pas de marketing agressif</h2>
   <ul>
     <li>Pas de publicité payée, pas de faux avis, pas de faux engagement.</li>
     <li>Pas de compte à rebours ni de fausse urgence pour te faire payer.</li>
+    <li>Les courriels de LOCUS partent de support@locusscales.com et ne sont envoyés qu'aux comptes confirmés. Les comptes désabonnés en sont exclus; il suffit d'en faire la demande à cette adresse.</li>
     <li>Les paliers sont annoncés d'avance. La fiabilité, le mode hors ligne, la sauvegarde, l'export et l'installation restent gratuits.</li>
     <li>Tes données ne sont ni vendues ni utilisées pour de la publicité.</li>
   </ul>

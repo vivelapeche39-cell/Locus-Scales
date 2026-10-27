@@ -2270,7 +2270,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.14';
+const APP_VERSION = '2026.09.01.5.15';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5344,6 +5344,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.15', date:'2026-10-27',
+    title:{ fr:'Engagements : la page dit tout', en:'Commitments: the page says it all' },
+    changes:{
+      fr:[ '🛡 « Nos engagements » corrigée et complétée après vérification dans le code : qrserver.com (codes QR) ajouté à la liste des services externes, le tableau de bord réservé du développeur (courriel, dernière connexion, nombres d\'animaux) est décrit, le compte Stripe connectable est expliqué, les photos aux adresses publiques sont mentionnées, ainsi que le stockage à Montréal chez des fournisseurs américains, les journaux de Supabase, Zoho Mail, Namecheap et l\'envoi de courriels.' ],
+      en:[ '🛡 « Our commitments » corrected and completed after checking the code: qrserver.com (QR codes) added to the external services list, the developer\'s restricted dashboard (email, last sign-in, animal counts) is described, the connectable Stripe account is explained, photos with public addresses are mentioned, along with storage in Montreal at American providers, Supabase logs, Zoho Mail, Namecheap and email sending.' ]
+    }
+  },
   { version:'5.14', date:'2026-10-27',
     title:{ fr:'Correction : courriel dans la recherche', en:'Fix: email in the search box' },
     changes:{

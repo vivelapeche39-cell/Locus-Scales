@@ -99,11 +99,13 @@ li .tier{color:var(--ink-dim);font-size:11.5px;}
 
   <h2>🔒 Your data</h2>
   <ul>
-    <li>Hosted in Canada: database, sign-in and photos at Supabase, ca-central-1 region (Montreal).</li>
-    <li>Customer data entered in the app (name, contact details) is encrypted server-side.</li>
+    <li>Stored in Canada: database, sign-in and photos at Supabase, ca-central-1 region (Montreal). Supabase and GitHub are, however, American companies.</li>
+    <li>Communications go over HTTPS, and each account only sees its own data (row-level security, enabled on every table of the database).</li>
+    <li>Customer data entered in the app (name, contact details) is additionally encrypted server-side.</li>
     <li>Public links (shared record, QR, storefront) never show the purchase price, the buyer or the animals' location.</li>
     <li>You can export everything at any time, for free: full backup, Excel, PDF. You can delete your account yourself.</li>
     <li>Your data is also kept on your device: LOCUS works offline.</li>
+    <li>Photos are stored in a space with public addresses: anyone who has the exact address of a photo can see it. This is needed, for example, for the MorphMarket export.</li>
   </ul>
   <h2>👁 No tracking</h2>
   <ul>
@@ -111,18 +113,23 @@ li .tier{color:var(--ink-dim);font-size:11.5px;}
     <li><b>No downloaded fonts.</b> LOCUS uses the fonts already installed on your device. No request goes to Google Fonts, so your IP address isn't sent there. It's not a detail: in 2022, a German court (Munich) ruled that passing a visitor's IP address to Google Fonts without consent breached the GDPR.</li>
     <li>The libraries the app uses (Supabase sign-in, reading Excel files) are served by our own site, not by an external service.</li>
     <li>The Google and Bing tags in the page only prove the site is ours (Search Console). They don't track anyone.</li>
+    <li>The developer has a restricted dashboard that shows, for each account: the email, the sign-up date, the last sign-in and the number of animals, pairings and clutches. No price, buyer, location or record content appears in it. Page visits are not measured.</li>
   </ul>
   <h2>🤝 External services: the full list</h2>
   <ul>
     <li><b>GitHub Pages</b> hosts the site. Like any host, it receives your IP address when you open a page.</li>
-    <li><b>Supabase</b> stores your data, sign-in and photos, in Canada.</li>
-    <li><b>Stripe</b> processes payments, only when you pay (subscriptions aren't active yet).</li>
+    <li><b>Supabase</b> stores your data, sign-in and photos, in Canada. Like any online service, it receives the IP address and device type of each request, which appear in its technical logs.</li>
+    <li><b>qrserver.com</b> produces the image of QR codes (tub labels, shared record). It receives the address encoded in the code (an animal's or rack's internal ID, or the public link of the shared record) and the device's IP address, only when a QR code is generated.</li>
+    <li><b>Stripe</b> processes payments. Subscriptions aren't active yet. A user can connect their own Stripe account (My profile › Payments): they are then redirected to Stripe's site, which receives their information directly. LOCUS only keeps the Stripe account ID.</li>
+    <li><b>Zoho Mail</b> hosts the support@locusscales.com mailbox: emails exchanged with the developer go through it.</li>
+    <li><b>Namecheap</b> manages the domain names (locusscales.com and locusscales.ca).</li>
     <li>External links (MorphMarket, World of Ball Pythons, sources) are only contacted if you tap the link.</li>
   </ul>
   <h2>📣 No aggressive marketing</h2>
   <ul>
     <li>No paid ads, no fake reviews, no fake engagement.</li>
     <li>No countdowns or fake urgency to make you pay.</li>
+    <li>LOCUS emails are sent from support@locusscales.com and only to confirmed accounts. Unsubscribed accounts are left out; just ask at that address.</li>
     <li>Tiers are announced ahead of time. Reliability, offline mode, backup, export and installation stay free.</li>
     <li>Your data is neither sold nor used for advertising.</li>
   </ul>
