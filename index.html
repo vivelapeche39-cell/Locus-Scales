@@ -1076,6 +1076,14 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   .saved-card .sc-photo{margin:-8px -7px 7px;border-radius:10px 10px 0 0;}
   .saved-grid.gallery{grid-template-columns:repeat(2,1fr);gap:8px;}
 }
+/* v5.19 — Racks & Terrariums, vue Photos : la photo de l'animal en fond du bac / en tête du terrarium */
+.tub.has-photo{background-size:cover;background-position:center;min-height:86px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;}
+.tub.has-photo::before{content:'';position:absolute;inset:0;background:linear-gradient(rgba(0,0,0,0) 35%,rgba(0,0,0,.82));border-radius:inherit;pointer-events:none;}
+.tub.has-photo .tub-name,.tub.has-photo .tub-tag{position:relative;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.8);}
+.tub.has-photo .tub-tag{color:#e8dcc0;}
+.terra-photo{position:relative;height:140px;margin:-8px -7px 4px;border-radius:10px 10px 0 0;background-size:cover;background-position:center;cursor:pointer;overflow:hidden;}
+.terra-photo::after{content:'';position:absolute;inset:0;background:linear-gradient(rgba(0,0,0,0) 45%,rgba(0,0,0,.82));}
+.terra-photo span{position:absolute;left:9px;right:9px;bottom:7px;z-index:1;color:#fff;font-weight:600;font-size:14px;text-shadow:0 1px 3px rgba(0,0,0,.8);}
 </style>
 <!-- v5.10 — bibliothèques servies par notre propre site (plus de jsDelivr : aucune IP envoyée à un CDN tiers, et version figée) -->
 <script src="lib/supabase.js"></script>
@@ -1480,6 +1488,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <button class="sc-btn" id="racks-show-all-btn" style="margin-bottom:14px;" onclick="showAllRacksTerrariums()">🔄 <span data-i18n="showAllSectionsBtn">Tout réafficher</span></button>
       <button class="sc-btn accent" style="margin-bottom:14px;" onclick="openMaintenanceJournal('all')">📒 <span data-i18n="maintenanceJournalBtn">Journal d'entretien</span></button>
       <!-- v3.75 — entretien en lot directement sur la page (même principe que le Mode Tournée) : pastille d'action → toucher les bacs/terrariums → Enregistrer. Rendu en JS (FR/EN). -->
+      <div id="elevage-view-bar" class="mine-view-bar" style="margin-bottom:10px;"></div>
       <div id="maint-bar" style="margin-bottom:10px;"></div>
       <div id="unplaced-block"></div>
       <div id="racks-terrariums-wrap">
@@ -2290,7 +2299,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.18';
+const APP_VERSION = '2026.09.01.5.19';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5384,13 +5393,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
-  { version:'5.18', date:'2026-10-28',
-    title:{ fr:'Mes reptiles en photos', en:'My reptiles in photos' },
+  { version:'5.19', date:'2026-10-28',
+    title:{ fr:'Vos reptiles en photos', en:'Your reptiles in photos' },
     changes:{
-      fr:[ '🖼 Mes reptiles : la photo la plus récente de chaque animal s\'affiche en grand en haut de sa carte (un animal sans photo affiche « Pas encore de photo »). Toucher la photo ouvre la fiche.',
-           '🖼 Nouveau bouton « ☰ Liste / 🖼 Photos » : la vue Photos montre ta collection en galerie (nom, sexe et gènes sur la photo, un toucher ouvre la fiche). Le choix est retenu sur l\'appareil. Gratuit.' ],
-      en:[ '🖼 My reptiles: each animal\'s latest photo now shows large at the top of its card (an animal without a photo shows « No photo yet »). Tap the photo to open the record.',
-           '🖼 New « ☰ List / 🖼 Photos » button: the Photos view shows your collection as a gallery (name, sex and genes on the photo, a tap opens the record). The choice is remembered on the device. Free.' ]
+      fr:[ '🖼 Mes reptiles : 3 vues au choix — ☰ Compacte (comme avant, petite photo ronde à côté du nom), 📋 Cartes (la photo la plus récente en grand en haut de chaque carte ; « Pas encore de photo » sinon) et 🖼 Photos (galerie : nom, sexe et gènes sur la photo). Un toucher sur une photo ouvre la fiche. Le choix est retenu sur l\'appareil.',
+           '🖼 Racks & Terrariums : bouton « ☰ Compacte / 🖼 Photos ». En vue Photos, la photo de l\'animal remplit son bac (nom et sexe écrits dessus) et la carte d\'un terrarium montre la photo de son occupant en tête. Gratuit.' ],
+      en:[ '🖼 My reptiles: 3 views to choose from — ☰ Compact (as before, small round photo next to the name), 📋 Cards (latest photo large at the top of each card; « No photo yet » otherwise) and 🖼 Photos (gallery: name, sex and genes on the photo). Tapping a photo opens the record. The choice is remembered on the device.',
+           '🖼 Racks & Terrariums: « ☰ Compact / 🖼 Photos » button. In Photos view, the animal\'s photo fills its tub (name and sex written on it) and a terrarium card shows its occupant\'s photo at the top. Free.' ]
     }
   },
   { version:'5.17', date:'2026-10-28',
@@ -10850,8 +10859,9 @@ function geneReviewUndo(){
   storage.save(savedSnakes); renderSavedList(); if(geneReview) renderGeneReview();
 }
 // v5.18 — Mes reptiles : photo en haut des cartes + vue galerie (gratuit, affichage)
-function getMineView(){ try{ return localStorage.getItem('locus_mine_view_v1')==='photos' ? 'photos' : 'list'; }catch(e){ return 'list'; } }
-function setMineView(v){ try{ localStorage.setItem('locus_mine_view_v1', v==='photos'?'photos':'list'); }catch(e){} renderSavedList(); }
+// v5.19 — 3 vues (choix d'Alex) : compact (bulle comme avant), cards (photo en haut de la carte), photos (galerie)
+function getMineView(){ try{ const v = localStorage.getItem('locus_mine_view_v1'); return v==='photos' ? 'photos' : v==='cards' ? 'cards' : 'compact'; }catch(e){ return 'compact'; } }
+function setMineView(v){ try{ localStorage.setItem('locus_mine_view_v1', ['photos','cards'].includes(v)?v:'compact'); }catch(e){} renderSavedList(); }
 function snakeLatestPhotoSrc(s){
   const ph = (s && s.photos && s.photos.length) ? s.photos[s.photos.length-1] : null;
   return ph ? (ph.dataUrl || ph.publicUrl || null) : null;
@@ -10938,9 +10948,11 @@ function renderSavedList(){
   // v5.18 — bascule Liste / Photos (choix retenu sur l'appareil)
   const mineView = getMineView();
   grid.classList.toggle('gallery', mineView==='photos');
+  const mvBtn = (v, label)=>'<button type="button" class="'+(mineView===v?'save-btn':'sc-btn')+'" onclick="setMineView(\''+v+'\')">'+label+'</button>';
   grid.insertAdjacentHTML('afterbegin', '<div class="mine-view-bar">'+
-    '<button type="button" class="'+(mineView==='photos'?'sc-btn':'save-btn')+'" onclick="setMineView(\'list\')">☰ '+(isEn?'List':'Liste')+'</button>'+
-    '<button type="button" class="'+(mineView==='photos'?'save-btn':'sc-btn')+'" onclick="setMineView(\'photos\')">🖼 '+(isEn?'Photos':'Photos')+'</button>'+
+    mvBtn('compact', '☰ '+(isEn?'Compact':'Compacte'))+
+    mvBtn('cards', '📋 '+(isEn?'Cards':'Cartes'))+
+    mvBtn('photos', '🖼 '+(isEn?'Photos':'Photos'))+
   '</div>');
   if(minePg.top) grid.insertAdjacentHTML('beforeend', minePg.top);
   minePg.items.forEach(s=>{
@@ -10963,10 +10975,12 @@ function renderSavedList(){
     const priceLine = s.status==='sold'
       ? '<div class="sc-genes" style="color:var(--ink-dim);">'+(isEn?'Sold to ':'Vendu à ')+escapeHtml(s.buyer||'?')+(s.soldDate?(isEn?' on ':' le ')+s.soldDate:'')+(s.soldPrice?' — '+s.soldPrice+' $':'')+'</div>'
       : (s.askingPrice ? '<div class="sc-genes" style="color:var(--gold);">'+s.askingPrice+(isEn?' $ asking':' $ demandé')+'</div>' : '');
-    const thumb = ''; // v5.18 — la photo est maintenant en haut de la carte (minePhotoBannerHtml)
+    // v5.19 — vue Compacte : petite bulle comme avant ; vue Cartes : photo en haut (minePhotoBannerHtml)
+    const thumbSrc = mineView==='compact' ? snakeLatestPhotoSrc(s) : null;
+    const thumb = thumbSrc ? '<img src="'+escapeHtml(thumbSrc)+'" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:14px;border:1px solid var(--line);margin-right:8px;"/>' : '';
     const batchCheckbox = batchSelectMode ? '<input type="checkbox" class="batch-select-cb" data-batch-id="'+s.id+'" '+(batchSelectedIds.has(s.id)?'checked':'')+' style="width:20px;height:20px;margin-right:8px;accent-color:var(--gold);flex-shrink:0;"/>' : '';
     if(batchSelectMode) card.classList.toggle('batch-selected', batchSelectedIds.has(s.id));
-    card.innerHTML = minePhotoBannerHtml(s, isEn)+
+    card.innerHTML = (mineView==='cards' ? minePhotoBannerHtml(s, isEn) : '')+
       '<div class="sc-head"><span class="sc-name" style="display:flex;align-items:center;">'+batchCheckbox+thumb+escapeHtml(snakeName(s))+'</span><span>'+sexBadge+provenBadgeHtml(s, isEn)+(isInShed(s)?'<span class="sc-status" style="background:rgba(57,135,229,.16);border:1px solid rgba(57,135,229,.45);color:#8fb8ef;">🔵 '+(isEn?'In shed':'En mue')+'</span>':'')+statusBadge+unverifiedBadge+quarantineBadge+speciesBadge+tagsBadges+'</span></div>'+
       '<div class="sc-genes">'+summarizeGenes(s.genes)+'</div>'+
       '<div class="sc-genes" style="color:var(--sage);">📍 '+placeLabel+'</div>'+
@@ -23678,8 +23692,20 @@ function snakeTooltip(s){
   return (s.sex==='male'?'♂ ':'♀ ')+s.name+'\n'+(summarizeGenes(s.genes)||(currentLang==='en'?'No gene':'Aucun gène'))+'\n'+feedingLabels()[feedingStatus(s)]+(explanation?'\n'+explanation:'');
 }
 
+// v5.19 — Racks & Terrariums : vue Compacte (comme avant) ou Photos (photo de l'animal en fond du bac). Gratuit.
+function getElevageView(){ try{ return localStorage.getItem('locus_elevage_view_v1')==='photos' ? 'photos' : 'compact'; }catch(e){ return 'compact'; } }
+function setElevageView(v){ try{ localStorage.setItem('locus_elevage_view_v1', v==='photos'?'photos':'compact'); }catch(e){} renderRackGrid(); renderTerrariumList(); }
+function renderElevageViewBar(){
+  const bar = document.getElementById('elevage-view-bar'); if(!bar) return;
+  const isEn = currentLang==='en', v = getElevageView();
+  const b = (k, label)=>'<button type="button" class="'+(v===k?'save-btn':'sc-btn')+'" onclick="setElevageView(\''+k+'\')">'+label+'</button>';
+  bar.innerHTML = b('compact', '☰ '+(isEn?'Compact':'Compacte'))+b('photos', '🖼 '+(isEn?'Photos':'Photos'));
+}
+function cssPhotoUrl(src){ return 'url("'+String(src).replace(/["\\\n\r]/g, encodeURIComponent)+'")'; }
 function renderRackGrid(){
   const isEn = currentLang==='en';
+  try{ renderElevageViewBar(); }catch(e){} // v5.19
+  const elevPhotos = getElevageView()==='photos'; // v5.19
   try{ renderMaintBar(); }catch(e){} // v3.75
   renderRoomSuggestions();
   const container = document.getElementById('racks-container');
@@ -23749,6 +23775,7 @@ function renderRackGrid(){
             '<button class="tub-remove" style="right:22px;" title="'+(isEn?'Cleaning':'Nettoyage')+'">🧹</button>'+
             '<button class="tub-remove" style="right:44px;" title="'+(isEn?'Water change':'Changement d\'eau')+'">💧</button>'+
             '<div class="tub-name">'+escapeHtml(snakeName(snake))+'</div><div class="tub-tag">'+(snake.sex==='male'?'♂':snake.sex==='female'?'♀':'?')+'</div>'+(outside?overflowTubCellHtml(isEn):'');
+          if(elevPhotos){ const ps = snakeLatestPhotoSrc(snake); if(ps){ cell.classList.add('has-photo'); cell.style.backgroundImage = cssPhotoUrl(ps); } } // v5.19
           if(outside){ cell.style.border = '2px dashed #e08a63'; cell.title = (isEn?'Tub ':'Bac ')+t2+(isEn?' no longer exists in this rack — move this animal':' n\'existe plus dans ce rack — déplace cet animal'); }
           cell.addEventListener('click', ()=>openLogbook(snake.id));
           cell.querySelector('.tub-remove').addEventListener('click', (e)=>{ e.stopPropagation(); unassignTub(rack.id,row,t2); });
@@ -25642,6 +25669,18 @@ function renderTerrariumList(){
       }
       head += '<span class="terra-card-tools"><button class="sc-btn" data-editte="'+te.id+'">✏️ '+(isEn?'Edit':'Modifier')+'</button></span>';
       card.innerHTML = '<div class="terra-card-head">'+head+'</div>';
+      // v5.19 — vue Photos : photo du 1er occupant (qui en a une) en tête de la carte
+      if(getElevageView()==='photos'){
+        const withPh = occupants.find(o=>snakeLatestPhotoSrc(o));
+        if(withPh){
+          const ph = document.createElement('div');
+          ph.className = 'terra-photo';
+          ph.style.backgroundImage = cssPhotoUrl(snakeLatestPhotoSrc(withPh));
+          ph.innerHTML = '<span>'+occupants.map(o=>escapeHtml(snakeName(o))+(o.sex==='male'?' ♂':o.sex==='female'?' ♀':'')).join(' · ')+'</span>';
+          ph.addEventListener('click', ()=>openLogbook(withPh.id));
+          card.insertBefore(ph, card.firstChild);
+        }
+      }
 
       // Bouton Nettoyage — rendu plus évident (31 août) : pleine largeur, coloré, texte + icône,
       // plutôt qu'une petite icône perdue à côté des autres boutons.
