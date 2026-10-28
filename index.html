@@ -1056,6 +1056,26 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   .hdr::before{inset:0 0 auto 0;height:165px;background-size:auto 196px;background-position:-150px 31px;}
   .hdr::after{inset:0 0 auto 0;height:165px;background:linear-gradient(180deg, rgba(11,18,14,.05) 0%, rgba(11,18,14,.25) 60%, #0b120e 100%);}
 }
+/* v5.18 — Mes reptiles : photo en haut des cartes (B) + vue galerie (C), demandes d'Alex */
+.mine-view-bar{grid-column:1 / -1;display:flex;gap:6px;}
+.mine-view-bar button{flex:1;font-size:14px;padding:8px 10px;}
+.saved-card .sc-photo{margin:-14px -16px 10px;aspect-ratio:4 / 3;overflow:hidden;border-radius:14px 14px 0 0;background:var(--bg-panel-2);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.saved-card .sc-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+.saved-card .sc-photo.empty{flex-direction:column;gap:2px;color:var(--ink-dim);font-size:11.5px;text-align:center;padding:4px;}
+.saved-card .sc-photo.empty .ph-ico{font-size:26px;opacity:.45;}
+.saved-grid.gallery{grid-template-columns:repeat(auto-fill,minmax(170px,1fr));}
+.saved-tile{position:relative;aspect-ratio:1 / 1;border-radius:12px;overflow:hidden;background:var(--bg-panel-2);border:1px solid var(--line);cursor:pointer;}
+.saved-tile img{width:100%;height:100%;object-fit:cover;display:block;}
+.saved-tile .st-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:42px;opacity:.35;}
+.saved-tile .st-info{position:absolute;left:0;right:0;bottom:0;padding:26px 9px 8px;background:linear-gradient(rgba(0,0,0,0),rgba(0,0,0,.88));}
+.saved-tile .st-name{font-weight:600;font-size:14px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.saved-tile .st-genes{font-size:11.5px;line-height:1.3;color:#d8b25a;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.saved-tile.batch-selected{outline:3px solid var(--gold);outline-offset:-3px;}
+.saved-tile .st-cb{position:absolute;top:8px;left:8px;width:22px;height:22px;accent-color:var(--gold);}
+@media (max-width: 760px){
+  .saved-card .sc-photo{margin:-8px -7px 7px;border-radius:10px 10px 0 0;}
+  .saved-grid.gallery{grid-template-columns:repeat(2,1fr);gap:8px;}
+}
 </style>
 <!-- v5.10 — bibliothèques servies par notre propre site (plus de jsDelivr : aucune IP envoyée à un CDN tiers, et version figée) -->
 <script src="lib/supabase.js"></script>
@@ -1962,7 +1982,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   </div>
 
   <div class="footnote">
-    <b data-i18n="geneCountNoteLabel">Note :</b> <span data-i18n="geneCountNoteBody">163 gènes actuellement dans la base, chacun vérifié individuellement (Morphpedia, World of Ball Pythons, ou source communautaire fiable citée) — mode de transmission, allélisme et risques santé connus, pas des suppositions. La génétique complète du python royal compte encore d'autres gènes moins documentés ou débattus dans la communauté ; ceux-ci sont volontairement exclus tant qu'ils ne sont pas confirmés plutôt que d'être ajoutés par approximation. Certaines interactions restent à vérifier avant tout usage réel d'élevage.</span>
+    <b data-i18n="geneCountNoteLabel">Note :</b> <span data-i18n="geneCountNoteBody">163 gènes de python royal (+ 15 de gecko léopard et 24 de corn snake) actuellement dans la base, chacun vérifié individuellement (Morphpedia, World of Ball Pythons, ou source communautaire fiable citée) — mode de transmission, allélisme et risques santé connus, pas des suppositions. La génétique complète du python royal compte encore d'autres gènes moins documentés ou débattus dans la communauté ; ceux-ci sont volontairement exclus tant qu'ils ne sont pas confirmés plutôt que d'être ajoutés par approximation. Certaines interactions restent à vérifier avant tout usage réel d'élevage.</span>
     <p style="margin-top:12px;margin-bottom:0;opacity:.65;" data-i18n="footerCopyright">© 2026 LOCUS Scales — Alexandre Young. Tous droits réservés. La reproduction ou la copie de ce logiciel, en tout ou en partie, est interdite sans autorisation.</p>
   </div>
 
@@ -2121,7 +2141,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   </div>
 
   <div class="footnote" data-i18n="regHelpFootnote">
-    <b>Envie d'aider à compléter cette liste ?</b> Si tu obtiens une confirmation officielle pour une province manquante, dis-le à Claude dans une future session — la mise à jour prend quelques minutes, exactement comme pour les gènes.
+    <b>Envie d'aider à compléter cette liste ?</b> Si tu obtiens une confirmation officielle pour une province manquante, écris-nous (menu ☰ › Nous contacter) avec la source : on l'ajoutera, comme pour les gènes.
   </div>
 </div>
 
@@ -2270,7 +2290,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.16';
+const APP_VERSION = '2026.09.01.5.18';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5364,6 +5384,24 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.18', date:'2026-10-28',
+    title:{ fr:'Mes reptiles en photos', en:'My reptiles in photos' },
+    changes:{
+      fr:[ '🖼 Mes reptiles : la photo la plus récente de chaque animal s\'affiche en grand en haut de sa carte (un animal sans photo affiche « Pas encore de photo »). Toucher la photo ouvre la fiche.',
+           '🖼 Nouveau bouton « ☰ Liste / 🖼 Photos » : la vue Photos montre ta collection en galerie (nom, sexe et gènes sur la photo, un toucher ouvre la fiche). Le choix est retenu sur l\'appareil. Gratuit.' ],
+      en:[ '🖼 My reptiles: each animal\'s latest photo now shows large at the top of its card (an animal without a photo shows « No photo yet »). Tap the photo to open the record.',
+           '🖼 New « ☰ List / 🖼 Photos » button: the Photos view shows your collection as a gallery (name, sex and genes on the photo, a tap opens the record). The choice is remembered on the device. Free.' ]
+    }
+  },
+  { version:'5.17', date:'2026-10-28',
+    title:{ fr:'Petites corrections de texte', en:'Small text fixes' },
+    changes:{
+      fr:[ '✏️ Réglementation : la note « Envie d\'aider à compléter cette liste ? » invite maintenant à nous écrire (☰ › Nous contacter) avec la source — elle renvoyait par erreur à une note de travail interne.',
+           '🧬 La note sous le calculateur précise le nombre de gènes par espèce : python royal, gecko léopard et corn snake.' ],
+      en:[ '✏️ Regulations: the « Want to help complete this list? » note now invites you to write to us (☰ › Contact us) with the source — it mistakenly pointed to an internal work note.',
+           '🧬 The note under the calculator now gives the number of genes per species: ball python, leopard gecko and corn snake.' ]
+    }
+  },
   { version:'5.16', date:'2026-10-28',
     title:{ fr:'Corn snake : 9 gènes de plus', en:'Corn snake: 9 more genes' },
     changes:{
@@ -6871,7 +6909,7 @@ const I18N = {
     regOtherTitle: 'Autres provinces & territoires',
     regConfidenceUnverified: 'Non vérifié',
     regOtherDesc: "Manitoba, Saskatchewan, Nouvelle-Écosse, Nouveau-Brunswick, Î.-P.-É., Terre-Neuve-et-Labrador, et les territoires n'ont pas encore été vérifiés en détail. Contacte le ministère de la faune/environnement de la province concernée avant toute vente ou acquisition.",
-    regHelpFootnote: "Envie d'aider à compléter cette liste ? Si tu obtiens une confirmation officielle pour une province manquante, dis-le à Claude dans une future session — la mise à jour prend quelques minutes, exactement comme pour les gènes.",
+    regHelpFootnote: "Envie d'aider à compléter cette liste ? Si tu obtiens une confirmation officielle pour une province manquante, écris-nous (menu ☰ › Nous contacter) avec la source : on l'ajoutera, comme pour les gènes.",
     exportSauvegardeTitle: 'Export & sauvegarde',
     exportBackupTitle: 'Sauvegarde complète',
     exportBackupDesc: "Télécharge un fichier JSON avec tout — reptiles, racks, ventes, clients, dépenses. Tes données sont aussi synchronisées automatiquement sur le cloud tant que tu es connecté, mais cet export reste utile pour une copie personnelle hors-ligne.",
@@ -6970,7 +7008,7 @@ const I18N = {
     addPhotoBtn: '📷 Ajouter une photo',
     genealogyTitle: 'Généalogie',
     geneCountNoteLabel: 'Note :',
-    geneCountNoteBody: "{geneCount} gènes actuellement dans la base, chacun vérifié individuellement (Morphpedia, World of Ball Pythons, ou source communautaire fiable citée) — mode de transmission, allélisme et risques santé connus, pas des suppositions. La génétique complète du python royal compte encore d'autres gènes moins documentés ou débattus dans la communauté ; ceux-ci sont volontairement exclus tant qu'ils ne sont pas confirmés plutôt que d'être ajoutés par approximation. Certaines interactions restent à vérifier avant tout usage réel d'élevage.",
+    geneCountNoteBody: "{geneCount} gènes de python royal (+ {lgCount} de gecko léopard et {csCount} de corn snake) actuellement dans la base, chacun vérifié individuellement (Morphpedia, World of Ball Pythons, ou source communautaire fiable citée) — mode de transmission, allélisme et risques santé connus, pas des suppositions. La génétique complète du python royal compte encore d'autres gènes moins documentés ou débattus dans la communauté ; ceux-ci sont volontairement exclus tant qu'ils ne sont pas confirmés plutôt que d'être ajoutés par approximation. Certaines interactions restent à vérifier avant tout usage réel d'élevage.",
     footerCopyright: '© 2026 LOCUS Scales — Alexandre Young. Tous droits réservés. La reproduction ou la copie de ce logiciel, en tout ou en partie, est interdite sans autorisation.',
     viewCompatibilityBtn: 'Voir la compatibilité avec…',
     registeredOffspring: 'Descendance enregistrée',
@@ -7458,7 +7496,7 @@ const I18N = {
     regOtherTitle: 'Other provinces & territories',
     regConfidenceUnverified: 'Unverified',
     regOtherDesc: "Manitoba, Saskatchewan, Nova Scotia, New Brunswick, P.E.I., Newfoundland and Labrador, and the territories haven't been verified in detail yet. Contact the relevant province's wildlife/environment ministry before any sale or acquisition.",
-    regHelpFootnote: "Want to help complete this list? If you get an official confirmation for a missing province, tell Claude in a future session — the update takes a few minutes, just like for genes.",
+    regHelpFootnote: "Want to help complete this list? If you get an official confirmation for a missing province, write to us (☰ menu › Contact us) with the source: we'll add it, just like for genes.",
     exportSauvegardeTitle: 'Export & backup',
     exportBackupTitle: 'Full backup',
     exportBackupDesc: "Download a JSON file with everything — reptiles, racks, sales, clients, expenses. Your data is also automatically synced to the cloud while you're signed in, but this export is still useful as a personal offline copy.",
@@ -7557,7 +7595,7 @@ const I18N = {
     addPhotoBtn: '📷 Add a photo',
     genealogyTitle: 'Genealogy',
     geneCountNoteLabel: 'Note:',
-    geneCountNoteBody: "{geneCount} genes currently in the database, each individually verified (Morphpedia, World of Ball Pythons, or a cited reliable community source) — inheritance mode, allelism, and known health risks, not guesswork. Full ball python genetics still includes other genes that are less documented or debated in the community; these are deliberately excluded until confirmed rather than added by approximation. Some interactions still need verification before real breeding use.",
+    geneCountNoteBody: "{geneCount} ball python genes (+ {lgCount} leopard gecko and {csCount} corn snake) currently in the database, each individually verified (Morphpedia, World of Ball Pythons, or a cited reliable community source) — inheritance mode, allelism, and known health risks, not guesswork. Full ball python genetics still includes other genes that are less documented or debated in the community; these are deliberately excluded until confirmed rather than added by approximation. Some interactions still need verification before real breeding use.",
     footerCopyright: '© 2026 LOCUS Scales — Alexandre Young. All rights reserved. Reproduction or copying of this software, in whole or in part, is prohibited without authorization.',
     viewCompatibilityBtn: 'View compatibility with…',
     registeredOffspring: 'Registered offspring',
@@ -7825,7 +7863,9 @@ function applyTranslations(){
   document.documentElement.lang = currentLang;
   document.querySelectorAll('[data-i18n]').forEach(el=>{
     // v3.12 — {geneCount} : nombre réel de gènes dans GENES (la note affichait encore « 78 » en dur).
-    el.textContent = t(el.dataset.i18n).replace('{geneCount}', String(GENES.filter(g=>geneSpecies(g)==='ball_python').length)); // v3.54 — note = python royal
+    el.textContent = t(el.dataset.i18n).replace('{geneCount}', String(GENES.filter(g=>geneSpecies(g)==='ball_python').length)) // v3.54 — note = python royal
+      .replace('{lgCount}', String(GENES.filter(g=>geneSpecies(g)==='leopard_gecko').length)) // v5.17 — par espèce
+      .replace('{csCount}', String(GENES.filter(g=>geneSpecies(g)==='corn_snake').length));
   });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{
     el.placeholder = t(el.dataset.i18nPlaceholder);
@@ -10809,6 +10849,39 @@ function geneReviewUndo(){
   ids.forEach(id=>{ const s = savedSnakes.find(x=>x.id===id); if(s){ s.genesVerified = false; s.updatedAt = Date.now(); } });
   storage.save(savedSnakes); renderSavedList(); if(geneReview) renderGeneReview();
 }
+// v5.18 — Mes reptiles : photo en haut des cartes + vue galerie (gratuit, affichage)
+function getMineView(){ try{ return localStorage.getItem('locus_mine_view_v1')==='photos' ? 'photos' : 'list'; }catch(e){ return 'list'; } }
+function setMineView(v){ try{ localStorage.setItem('locus_mine_view_v1', v==='photos'?'photos':'list'); }catch(e){} renderSavedList(); }
+function snakeLatestPhotoSrc(s){
+  const ph = (s && s.photos && s.photos.length) ? s.photos[s.photos.length-1] : null;
+  return ph ? (ph.dataUrl || ph.publicUrl || null) : null;
+}
+function minePhotoBannerHtml(s, isEn){
+  const src = snakeLatestPhotoSrc(s);
+  if(src) return '<div class="sc-photo" onclick="openLogbook(\''+s.id+'\')"><img src="'+escapeHtml(src)+'" alt="'+escapeHtml(snakeName(s))+'" loading="lazy"/></div>';
+  return '<div class="sc-photo empty" onclick="openLogbook(\''+s.id+'\')"><span class="ph-ico">🐍</span><span>'+(isEn?'No photo yet':'Pas encore de photo')+'</span></div>';
+}
+function mineGalleryTile(s, isEn){
+  const tile = document.createElement('div');
+  tile.className = 'saved-tile'+(batchSelectMode && batchSelectedIds.has(s.id) ? ' batch-selected' : '');
+  const src = snakeLatestPhotoSrc(s);
+  const sexSym = s.sex==='male' ? ' ♂' : s.sex==='female' ? ' ♀' : '';
+  tile.innerHTML = (src ? '<img src="'+escapeHtml(src)+'" alt="'+escapeHtml(snakeName(s))+'" loading="lazy"/>' : '<div class="st-ph">🐍</div>')+
+    (batchSelectMode ? '<input type="checkbox" class="st-cb"'+(batchSelectedIds.has(s.id)?' checked':'')+'/>' : '')+
+    '<div class="st-info"><div class="st-name">'+escapeHtml(snakeName(s))+sexSym+'</div><div class="st-genes">'+escapeHtml(summarizeGenes(s.genes))+'</div></div>';
+  tile.addEventListener('click', ev=>{
+    if(batchSelectMode){
+      ev.preventDefault();
+      if(batchSelectedIds.has(s.id)) batchSelectedIds.delete(s.id); else batchSelectedIds.add(s.id);
+      renderBatchActionBar();
+      tile.classList.toggle('batch-selected', batchSelectedIds.has(s.id));
+      const cb = tile.querySelector('.st-cb'); if(cb) cb.checked = batchSelectedIds.has(s.id);
+      return;
+    }
+    openLogbook(s.id);
+  });
+  return tile;
+}
 function renderSavedList(){
   const isEn = currentLang==='en';
   savedSnakes.forEach(ensureSnakeMeta);
@@ -10862,8 +10935,16 @@ function renderSavedList(){
   // v4.50 — pages de 20/40/60/80/100 ou tout (choix gardé pour toutes les listes)
   window.__mineVisibleIds = visible.map(s=>s.id);
   const minePg = pagerSlice('mine', visible, renderSavedList, JSON.stringify([mineSearchTerm, mineStatusFilter, mineSexFilter, mineVerifiedFilter, mineTagFilter, mineSortBy, mineAdv]));
+  // v5.18 — bascule Liste / Photos (choix retenu sur l'appareil)
+  const mineView = getMineView();
+  grid.classList.toggle('gallery', mineView==='photos');
+  grid.insertAdjacentHTML('afterbegin', '<div class="mine-view-bar">'+
+    '<button type="button" class="'+(mineView==='photos'?'sc-btn':'save-btn')+'" onclick="setMineView(\'list\')">☰ '+(isEn?'List':'Liste')+'</button>'+
+    '<button type="button" class="'+(mineView==='photos'?'save-btn':'sc-btn')+'" onclick="setMineView(\'photos\')">🖼 '+(isEn?'Photos':'Photos')+'</button>'+
+  '</div>');
   if(minePg.top) grid.insertAdjacentHTML('beforeend', minePg.top);
   minePg.items.forEach(s=>{
+    if(mineView==='photos'){ grid.appendChild(mineGalleryTile(s, isEn)); return; } // v5.18
     ensureSnakeMeta(s);
     const card = document.createElement('div');
     card.className = 'saved-card';
@@ -10882,10 +10963,10 @@ function renderSavedList(){
     const priceLine = s.status==='sold'
       ? '<div class="sc-genes" style="color:var(--ink-dim);">'+(isEn?'Sold to ':'Vendu à ')+escapeHtml(s.buyer||'?')+(s.soldDate?(isEn?' on ':' le ')+s.soldDate:'')+(s.soldPrice?' — '+s.soldPrice+' $':'')+'</div>'
       : (s.askingPrice ? '<div class="sc-genes" style="color:var(--gold);">'+s.askingPrice+(isEn?' $ asking':' $ demandé')+'</div>' : '');
-    const thumb = (s.photos && s.photos.length) ? '<img src="'+s.photos[s.photos.length-1].dataUrl+'" style="width:36px;height:36px;object-fit:cover;border-radius:14px;border:1px solid var(--line);margin-right:8px;"/>' : '';
+    const thumb = ''; // v5.18 — la photo est maintenant en haut de la carte (minePhotoBannerHtml)
     const batchCheckbox = batchSelectMode ? '<input type="checkbox" class="batch-select-cb" data-batch-id="'+s.id+'" '+(batchSelectedIds.has(s.id)?'checked':'')+' style="width:20px;height:20px;margin-right:8px;accent-color:var(--gold);flex-shrink:0;"/>' : '';
     if(batchSelectMode) card.classList.toggle('batch-selected', batchSelectedIds.has(s.id));
-    card.innerHTML =
+    card.innerHTML = minePhotoBannerHtml(s, isEn)+
       '<div class="sc-head"><span class="sc-name" style="display:flex;align-items:center;">'+batchCheckbox+thumb+escapeHtml(snakeName(s))+'</span><span>'+sexBadge+provenBadgeHtml(s, isEn)+(isInShed(s)?'<span class="sc-status" style="background:rgba(57,135,229,.16);border:1px solid rgba(57,135,229,.45);color:#8fb8ef;">🔵 '+(isEn?'In shed':'En mue')+'</span>':'')+statusBadge+unverifiedBadge+quarantineBadge+speciesBadge+tagsBadges+'</span></div>'+
       '<div class="sc-genes">'+summarizeGenes(s.genes)+'</div>'+
       '<div class="sc-genes" style="color:var(--sage);">📍 '+placeLabel+'</div>'+
