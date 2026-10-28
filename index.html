@@ -2217,9 +2217,9 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
     <button class="app-menu-item" onclick="closeAppMenu(); openContactModal();"><span>✉️</span> <span data-i18n="menuContact">Nous contacter</span></button>
     <button class="app-menu-item" onclick="closeAppMenu(); openFaqModal();"><span>📖</span> <span data-i18n="menuFaq">FAQ</span></button>
     <button class="app-menu-item" onclick="closeAppMenu(); openConfigModal();"><span>⚙️</span> <span data-i18n="menuConfig">Configuration</span></button>
-    <button class="app-menu-item" onclick="closeAppMenu(); openTermsModal();"><span>📄</span> <span data-i18n="menuTerms">Conditions d'utilisation</span></button>
-    <button class="app-menu-item" onclick="closeAppMenu(); openPrivacyModal();"><span>🔒</span> <span data-i18n="menuPrivacy">Confidentialité</span></button>
+    <button class="app-menu-item" onclick="closeAppMenu(); openLegalChooser();"><span>📄</span> <span data-i18n="menuLegal">Conditions et confidentialité</span></button>
     <button class="app-menu-item" onclick="closeAppMenu(); window.open(currentLang==='en'?'guides/trust.html':'guides/engagements.html','_blank','noopener');"><span>🛡</span> <span data-i18n="menuCommitments">Nos engagements</span></button>
+    <button class="app-menu-item" onclick="closeAppMenu(); window.open('https://www.reddit.com/r/LocusScales/','_blank','noopener');"><span>💬</span> <span data-i18n="menuCommunity">Communauté (Reddit)</span></button>
     <button class="app-menu-item" onclick="closeAppMenu(); openBugReportModal();"><span>🐛</span> <span data-i18n="menuBugReport">Signaler un bug</span></button>
     <button class="app-menu-item" id="app-menu-admin" style="display:none;" onclick="closeAppMenu(); openAdminOverview();"><span>📊</span> <span data-i18n="menuAdmin">Admin</span></button>
     <div class="app-menu-foot">LOCUS Scales — Gestion d'élevage Python royal</div>
@@ -2299,7 +2299,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.20';
+const APP_VERSION = '2026.09.01.5.22';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5393,6 +5393,20 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.22', date:'2026-10-28',
+    title:{ fr:'Menu ☰ allégé', en:'Lighter ☰ menu' },
+    changes:{
+      fr:[ '📄 Menu ☰ : « Conditions d\'utilisation » et « Confidentialité » sont réunies sous « Conditions et confidentialité » (avec un raccourci vers Nos engagements).' ],
+      en:[ '📄 ☰ menu: « Terms of Use » and « Privacy » are now together under « Terms and privacy » (with a shortcut to Our commitments).' ]
+    }
+  },
+  { version:'5.21', date:'2026-10-28',
+    title:{ fr:'La communauté LOCUS sur Reddit', en:'The LOCUS community on Reddit' },
+    changes:{
+      fr:[ '💬 Nouveau dans le menu ☰ : « Communauté (Reddit) » ouvre r/LocusScales — questions, demandes de fonctions, bogues et nouveautés, avec d\'autres utilisateurs de l\'app.' ],
+      en:[ '💬 New in the ☰ menu: « Community (Reddit) » opens r/LocusScales — questions, feature requests, bugs and updates, with other users of the app.' ]
+    }
+  },
   { version:'5.19', date:'2026-10-28',
     title:{ fr:'Vos reptiles en photos', en:'Your reptiles in photos' },
     changes:{
@@ -6736,8 +6750,10 @@ const I18N = {
     menuFaq: 'FAQ',
     menuConfig: 'Configuration',
     menuTerms: 'Conditions d\'utilisation',
+    menuLegal: 'Conditions et confidentialité', // v5.22
     menuPrivacy: 'Confidentialité',
     menuCommitments: 'Nos engagements', // v5.10
+    menuCommunity: 'Communauté (Reddit)', // v5.21
     commitCardTitle: 'Nos engagements', // v5.12
     commitCardText: 'Données hébergées au Canada, aucun pistage, aucune police Google, et liste complète des services externes — chaque point est vérifiable.',
     commitCardLink: 'Lire nos engagements →',
@@ -7323,8 +7339,10 @@ const I18N = {
     menuFaq: 'FAQ',
     menuConfig: 'Settings',
     menuTerms: 'Terms of Use',
+    menuLegal: 'Terms and privacy', // v5.22
     menuPrivacy: 'Privacy',
     menuCommitments: 'Our commitments', // v5.10
+    menuCommunity: 'Community (Reddit)', // v5.21
     commitCardTitle: 'Our commitments', // v5.12
     commitCardText: 'Data hosted in Canada, no tracking, no Google fonts, and the full list of external services — every point can be checked.',
     commitCardLink: 'Read our commitments →',
@@ -8050,6 +8068,16 @@ function openTermsModal(){
   );
 }
 
+// v5.22 — demande d'Alex : Conditions d'utilisation et Confidentialité réunies sous une seule entrée du menu ☰.
+function openLegalChooser(){
+  const isEn = currentLang==='en';
+  const big = 'display:block;width:100%;font-size:16px;padding:14px;margin-bottom:10px;text-align:left;';
+  showQuickModal('📄 '+(isEn?'Terms and privacy':'Conditions et confidentialité'),
+    '<button class="sc-btn" style="'+big+'" onclick="closeQuickModal(); openTermsModal();">📄 '+(isEn?'Terms of Use':'Conditions d\'utilisation')+'</button>'+
+    '<button class="sc-btn" style="'+big+'" onclick="closeQuickModal(); openPrivacyModal();">🔒 '+(isEn?'Privacy policy':'Politique de confidentialité')+'</button>'+
+    '<button class="sc-btn" style="'+big+'" onclick="closeQuickModal(); window.open(currentLang===\'en\'?\'guides/trust.html\':\'guides/engagements.html\',\'_blank\',\'noopener\');">🛡 '+(isEn?'Our commitments (plain words)':'Nos engagements (en clair)')+'</button>'
+  );
+}
 /* ---- Politique de confidentialité ---- */
 function openPrivacyModal(){
   const isEn = currentLang==='en';
