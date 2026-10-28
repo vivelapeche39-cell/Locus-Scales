@@ -2299,7 +2299,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.19';
+const APP_VERSION = '2026.09.01.5.20';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -33445,6 +33445,79 @@ function adminAgo(iso){
   if(d===1) return currentLang==='en' ? 'yesterday' : 'hier';
   return currentLang==='en' ? d+' d ago' : 'il y a '+d+' j';
 }
+// v5.20 — outil admin (demande d'Alex) : une capture d'écran → la même image avec une pastille
+// « logo + LOCUS Scales + app.locusscales.com » dans un coin. Taille d'origine gardée, PNG, tout sur l'appareil.
+var brandImg = { src:null, name:'capture', corner:'br' };
+function openAdminBrandImage(){
+  const isEn = currentLang==='en';
+  if(!isAdminUser) return;
+  const corners = [['br', isEn?'Bottom right':'Bas droite'],['bl', isEn?'Bottom left':'Bas gauche'],['tr', isEn?'Top right':'Haut droite'],['tl', isEn?'Top left':'Haut gauche']];
+  showQuickModal('🏷 '+(isEn?'Logo on a screenshot':'Logo sur une capture'),
+    '<p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 10px;">'+(isEn?'Pick a screenshot: LOCUS adds a small badge (logo, name, address) in a corner. The image keeps its size and stays on your device.':'Choisis une capture : LOCUS ajoute une petite pastille (logo, nom, adresse) dans un coin. L\'image garde sa taille et reste sur ton appareil.')+'</p>'+
+    '<input type="file" accept="image/*" id="brand-img-input" style="display:none;" onchange="loadBrandImage(this.files[0])"/>'+
+    '<button class="save-btn" style="width:100%;margin-bottom:10px;" onclick="document.getElementById(\'brand-img-input\').click()">📷 '+(isEn?'Choose a screenshot':'Choisir une capture')+'</button>'+
+    '<select style="width:100%;font-size:16px;padding:8px 10px;margin-bottom:10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" onchange="brandImg.corner=this.value;drawBrandImage();">'+
+      corners.map(([k,l])=>'<option value="'+k+'"'+(brandImg.corner===k?' selected':'')+'>'+l+'</option>').join('')+
+    '</select>'+
+    '<canvas id="brand-canvas" style="width:100%;height:auto;border-radius:10px;border:1px solid var(--line);display:none;"></canvas>'+
+    '<div style="display:flex;gap:8px;margin-top:10px;">'+
+      '<button class="save-btn" style="flex:1;" onclick="shareBrandImage()">📤 '+(isEn?'Share':'Partager')+'</button>'+
+      '<button class="sc-btn" style="flex:1;" onclick="downloadBrandImage()">⬇️ '+(isEn?'Download':'Télécharger')+'</button>'+
+    '</div>'
+  );
+  ensureShareLogo(drawBrandImage);
+  drawBrandImage();
+}
+function loadBrandImage(file){
+  if(!file) return;
+  brandImg.name = String(file.name||'capture').replace(/\.[^.]+$/,'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w\-]+/g,'_').slice(0,40) || 'capture';
+  const reader = new FileReader();
+  reader.onload = e=>{ brandImg.src = e.target.result; drawBrandImage(); };
+  reader.readAsDataURL(file);
+}
+function drawBrandImage(){
+  const canvas = document.getElementById('brand-canvas');
+  if(!canvas || !brandImg.src) return;
+  loadImageAsync(brandImg.src).then(img=>{
+    const W = img.naturalWidth || img.width, H = img.naturalHeight || img.height;
+    canvas.width = W; canvas.height = H; canvas.style.display = 'block';
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, W, H);
+    const u = Math.max(26, Math.round(Math.min(W, H) * 0.06)); // taille du logo, proportionnelle à l'image
+    const font = 'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+    const nameSize = Math.round(u*0.44), urlSize = Math.round(u*0.3), pad = Math.round(u*0.22), gap = Math.round(u*0.22);
+    ctx.font = '700 '+nameSize+'px '+font; const wName = ctx.measureText('LOCUS Scales').width;
+    ctx.font = '500 '+urlSize+'px '+font; const wUrl = ctx.measureText('app.locusscales.com').width;
+    const bw = pad + u + gap + Math.max(wName, wUrl) + pad*1.4, bh = u + pad*2, margin = Math.round(u*0.35);
+    const x = brandImg.corner.endsWith('r') ? W - bw - margin : margin;
+    const y = brandImg.corner.startsWith('b') ? H - bh - margin : margin;
+    const r = Math.round(bh/2.6);
+    ctx.fillStyle = 'rgba(12,10,8,.78)';
+    ctx.beginPath(); ctx.moveTo(x+r, y); ctx.arcTo(x+bw, y, x+bw, y+bh, r); ctx.arcTo(x+bw, y+bh, x, y+bh, r); ctx.arcTo(x, y+bh, x, y, r); ctx.arcTo(x, y, x+bw, y, r); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(216,178,90,.55)'; ctx.lineWidth = Math.max(1, Math.round(u/40)); ctx.stroke();
+    if(shareLogoImg && shareLogoImg.complete && shareLogoImg.naturalWidth && !shareLogoImg.failed) ctx.drawImage(shareLogoImg, x+pad, y+pad, u, u);
+    ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+    const tx = x + pad + u + gap;
+    ctx.fillStyle = '#ffffff'; ctx.font = '700 '+nameSize+'px '+font; ctx.fillText('LOCUS Scales', tx, y + pad + u*0.48);
+    ctx.fillStyle = '#d8b25a'; ctx.font = '500 '+urlSize+'px '+font; ctx.fillText('app.locusscales.com', tx, y + pad + u*0.9);
+  }).catch(()=>showToast(currentLang==='en'?'Could not load this image.':'Impossible de charger cette image.', 'error'));
+}
+function brandImageBlob(cb){
+  const canvas = document.getElementById('brand-canvas');
+  if(!canvas || !brandImg.src){ showToast(currentLang==='en'?'Choose a screenshot first.':'Choisis une capture d\'abord.', 'error'); return; }
+  canvas.toBlob(b=>cb(b), 'image/png');
+}
+function downloadBrandImage(){
+  brandImageBlob(b=>{ if(!b) return; const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = brandImg.name+'-locus.png'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000); });
+}
+function shareBrandImage(){
+  brandImageBlob(b=>{
+    if(!b) return;
+    const file = new File([b], brandImg.name+'-locus.png', { type:'image/png' });
+    if(navigator.canShare && navigator.canShare({ files:[file] })) navigator.share({ files:[file] }).catch(()=>{});
+    else downloadBrandImage();
+  });
+}
 async function openAdminOverview(){
   const isEn = currentLang==='en';
   if(!isAdminUser || !sb || !currentUser) return;
@@ -33485,6 +33558,7 @@ async function openAdminOverview(){
     '</div>'+
     '<button class="sc-btn accent" style="width:100%;margin-bottom:6px;font-size:15px;" onclick="adminCopyEmails()">📋 '+(isEn?'Copy emails':'Copier les courriels')+' ('+adminMailableEmails().length+')</button>'+
     '<p style="font-size:12px;color:var(--ink-dim);margin:0 0 12px;">'+(isEn?'Confirmed accounts only, without unsubscribed ones or yours. Paste them in BCC.':'Comptes confirmés seulement, sans les désabonnés ni le tien. Colle-les en Cci.')+'</p>'+
+    '<button class="sc-btn accent" style="width:100%;margin-bottom:12px;font-size:15px;" onclick="openAdminBrandImage()">🏷 '+(isEn?'Add the LOCUS logo to a screenshot':'Ajouter le logo LOCUS sur une capture')+'</button>'+ // v5.20
     '<div style="font-size:12px;color:var(--ink-dim);margin-bottom:6px;">🟢 '+(isEn?'has animals':'a des animaux')+' · 🟡 '+(isEn?'signed in, nothing entered':'connecté, rien entré')+' · ⚪ '+(isEn?'never signed in':'jamais connecté')+'</div>'+
     rows+
     '<p class="husbandry-health-note" style="margin-top:12px;">'+(isEn
