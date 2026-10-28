@@ -1,0 +1,4 @@
+# Réglage GitHub Pages (Jekyll) : fichiers du dépôt à ne PAS publier sur app.locusscales.com.
+# Ils restent dans le dépôt (Claude Code lit toujours CLAUDE.md).
+exclude:
+  - CLAUDE.md
