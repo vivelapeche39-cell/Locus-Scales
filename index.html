@@ -2270,7 +2270,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.15';
+const APP_VERSION = '2026.09.01.5.16';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4373,8 +4373,12 @@ const GENES = [
   // Source : MorphMarket Morphpedia (fiche par trait, lue le 27 oct 2026 ; catégorie « en développement »).
   // Loci partagés (allèles du même gène) : Amelanistic + Ultra (cs_amel → Ultramel) ; Hypo + Strawberry
   // (cs_hypo). Séparés : Anery A, Charcoal (Anery B), Sunkissed (Hypo B), Lava (Hypo C), Caramel.
-  // Exclus : Motley/Stripe (Motley domine Stripe — hiérarchie que le moteur ne gère pas encore), Cinder
-  // (lié au sexe, suspecté), phases polygéniques (Okeetee, Miami…). Validé par Alex.
+  // v5.16 — ajoutés (validé par Alex) : Motley + Stripe (même gène cs_motley ; Motley domine Stripe → le
+  // composé Motley/Stripe a l'air Motley, nommé « Motley/Stripe » comme sur Morphpedia), Dilute (Creatures.com),
+  // Microscale, Scaleless, Cinder (récessif ; « très probablement lié au sexe » selon Morphpedia — NON modélisé,
+  // calculé comme un récessif simple avec une note), Terrazzo (récessif selon Cornsnake.net ; Morphpedia ne
+  // précise pas), Buf (dominant), Red Factor (incomplet dominant ; 2 copies = « Salmon »).
+  // Toujours exclus : Toffee, Yellowjacket, Pied-sided (source insuffisante), phases polygéniques (Okeetee, Miami…).
   {id:'cs_amel', name:'Amelanistic', type:'recessive', locus:'cs_amel', cat:'Récessif', species:'corn_snake'},
   {id:'cs_ultra', name:'Ultra', type:'recessive', locus:'cs_amel', cat:'Récessif', species:'corn_snake'},
   {id:'cs_anery', name:'Anerythristic (Anery A)', type:'recessive', locus:'cs_anery', cat:'Récessif', species:'corn_snake'},
@@ -4395,6 +4399,18 @@ const GENES = [
     warning:"Certains Palmetto éclosent avec les yeux agrandis (« bug eyes »), comme plusieurs morphs leucistiques. Source : Morphpedia.",
     warningEn:"Some Palmettos hatch with enlarged eyes (\"bug eyes\"), as with many leucistic morphs. Source: Morphpedia."},
   {id:'cs_masque', name:'Masque', type:'incdom', locus:'cs_masque', cat:'Codominant / Incomplet dominant', species:'corn_snake'},
+  // v5.16 — Motley et Stripe : allèles récessifs du même gène ; Motley/Stripe = apparence Motley (Morphpedia).
+  {id:'cs_motley', name:'Motley', type:'recessive', locus:'cs_motley', cat:'Récessif', species:'corn_snake'},
+  {id:'cs_stripe', name:'Stripe', type:'recessive', locus:'cs_motley', cat:'Récessif', species:'corn_snake'},
+  {id:'cs_dilute', name:'Dilute', type:'recessive', locus:'cs_dilute', cat:'Récessif', species:'corn_snake'},
+  {id:'cs_microscale', name:'Microscale', type:'recessive', locus:'cs_microscale', cat:'Récessif', species:'corn_snake'},
+  {id:'cs_scaleless', name:'Scaleless', type:'recessive', locus:'cs_scaleless', cat:'Récessif', species:'corn_snake'},
+  {id:'cs_terrazzo', name:'Terrazzo', type:'recessive', locus:'cs_terrazzo', cat:'Récessif', species:'corn_snake'},
+  {id:'cs_cinder', name:'Cinder', type:'recessive', locus:'cs_cinder', cat:'Récessif', species:'corn_snake',
+    warning:"Note : Cinder est « très probablement lié au sexe » selon Morphpedia (non confirmé). LOCUS le calcule comme un récessif simple : la répartition réelle entre mâles et femelles peut être différente.",
+    warningEn:"Note: Cinder is \"highly likely sex-linked\" according to Morphpedia (not confirmed). LOCUS calculates it as a simple recessive: the real split between males and females may differ."},
+  {id:'cs_buf', name:'Buf', type:'dominant', locus:'cs_buf', cat:'Dominant', species:'corn_snake'},
+  {id:'cs_redfactor', name:'Red Factor', type:'incdom', locus:'cs_redfactor', cat:'Codominant / Incomplet dominant', superLabel:'Salmon', species:'corn_snake'},
 ];
 
 // v3.54 — espèces ayant une génétique dans LOCUS. Un gène sans champ species = python royal.
@@ -4433,6 +4449,10 @@ const COMPOUND_NAMES = {
   // v5.11 — corn snake : Amel × Ultra = Ultramel (Morphpedia, complexe Ultramel).
   cs_amel: {
     'cs_amel+cs_ultra': 'Ultramel',
+  },
+  // v5.16 — Motley domine Stripe : un Motley/Stripe a l'air Motley (Morphpedia l'écrit « Motley/stripe »).
+  cs_motley: {
+    'cs_motley+cs_stripe': 'Motley/Stripe',
   }
 };
 
@@ -5344,6 +5364,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.16', date:'2026-10-28',
+    title:{ fr:'Corn snake : 9 gènes de plus', en:'Corn snake: 9 more genes' },
+    changes:{
+      fr:[ '🌽 Calculateur du corn snake : 9 gènes ajoutés — Motley et Stripe (même gène : Motley domine Stripe, un Motley/Stripe a l\'air Motley), Dilute, Microscale, Scaleless, Terrazzo, Cinder, Buf (dominant) et Red Factor (incomplet dominant, 2 copies = Salmon). Cinder est probablement lié au sexe (non confirmé) : il est calculé comme un récessif simple, avec une note. Sources : Morphpedia (MorphMarket), Creatures.com (Dilute), Cornsnake.net (Terrazzo). Pas encore inclus : Toffee, Yellowjacket, Pied-sided et les noms de combos. Gratuit.' ],
+      en:[ '🌽 Corn snake calculator: 9 genes added — Motley and Stripe (same gene: Motley is dominant over Stripe, a Motley/Stripe looks Motley), Dilute, Microscale, Scaleless, Terrazzo, Cinder, Buf (dominant) and Red Factor (incomplete dominant, 2 copies = Salmon). Cinder is probably sex-linked (not confirmed): it is calculated as a simple recessive, with a note. Sources: Morphpedia (MorphMarket), Creatures.com (Dilute), Cornsnake.net (Terrazzo). Not included yet: Toffee, Yellowjacket, Pied-sided and combo names. Free.' ]
+    }
+  },
   { version:'5.15', date:'2026-10-27',
     title:{ fr:'Engagements : la page dit tout', en:'Commitments: the page says it all' },
     changes:{
