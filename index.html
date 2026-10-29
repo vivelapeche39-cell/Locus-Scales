@@ -2299,7 +2299,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.24';
+const APP_VERSION = '2026.09.01.5.26';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4253,6 +4253,13 @@ const GENES = [
   // v3.29 — renommé « Caramel » → « Caramel Albino » (nom Morphpedia, aussi appelé T+ Albino ; Morphpedia n'a
   // aucune entrée « Caramel » seule). Même id/locus : aucune fiche existante n'est touchée.
   {id:'caramel', name:'Caramel Albino', type:'recessive', locus:'caramel', cat:'Récessif'},
+  // v5.26 — Ultramel (Morphpedia, lu le 29 oct 2026) : récessif, son propre complexe « Ultramel » (gène TYRP1, différent
+  // de l'Albino/Candy), alias Ultramelanistic, Crider, Burgundy Albino. Morphpedia SOUPÇONNE que Caramel Albino est un allèle
+  // du même gène et que Monarch y est relié — non prouvé, donc loci séparés + avertissement. Trou découvert à l'import réel
+  // d'une collection de 144 animaux (Midas, noté « Ultramel » dans le fichier MorphMarket).
+  {id:'ultramel', name:'Ultramel', type:'recessive', locus:'ultramel', cat:'Récessif',
+    warning:"Note : Morphpedia soupçonne que Caramel Albino est une autre version (allèle) du même gène qu'Ultramel, et que Monarch y est relié — ce n'est pas prouvé. LOCUS les calcule comme des gènes séparés : un Ultramel × Caramel Albino pourrait donner un résultat différent de celui affiché. Alias : Crider, Burgundy Albino.",
+    warningEn:"Note: Morphpedia suspects that Caramel Albino is another version (allele) of the same gene as Ultramel, and that Monarch is related — this is not proven. LOCUS calculates them as separate genes: an Ultramel × Caramel Albino pairing could give a different result than shown. Aliases: Crider, Burgundy Albino."},
   {id:'stripe', name:'Genetic Stripe', type:'recessive', locus:'stripe', cat:'Récessif'},
   {id:'sunset', name:'Sunset', type:'recessive', locus:'sunset', cat:'Récessif'},
   {id:'cryptic', name:'Cryptic', type:'recessive', locus:'cryptic', cat:'Récessif'},
@@ -5413,6 +5420,20 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.26', date:'2026-10-29',
+    title:{ fr:'Nouveau gène : Ultramel', en:'New gene: Ultramel' },
+    changes:{
+      fr:[ '🧬 Python royal : le gène Ultramel est ajouté (récessif, son propre complexe selon Morphpedia). L\'import le reconnaît aussi sous ses autres noms : Ultramelanistic, Crider et Burgundy Albino. Morphpedia soupçonne un lien avec Caramel Albino et Monarch sans que ce soit prouvé : LOCUS les garde séparés et l\'indique dans un avertissement. Si un de tes animaux importés avait « Ultramel » dans sa génétique, c\'est noté dans ses Notes : tu peux maintenant cocher le gène sur sa fiche.' ],
+      en:[ '🧬 Ball python: the Ultramel gene is added (recessive, its own complex according to Morphpedia). Import also recognizes its other names: Ultramelanistic, Crider and Burgundy Albino. Morphpedia suspects a link with Caramel Albino and Monarch without proof: LOCUS keeps them separate and says so in a warning. If one of your imported animals had « Ultramel » in its genetics, it is written in its Notes: you can now check the gene on its record.' ]
+    }
+  },
+  { version:'5.25', date:'2026-10-29',
+    title:{ fr:'Python sanguin : espèce complète', en:'Blood python: full species' },
+    changes:{
+      fr:[ '🐍 Le python sanguin devient une espèce complète : tu peux en ajouter un à ta collection, l\'importer (« Blood python », « Bloods », « Python brongersmai »…), code d\'identification BLD, proies et rappels de repas (chaque semaine pour les jeunes, aux 14 jours pour les adultes), incubation de ~60 jours et une fiche de soins dans Utilitaire (températures, humidité, tailles d\'enclos, tempérament, obésité, FAQ). Sources : Kara et Ryan Norris (Reptiles Magazine), Graham Battison (Herp Magazine), Reptile Centre.' ],
+      en:[ '🐍 The blood python is now a full species: add one to your collection, import it (« Blood python », « Bloods », « Python brongersmai »…), ID code BLD, prey and feeding reminders (weekly for young, every 14 days for adults), ~60-day incubation, and a care sheet in Utility (temperatures, humidity, enclosure sizes, temperament, obesity, FAQ). Sources: Kara and Ryan Norris (Reptiles Magazine), Graham Battison (Herp Magazine), Reptile Centre.' ]
+    }
+  },
   { version:'5.24', date:'2026-10-29',
     title:{ fr:'Calculateur : python sanguin', en:'Calculator: blood python' },
     changes:{
@@ -9120,6 +9141,37 @@ const SPECIES_REFERENCE = [
       {q:'Is this a lizard you handle often?', a:'No — same as the red-eyed skink, more an observation species than a frequently-handled one. Stresses easily, may play dead when picked up.'},
       {q:'Can I keep two together?', a:'Solo or a carefully managed pair only — never in groups.'},
     ]},
+  // v5.24 — python sanguin. Sources lues le 29 oct 2026 : Kara et Ryan Norris (The Blood Cell, éleveurs spécialisés) dans
+  // Reptiles Magazine (2 articles : soins + « care sheet »), Graham Battison (Herp Magazine, via Herpetoculture Network) pour la
+  // reproduction, Reptile Centre (R.-U.) pour l'espérance de vie et l'UVB. Une fiche Reptiles Magazine plus ancienne donne
+  // 25-40 lb à l'âge adulte, en contradiction avec les éleveurs (10-15 lb) et un autre article du même magazine → non retenue.
+  { id:'blood_python', category:'serpent', nameFr:'Python sanguin', nameEn:'Blood python', tempWarm:31, tempCool:27, humidity:65,
+    nameLatin:'Python brongersmai', originFr:'Sud de la Thaïlande, Malaisie péninsulaire et est de Sumatra', originEn:'Southern Thailand, Peninsular Malaysia and eastern Sumatra', lifespanFr:'~20 ans (moyenne citée)', lifespanEn:'~20 years (average cited)',
+    habitatTypeFr:'🌍 Terrestre (lourd et trapu, grimpe peu)', habitatTypeEn:'🌍 Terrestrial (heavy-bodied, rarely climbs)',
+    dietFr:'Carnivore — rats surtout, congelé-décongelé. Les bébés commencent souvent sur des souris « hopper » avant de passer aux ratons. Réchauffer la proie près de la température du corps aide les mangeurs difficiles.', dietEn:'Carnivore — mostly rats, frozen-thawed. Babies often start on hopper mice before moving to rat pups. Warming the prey close to body temperature helps picky eaters.',
+    feedFreqFr:'Bébé et juvénile : chaque semaine. Adulte (3 ans et plus) : aux 14 jours, rats moyens ou gros. Un adulte en surpoids : proies plus petites ou aux 21 jours. L\'obésité est fréquente chez cette espèce.', feedFreqEn:'Baby and juvenile: weekly. Adult (3 years and up): every 14 days, medium or large rats. An overweight adult: smaller prey or every 21 days. Obesity is common in this species.',
+    substrateFr:'Papier kraft en plusieurs couches (le serpent se glisse entre les feuilles, ça lui sert de cachette), papier journal, copeaux d\'aspen ou paillis de cyprès. Bébés sur essuie-tout. Jamais de cèdre — huiles toxiques — et éviter les copeaux poussiéreux.', substrateEn:'Several layers of kraft paper (the snake slips between the sheets, which works as a hide), newspaper, aspen shavings or cypress mulch. Babies on paper towels. Never cedar — toxic oils — and avoid dusty shavings.',
+    uvbFr:'Pas documenté comme essentiel. Un tube UVB faible (2-5 %) est mentionné comme optionnel par certaines sources.', uvbEn:'Not documented as essential. A low UVB tube (2-5%) is mentioned as optional by some sources.',
+    incubationFr:'~60 jours à 29-30,5 °C (84-87 °F), dans de la vermiculite humide. La femelle s\'enroule autour de ses œufs pour les couver.', incubationEn:'~60 days at 29-30.5°C (84-87°F), in damp vermiculite. The female coils around her eggs to brood them.',
+    clutchesPerMatingFr:'Généralement 1 ponte par saison.', clutchesPerMatingEn:'Generally 1 clutch per season.',
+    avgEggCountFr:'Souvent autour de 15 œufs, jusqu\'à 25 et plus chez les grosses femelles.', avgEggCountEn:'Often around 15 eggs, up to 25 or more in large females.',
+    noteFr:'Adulte : souvent 1,2-1,5 m (4-5 pi) et 4,5-7 kg (10-15 lb), parfois plus de 1,8 m et 9 kg chez les vieux sujets. Température ambiante 27-28 °C (80-82 °F), point chaud 30-31 °C (86-88 °F) ; plusieurs éleveurs n\'en offrent pas. Humidité 60-70 % : trop sec = mues en morceaux ; trop humide = peau plissée et risque d\'infection respiratoire. À ne pas confondre avec le python de Sumatra à queue courte (Python curtus) ni celui de Bornéo (Python breitensteini), deux espèces distinctes.',
+    noteEn:'Adult: often 1.2-1.5 m (4-5 ft) and 4.5-7 kg (10-15 lb), sometimes over 1.8 m and 9 kg in older animals. Ambient 27-28°C (80-82°F), hot spot 30-31°C (86-88°F); several breeders offer none. Humidity 60-70%: too dry = shed in pieces; too wet = crinkly skin and risk of respiratory infection. Not to be confused with the Sumatran short-tailed python (Python curtus) or the Borneo short-tailed python (Python breitensteini), two separate species.',
+    enclosureBaby:'Bac de 25×15×10cm (10×6×4po)', enclosureBabyEn:'10×6×4in tub',
+    enclosureSub:'46×25×18cm (18×10×7po), puis bac de ~84×43×13cm (33×17×5po)', enclosureSubEn:'18×10×7in, then a ~33×17×5in tub',
+    enclosureAdult:'Bac de 132×51×30cm (52×20×12po) ou terrarium de 122×61×61cm (48×24×24po)', enclosureAdultEn:'52×20×12in tub or 48×24×24in enclosure',
+    faqFr:[
+      {q:'C\'est vrai que les pythons sanguins sont agressifs ?', a:'Cette réputation vient surtout des adultes capturés en nature importés il y a des années. Un python sanguin né en captivité et manipulé doucement dès jeune devient généralement un adulte calme. Les bébés peuvent être nerveux, se débattre ou mordre au début : c\'est normal et ça passe.'},
+      {q:'Il souffle fort quand je le prends, c\'est grave ?', a:'Non, c\'est courant chez l\'espèce : beaucoup soufflent (« huffing ») pendant la manipulation sans être agressifs pour autant. Certains peuvent aussi mordre ou relâcher du musc.'},
+      {q:'Mon adulte grossit beaucoup, je fais quoi ?', a:'L\'obésité est un problème fréquent chez le python sanguin et nuit à la reproduction et à la respiration. Espace les repas (aux 21 jours) ou offre des proies plus petites. Évite les vieux rongeurs reproducteurs très gras.'},
+      {q:'Il reste longtemps dans son bol d\'eau, c\'est normal ?', a:'Un bain de temps en temps, oui. S\'il trempe souvent et longtemps, vérifie trois choses : un enclos trop chaud, un manque de cachettes, ou des acariens (petits points noirs dans l\'eau).'},
+    ],
+    faqEn:[
+      {q:'Is it true that blood pythons are aggressive?', a:'That reputation mostly comes from wild-caught adults imported years ago. A captive-bred blood python handled gently from a young age usually becomes a calm adult. Babies can be nervous, thrash or bite at first: it\'s normal and it passes.'},
+      {q:'It huffs loudly when I pick it up, is that bad?', a:'No, it\'s common in the species: many huff during handling without being aggressive. Some may also bite or musk.'},
+      {q:'My adult is getting very heavy, what should I do?', a:'Obesity is a common problem in blood pythons and hurts breeding and breathing. Space out meals (every 21 days) or offer smaller prey. Avoid very fatty retired breeder rodents.'},
+      {q:'It spends a lot of time in its water bowl, is that normal?', a:'An occasional soak, yes. If it soaks often and for long, check three things: an enclosure that is too warm, not enough hides, or mites (tiny black specks in the water).'},
+    ]},
   { id:'boa_bci', category:'serpent', nameFr:'Boa (BCI — Boa imperator)', nameEn:'Boa (BCI — Boa imperator)', tempWarm:29, tempCool:24, humidity:65,
     nameLatin:'Boa imperator', originFr:'Mexique, Amérique centrale et nord de l\'Amérique du Sud (surtout Colombie)', originEn:'Mexico, Central America, and northern South America (mainly Colombia)', lifespanFr:'20-30 ans', lifespanEn:'20-30 years',
     habitatTypeFr:'🌍🌳 Semi-arboricole (surtout terrestre, grimpe à l\'occasion)', habitatTypeEn:'🌍🌳 Semi-arboreal (mostly terrestrial, climbs occasionally)',
@@ -10103,7 +10155,7 @@ function snakeName(s){
 }
 function normalizeAnimalId(v){ const x = String(v==null?'':v).trim().replace(/\s+/g,' ').slice(0,40); return x || null; }
 // Code d'espèce : BP python royal, puis les initiales du nom anglais (CS, LG, CG, BD…) ; codes fixes quand les initiales se confondent.
-var ANIMAL_ID_SPECIES_CODES = { ball_python:'BP', corn_snake:'CS', king_california:'CKS', king_florida:'FKS', king_mexican:'MBK', hognose:'HOG', leopard_gecko:'LG', fat_tail_gecko:'FTG', crested_gecko:'CG', gargoyle_gecko:'GG', bearded_dragon:'BD', croc_skink_red:'RES', croc_skink_white:'WES', boa_bci:'BCI', boa_bcc:'BCC', rainbow_boa:'BRB', boa_argentin:'ARB', blue_tongue_skink:'BTS', uro_nigriventris:'URN', uro_maliensis:'URM', uro_ornata:'URO', uro_aegyptia:'URE', orvet:'SW', star_tortoise:'IST', sulcata_tortoise:'SUL', leopard_tortoise:'LT', red_eared_slider:'RES2', tree_monitor_green:'GTM', tree_monitor_blue:'BTM', tree_monitor_yellow:'YTM', tree_monitor_black:'BKTM', ackie_monitor:'ACK', savannah_monitor:'SAV', black_throated_monitor:'BTH', water_monitor:'AWM', reeves_turtle:'RT', diamondback_terrapin:'DBT', mata_mata:'MM' };
+var ANIMAL_ID_SPECIES_CODES = { ball_python:'BP', corn_snake:'CS', king_california:'CKS', king_florida:'FKS', king_mexican:'MBK', hognose:'HOG', leopard_gecko:'LG', fat_tail_gecko:'FTG', crested_gecko:'CG', gargoyle_gecko:'GG', bearded_dragon:'BD', croc_skink_red:'RES', croc_skink_white:'WES', boa_bci:'BCI', blood_python:'BLD', boa_bcc:'BCC', rainbow_boa:'BRB', boa_argentin:'ARB', blue_tongue_skink:'BTS', uro_nigriventris:'URN', uro_maliensis:'URM', uro_ornata:'URO', uro_aegyptia:'URE', orvet:'SW', star_tortoise:'IST', sulcata_tortoise:'SUL', leopard_tortoise:'LT', red_eared_slider:'RES2', tree_monitor_green:'GTM', tree_monitor_blue:'BTM', tree_monitor_yellow:'YTM', tree_monitor_black:'BKTM', ackie_monitor:'ACK', savannah_monitor:'SAV', black_throated_monitor:'BTH', water_monitor:'AWM', reeves_turtle:'RT', diamondback_terrapin:'DBT', mata_mata:'MM' };
 function animalIdSpeciesCode(species){
   const sp = species || 'ball_python';
   if(ANIMAL_ID_SPECIES_CODES[sp]) return ANIMAL_ID_SPECIES_CODES[sp];
@@ -17462,7 +17514,7 @@ function matchImportSpecies(raw){
     if(ab){ if(ab[1]==='p' && ab[2]==='regius') norm = 'ball python'; else { const hit = SPECIES_REFERENCE.find(sp=>{ const w = normalizeHeaderKey(sp.nameLatin||'').split(' '); return w[0] && w[0][0]===ab[1] && w[1]===ab[2]; }); if(hit) return { id:hit.id, known:true }; } } }
   if(['ball pythons','pythons royaux','royal pythons','pythons'].includes(norm)) norm = 'ball python'; // v4.23
   if(['piton','pyton','pithon','b python','b.python','b. python','bpython','ball piton','ball pyton','python royale','royal piton','bp python'].includes(norm)) norm = 'ball python'; // v4.38 — raccourcis et fautes de débutant — MorphMarket écrit « Ball Pythons »
-  const SHORT = { 'corn':'corn_snake','corns':'corn_snake','couleuvre des bles':'corn_snake','serpent des bles':'corn_snake','hognose snake':'hognose','western hognose':'hognose','hoggie':'hognose','leo':'leopard_gecko','leos':'leopard_gecko','leopard':'leopard_gecko','gecko leopard':'leopard_gecko','crestie':'crested_gecko','cresties':'crested_gecko','crested':'crested_gecko','gargoyle':'gargoyle_gecko','fat tail':'fat_tail_gecko','fat tailed gecko':'fat_tail_gecko','african fat tail':'fat_tail_gecko','beardie':'bearded_dragon','beardies':'bearded_dragon','pogona':'bearded_dragon','blue tongue':'blue_tongue_skink','bts':'blue_tongue_skink','blue tongued skink':'blue_tongue_skink','bci':'boa_bci','bcc':'boa_bcc','brb':'rainbow_boa','rainbow boa':'rainbow_boa','ackie':'ackie_monitor','sulcata':'sulcata_tortoise','res':'red_eared_slider','california king':'king_california','cal king':'king_california','florida king':'king_florida','mexican black king':'king_mexican','mbk':'king_mexican' }; // v4.29
+  const SHORT = { 'blood':'blood_python','bloods':'blood_python','red blood python':'blood_python','pythons sanguins':'blood_python','brongersmai':'blood_python','p brongersmai':'blood_python', 'corn':'corn_snake','corns':'corn_snake','couleuvre des bles':'corn_snake','serpent des bles':'corn_snake','hognose snake':'hognose','western hognose':'hognose','hoggie':'hognose','leo':'leopard_gecko','leos':'leopard_gecko','leopard':'leopard_gecko','gecko leopard':'leopard_gecko','crestie':'crested_gecko','cresties':'crested_gecko','crested':'crested_gecko','gargoyle':'gargoyle_gecko','fat tail':'fat_tail_gecko','fat tailed gecko':'fat_tail_gecko','african fat tail':'fat_tail_gecko','beardie':'bearded_dragon','beardies':'bearded_dragon','pogona':'bearded_dragon','blue tongue':'blue_tongue_skink','bts':'blue_tongue_skink','blue tongued skink':'blue_tongue_skink','bci':'boa_bci','bcc':'boa_bcc','brb':'rainbow_boa','rainbow boa':'rainbow_boa','ackie':'ackie_monitor','sulcata':'sulcata_tortoise','res':'red_eared_slider','california king':'king_california','cal king':'king_california','florida king':'king_florida','mexican black king':'king_mexican','mbk':'king_mexican' }; // v4.29
   if(SHORT[norm]) return { id:SHORT[norm], known:true };
   if(!norm) return { id:'ball_python', known:true };
   if(['python royal','ball python','royal python','python regius','ball','python','ball_python','bp'].includes(norm)) return { id:'ball_python', known:true };
@@ -17482,7 +17534,8 @@ function matchImportSpecies(raw){
 // python royal avec le bon statut. Plus long nom d'abord (Black Pastel avant Pastel). Les mots non
 // reconnus sont rendus pour l'aperçu. Toujours marqué « à vérifier » (genesVerified:false).
 // Raccourcis du milieu, seulement quand ils ne sont pas ambigus (« Axanthic » seul = 5 lignées différentes → pas d'alias).
-var IMPORT_GENE_ALIASES = { hypo:['hypo','hypomelanistic','hypomelanistique','ghost'], yellowbelly:['yb','yellow belly'], orangedream:['od'], piebald:['pied'], mojave:['mojo'], desertghost:['dg'], highintensityod:['hi od','high intensity orange dream'], lavenderalbino:['lavender','lav albino'], spotnose:['spot nose'], lg_tremper:['tremper','tremper albino'], lg_bell:['bell','bell albino'], lg_rainwater:['rainwater','rainwater albino','las vegas albino','las vegas'], lg_murphy:['murphy'], lg_wy:['w y','white and yellow'] }; // v4.15 — gecko léopard : noms courts du milieu
+var IMPORT_GENE_ALIASES = { hypo:['hypo','hypomelanistic','hypomelanistique','ghost'], yellowbelly:['yb','yellow belly'], orangedream:['od'], piebald:['pied'], mojave:['mojo'], desertghost:['dg'], highintensityod:['hi od','high intensity orange dream'], lavenderalbino:['lavender','lav albino'], ultramel:['ultramelanistic','crider','burgundy albino','burgundy'], // v5.26
+  spotnose:['spot nose'], lg_tremper:['tremper','tremper albino'], lg_bell:['bell','bell albino'], lg_rainwater:['rainwater','rainwater albino','las vegas albino','las vegas'], lg_murphy:['murphy'], lg_wy:['w y','white and yellow'] }; // v4.15 — gecko léopard : noms courts du milieu
 function importGeneNorm(str){ return String(str||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[|,;\/+&()\[\]_]/g,' ').replace(/(^|\s)-+|-+(?=\s|$)|(?<=[a-z])-(?=[a-z])/g,' ').replace(/\s+/g,' ').trim(); }
 function importGeneVariants(species){
   const sp = species || 'ball_python';
@@ -20844,7 +20897,7 @@ const PREY_TYPES = {
 // règle par espèce individuelle, pour rester gérable. "Autre"/inconnu retombe sur rongeurs (le cas
 // le plus courant historiquement dans LOCUS) plutôt que de rien proposer du tout.
 function preyTypesForSpecies(speciesId){
-  const rodentEaters = ['ball_python','corn_snake','king_california','king_florida','king_mexican','hognose'];
+  const rodentEaters = ['ball_python','blood_python','corn_snake','king_california','king_florida','king_mexican','hognose'];
   if(!speciesId || rodentEaters.includes(speciesId)) return ['mouse','rat','asf','gerbil'];
   // Les boas adultes (surtout la BCC, plus grosse) peuvent prendre des proies bien plus grosses
   // qu'un python royal ou un corn snake à l'âge adulte — d'où l'ajout lapin/cochon d'Inde ici
@@ -21276,7 +21329,7 @@ function setPreyType(id, type){
 // DEFAULT_FEEDING_INTERVAL (comportement inchangé). La valeur de la fiche (feedingIntervalDays) prime.
 const SPECIES_FEED_DAYS = {
   corn_snake:[7,7,10], king_california:[5,7,10], king_florida:[5,7,10], king_mexican:[5,7,10], hognose:[4,6,10],
-  boa_bci:[5,7,14], boa_bcc:[5,7,14], boa_argentin:[5,7,14], rainbow_boa:[5,7,10],
+  blood_python:[7,7,14], boa_bci:[5,7,14], boa_bcc:[5,7,14], boa_argentin:[5,7,14], rainbow_boa:[5,7,10],
   leopard_gecko:[1,2,3], fat_tail_gecko:[1,2,3], crested_gecko:[1,1,2], gargoyle_gecko:[1,1,2],
   bearded_dragon:[1,1,1], croc_skink_red:[1,1,2], croc_skink_white:[1,1,2], blue_tongue_skink:[1,1,2],
   uro_nigriventris:[1,1,2], uro_maliensis:[1,1,2], uro_ornata:[1,1,2], uro_aegyptia:[1,1,2], orvet:[1,1,2],
@@ -27564,6 +27617,7 @@ function calcPreBuyCost(){
 const REPRODUCTION_INFO_BY_SPECIES = {
   ball_python: { mode:'ovipare', def:60, min:50, max:70 },
   corn_snake: { mode:'ovipare', def:60, min:50, max:70 },
+  blood_python: { mode:'ovipare', def:60, min:50, max:70 }, // v5.24 — ~60 jours (Battison, Reptile Centre)
   king_california: { mode:'ovipare', def:65, min:50, max:80 },
   king_florida: { mode:'ovipare', def:65, min:50, max:80 },
   king_mexican: { mode:'ovipare', def:65, min:50, max:80 },
@@ -33954,6 +34008,7 @@ function speciesClutchInfoBlockHtml(clutchesText, eggsText, isEn){
 // partagés avant ce changement continuent de marcher), mais les NOUVEAUX liens copiés utilisent
 // désormais l'URL statique. Regénérer les fichiers du dossier guides/ (script generate_static_guides.py)
 // à chaque changement de contenu d'espèce.
+var GUIDES_WITHOUT_STATIC_PAGE = ['blood_python']; // v5.24
 function publicGuideUrl(speciesId){
   // Cas spécial (2 septembre) — l'id interne est 'prey_sizes' mais le fichier statique généré
   // s'appelle prey-size-lexicon.html (nom plus descriptif choisi au moment de la génération). Sans
@@ -33961,6 +34016,9 @@ function publicGuideUrl(speciesId){
   const slugMap = { prey_sizes: 'prey-size-lexicon' };
   const slug = slugMap[speciesId] || speciesId.replace(/_/g, '-');
   const isEn = currentLang==='en';
+  // v5.24 — espèce ajoutée sans page statique encore générée dans guides/ : lien dynamique ?guide=<id>
+  // (toujours fonctionnel) pour éviter un 404. Retirer l'id d'ici après avoir regénéré guides/.
+  if(GUIDES_WITHOUT_STATIC_PAGE.includes(speciesId)) return location.origin + location.pathname + '?guide=' + encodeURIComponent(speciesId) + '&lang=' + (isEn ? 'en' : 'fr');
   return location.origin + '/guides/' + slug + (isEn ? '-en' : '') + '.html';
 }
 function buildSpeciesGuideHtml(speciesId){
