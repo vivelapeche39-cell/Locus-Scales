@@ -264,7 +264,10 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 .sex-note b{color:var(--gold);}
 
 /* Calc button */
-.calc-bar{display:flex;justify-content:center;margin:28px 0 36px;}
+.calc-bar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:28px 0 36px;}
+/* v5.27 — sur téléphone, les 3 boutons débordaient de l'écran (centrés = coupés à gauche, impossible d'y glisser) : ils passent à la ligne */
+.calc-bar .calc-btn{margin-left:0 !important;}
+@media (max-width:760px){ .calc-bar .calc-btn{padding:12px 18px;letter-spacing:1px;flex:1 1 auto;} }
 .calc-btn{font-family:'Courier New',monospace;letter-spacing:2px;text-transform:uppercase;font-size:13px;background:var(--gold);color:#1a1409;border:none;padding:14px 38px;border-radius:16px;cursor:pointer;font-weight:600;box-shadow:var(--shadow);transition:.15s;}
 .calc-btn:hover{background:#dba94e;transform:translateY(-1px);}
 
@@ -2299,7 +2302,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.26';
+const APP_VERSION = '2026.09.01.5.27';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5420,6 +5423,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.27', date:'2026-10-29',
+    title:{ fr:'Calculateur sur téléphone', en:'Calculator on phones' },
+    changes:{
+      fr:[ '📱 Correctif : sur un téléphone, les boutons du calculateur (Calculer la portée, Simulateur de rêverie, Chemin optimal) dépassaient de l\'écran. Le premier était coupé à gauche et la page restait plus large que l\'écran, comme « zoomée ». Ils se placent maintenant les uns sous les autres.' ],
+      en:[ '📱 Fix: on a phone, the calculator buttons (Calculate clutch, Dream simulator, Optimal path) went past the edge of the screen. The first one was cut off on the left and the page stayed wider than the screen, as if « zoomed in ». They now stack under each other.' ]
+    }
+  },
   { version:'5.26', date:'2026-10-29',
     title:{ fr:'Nouveau gène : Ultramel', en:'New gene: Ultramel' },
     changes:{
