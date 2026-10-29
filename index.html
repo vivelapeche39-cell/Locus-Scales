@@ -2302,7 +2302,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.27';
+const APP_VERSION = '2026.09.01.5.29';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5423,6 +5423,22 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.29', date:'2026-10-29',
+    title:{ fr:'Couleuvre obscure grise', en:'Gray rat snake' },
+    changes:{
+      fr:[ '🐍 Nouvelle espèce : la couleuvre obscure grise (Pantherophis spiloides). Tu peux en ajouter une à ta collection ou l\'importer (« Gray rat snake », « Grey rat snake », « Central ratsnake »…), code d\'identification GRS, proies et rappels de repas, incubation de ~65 jours, et une fiche de soins (températures, humidité, enclos, brumation, tempérament, FAQ). Avertissement : au Canada, l\'espèce est en péril en Ontario — ne jamais prélever d\'animal dans la nature. Pas de génétique pour l\'instant : Morphpedia ne couvre pas encore les couleuvres obscures. Sources : Mike Morgan (Reptiles Magazine), Outdoor Alabama, COSEWIC.',
+           '📄 Les fiches publiques du python sanguin et de la couleuvre obscure grise sont maintenant en ligne dans les fiches d\'espèces, et la liste des fiches montre toutes les espèces disponibles.' ],
+      en:[ '🐍 New species: the gray rat snake (Pantherophis spiloides). Add one to your collection or import it (« Gray rat snake », « Grey rat snake », « Central ratsnake »…), ID code GRS, prey and feeding reminders, ~65-day incubation, and a care sheet (temperatures, humidity, enclosure, brumation, temperament, FAQ). Warning: in Canada, the species is at risk in Ontario — never take an animal from the wild. No genetics yet: Morphpedia doesn\'t cover rat snakes so far. Sources: Mike Morgan (Reptiles Magazine), Outdoor Alabama, COSEWIC.',
+           '📄 The public care sheets for the blood python and the gray rat snake are now online in the species guides, and the guides list shows every available species.' ]
+    }
+  },
+  { version:'5.28', date:'2026-10-29',
+    title:{ fr:'Nos engagements : maintenance', en:'Our commitments: maintenance' },
+    changes:{
+      fr:[ '🛡 « Nos engagements » précise maintenant que, pour réparer un problème ou améliorer l\'app (par exemple vérifier qu\'un import s\'est bien passé), le développeur peut consulter les données d\'un compte, et que ces données ne sont jamais vendues, partagées ni utilisées à d\'autres fins.' ],
+      en:[ '🛡 « Our commitments » now states that, to fix a problem or improve the app (for example, checking that an import went well), the developer may look at an account\'s data, and that this data is never sold, shared or used for anything else.' ]
+    }
+  },
   { version:'5.27', date:'2026-10-29',
     title:{ fr:'Calculateur sur téléphone', en:'Calculator on phones' },
     changes:{
@@ -9151,6 +9167,37 @@ const SPECIES_REFERENCE = [
       {q:'Is this a lizard you handle often?', a:'No — same as the red-eyed skink, more an observation species than a frequently-handled one. Stresses easily, may play dead when picked up.'},
       {q:'Can I keep two together?', a:'Solo or a carefully managed pair only — never in groups.'},
     ]},
+  // v5.29 — couleuvre obscure grise (demandée par un utilisateur, 2 animaux). Pas de catégorie « rat snakes » dans Morphpedia →
+  // aucune génétique. Sources lues le 29 oct 2026 : Mike Morgan dans Reptiles Magazine (« Gray Rat Snake Care Sheet » + « Care and
+  // Breeding the Gray Rat Snake »), Outdoor Alabama (Alabama Department of Conservation) pour la ponte et l'incubation, COSEWIC 2018
+  // (gouvernement du Canada) pour le statut d'espèce en péril en Ontario.
+  { id:'gray_rat_snake', category:'serpent', nameFr:'Couleuvre obscure grise', nameEn:'Gray rat snake', tempWarm:28, tempCool:22, humidity:50,
+    nameLatin:'Pantherophis spiloides', originFr:'Centre et sud-est des États-Unis ; petites populations isolées en Ontario (Canada)', originEn:'Central and southeastern United States; small isolated populations in Ontario (Canada)', lifespanFr:'~15 ans en captivité en moyenne, plus de 20 ans possible', lifespanEn:'~15 years on average in captivity, over 20 years possible',
+    habitatTypeFr:'🌍🌳 Semi-arboricole (excellent grimpeur)', habitatTypeEn:'🌍🌳 Semi-arboreal (excellent climber)',
+    dietFr:'Carnivore — souris et rats de taille appropriée, congelé-décongelé. Mange aussi oiseaux et œufs dans la nature. Certains bébés refusent les souriceaux au début : frotter le souriceau avec l\'odeur d\'un petit lézard ou d\'une rainette aide souvent.', dietEn:'Carnivore — appropriately sized mice and rats, frozen-thawed. Also eats birds and eggs in the wild. Some babies refuse pinkies at first: scenting the pinky with a small lizard or tree frog often helps.',
+    feedFreqFr:'Aux 5-10 jours, plus souvent pour les jeunes.', feedFreqEn:'Every 5-10 days, more often for young snakes.',
+    substrateFr:'Papier journal (le plus facile à nettoyer), copeaux d\'aspen ou fibre de coco. Garder un coin sec. Jamais de pin ni de cèdre — huiles toxiques.', substrateEn:'Newspaper (easiest to clean), aspen shavings or coconut coir. Keep a dry spot. Never pine or cedar — toxic oils.',
+    uvbFr:'Pas documenté comme essentiel dans les sources consultées.', uvbEn:'Not documented as essential in the sources consulted.',
+    incubationFr:'~60-75 jours à 24-27 °C (75-80 °F), dans de la vermiculite. Brumation d\'hiver de 50-70 jours à 7-15 °C (45-59 °F) avant la reproduction, seulement si le dernier repas est bien digéré.', incubationEn:'~60-75 days at 24-27°C (75-80°F), in vermiculite. Winter brumation of 50-70 days at 7-15°C (45-59°F) before breeding, only once the last meal is fully digested.',
+    clutchesPerMatingFr:'Généralement 1 ponte par saison (pontes de juin à août dans la nature).', clutchesPerMatingEn:'Generally 1 clutch per season (laid June to August in the wild).',
+    avgEggCountFr:'Souvent 12-18 œufs (de 5 à plus de 40).', avgEggCountEn:'Often 12-18 eggs (from 5 to over 40).',
+    noteFr:'Adulte : 1,1-1,8 m (42-72 po), les mâles grandissent plus vite et plus grand. Gradient de 22-28 °C (72-82 °F), humidité modérée (30-70 %, viser le milieu) : trop sec = mauvaises mues, trop mouillé = pourriture des écailles. Grimpeur : prévoir une branche solide et un couvercle bien verrouillé. ⚠️ Au Canada, l\'espèce est en péril (menacée ou en voie de disparition en Ontario, Loi sur les espèces en péril) : ne jamais prélever d\'animal dans la nature et vérifier les règlements locaux.',
+    noteEn:'Adult: 1.1-1.8 m (42-72 in), males grow faster and larger. Gradient of 22-28°C (72-82°F), moderate humidity (30-70%, aim for the middle): too dry = bad sheds, too wet = scale rot. A climber: provide a sturdy branch and a well-locked lid. ⚠️ In Canada, the species is at risk (threatened or endangered in Ontario, Species at Risk Act): never take an animal from the wild and check local regulations.',
+    enclosureBaby:'Bac de la taille d\'une boîte à chaussures, à agrandir avec la croissance', enclosureBabyEn:'Shoebox-sized tub, upsized as it grows',
+    enclosureSub:'Agrandir graduellement selon la taille', enclosureSubEn:'Upsize gradually with size',
+    enclosureAdult:'76×30×30cm (aquarium de 20 gallons « long ») minimum pour un adulte seul — plus grand est mieux, avec une branche', enclosureAdultEn:'30×12×12in (20-gallon long) minimum for a single adult — bigger is better, with a branch',
+    faqFr:[
+      {q:'On dit que les couleuvres obscures sont agressives, c\'est vrai ?', a:'Elles ont cette réputation, surtout les animaux capturés en nature, qui peuvent mordre ou relâcher du musc au début. Avec une manipulation calme et régulière, elles s\'habituent généralement vite. Un crochet à serpent aide les premières fois.'},
+      {q:'Mon bébé refuse les souriceaux, je fais quoi ?', a:'C\'est fréquent : dans la nature, les jeunes mangent surtout des lézards et des petites grenouilles. Frotter le souriceau avec l\'odeur d\'un petit lézard ou d\'une rainette aide souvent à faire la transition.'},
+      {q:'Il se frotte le nez sur les parois, c\'est grave ?', a:'Ça peut le devenir : le frottement du museau (rostre) cause des plaies qui s\'infectent. C\'est souvent un signe d\'animal agité ou d\'enclos trop petit. Offre plus d\'espace, des cachettes, et évite les surfaces rugueuses.'},
+      {q:'Est-ce que je peux en garder plusieurs ensemble ?', a:'Mieux vaut un animal par enclos. Deux mâles peuvent se battre sérieusement en période de reproduction.'},
+    ],
+    faqEn:[
+      {q:'People say rat snakes are aggressive, is that true?', a:'They have that reputation, especially wild-caught animals, which may bite or musk at first. With calm, regular handling, they usually settle quickly. A snake hook helps the first few times.'},
+      {q:'My baby refuses pinkies, what do I do?', a:'It\'s common: in the wild, the young mostly eat lizards and small frogs. Scenting the pinky with a small lizard or tree frog often helps with the switch.'},
+      {q:'It rubs its nose on the walls, is that serious?', a:'It can become serious: rubbing the snout (rostrum) causes wounds that get infected. It\'s often a sign of a restless snake or an enclosure that is too small. Offer more space and hides, and avoid rough surfaces.'},
+      {q:'Can I keep several together?', a:'One animal per enclosure is best. Two males can fight seriously during breeding season.'},
+    ]},
   // v5.24 — python sanguin. Sources lues le 29 oct 2026 : Kara et Ryan Norris (The Blood Cell, éleveurs spécialisés) dans
   // Reptiles Magazine (2 articles : soins + « care sheet »), Graham Battison (Herp Magazine, via Herpetoculture Network) pour la
   // reproduction, Reptile Centre (R.-U.) pour l'espérance de vie et l'UVB. Une fiche Reptiles Magazine plus ancienne donne
@@ -10165,7 +10212,7 @@ function snakeName(s){
 }
 function normalizeAnimalId(v){ const x = String(v==null?'':v).trim().replace(/\s+/g,' ').slice(0,40); return x || null; }
 // Code d'espèce : BP python royal, puis les initiales du nom anglais (CS, LG, CG, BD…) ; codes fixes quand les initiales se confondent.
-var ANIMAL_ID_SPECIES_CODES = { ball_python:'BP', corn_snake:'CS', king_california:'CKS', king_florida:'FKS', king_mexican:'MBK', hognose:'HOG', leopard_gecko:'LG', fat_tail_gecko:'FTG', crested_gecko:'CG', gargoyle_gecko:'GG', bearded_dragon:'BD', croc_skink_red:'RES', croc_skink_white:'WES', boa_bci:'BCI', blood_python:'BLD', boa_bcc:'BCC', rainbow_boa:'BRB', boa_argentin:'ARB', blue_tongue_skink:'BTS', uro_nigriventris:'URN', uro_maliensis:'URM', uro_ornata:'URO', uro_aegyptia:'URE', orvet:'SW', star_tortoise:'IST', sulcata_tortoise:'SUL', leopard_tortoise:'LT', red_eared_slider:'RES2', tree_monitor_green:'GTM', tree_monitor_blue:'BTM', tree_monitor_yellow:'YTM', tree_monitor_black:'BKTM', ackie_monitor:'ACK', savannah_monitor:'SAV', black_throated_monitor:'BTH', water_monitor:'AWM', reeves_turtle:'RT', diamondback_terrapin:'DBT', mata_mata:'MM' };
+var ANIMAL_ID_SPECIES_CODES = { ball_python:'BP', corn_snake:'CS', king_california:'CKS', king_florida:'FKS', king_mexican:'MBK', hognose:'HOG', leopard_gecko:'LG', fat_tail_gecko:'FTG', crested_gecko:'CG', gargoyle_gecko:'GG', bearded_dragon:'BD', croc_skink_red:'RES', croc_skink_white:'WES', boa_bci:'BCI', blood_python:'BLD', gray_rat_snake:'GRS', boa_bcc:'BCC', rainbow_boa:'BRB', boa_argentin:'ARB', blue_tongue_skink:'BTS', uro_nigriventris:'URN', uro_maliensis:'URM', uro_ornata:'URO', uro_aegyptia:'URE', orvet:'SW', star_tortoise:'IST', sulcata_tortoise:'SUL', leopard_tortoise:'LT', red_eared_slider:'RES2', tree_monitor_green:'GTM', tree_monitor_blue:'BTM', tree_monitor_yellow:'YTM', tree_monitor_black:'BKTM', ackie_monitor:'ACK', savannah_monitor:'SAV', black_throated_monitor:'BTH', water_monitor:'AWM', reeves_turtle:'RT', diamondback_terrapin:'DBT', mata_mata:'MM' };
 function animalIdSpeciesCode(species){
   const sp = species || 'ball_python';
   if(ANIMAL_ID_SPECIES_CODES[sp]) return ANIMAL_ID_SPECIES_CODES[sp];
@@ -17524,7 +17571,7 @@ function matchImportSpecies(raw){
     if(ab){ if(ab[1]==='p' && ab[2]==='regius') norm = 'ball python'; else { const hit = SPECIES_REFERENCE.find(sp=>{ const w = normalizeHeaderKey(sp.nameLatin||'').split(' '); return w[0] && w[0][0]===ab[1] && w[1]===ab[2]; }); if(hit) return { id:hit.id, known:true }; } } }
   if(['ball pythons','pythons royaux','royal pythons','pythons'].includes(norm)) norm = 'ball python'; // v4.23
   if(['piton','pyton','pithon','b python','b.python','b. python','bpython','ball piton','ball pyton','python royale','royal piton','bp python'].includes(norm)) norm = 'ball python'; // v4.38 — raccourcis et fautes de débutant — MorphMarket écrit « Ball Pythons »
-  const SHORT = { 'blood':'blood_python','bloods':'blood_python','red blood python':'blood_python','pythons sanguins':'blood_python','brongersmai':'blood_python','p brongersmai':'blood_python', 'corn':'corn_snake','corns':'corn_snake','couleuvre des bles':'corn_snake','serpent des bles':'corn_snake','hognose snake':'hognose','western hognose':'hognose','hoggie':'hognose','leo':'leopard_gecko','leos':'leopard_gecko','leopard':'leopard_gecko','gecko leopard':'leopard_gecko','crestie':'crested_gecko','cresties':'crested_gecko','crested':'crested_gecko','gargoyle':'gargoyle_gecko','fat tail':'fat_tail_gecko','fat tailed gecko':'fat_tail_gecko','african fat tail':'fat_tail_gecko','beardie':'bearded_dragon','beardies':'bearded_dragon','pogona':'bearded_dragon','blue tongue':'blue_tongue_skink','bts':'blue_tongue_skink','blue tongued skink':'blue_tongue_skink','bci':'boa_bci','bcc':'boa_bcc','brb':'rainbow_boa','rainbow boa':'rainbow_boa','ackie':'ackie_monitor','sulcata':'sulcata_tortoise','res':'red_eared_slider','california king':'king_california','cal king':'king_california','florida king':'king_florida','mexican black king':'king_mexican','mbk':'king_mexican' }; // v4.29
+  const SHORT = { 'grey rat snake':'gray_rat_snake','grey ratsnake':'gray_rat_snake','gray ratsnake':'gray_rat_snake','central ratsnake':'gray_rat_snake','elaphe spiloides':'gray_rat_snake','elaphe obsoleta spiloides':'gray_rat_snake','pantherophis obsoletus spiloides':'gray_rat_snake','couleuvre grise':'gray_rat_snake', 'blood':'blood_python','bloods':'blood_python','red blood python':'blood_python','pythons sanguins':'blood_python','brongersmai':'blood_python','p brongersmai':'blood_python', 'corn':'corn_snake','corns':'corn_snake','couleuvre des bles':'corn_snake','serpent des bles':'corn_snake','hognose snake':'hognose','western hognose':'hognose','hoggie':'hognose','leo':'leopard_gecko','leos':'leopard_gecko','leopard':'leopard_gecko','gecko leopard':'leopard_gecko','crestie':'crested_gecko','cresties':'crested_gecko','crested':'crested_gecko','gargoyle':'gargoyle_gecko','fat tail':'fat_tail_gecko','fat tailed gecko':'fat_tail_gecko','african fat tail':'fat_tail_gecko','beardie':'bearded_dragon','beardies':'bearded_dragon','pogona':'bearded_dragon','blue tongue':'blue_tongue_skink','bts':'blue_tongue_skink','blue tongued skink':'blue_tongue_skink','bci':'boa_bci','bcc':'boa_bcc','brb':'rainbow_boa','rainbow boa':'rainbow_boa','ackie':'ackie_monitor','sulcata':'sulcata_tortoise','res':'red_eared_slider','california king':'king_california','cal king':'king_california','florida king':'king_florida','mexican black king':'king_mexican','mbk':'king_mexican' }; // v4.29
   if(SHORT[norm]) return { id:SHORT[norm], known:true };
   if(!norm) return { id:'ball_python', known:true };
   if(['python royal','ball python','royal python','python regius','ball','python','ball_python','bp'].includes(norm)) return { id:'ball_python', known:true };
@@ -20907,7 +20954,7 @@ const PREY_TYPES = {
 // règle par espèce individuelle, pour rester gérable. "Autre"/inconnu retombe sur rongeurs (le cas
 // le plus courant historiquement dans LOCUS) plutôt que de rien proposer du tout.
 function preyTypesForSpecies(speciesId){
-  const rodentEaters = ['ball_python','blood_python','corn_snake','king_california','king_florida','king_mexican','hognose'];
+  const rodentEaters = ['ball_python','blood_python','gray_rat_snake','corn_snake','king_california','king_florida','king_mexican','hognose'];
   if(!speciesId || rodentEaters.includes(speciesId)) return ['mouse','rat','asf','gerbil'];
   // Les boas adultes (surtout la BCC, plus grosse) peuvent prendre des proies bien plus grosses
   // qu'un python royal ou un corn snake à l'âge adulte — d'où l'ajout lapin/cochon d'Inde ici
@@ -21339,7 +21386,7 @@ function setPreyType(id, type){
 // DEFAULT_FEEDING_INTERVAL (comportement inchangé). La valeur de la fiche (feedingIntervalDays) prime.
 const SPECIES_FEED_DAYS = {
   corn_snake:[7,7,10], king_california:[5,7,10], king_florida:[5,7,10], king_mexican:[5,7,10], hognose:[4,6,10],
-  blood_python:[7,7,14], boa_bci:[5,7,14], boa_bcc:[5,7,14], boa_argentin:[5,7,14], rainbow_boa:[5,7,10],
+  blood_python:[7,7,14], gray_rat_snake:[5,7,10], boa_bci:[5,7,14], boa_bcc:[5,7,14], boa_argentin:[5,7,14], rainbow_boa:[5,7,10],
   leopard_gecko:[1,2,3], fat_tail_gecko:[1,2,3], crested_gecko:[1,1,2], gargoyle_gecko:[1,1,2],
   bearded_dragon:[1,1,1], croc_skink_red:[1,1,2], croc_skink_white:[1,1,2], blue_tongue_skink:[1,1,2],
   uro_nigriventris:[1,1,2], uro_maliensis:[1,1,2], uro_ornata:[1,1,2], uro_aegyptia:[1,1,2], orvet:[1,1,2],
@@ -27627,7 +27674,8 @@ function calcPreBuyCost(){
 const REPRODUCTION_INFO_BY_SPECIES = {
   ball_python: { mode:'ovipare', def:60, min:50, max:70 },
   corn_snake: { mode:'ovipare', def:60, min:50, max:70 },
-  blood_python: { mode:'ovipare', def:60, min:50, max:70 }, // v5.24 — ~60 jours (Battison, Reptile Centre)
+  blood_python: { mode:'ovipare', def:60, min:50, max:70 },
+  gray_rat_snake: { mode:'ovipare', def:65, min:55, max:80 }, // v5.29 — 60-75 jours (Morgan), 8-10 semaines (Outdoor Alabama) // v5.24 — ~60 jours (Battison, Reptile Centre)
   king_california: { mode:'ovipare', def:65, min:50, max:80 },
   king_florida: { mode:'ovipare', def:65, min:50, max:80 },
   king_mexican: { mode:'ovipare', def:65, min:50, max:80 },
@@ -34018,7 +34066,7 @@ function speciesClutchInfoBlockHtml(clutchesText, eggsText, isEn){
 // partagés avant ce changement continuent de marcher), mais les NOUVEAUX liens copiés utilisent
 // désormais l'URL statique. Regénérer les fichiers du dossier guides/ (script generate_static_guides.py)
 // à chaque changement de contenu d'espèce.
-var GUIDES_WITHOUT_STATIC_PAGE = ['blood_python']; // v5.24
+var GUIDES_WITHOUT_STATIC_PAGE = []; // v5.24 — vide depuis v5.29 (pages blood-python et gray-rat-snake générées par generate_static_guides.py)
 function publicGuideUrl(speciesId){
   // Cas spécial (2 septembre) — l'id interne est 'prey_sizes' mais le fichier statique généré
   // s'appelle prey-size-lexicon.html (nom plus descriptif choisi au moment de la génération). Sans
