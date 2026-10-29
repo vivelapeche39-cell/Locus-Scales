@@ -241,6 +241,18 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://app.locusscales.com/guides/solomon-ground-boa-en.html</loc>
+    <lastmod>2026-10-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://app.locusscales.com/guides/solomon-ground-boa.html</loc>
+    <lastmod>2026-10-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://app.locusscales.com/guides/trust.html</loc>
     <lastmod>2026-10-29</lastmod>
     <changefreq>monthly</changefreq>

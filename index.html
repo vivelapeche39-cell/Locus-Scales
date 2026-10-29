@@ -2185,6 +2185,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
     <input type="file" id="mm-csv-file-input" accept=".csv,.tsv" style="display:none;"/><!-- v4.23 : ancien bouton MorphMarket, gardé caché (écouteur existant) -->
     <div class="reg-links">
       <button class="sc-btn accent" onclick="if(requireAuthOrPrompt()) document.getElementById('generic-csv-file-input').click()">📥 <span data-i18n="genericCsvBtn">Choisir un fichier</span></button>
+      <button class="sc-btn" onclick="if(requireAuthOrPrompt()) openNotebookImport()">📷 <span data-i18n="notebookImportBtn">Importer depuis un cahier</span></button><!-- v5.30 -->
     </div>
   </div>
 
@@ -2302,7 +2303,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.29';
+const APP_VERSION = '2026.09.01.5.32';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4466,10 +4467,79 @@ const GENES = [
   {id:'bl_batik', name:'Batik', type:'incdom', locus:'bl_batik', cat:'Codominant / Incomplet dominant', superLabel:'Super Batik', species:'blood_python',
     warning:"Forme homozygote (Super Batik) souvent létale : torsions de la colonne vers la queue (« kinking ») chez les bébés qui survivent à l'incubation, et œufs non viables. Rares sont les Super Batik qui atteignent l'âge adulte. Source : Morphpedia.",
     warningEn:"Homozygous form (Super Batik) is often lethal: spinal kinking toward the tail in babies that survive incubation, and unviable eggs. Few Super Batiks reach adulthood. Source: Morphpedia."},
+  // ==================== Boa BCI (v5.32) — species:'boa_bci' (Boa imperator : colombiens et d'Amérique centrale), ids bci_ ====================
+  // Source : Morphpedia, catégorie « Boa Constrictors » (36 fiches lues une par une le 29 oct 2026). Demandé par Royal Gorge Exotics.
+  // Loci partagés selon Morphpedia : Hypo + Motley (colombien) = complexe Motley ; Leopard + Onyx = complexe Leopard.
+  // Gardés SÉPARÉS avec avertissement (Morphpedia ambigu) : Sharp × BWC (« Paradigm ») et Sharp × Prodigy (« Paradise »),
+  // Anery Type 2 × Albino Kahl (loci voisins : double homozygote impossible — lien génétique non modélisé), Key West vs Roswell
+  // (peut-être le même gène), Anery Carbon vs RDR Black Eye (peut-être reliés).
+  // Exclus : Coral Albino, Kubsch Pastel, Salmon Hypo (polygéniques), Paradox, Normal (pas des gènes), Albino argentin (autre espèce).
+  {id:'bci_kahl', name:'Albino (Kahl)', type:'recessive', locus:'bci_kahl', cat:'Récessif', species:'boa_bci',
+    warning:"Albinos T- (lignée Kahl, la plus répandue). Photophobie (sensibilité à la lumière) chez les visuels. Pas compatible avec l'Albino Sharp : ce sont deux gènes différents. L'Anery Type 2 est sur un locus voisin : un animal ne peut pas être à la fois Albino Kahl et Anery Type 2 visuels (lien génétique que LOCUS ne calcule pas). Source : Morphpedia.",
+    warningEn:"T- albino (Kahl line, the most common). Photophobia (light sensitivity) in visuals. Not compatible with Sharp Albino: two different genes. Anery Type 2 sits on a neighbouring locus: an animal cannot be visual for both Kahl Albino and Type 2 Anery (genetic linkage that LOCUS does not calculate). Source: Morphpedia."},
+  {id:'bci_sharp', name:'Albino (Sharp)', type:'recessive', locus:'bci_sharp', cat:'Récessif', species:'boa_bci',
+    warning:"Albinos T- (lignée Sharp). Photophobie chez les visuels. Pas compatible avec l'Albino Kahl. Selon Morphpedia, Sharp × BWC donne le « Paradigm » et Sharp × Prodigy le « Paradise » : LOCUS les calcule comme des gènes séparés, le résultat réel de ces croisements peut différer. Source : Morphpedia.",
+    warningEn:"T- albino (Sharp line). Photophobia in visuals. Not compatible with Kahl Albino. According to Morphpedia, Sharp × BWC gives the « Paradigm » and Sharp × Prodigy the « Paradise »: LOCUS calculates them as separate genes, the real result of these pairings may differ. Source: Morphpedia."},
+  {id:'bci_bwc', name:'Albino (BWC / Caramel)', type:'recessive', locus:'bci_bwc', cat:'Récessif', species:'boa_bci',
+    warning:"Aussi appelé Caramel Albino ou Boa Woman Caramel. Photophobie chez les visuels. Voir l'avertissement de l'Albino Sharp (« Paradigm »). Source : Morphpedia.",
+    warningEn:"Also called Caramel Albino or Boa Woman Caramel. Photophobia in visuals. See the Sharp Albino warning (« Paradigm »). Source: Morphpedia."},
+  {id:'bci_prodigy', name:'Albino (Prodigy)', type:'recessive', locus:'bci_prodigy', cat:'Récessif', species:'boa_bci',
+    warning:"Photophobie chez les visuels. Morphpedia le décrit comme « essentiellement une autre lignée du BWC » sans confirmer qu'il s'agit du même gène : LOCUS les garde séparés. Voir aussi l'Albino Sharp (« Paradise »). Source : Morphpedia.",
+    warningEn:"Photophobia in visuals. Morphpedia describes it as « essentially another line of BWC » without confirming it is the same gene: LOCUS keeps them separate. See also Sharp Albino (« Paradise »). Source: Morphpedia."},
+  {id:'bci_vpi', name:'Albino (VPI T+)', type:'recessive', locus:'bci_vpi', cat:'Récessif', species:'boa_bci',
+    warning:"Albinos T+. Photophobie chez les visuels. Source : Morphpedia.",
+    warningEn:"T+ albino. Photophobia in visuals. Source: Morphpedia."},
+  {id:'bci_anery1', name:'Anerythristic (Type 1)', type:'recessive', locus:'bci_anery1', cat:'Récessif', species:'boa_bci'},
+  {id:'bci_anery2', name:'Anerythristic (Type 2)', type:'recessive', locus:'bci_anery2', cat:'Récessif', species:'boa_bci',
+    warning:"Pas compatible avec l'Anery Type 1 (gène différent). Locus voisin de l'Albino Kahl : un animal ne peut pas être visuel pour les deux. Source : Morphpedia.",
+    warningEn:"Not compatible with Type 1 Anery (different gene). Neighbouring locus of Kahl Albino: an animal cannot be visual for both. Source: Morphpedia."},
+  {id:'bci_rdrbea', name:'Anerythristic (RDR Black Eye)', type:'recessive', locus:'bci_rdrbea', cat:'Récessif', species:'boa_bci'},
+  {id:'bci_carbon', name:'Anerythristic (Carbon)', type:'recessive', locus:'bci_carbon', cat:'Récessif', species:'boa_bci',
+    warning:"Morphpedia indique qu'il est peut-être relié à l'Anery RDR Black Eye — non confirmé, LOCUS les garde séparés. Source : Morphpedia.",
+    warningEn:"Morphpedia says it may be related to RDR Black Eye Anery — not confirmed, LOCUS keeps them separate. Source: Morphpedia."},
+  {id:'bci_blood', name:'Blood', type:'recessive', locus:'bci_blood', cat:'Récessif', species:'boa_bci'},
+  {id:'bci_leopard', name:'Leopard', type:'recessive', locus:'bci_leopardcx', cat:'Récessif', species:'boa_bci',
+    warning:"Même gène que l'Onyx (complexe Leopard) selon Morphpedia. Problèmes de digestion rapportés chez les bébés, surtout les visuels. Source : Morphpedia.",
+    warningEn:"Same gene as Onyx (Leopard complex) according to Morphpedia. Digestion problems reported in babies, mostly visuals. Source: Morphpedia."},
+  {id:'bci_onyx', name:'Onyx', type:'incdom', locus:'bci_leopardcx', cat:'Codominant / Incomplet dominant', species:'boa_bci', superLabel:'Super Onyx',
+    warning:"Même gène que le Leopard (complexe Leopard). Le Super Onyx est un boa entièrement noir. Problèmes de digestion rapportés chez les bébés. Source : Morphpedia.",
+    warningEn:"Same gene as Leopard (Leopard complex). The Super Onyx is a solid black boa. Digestion problems reported in babies. Source: Morphpedia."},
+  {id:'bci_pkstripe', name:'PK Stripe', type:'recessive', locus:'bci_pkstripe', cat:'Récessif', species:'boa_bci'},
+  {id:'bci_squaretail', name:'Square Tail', type:'recessive', locus:'bci_squaretail', cat:'Récessif', species:'boa_bci'},
+  {id:'bci_sterling', name:'Sterling', type:'recessive', locus:'bci_sterling', cat:'Récessif', species:'boa_bci'},
+  {id:'bci_hypo', name:'Hypo', type:'incdom', locus:'bci_motleycx', cat:'Codominant / Incomplet dominant', species:'boa_bci', superLabel:'Super Hypo',
+    warning:"Même gène que le Motley colombien (complexe Motley). Le Super Hypo a un problème musculaire, mais se reproduit et vit normalement selon ce qui est documenté. Source : Morphpedia.",
+    warningEn:"Same gene as Colombian Motley (Motley complex). The Super Hypo has a muscle issue but breeds and lives normally as far as documented. Source: Morphpedia."},
+  {id:'bci_motley', name:'Motley (Colombian)', type:'incdom', locus:'bci_motleycx', cat:'Codominant / Incomplet dominant', species:'boa_bci', superLabel:'Super Motley',
+    warning:"Même gène que l'Hypo (complexe Motley). Le Super Motley survit très rarement au-delà de quelques années (« fatal super » selon Morphpedia) : évite Motley × Motley. Source : Morphpedia.",
+    warningEn:"Same gene as Hypo (Motley complex). The Super Motley very rarely survives past a few years (« fatal super » per Morphpedia): avoid Motley × Motley. Source: Morphpedia."},
+  {id:'bci_motleyca', name:'Motley (Central American)', type:'incdom', locus:'bci_motleyca', cat:'Codominant / Incomplet dominant', species:'boa_bci'},
+  {id:'bci_aztec', name:'Aztec', type:'incdom', locus:'bci_aztec', cat:'Codominant / Incomplet dominant', species:'boa_bci', superLabel:'Super Aztec',
+    warning:"Super Aztec : wobble (trouble neurologique) et infertilité rapportés. Source : Morphpedia.",
+    warningEn:"Super Aztec: wobble (neurological issue) and infertility reported. Source: Morphpedia."},
+  {id:'bci_fire', name:'Fire', type:'incdom', locus:'bci_fire', cat:'Codominant / Incomplet dominant', species:'boa_bci', superLabel:'Super Fire'},
+  {id:'bci_harlequin', name:'Harlequin', type:'incdom', locus:'bci_harlequin', cat:'Codominant / Incomplet dominant', species:'boa_bci'},
+  {id:'bci_jaguar', name:'Jaguar (Colombian)', type:'incdom', locus:'bci_jaguar', cat:'Codominant / Incomplet dominant', species:'boa_bci',
+    warning:"Morphpedia ne documente pas la forme à 2 copies (Super Jaguar) : ne te fie pas au calcul pour Jaguar × Jaguar. Source : Morphpedia.",
+    warningEn:"Morphpedia does not document the 2-copy form (Super Jaguar): don't rely on the calculation for Jaguar × Jaguar. Source: Morphpedia."},
+  {id:'bci_jungle', name:'Jungle', type:'incdom', locus:'bci_jungle', cat:'Codominant / Incomplet dominant', species:'boa_bci', superLabel:'Super Jungle',
+    warning:"Super Jungle : taux élevé de problèmes de fertilité. Source : Morphpedia.",
+    warningEn:"Super Jungle: high rate of fertility problems. Source: Morphpedia."},
+  {id:'bci_keywest', name:'Key West', type:'incdom', locus:'bci_keywest', cat:'Codominant / Incomplet dominant', species:'boa_bci', superLabel:'Super Key West',
+    warning:"Super Key West : mortalité inhabituellement élevée à la naissance. Morphpedia indique que Key West est peut-être identique au Roswell Laddertail : LOCUS les garde séparés. Source : Morphpedia.",
+    warningEn:"Super Key West: unusually high death rate at birth. Morphpedia says Key West may be identical to Roswell Laddertail: LOCUS keeps them separate. Source: Morphpedia."},
+  {id:'bci_roswell', name:'Roswell Laddertail', type:'incdom', locus:'bci_roswell', cat:'Codominant / Incomplet dominant', species:'boa_bci', superLabel:'Super Roswell',
+    warning:"Mortalité inhabituellement élevée à la naissance rapportée. Peut-être le même gène que Key West (non confirmé). Source : Morphpedia.",
+    warningEn:"Unusually high death rate at birth reported. Possibly the same gene as Key West (not confirmed). Source: Morphpedia."},
+  {id:'bci_raptor', name:'Raptor', type:'incdom', locus:'bci_raptor', cat:'Codominant / Incomplet dominant', species:'boa_bci'},
+  {id:'bci_arabesque', name:'Arabesque', type:'dominant', locus:'bci_arabesque', cat:'Dominant', species:'boa_bci'},
+  {id:'bci_img', name:'IMG', type:'dominant', locus:'bci_img', cat:'Dominant', species:'boa_bci'},
+  {id:'bci_inca', name:'Inca', type:'dominant', locus:'bci_inca', cat:'Dominant', species:'boa_bci'},
+  {id:'bci_indy', name:'Indy', type:'dominant', locus:'bci_indy', cat:'Dominant', species:'boa_bci'},
 ];
 
 // v3.54 — espèces ayant une génétique dans LOCUS. Un gène sans champ species = python royal.
-const GENETIC_SPECIES = ['ball_python','leopard_gecko','corn_snake','blood_python']; // v5.24 — + python sanguin
+const GENETIC_SPECIES = ['ball_python','leopard_gecko','corn_snake','blood_python','boa_bci']; // v5.32 — + boa BCI // v5.24 — + python sanguin
 function geneSpecies(g){ return (g && g.species) || 'ball_python'; }
 function hasGenetics(speciesId){ return GENETIC_SPECIES.includes(speciesId||'ball_python'); }
 
@@ -5423,6 +5493,29 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.32', date:'2026-10-29',
+    title:{ fr:'Calculateur : boa BCI', en:'Calculator: BCI boa' },
+    changes:{
+      fr:[ '🐍 Calculateur génétique du boa BCI (Boa imperator) : choisis « Boa (BCI) » en haut du calculateur ou charge un de tes boas. 30 gènes lus un par un sur Morphpedia : 5 albinos (Kahl, Sharp, BWC/Caramel, Prodigy, VPI), 4 anerys (Type 1, Type 2, RDR Black Eye, Carbon), Blood, Leopard et Onyx (même gène), PK Stripe, Square Tail, Sterling, Hypo et Motley colombien (même gène), Motley d\'Amérique centrale, Aztec, Fire, Harlequin, Jaguar, Jungle, Key West, Roswell Laddertail, Raptor, Arabesque, IMG, Inca et Indy. Avertissements de santé sur les supers (Motley, Aztec, Jungle, Key West, Hypo…) et sur les liens que Morphpedia soupçonne sans les prouver (Paradigm, Paradise, Kahl × Anery Type 2). Pas inclus : les traits polygéniques (Coral Albino, Kubsch Pastel, Salmon Hypo) et les noms de combos (Snow, Ghost, Moonglow…). Gratuit, comme les autres calculateurs.' ],
+      en:[ '🐍 BCI boa (Boa imperator) genetics calculator: pick « Boa (BCI) » at the top of the calculator or load one of your boas. 30 genes read one by one on Morphpedia: 5 albinos (Kahl, Sharp, BWC/Caramel, Prodigy, VPI), 4 anerys (Type 1, Type 2, RDR Black Eye, Carbon), Blood, Leopard and Onyx (same gene), PK Stripe, Square Tail, Sterling, Hypo and Colombian Motley (same gene), Central American Motley, Aztec, Fire, Harlequin, Jaguar, Jungle, Key West, Roswell Laddertail, Raptor, Arabesque, IMG, Inca and Indy. Health warnings on the supers (Motley, Aztec, Jungle, Key West, Hypo…) and on the links Morphpedia suspects without proof (Paradigm, Paradise, Kahl × Type 2 Anery). Not included: polygenic traits (Coral Albino, Kubsch Pastel, Salmon Hypo) and combo names (Snow, Ghost, Moonglow…). Free, like the other calculators.' ]
+    }
+  },
+  { version:'5.31', date:'2026-10-29',
+    title:{ fr:'Boa terrestre des îles Salomon', en:'Solomon Island ground boa' },
+    changes:{
+      fr:[ '🐍 Nouvelle espèce : le boa terrestre des îles Salomon (Candoia paulsoni). Ajout à la collection et import (« Solomon Island ground boa », « Ground boa », « SIGB »…), code d\'identification SIB, proies et rappels de repas, mise bas (espèce ovovivipare, gestation de 7-9 mois) et fiche de soins (températures, humidité, enclos, nouveau-nés difficiles à nourrir, FAQ). Plusieurs valeurs viennent de sources sur tout le genre Candoia, et la fiche le dit. Pas de génétique : Morphpedia ne couvre pas ce genre. Sources : Jerry Conway (kingsnake.com), That Pet Place, Fauci (Herpetological Review, 1981).' ],
+      en:[ '🐍 New species: the Solomon Island ground boa (Candoia paulsoni). Add to your collection and import (« Solomon Island ground boa », « Ground boa », « SIGB »…), ID code SIB, prey and feeding reminders, live birth (ovoviviparous, 7-9 month gestation) and a care sheet (temperatures, humidity, enclosure, picky newborns, FAQ). Several values come from sources covering the whole Candoia genus, and the sheet says so. No genetics: Morphpedia doesn\'t cover this genus. Sources: Jerry Conway (kingsnake.com), That Pet Place, Fauci (Herpetological Review, 1981).' ]
+    }
+  },
+  { version:'5.30', date:'2026-10-29',
+    title:{ fr:'Importer depuis un cahier', en:'Import from a notebook' },
+    changes:{
+      fr:[ '📷 Nouveau bouton « Importer depuis un cahier » (Mes reptiles › Import) : ton téléphone lit lui-même tes notes écrites à la main. Sur iPhone, touche la boîte puis « Scanner le texte » et vise ta page ; sur Android, l\'icône Google Lens de ton clavier ; ou copie le texte d\'une photo déjà prise. Rien ne quitte ton appareil, et tu vois l\'aperçu de chaque animal avant d\'enregistrer. Gratuit, comme tous les imports.',
+           '📝 Import : « Né : » et « Née : » sont maintenant reconnus comme date de naissance.' ],
+      en:[ '📷 New « Import from a notebook » button (My reptiles › Import): your phone reads your handwritten notes by itself. On iPhone, touch the box then « Scan Text » and aim at your page; on Android, the Google Lens icon of your keyboard; or copy the text from a photo you already took. Nothing leaves your device, and you see a preview of every animal before saving. Free, like all imports.',
+           '📝 Import: « Né : » and « Née : » (French for « born ») are now recognized as birth date.' ]
+    }
+  },
   { version:'5.29', date:'2026-10-29',
     title:{ fr:'Couleuvre obscure grise', en:'Gray rat snake' },
     changes:{
@@ -7031,6 +7124,7 @@ const I18N = {
     genericCsvTitle: 'Importer (Excel, CSV, Word, texte, MorphMarket, autre app)',
     genericCsvDesc: 'Un seul bouton pour tout : une feuille Excel, un CSV, un document Word (.docx ou .doc) ou un fichier texte (.txt) fait à la main, un export MorphMarket, Husbandry Pro ou une autre app, un historique de repas, mues et pesées. LOCUS reconnaît le format tout seul et te montre un aperçu avant de confirmer quoi que ce soit.',
     genericCsvBtn: 'Choisir un fichier',
+    notebookImportBtn: 'Importer depuis un cahier', // v5.30
     exportValueReportTitle: 'Rapport de valeur (assurance)',
     exportValueReportDesc: "Déjà disponible dans l'onglet Valeur — génère un document imprimable/PDF de tout ton inventaire avec valeur estimée.",
     exportValueReportLink: '→ Aller à l\'onglet Valeur',
@@ -7116,7 +7210,7 @@ const I18N = {
     addPhotoBtn: '📷 Ajouter une photo',
     genealogyTitle: 'Généalogie',
     geneCountNoteLabel: 'Note :',
-    geneCountNoteBody: "{geneCount} gènes de python royal (+ {lgCount} de gecko léopard, {csCount} de corn snake et {blCount} de python sanguin) actuellement dans la base, chacun vérifié individuellement (Morphpedia, World of Ball Pythons, ou source communautaire fiable citée) — mode de transmission, allélisme et risques santé connus, pas des suppositions. La génétique complète du python royal compte encore d'autres gènes moins documentés ou débattus dans la communauté ; ceux-ci sont volontairement exclus tant qu'ils ne sont pas confirmés plutôt que d'être ajoutés par approximation. Certaines interactions restent à vérifier avant tout usage réel d'élevage.",
+    geneCountNoteBody: "{geneCount} gènes de python royal (+ {lgCount} de gecko léopard, {csCount} de corn snake, {blCount} de python sanguin et {bciCount} de boa BCI) actuellement dans la base, chacun vérifié individuellement (Morphpedia, World of Ball Pythons, ou source communautaire fiable citée) — mode de transmission, allélisme et risques santé connus, pas des suppositions. La génétique complète du python royal compte encore d'autres gènes moins documentés ou débattus dans la communauté ; ceux-ci sont volontairement exclus tant qu'ils ne sont pas confirmés plutôt que d'être ajoutés par approximation. Certaines interactions restent à vérifier avant tout usage réel d'élevage.",
     footerCopyright: '© 2026 LOCUS Scales — Alexandre Young. Tous droits réservés. La reproduction ou la copie de ce logiciel, en tout ou en partie, est interdite sans autorisation.',
     viewCompatibilityBtn: 'Voir la compatibilité avec…',
     registeredOffspring: 'Descendance enregistrée',
@@ -7620,6 +7714,7 @@ const I18N = {
     genericCsvTitle: 'Import (Excel, CSV, Word, text, MorphMarket, other app)',
     genericCsvDesc: 'One button for everything: a homemade Excel sheet, CSV, Word document (.docx or .doc) or text file (.txt), a MorphMarket, Husbandry Pro or other app export, a history of meals, sheds and weigh-ins. LOCUS recognizes the format by itself and shows you a preview before confirming anything.',
     genericCsvBtn: 'Choose a file',
+    notebookImportBtn: 'Import from a notebook', // v5.30
     exportValueReportTitle: 'Value report (insurance)',
     exportValueReportDesc: "Already available in the Value tab — generates a printable/PDF document of your whole inventory with estimated value.",
     exportValueReportLink: '→ Go to the Value tab',
@@ -7705,7 +7800,7 @@ const I18N = {
     addPhotoBtn: '📷 Add a photo',
     genealogyTitle: 'Genealogy',
     geneCountNoteLabel: 'Note:',
-    geneCountNoteBody: "{geneCount} ball python genes (+ {lgCount} leopard gecko, {csCount} corn snake and {blCount} blood python) currently in the database, each individually verified (Morphpedia, World of Ball Pythons, or a cited reliable community source) — inheritance mode, allelism, and known health risks, not guesswork. Full ball python genetics still includes other genes that are less documented or debated in the community; these are deliberately excluded until confirmed rather than added by approximation. Some interactions still need verification before real breeding use.",
+    geneCountNoteBody: "{geneCount} ball python genes (+ {lgCount} leopard gecko, {csCount} corn snake, {blCount} blood python and {bciCount} BCI boa) currently in the database, each individually verified (Morphpedia, World of Ball Pythons, or a cited reliable community source) — inheritance mode, allelism, and known health risks, not guesswork. Full ball python genetics still includes other genes that are less documented or debated in the community; these are deliberately excluded until confirmed rather than added by approximation. Some interactions still need verification before real breeding use.",
     footerCopyright: '© 2026 LOCUS Scales — Alexandre Young. All rights reserved. Reproduction or copying of this software, in whole or in part, is prohibited without authorization.',
     viewCompatibilityBtn: 'View compatibility with…',
     registeredOffspring: 'Registered offspring',
@@ -7976,7 +8071,8 @@ function applyTranslations(){
     el.textContent = t(el.dataset.i18n).replace('{geneCount}', String(GENES.filter(g=>geneSpecies(g)==='ball_python').length)) // v3.54 — note = python royal
       .replace('{lgCount}', String(GENES.filter(g=>geneSpecies(g)==='leopard_gecko').length)) // v5.17 — par espèce
       .replace('{csCount}', String(GENES.filter(g=>geneSpecies(g)==='corn_snake').length))
-      .replace('{blCount}', String(GENES.filter(g=>geneSpecies(g)==='blood_python').length)); // v5.24
+      .replace('{blCount}', String(GENES.filter(g=>geneSpecies(g)==='blood_python').length)) // v5.24
+      .replace('{bciCount}', String(GENES.filter(g=>geneSpecies(g)==='boa_bci').length)); // v5.32
   });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{
     el.placeholder = t(el.dataset.i18nPlaceholder);
@@ -8593,10 +8689,10 @@ function renderCalcSpeciesBar(){
   const isEn = currentLang==='en';
   const bar = document.getElementById('calc-species-bar');
   if(!bar) return;
-  const opts = [['ball_python', '🐍 '+(isEn?'Ball python':'Python royal')], ['leopard_gecko', '🦎 '+(isEn?'Leopard gecko':'Gecko léopard')], ['corn_snake', '🌽 '+(isEn?'Corn snake':'Corn snake')], ['blood_python', '🩸 '+(isEn?'Blood python':'Python sanguin')]]; // v5.24
+  const opts = [['ball_python', '🐍 '+(isEn?'Ball python':'Python royal')], ['leopard_gecko', '🦎 '+(isEn?'Leopard gecko':'Gecko léopard')], ['corn_snake', '🌽 '+(isEn?'Corn snake':'Corn snake')], ['blood_python', '🩸 '+(isEn?'Blood python':'Python sanguin')], ['boa_bci', '🐍 '+(isEn?'Boa (BCI)':'Boa (BCI)')]]; // v5.24, v5.32
   bar.innerHTML = opts.map(([v,l])=>'<button class="sex-btn'+(calcSpecies===v?' active':'')+'" style="font-size:15px;padding:9px 14px;" onclick="setCalcSpecies(\''+v+'\')">'+l+'</button>').join('');
   const notBP = (typeof calcSpecies!=='undefined') && calcSpecies!=='ball_python';
-  const phByLang = { leopard_gecko: isEn?'Search a gene (e.g. Tremper, Mack Snow, Eclipse)…':'Rechercher un gène (ex. Tremper, Mack Snow, Eclipse)…', corn_snake: isEn?'Search a gene (e.g. Amelanistic, Anery, Hypo, Tessera)…':'Rechercher un gène (ex. Amelanistic, Anery, Hypo, Tessera)…', blood_python: isEn?'Search a gene (e.g. Golden Eye, Matrix, Albino T+)…':'Rechercher un gène (ex. Golden Eye, Matrix, Albino T+)…' };
+  const phByLang = { leopard_gecko: isEn?'Search a gene (e.g. Tremper, Mack Snow, Eclipse)…':'Rechercher un gène (ex. Tremper, Mack Snow, Eclipse)…', corn_snake: isEn?'Search a gene (e.g. Amelanistic, Anery, Hypo, Tessera)…':'Rechercher un gène (ex. Amelanistic, Anery, Hypo, Tessera)…', blood_python: isEn?'Search a gene (e.g. Golden Eye, Matrix, Albino T+)…':'Rechercher un gène (ex. Golden Eye, Matrix, Albino T+)…', boa_bci: isEn?'Search a gene (e.g. Hypo, Kahl, Motley, Jungle)…':'Rechercher un gène (ex. Hypo, Kahl, Motley, Jungle)…' };
   ['input-male','input-female'].forEach(i=>{ const el = document.getElementById(i); if(el) el.placeholder = phByLang[calcSpecies] || t('searchGenePlaceholder'); });
   // Simulateur de rêverie et Chemin optimal : python royal seulement pour l'instant.
   document.querySelectorAll('.calc-bar .calc-btn[onclick*="openDreamSimModal"], .calc-bar .calc-btn[onclick*="openGoalPathModal"]').forEach(b=>{ b.style.display = notBP ? 'none' : ''; });
@@ -9197,6 +9293,35 @@ const SPECIES_REFERENCE = [
       {q:'My baby refuses pinkies, what do I do?', a:'It\'s common: in the wild, the young mostly eat lizards and small frogs. Scenting the pinky with a small lizard or tree frog often helps with the switch.'},
       {q:'It rubs its nose on the walls, is that serious?', a:'It can become serious: rubbing the snout (rostrum) causes wounds that get infected. It\'s often a sign of a restless snake or an enclosure that is too small. Offer more space and hides, and avoid rough surfaces.'},
       {q:'Can I keep several together?', a:'One animal per enclosure is best. Two males can fight seriously during breeding season.'},
+    ]},
+  // v5.31 — boa terrestre des îles Salomon (demandé par Royal Gorge Exotics). Aucune génétique (pas de catégorie Candoia
+  // dans Morphpedia). Sources lues le 29 oct 2026 : Jerry Conway (kingsnake.com, « Candoia husbandry », éleveur spécialisé),
+  // That Pet Place (fiche Candoia), Fauci 1981 (Herpetological Review, résumé Conservation Evidence) pour les portées.
+  // Plusieurs valeurs viennent de sources sur tout le genre Candoia : c'est dit dans la fiche.
+  { id:'solomon_ground_boa', category:'serpent', nameFr:'Boa terrestre des îles Salomon', nameEn:'Solomon Island ground boa', tempWarm:28, tempCool:25, humidity:70,
+    nameLatin:'Candoia paulsoni', originFr:'Îles Salomon, Papouasie-Nouvelle-Guinée et est de l\'Indonésie', originEn:'Solomon Islands, Papua New Guinea and eastern Indonesia', lifespanFr:'Jusqu\'à 35 ans pour le genre Candoia', lifespanEn:'Up to 35 years for the Candoia genus',
+    habitatTypeFr:'🌍 Terrestre (aime s\'enfouir, utilise aussi les branches)', habitatTypeEn:'🌍 Terrestrial (likes to burrow, also uses branches)',
+    dietFr:'Carnivore — souris de taille appropriée, congelé-décongelé. Les nouveau-nés sont souvent difficiles : ils préfèrent les petites grenouilles et les lézards, et refusent souvent les souriceaux au début. Frotter le souriceau avec l\'odeur d\'une grenouille ou d\'un lézard aide.', dietEn:'Carnivore — appropriately sized mice, frozen-thawed. Newborns are often picky: they prefer small frogs and lizards and often refuse pinkies at first. Scenting the pinky with a frog or lizard helps.',
+    feedFreqFr:'Bébé et juvénile : aux 7-10 jours (un éleveur attend ~3 semaines après la naissance avant le premier repas). Adulte : aux 10-14 jours selon une source, aux 3-4 semaines selon un éleveur spécialisé — à ajuster selon la condition de l\'animal.', feedFreqEn:'Baby and juvenile: every 7-10 days (one breeder waits ~3 weeks after birth before the first meal). Adult: every 10-14 days according to one source, every 3-4 weeks according to a specialist breeder — adjust to the animal\'s condition.',
+    substrateFr:'Paillis de cyprès (garde l\'humidité et permet de s\'enfouir). Nouveau-nés sur essuie-tout. Un grand bol d\'eau : ces boas boivent et trempent souvent. Jamais de pin ni de cèdre — huiles toxiques.', substrateEn:'Cypress mulch (holds humidity and allows burrowing). Newborns on paper towels. A large water bowl: these boas drink and soak often. Never pine or cedar — toxic oils.',
+    uvbFr:'Pas documenté comme essentiel dans les sources consultées.', uvbEn:'Not documented as essential in the sources consulted.',
+    incubationFr:'Espèce ovovivipare (mise bas, pas de ponte). Gestation longue : 7-9 mois selon un éleveur spécialisé. Un refroidissement de 4-6 semaines (nuits à 18-21 °C / 65-70 °F) aide à déclencher la reproduction ; femelle gestante gardée à 27-29 °C (80-85 °F). Les mort-nés sont fréquents.', incubationEn:'Ovoviviparous species (live birth, no eggs). Long gestation: 7-9 months according to a specialist breeder. A 4-6 week cooling period (nights at 18-21°C / 65-70°F) helps trigger breeding; gravid female kept at 27-29°C (80-85°F). Stillborns are common.',
+    clutchesPerMatingFr:'Une portée ; les femelles se reproduisent souvent une saison sur deux.', clutchesPerMatingEn:'One litter; females often breed every other season.',
+    avgEggCountFr:'16-33 nouveau-nés par portée en captivité (une partie peut être mort-née).', avgEggCountEn:'16-33 newborns per litter in captivity (some may be stillborn).',
+    noteFr:'Adulte : environ 1 m (3,5 pi). Jour 27-28 °C (80-82 °F), nuit 24-27 °C (75-80 °F), humidité 60-80 %. Plusieurs valeurs de cette fiche viennent de sources sur tout le genre Candoia (boas des îles du Pacifique). Les nouveau-nés sont très petits et fragiles. Les animaux capturés en nature peuvent mordre ; ceux nés en captivité mordent rarement.',
+    noteEn:'Adult: about 1 m (3.5 ft). Day 27-28°C (80-82°F), night 24-27°C (75-80°F), humidity 60-80%. Several values on this sheet come from sources covering the whole Candoia genus (Pacific island boas). Newborns are very small and fragile. Wild-caught animals may bite; captive-born ones rarely do.',
+    enclosureBaby:'Petit bac (boîte à chaussures)', enclosureBabyEn:'Small tub (shoebox)',
+    enclosureSub:'Agrandir graduellement : enclos à peu près aussi long que le serpent, et deux fois moins profond', enclosureSubEn:'Upsize gradually: enclosure about as long as the snake, and half as deep',
+    enclosureAdult:'~90×45cm au sol (36×18po) pour un adulte d\'environ 1 m, avec cachettes et un grand bol d\'eau', enclosureAdultEn:'~36×18in floor space for an adult of about 1 m, with hides and a large water bowl',
+    faqFr:[
+      {q:'Mon nouveau-né refuse de manger, c\'est normal ?', a:'Oui, c\'est le problème le plus courant avec cette espèce. Dans la nature, les jeunes mangent surtout des grenouilles et des lézards. Attends quelques semaines après la naissance, puis offre un souriceau frotté avec l\'odeur d\'une grenouille ou d\'un lézard.'},
+      {q:'Est-ce qu\'il mord ?', a:'Les animaux capturés en nature peuvent être nerveux et mordre. Ceux nés en captivité mordent rarement.'},
+      {q:'Il trempe souvent dans son bol d\'eau, c\'est grave ?', a:'Non : les boas Candoia boivent et trempent souvent. Prévois un grand bol d\'eau propre. S\'il trempe sans arrêt, vérifie quand même la température et la présence d\'acariens.'},
+    ],
+    faqEn:[
+      {q:'My newborn refuses to eat, is that normal?', a:'Yes, it\'s the most common problem with this species. In the wild, the young mostly eat frogs and lizards. Wait a few weeks after birth, then offer a pinky scented with a frog or lizard.'},
+      {q:'Does it bite?', a:'Wild-caught animals can be nervous and may bite. Captive-born ones rarely do.'},
+      {q:'It soaks in its water bowl a lot, is that bad?', a:'No: Candoia boas drink and soak often. Provide a large bowl of clean water. If it soaks constantly, still check the temperature and look for mites.'},
     ]},
   // v5.24 — python sanguin. Sources lues le 29 oct 2026 : Kara et Ryan Norris (The Blood Cell, éleveurs spécialisés) dans
   // Reptiles Magazine (2 articles : soins + « care sheet »), Graham Battison (Herp Magazine, via Herpetoculture Network) pour la
@@ -10212,7 +10337,7 @@ function snakeName(s){
 }
 function normalizeAnimalId(v){ const x = String(v==null?'':v).trim().replace(/\s+/g,' ').slice(0,40); return x || null; }
 // Code d'espèce : BP python royal, puis les initiales du nom anglais (CS, LG, CG, BD…) ; codes fixes quand les initiales se confondent.
-var ANIMAL_ID_SPECIES_CODES = { ball_python:'BP', corn_snake:'CS', king_california:'CKS', king_florida:'FKS', king_mexican:'MBK', hognose:'HOG', leopard_gecko:'LG', fat_tail_gecko:'FTG', crested_gecko:'CG', gargoyle_gecko:'GG', bearded_dragon:'BD', croc_skink_red:'RES', croc_skink_white:'WES', boa_bci:'BCI', blood_python:'BLD', gray_rat_snake:'GRS', boa_bcc:'BCC', rainbow_boa:'BRB', boa_argentin:'ARB', blue_tongue_skink:'BTS', uro_nigriventris:'URN', uro_maliensis:'URM', uro_ornata:'URO', uro_aegyptia:'URE', orvet:'SW', star_tortoise:'IST', sulcata_tortoise:'SUL', leopard_tortoise:'LT', red_eared_slider:'RES2', tree_monitor_green:'GTM', tree_monitor_blue:'BTM', tree_monitor_yellow:'YTM', tree_monitor_black:'BKTM', ackie_monitor:'ACK', savannah_monitor:'SAV', black_throated_monitor:'BTH', water_monitor:'AWM', reeves_turtle:'RT', diamondback_terrapin:'DBT', mata_mata:'MM' };
+var ANIMAL_ID_SPECIES_CODES = { ball_python:'BP', corn_snake:'CS', king_california:'CKS', king_florida:'FKS', king_mexican:'MBK', hognose:'HOG', leopard_gecko:'LG', fat_tail_gecko:'FTG', crested_gecko:'CG', gargoyle_gecko:'GG', bearded_dragon:'BD', croc_skink_red:'RES', croc_skink_white:'WES', boa_bci:'BCI', blood_python:'BLD', gray_rat_snake:'GRS', solomon_ground_boa:'SIB', boa_bcc:'BCC', rainbow_boa:'BRB', boa_argentin:'ARB', blue_tongue_skink:'BTS', uro_nigriventris:'URN', uro_maliensis:'URM', uro_ornata:'URO', uro_aegyptia:'URE', orvet:'SW', star_tortoise:'IST', sulcata_tortoise:'SUL', leopard_tortoise:'LT', red_eared_slider:'RES2', tree_monitor_green:'GTM', tree_monitor_blue:'BTM', tree_monitor_yellow:'YTM', tree_monitor_black:'BKTM', ackie_monitor:'ACK', savannah_monitor:'SAV', black_throated_monitor:'BTH', water_monitor:'AWM', reeves_turtle:'RT', diamondback_terrapin:'DBT', mata_mata:'MM' };
 function animalIdSpeciesCode(species){
   const sp = species || 'ball_python';
   if(ANIMAL_ID_SPECIES_CODES[sp]) return ANIMAL_ID_SPECIES_CODES[sp];
@@ -17394,7 +17519,7 @@ const CSV_COLUMN_ALIASES = {
   name: ['nom','name','nom du reptile','reptile name','animal','animal name','nom de l\'animal','serpent','snake','title','listing title','titre','pet name','nickname','surnom','display name'],
   sex: ['sexe','sex','gender','genre','sexe (m/f)','sex (m/f)'],
   genes: ['genes','gene','genetique','genetics','morph','morphs','morphe','traits','genetic','genetic mutation','genetic mutations','mutation','mutations','genotype','phenotype','phase','phases','phas','morf','morfs','morphes'], // v4.46 — « phase » (terme du milieu), « Morf »
-  birthDate: ['date de naissance','birth date','dob','naissance','date naissance','date of birth','hatch date','eclosion','date d\'eclosion','ne le','hatched','birthdate','birthday','born','hatch','hatchdate','date hatched','hatched on','date born','annee de naissance','birth year','year born','hatch year'],
+  birthDate: ['date de naissance','birth date','dob','naissance','date naissance','date of birth','hatch date','eclosion','date d\'eclosion','ne le','ne','nee','nee le','hatched','birthdate','birthday','born','hatch','hatchdate','date hatched','hatched on','date born','annee de naissance','birth year','year born','hatch year'],
   provenance: ['provenance','source','eleveur','breeder','origine','origin','acquired from','purchased from','bought from','supplier','vendor','fournisseur','achete chez','produced by'],
   purchasePrice: ['prix d\'achat','prix achat','purchase price','cost','cout','paid','paye','price paid','acquisition cost','bought for','paid price','cost price','acquisition price','acquisition cost','purchase cost','bought price'],
   species: ['espece','species','type d\'animal','animal type','common name','nom commun','scientific name','nom scientifique','category','categorie'], // v4.18 — Husbandry Pro : « Common Name » = l'espèce, pas le nom de l'animal
@@ -17571,7 +17696,7 @@ function matchImportSpecies(raw){
     if(ab){ if(ab[1]==='p' && ab[2]==='regius') norm = 'ball python'; else { const hit = SPECIES_REFERENCE.find(sp=>{ const w = normalizeHeaderKey(sp.nameLatin||'').split(' '); return w[0] && w[0][0]===ab[1] && w[1]===ab[2]; }); if(hit) return { id:hit.id, known:true }; } } }
   if(['ball pythons','pythons royaux','royal pythons','pythons'].includes(norm)) norm = 'ball python'; // v4.23
   if(['piton','pyton','pithon','b python','b.python','b. python','bpython','ball piton','ball pyton','python royale','royal piton','bp python'].includes(norm)) norm = 'ball python'; // v4.38 — raccourcis et fautes de débutant — MorphMarket écrit « Ball Pythons »
-  const SHORT = { 'grey rat snake':'gray_rat_snake','grey ratsnake':'gray_rat_snake','gray ratsnake':'gray_rat_snake','central ratsnake':'gray_rat_snake','elaphe spiloides':'gray_rat_snake','elaphe obsoleta spiloides':'gray_rat_snake','pantherophis obsoletus spiloides':'gray_rat_snake','couleuvre grise':'gray_rat_snake', 'blood':'blood_python','bloods':'blood_python','red blood python':'blood_python','pythons sanguins':'blood_python','brongersmai':'blood_python','p brongersmai':'blood_python', 'corn':'corn_snake','corns':'corn_snake','couleuvre des bles':'corn_snake','serpent des bles':'corn_snake','hognose snake':'hognose','western hognose':'hognose','hoggie':'hognose','leo':'leopard_gecko','leos':'leopard_gecko','leopard':'leopard_gecko','gecko leopard':'leopard_gecko','crestie':'crested_gecko','cresties':'crested_gecko','crested':'crested_gecko','gargoyle':'gargoyle_gecko','fat tail':'fat_tail_gecko','fat tailed gecko':'fat_tail_gecko','african fat tail':'fat_tail_gecko','beardie':'bearded_dragon','beardies':'bearded_dragon','pogona':'bearded_dragon','blue tongue':'blue_tongue_skink','bts':'blue_tongue_skink','blue tongued skink':'blue_tongue_skink','bci':'boa_bci','bcc':'boa_bcc','brb':'rainbow_boa','rainbow boa':'rainbow_boa','ackie':'ackie_monitor','sulcata':'sulcata_tortoise','res':'red_eared_slider','california king':'king_california','cal king':'king_california','florida king':'king_florida','mexican black king':'king_mexican','mbk':'king_mexican' }; // v4.29
+  const SHORT = { 'solomon island ground boa':'solomon_ground_boa','solomon ground boa':'solomon_ground_boa','solomon island boa':'solomon_ground_boa','ground boa':'solomon_ground_boa','sigb':'solomon_ground_boa','candoia carinata paulsoni':'solomon_ground_boa','boa des iles salomon':'solomon_ground_boa', 'grey rat snake':'gray_rat_snake','grey ratsnake':'gray_rat_snake','gray ratsnake':'gray_rat_snake','central ratsnake':'gray_rat_snake','elaphe spiloides':'gray_rat_snake','elaphe obsoleta spiloides':'gray_rat_snake','pantherophis obsoletus spiloides':'gray_rat_snake','couleuvre grise':'gray_rat_snake', 'blood':'blood_python','bloods':'blood_python','red blood python':'blood_python','pythons sanguins':'blood_python','brongersmai':'blood_python','p brongersmai':'blood_python', 'corn':'corn_snake','corns':'corn_snake','couleuvre des bles':'corn_snake','serpent des bles':'corn_snake','hognose snake':'hognose','western hognose':'hognose','hoggie':'hognose','leo':'leopard_gecko','leos':'leopard_gecko','leopard':'leopard_gecko','gecko leopard':'leopard_gecko','crestie':'crested_gecko','cresties':'crested_gecko','crested':'crested_gecko','gargoyle':'gargoyle_gecko','fat tail':'fat_tail_gecko','fat tailed gecko':'fat_tail_gecko','african fat tail':'fat_tail_gecko','beardie':'bearded_dragon','beardies':'bearded_dragon','pogona':'bearded_dragon','blue tongue':'blue_tongue_skink','bts':'blue_tongue_skink','blue tongued skink':'blue_tongue_skink','bci':'boa_bci','bcc':'boa_bcc','brb':'rainbow_boa','rainbow boa':'rainbow_boa','ackie':'ackie_monitor','sulcata':'sulcata_tortoise','res':'red_eared_slider','california king':'king_california','cal king':'king_california','florida king':'king_florida','mexican black king':'king_mexican','mbk':'king_mexican' }; // v4.29
   if(SHORT[norm]) return { id:SHORT[norm], known:true };
   if(!norm) return { id:'ball_python', known:true };
   if(['python royal','ball python','royal python','python regius','ball','python','ball_python','bp'].includes(norm)) return { id:'ball_python', known:true };
@@ -17592,6 +17717,7 @@ function matchImportSpecies(raw){
 // reconnus sont rendus pour l'aperçu. Toujours marqué « à vérifier » (genesVerified:false).
 // Raccourcis du milieu, seulement quand ils ne sont pas ambigus (« Axanthic » seul = 5 lignées différentes → pas d'alias).
 var IMPORT_GENE_ALIASES = { hypo:['hypo','hypomelanistic','hypomelanistique','ghost'], yellowbelly:['yb','yellow belly'], orangedream:['od'], piebald:['pied'], mojave:['mojo'], desertghost:['dg'], highintensityod:['hi od','high intensity orange dream'], lavenderalbino:['lavender','lav albino'], ultramel:['ultramelanistic','crider','burgundy albino','burgundy'], // v5.26
+ bci_kahl:['kahl albino','kahl','lipstick albino'], bci_sharp:['sharp albino','sharp'], bci_bwc:['bwc','caramel albino','boa woman caramel','bw caramel'], bci_prodigy:['prodigy albino','prodigy'], bci_vpi:['vpi albino','vpi t+','vpi'], bci_anery1:['anery type 1','type 1 anery','anery 1','t1 anery'], bci_anery2:['anery type 2','type 2 anery','anery 2','t2 anery','t2'], bci_rdrbea:['rdr bea','rdr black eye','black eye anery','bea','rdr'], bci_carbon:['carbon'], bci_motley:['motley','colombian motley'], bci_motleyca:['central american motley','ca motley'], bci_jaguar:['jaguar','jag'], bci_keywest:['kwb','key west'], bci_roswell:['rlt','roswell','roswell laddertail'], bci_img:['increased melanism','azabache','img'], bci_pkstripe:['pk stripe','kahl stripe'], // v5.32 — boa BCI
   spotnose:['spot nose'], lg_tremper:['tremper','tremper albino'], lg_bell:['bell','bell albino'], lg_rainwater:['rainwater','rainwater albino','las vegas albino','las vegas'], lg_murphy:['murphy'], lg_wy:['w y','white and yellow'] }; // v4.15 — gecko léopard : noms courts du milieu
 function importGeneNorm(str){ return String(str||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[|,;\/+&()\[\]_]/g,' ').replace(/(^|\s)-+|-+(?=\s|$)|(?<=[a-z])-(?=[a-z])/g,' ').replace(/\s+/g,' ').trim(); }
 function importGeneVariants(species){
@@ -18040,6 +18166,44 @@ function importFreeTextRows(lines){
     out.push([name, genesText.replace(/\s+/g,' ').trim(), sex, date, weight]);
   });
   return out;
+}
+// v5.30 — import depuis un cahier (choix d'Alex, option A) : aucune lecture de photo dans l'app ni service externe.
+// Le téléphone lit lui-même la page (iPhone : « Scanner le texte » dans la zone de texte ; Android : Google Lens
+// dans le clavier, ou « Copier le texte » depuis une photo), puis le texte passe par l'import habituel (.txt) avec
+// son aperçu avant tout enregistrement. Gratuit, comme tous les imports.
+function openNotebookImport(){
+  const isEn = currentLang==='en';
+  const step = (n, txt)=>'<div style="display:flex;gap:10px;align-items:flex-start;margin:0 0 10px;font-size:15px;line-height:1.5;"><b style="color:var(--gold);min-width:20px;">'+n+'.</b><span>'+txt+'</span></div>';
+  showQuickModal(isEn ? '📷 Import from a notebook' : '📷 Importer depuis un cahier',
+    '<p style="font-size:15px;line-height:1.55;margin:0 0 12px;">'+(isEn
+      ? 'Your phone can read your notes by itself. Nothing leaves your device: the text simply goes into the box below.'
+      : 'Ton téléphone sait lire tes notes lui-même. Rien ne quitte ton appareil : le texte va simplement dans la boîte ci-dessous.')+'</p>'+
+    '<div style="background:var(--bg-panel-2);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px;">'+
+      '<div style="font-size:14px;color:var(--gold);font-weight:600;margin-bottom:8px;">iPhone</div>'+
+      step(1, isEn ? 'Touch the box below.' : 'Touche la boîte ci-dessous.')+
+      step(2, isEn ? 'Tap « Scan Text » (the icon with lines in a frame, above the keyboard, or touch the box again to see it in the menu).' : 'Touche « Scanner le texte » (l\'icône de lignes dans un cadre, au-dessus du clavier, ou touche la boîte encore une fois pour la voir dans le menu).')+
+      step(3, isEn ? 'Aim at your notebook page, then tap « Insert ».' : 'Vise ta page de cahier, puis touche « Insérer ».')+
+      '<div style="font-size:14px;color:var(--gold);font-weight:600;margin:12px 0 8px;">Android</div>'+
+      step(1, isEn ? 'Touch the box below, then the Google Lens or « Scan text » icon of your keyboard (depends on your keyboard).' : 'Touche la boîte ci-dessous, puis l\'icône Google Lens ou « Scanner du texte » de ton clavier (selon ton clavier).')+
+      '<div style="font-size:14px;color:var(--gold);font-weight:600;margin:12px 0 8px;">'+(isEn?'Photo already taken':'Photo déjà prise')+'</div>'+
+      step('•', isEn ? 'Open it in your Photos (or Google Photos / Lens), press on the text, « Copy all », then paste it here. You can paste several pages one after the other.' : 'Ouvre-la dans Photos (ou Google Photos / Lens), appuie sur le texte, « Tout copier », puis colle-le ici. Tu peux coller plusieurs pages une après l\'autre.')+
+    '</div>'+
+    '<textarea id="notebook-import-text" rows="9" style="width:100%;font-size:16px;line-height:1.5;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg-panel);color:var(--ink);box-sizing:border-box;" placeholder="'+(isEn?'Rex — male — Pastel Clown — 2023&#10;Fed: Oct 12 small rat':'Rex — mâle — Pastel Clown — 2023&#10;Mangé : 12 oct petit rat')+'"></textarea>'+
+    '<p style="font-size:13.5px;color:var(--ink-dim);line-height:1.5;margin:8px 0 12px;">'+(isEn
+      ? 'Handwriting is not always read perfectly: you will see a preview of every animal and can correct before anything is saved. Writing one animal per line or per paragraph (« Name: Rex / Morph: Pastel ») helps a lot.'
+      : 'L\'écriture à la main n\'est pas toujours lue parfaitement : tu verras un aperçu de chaque animal et tu pourras corriger avant que rien ne soit enregistré. Un animal par ligne ou par paragraphe (« Nom : Rex / Morph : Pastel ») aide beaucoup.')+'</p>'+
+    '<button class="sc-btn accent" style="width:100%;font-size:16px;padding:12px;" onclick="runNotebookImport()">👀 '+(isEn?'See the preview':'Voir l\'aperçu')+'</button>');
+}
+function runNotebookImport(){
+  const isEn = currentLang==='en';
+  const ta = document.getElementById('notebook-import-text');
+  const txt = ta ? ta.value.trim() : '';
+  if(!txt){ showToast(isEn ? 'The box is empty — scan or paste your notes first.' : 'La boîte est vide — scanne ou colle tes notes d\'abord.', 'warning'); return; }
+  let file;
+  try{ file = new File([txt], (isEn?'notebook':'cahier')+'.txt', { type:'text/plain' }); }
+  catch(e){ file = new Blob([txt], { type:'text/plain' }); file.name = (isEn?'notebook':'cahier')+'.txt'; } // vieux Safari sans constructeur File
+  closeQuickModal();
+  readImportFileAsRows(file, (sheets, meta)=>{ routeImportSheets(sheets, meta); });
 }
 document.getElementById('generic-csv-file-input').addEventListener('change', (e)=>{
   const file = e.target.files[0];
@@ -20954,7 +21118,7 @@ const PREY_TYPES = {
 // règle par espèce individuelle, pour rester gérable. "Autre"/inconnu retombe sur rongeurs (le cas
 // le plus courant historiquement dans LOCUS) plutôt que de rien proposer du tout.
 function preyTypesForSpecies(speciesId){
-  const rodentEaters = ['ball_python','blood_python','gray_rat_snake','corn_snake','king_california','king_florida','king_mexican','hognose'];
+  const rodentEaters = ['ball_python','blood_python','gray_rat_snake','solomon_ground_boa','corn_snake','king_california','king_florida','king_mexican','hognose'];
   if(!speciesId || rodentEaters.includes(speciesId)) return ['mouse','rat','asf','gerbil'];
   // Les boas adultes (surtout la BCC, plus grosse) peuvent prendre des proies bien plus grosses
   // qu'un python royal ou un corn snake à l'âge adulte — d'où l'ajout lapin/cochon d'Inde ici
@@ -21386,7 +21550,7 @@ function setPreyType(id, type){
 // DEFAULT_FEEDING_INTERVAL (comportement inchangé). La valeur de la fiche (feedingIntervalDays) prime.
 const SPECIES_FEED_DAYS = {
   corn_snake:[7,7,10], king_california:[5,7,10], king_florida:[5,7,10], king_mexican:[5,7,10], hognose:[4,6,10],
-  blood_python:[7,7,14], gray_rat_snake:[5,7,10], boa_bci:[5,7,14], boa_bcc:[5,7,14], boa_argentin:[5,7,14], rainbow_boa:[5,7,10],
+  blood_python:[7,7,14], gray_rat_snake:[5,7,10], solomon_ground_boa:[7,7,14], boa_bci:[5,7,14], boa_bcc:[5,7,14], boa_argentin:[5,7,14], rainbow_boa:[5,7,10],
   leopard_gecko:[1,2,3], fat_tail_gecko:[1,2,3], crested_gecko:[1,1,2], gargoyle_gecko:[1,1,2],
   bearded_dragon:[1,1,1], croc_skink_red:[1,1,2], croc_skink_white:[1,1,2], blue_tongue_skink:[1,1,2],
   uro_nigriventris:[1,1,2], uro_maliensis:[1,1,2], uro_ornata:[1,1,2], uro_aegyptia:[1,1,2], orvet:[1,1,2],
@@ -27675,7 +27839,8 @@ const REPRODUCTION_INFO_BY_SPECIES = {
   ball_python: { mode:'ovipare', def:60, min:50, max:70 },
   corn_snake: { mode:'ovipare', def:60, min:50, max:70 },
   blood_python: { mode:'ovipare', def:60, min:50, max:70 },
-  gray_rat_snake: { mode:'ovipare', def:65, min:55, max:80 }, // v5.29 — 60-75 jours (Morgan), 8-10 semaines (Outdoor Alabama) // v5.24 — ~60 jours (Battison, Reptile Centre)
+  gray_rat_snake: { mode:'ovipare', def:65, min:55, max:80 },
+  solomon_ground_boa: { mode:'ovovivipare', def:240, min:180, max:300 }, // v5.31 — gestation 7-9 mois (Conway) // v5.29 — 60-75 jours (Morgan), 8-10 semaines (Outdoor Alabama) // v5.24 — ~60 jours (Battison, Reptile Centre)
   king_california: { mode:'ovipare', def:65, min:50, max:80 },
   king_florida: { mode:'ovipare', def:65, min:50, max:80 },
   king_mexican: { mode:'ovipare', def:65, min:50, max:80 },
