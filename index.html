@@ -2299,7 +2299,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.23';
+const APP_VERSION = '2026.09.01.5.24';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4440,10 +4440,26 @@ const GENES = [
     warningEn:"Note: Cinder is \"highly likely sex-linked\" according to Morphpedia (not confirmed). LOCUS calculates it as a simple recessive: the real split between males and females may differ."},
   {id:'cs_buf', name:'Buf', type:'dominant', locus:'cs_buf', cat:'Dominant', species:'corn_snake'},
   {id:'cs_redfactor', name:'Red Factor', type:'incdom', locus:'cs_redfactor', cat:'Codominant / Incomplet dominant', superLabel:'Salmon', species:'corn_snake'},
+  // ==================== Python sanguin (v5.24) — species:'blood_python' (Python brongersmai), ids préfixés bl_ ====================
+  // Sources : Morphpedia (catégorie « Short-Tailed Pythons », lue le 29 oct 2026) + VPI (Vida Preciosa International,
+  // producteur original de Golden Eye et Pollen/Flower) comme 2e source. Détail : doc du projet recherche-blood-python.md.
+  // Confirmés par les 2 sources : T+ et T- (deux albinos distincts), Golden Eye (super Magpie), Pollen (super Flower),
+  // Matrix (super Ivory). Batik : incomplet dominant selon Morphpedia seulement (VPI ne précise pas).
+  // Exclus pour l'instant (source insuffisante) : Caramel Albino (python de Sumatra, autre espèce, type douteux),
+  // VPI Hypo Stripe, Frostbite, Zig Zag (VPI seul), Pale Grey (aucune source) ; Slackline, Black Smoke, Toba,
+  // Wrought Iron, lignées Red/Yellow = lignées de sélection, pas des gènes.
+  {id:'bl_tpos', name:'Albino T+', type:'recessive', locus:'bl_tpos', cat:'Récessif', species:'blood_python'},
+  {id:'bl_tneg', name:'Albino T-', type:'recessive', locus:'bl_tneg', cat:'Récessif', species:'blood_python'},
+  {id:'bl_goldeneye', name:'Golden Eye', type:'incdom', locus:'bl_goldeneye', cat:'Codominant / Incomplet dominant', superLabel:'Magpie', species:'blood_python'},
+  {id:'bl_matrix', name:'Matrix', type:'incdom', locus:'bl_matrix', cat:'Codominant / Incomplet dominant', superLabel:'Ivory', species:'blood_python'},
+  {id:'bl_pollen', name:'Pollen', type:'incdom', locus:'bl_pollen', cat:'Codominant / Incomplet dominant', superLabel:'Flower', species:'blood_python'},
+  {id:'bl_batik', name:'Batik', type:'incdom', locus:'bl_batik', cat:'Codominant / Incomplet dominant', superLabel:'Super Batik', species:'blood_python',
+    warning:"Forme homozygote (Super Batik) souvent létale : torsions de la colonne vers la queue (« kinking ») chez les bébés qui survivent à l'incubation, et œufs non viables. Rares sont les Super Batik qui atteignent l'âge adulte. Source : Morphpedia.",
+    warningEn:"Homozygous form (Super Batik) is often lethal: spinal kinking toward the tail in babies that survive incubation, and unviable eggs. Few Super Batiks reach adulthood. Source: Morphpedia."},
 ];
 
 // v3.54 — espèces ayant une génétique dans LOCUS. Un gène sans champ species = python royal.
-const GENETIC_SPECIES = ['ball_python','leopard_gecko','corn_snake'];
+const GENETIC_SPECIES = ['ball_python','leopard_gecko','corn_snake','blood_python']; // v5.24 — + python sanguin
 function geneSpecies(g){ return (g && g.species) || 'ball_python'; }
 function hasGenetics(speciesId){ return GENETIC_SPECIES.includes(speciesId||'ball_python'); }
 
@@ -5397,6 +5413,15 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.24', date:'2026-10-29',
+    title:{ fr:'Calculateur : python sanguin', en:'Calculator: blood python' },
+    changes:{
+      fr:[ '🩸 Calculateur génétique du python sanguin (Python brongersmai) : choisis « Python sanguin » en haut du calculateur. 6 gènes vérifiés sur Morphpedia et chez VPI (le producteur original de plusieurs de ces morphs) : Albino T+ et Albino T- (deux albinos différents), Golden Eye (2 copies = Magpie), Matrix (2 copies = Ivory), Pollen (2 copies = Flower) et Batik (2 copies = Super Batik, avec un avertissement : souvent létal). Pas encore inclus, faute de source suffisante : Caramel Albino (python de Sumatra), Hypo Stripe, Frostbite, Zig Zag et Pale Grey. Gratuit, comme les autres calculateurs.',
+           '🌐 Résultats du calculateur en anglais : un porteur affiche maintenant « (carrier) » au lieu de « (porteur) » en français.' ],
+      en:[ '🩸 Blood python (Python brongersmai) genetics calculator: pick « Blood python » at the top of the calculator. 6 genes checked on Morphpedia and with VPI (the original producer of several of these morphs): Albino T+ and Albino T- (two different albinos), Golden Eye (2 copies = Magpie), Matrix (2 copies = Ivory), Pollen (2 copies = Flower) and Batik (2 copies = Super Batik, with a warning: often lethal). Not included yet, for lack of a solid source: Caramel Albino (Sumatran short-tail), Hypo Stripe, Frostbite, Zig Zag and Pale Grey. Free, like the other calculators.',
+           '🌐 Calculator results in English: a carrier now shows « (carrier) » instead of the French « (porteur) ».' ]
+    }
+  },
   { version:'5.23', date:'2026-10-29',
     title:{ fr:'Nous joindre ailleurs', en:'Other ways to reach us' },
     changes:{
@@ -7044,7 +7069,7 @@ const I18N = {
     addPhotoBtn: '📷 Ajouter une photo',
     genealogyTitle: 'Généalogie',
     geneCountNoteLabel: 'Note :',
-    geneCountNoteBody: "{geneCount} gènes de python royal (+ {lgCount} de gecko léopard et {csCount} de corn snake) actuellement dans la base, chacun vérifié individuellement (Morphpedia, World of Ball Pythons, ou source communautaire fiable citée) — mode de transmission, allélisme et risques santé connus, pas des suppositions. La génétique complète du python royal compte encore d'autres gènes moins documentés ou débattus dans la communauté ; ceux-ci sont volontairement exclus tant qu'ils ne sont pas confirmés plutôt que d'être ajoutés par approximation. Certaines interactions restent à vérifier avant tout usage réel d'élevage.",
+    geneCountNoteBody: "{geneCount} gènes de python royal (+ {lgCount} de gecko léopard, {csCount} de corn snake et {blCount} de python sanguin) actuellement dans la base, chacun vérifié individuellement (Morphpedia, World of Ball Pythons, ou source communautaire fiable citée) — mode de transmission, allélisme et risques santé connus, pas des suppositions. La génétique complète du python royal compte encore d'autres gènes moins documentés ou débattus dans la communauté ; ceux-ci sont volontairement exclus tant qu'ils ne sont pas confirmés plutôt que d'être ajoutés par approximation. Certaines interactions restent à vérifier avant tout usage réel d'élevage.",
     footerCopyright: '© 2026 LOCUS Scales — Alexandre Young. Tous droits réservés. La reproduction ou la copie de ce logiciel, en tout ou en partie, est interdite sans autorisation.',
     viewCompatibilityBtn: 'Voir la compatibilité avec…',
     registeredOffspring: 'Descendance enregistrée',
@@ -7633,7 +7658,7 @@ const I18N = {
     addPhotoBtn: '📷 Add a photo',
     genealogyTitle: 'Genealogy',
     geneCountNoteLabel: 'Note:',
-    geneCountNoteBody: "{geneCount} ball python genes (+ {lgCount} leopard gecko and {csCount} corn snake) currently in the database, each individually verified (Morphpedia, World of Ball Pythons, or a cited reliable community source) — inheritance mode, allelism, and known health risks, not guesswork. Full ball python genetics still includes other genes that are less documented or debated in the community; these are deliberately excluded until confirmed rather than added by approximation. Some interactions still need verification before real breeding use.",
+    geneCountNoteBody: "{geneCount} ball python genes (+ {lgCount} leopard gecko, {csCount} corn snake and {blCount} blood python) currently in the database, each individually verified (Morphpedia, World of Ball Pythons, or a cited reliable community source) — inheritance mode, allelism, and known health risks, not guesswork. Full ball python genetics still includes other genes that are less documented or debated in the community; these are deliberately excluded until confirmed rather than added by approximation. Some interactions still need verification before real breeding use.",
     footerCopyright: '© 2026 LOCUS Scales — Alexandre Young. All rights reserved. Reproduction or copying of this software, in whole or in part, is prohibited without authorization.',
     viewCompatibilityBtn: 'View compatibility with…',
     registeredOffspring: 'Registered offspring',
@@ -7903,7 +7928,8 @@ function applyTranslations(){
     // v3.12 — {geneCount} : nombre réel de gènes dans GENES (la note affichait encore « 78 » en dur).
     el.textContent = t(el.dataset.i18n).replace('{geneCount}', String(GENES.filter(g=>geneSpecies(g)==='ball_python').length)) // v3.54 — note = python royal
       .replace('{lgCount}', String(GENES.filter(g=>geneSpecies(g)==='leopard_gecko').length)) // v5.17 — par espèce
-      .replace('{csCount}', String(GENES.filter(g=>geneSpecies(g)==='corn_snake').length));
+      .replace('{csCount}', String(GENES.filter(g=>geneSpecies(g)==='corn_snake').length))
+      .replace('{blCount}', String(GENES.filter(g=>geneSpecies(g)==='blood_python').length)); // v5.24
   });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{
     el.placeholder = t(el.dataset.i18nPlaceholder);
@@ -8520,10 +8546,10 @@ function renderCalcSpeciesBar(){
   const isEn = currentLang==='en';
   const bar = document.getElementById('calc-species-bar');
   if(!bar) return;
-  const opts = [['ball_python', '🐍 '+(isEn?'Ball python':'Python royal')], ['leopard_gecko', '🦎 '+(isEn?'Leopard gecko':'Gecko léopard')], ['corn_snake', '🌽 '+(isEn?'Corn snake':'Corn snake')]];
+  const opts = [['ball_python', '🐍 '+(isEn?'Ball python':'Python royal')], ['leopard_gecko', '🦎 '+(isEn?'Leopard gecko':'Gecko léopard')], ['corn_snake', '🌽 '+(isEn?'Corn snake':'Corn snake')], ['blood_python', '🩸 '+(isEn?'Blood python':'Python sanguin')]]; // v5.24
   bar.innerHTML = opts.map(([v,l])=>'<button class="sex-btn'+(calcSpecies===v?' active':'')+'" style="font-size:15px;padding:9px 14px;" onclick="setCalcSpecies(\''+v+'\')">'+l+'</button>').join('');
   const notBP = (typeof calcSpecies!=='undefined') && calcSpecies!=='ball_python';
-  const phByLang = { leopard_gecko: isEn?'Search a gene (e.g. Tremper, Mack Snow, Eclipse)…':'Rechercher un gène (ex. Tremper, Mack Snow, Eclipse)…', corn_snake: isEn?'Search a gene (e.g. Amelanistic, Anery, Hypo, Tessera)…':'Rechercher un gène (ex. Amelanistic, Anery, Hypo, Tessera)…' };
+  const phByLang = { leopard_gecko: isEn?'Search a gene (e.g. Tremper, Mack Snow, Eclipse)…':'Rechercher un gène (ex. Tremper, Mack Snow, Eclipse)…', corn_snake: isEn?'Search a gene (e.g. Amelanistic, Anery, Hypo, Tessera)…':'Rechercher un gène (ex. Amelanistic, Anery, Hypo, Tessera)…', blood_python: isEn?'Search a gene (e.g. Golden Eye, Matrix, Albino T+)…':'Rechercher un gène (ex. Golden Eye, Matrix, Albino T+)…' };
   ['input-male','input-female'].forEach(i=>{ const el = document.getElementById(i); if(el) el.placeholder = phByLang[calcSpecies] || t('searchGenePlaceholder'); });
   // Simulateur de rêverie et Chemin optimal : python royal seulement pour l'instant.
   document.querySelectorAll('.calc-bar .calc-btn[onclick*="openDreamSimModal"], .calc-bar .calc-btn[onclick*="openGoalPathModal"]').forEach(b=>{ b.style.display = notBP ? 'none' : ''; });
@@ -11259,7 +11285,7 @@ function phenotypeForLocusPair(locus, pair){
   if(a==='WT' || b==='WT'){
     const mutId = a==='WT'?b:a;
     const g = genesAtLocus.find(x=>x.id===mutId);
-    if(g.type==='recessive') return {label:g.name+' (porteur)', visual:false, geneIds:[g.id]};
+    if(g.type==='recessive') return {label:g.name+(currentLang==='en'?' (carrier)':' (porteur)'), visual:false, geneIds:[g.id]}; // v5.24 — était figé en français
     return {label:g.name, visual:true, warning:geneWarning(g), geneIds:[g.id]};
   }
   const key = [a,b].sort().join('+');
