@@ -2303,7 +2303,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.32';
+const APP_VERSION = '2026.09.01.5.34';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4470,22 +4470,22 @@ const GENES = [
   // ==================== Boa BCI (v5.32) — species:'boa_bci' (Boa imperator : colombiens et d'Amérique centrale), ids bci_ ====================
   // Source : Morphpedia, catégorie « Boa Constrictors » (36 fiches lues une par une le 29 oct 2026). Demandé par Royal Gorge Exotics.
   // Loci partagés selon Morphpedia : Hypo + Motley (colombien) = complexe Motley ; Leopard + Onyx = complexe Leopard.
-  // Gardés SÉPARÉS avec avertissement (Morphpedia ambigu) : Sharp × BWC (« Paradigm ») et Sharp × Prodigy (« Paradise »),
-  // Anery Type 2 × Albino Kahl (loci voisins : double homozygote impossible — lien génétique non modélisé), Key West vs Roswell
+  // v5.33 — 2e vérification : Sharp, BWC et Prodigy = MÊME gène (complexe albinos, fil « Allelic Morphs » MorphMarket + Blumen Boas) ;
+  // super Motley/Aztec/Jungle confirmés (REPTA, communauté MorphMarket). Gardés SÉPARÉS avec avertissement : Anery Type 2 × Albino Kahl (loci voisins : double homozygote impossible — lien génétique non modélisé), Key West vs Roswell
   // (peut-être le même gène), Anery Carbon vs RDR Black Eye (peut-être reliés).
   // Exclus : Coral Albino, Kubsch Pastel, Salmon Hypo (polygéniques), Paradox, Normal (pas des gènes), Albino argentin (autre espèce).
   {id:'bci_kahl', name:'Albino (Kahl)', type:'recessive', locus:'bci_kahl', cat:'Récessif', species:'boa_bci',
     warning:"Albinos T- (lignée Kahl, la plus répandue). Photophobie (sensibilité à la lumière) chez les visuels. Pas compatible avec l'Albino Sharp : ce sont deux gènes différents. L'Anery Type 2 est sur un locus voisin : un animal ne peut pas être à la fois Albino Kahl et Anery Type 2 visuels (lien génétique que LOCUS ne calcule pas). Source : Morphpedia.",
     warningEn:"T- albino (Kahl line, the most common). Photophobia (light sensitivity) in visuals. Not compatible with Sharp Albino: two different genes. Anery Type 2 sits on a neighbouring locus: an animal cannot be visual for both Kahl Albino and Type 2 Anery (genetic linkage that LOCUS does not calculate). Source: Morphpedia."},
-  {id:'bci_sharp', name:'Albino (Sharp)', type:'recessive', locus:'bci_sharp', cat:'Récessif', species:'boa_bci',
-    warning:"Albinos T- (lignée Sharp). Photophobie chez les visuels. Pas compatible avec l'Albino Kahl. Selon Morphpedia, Sharp × BWC donne le « Paradigm » et Sharp × Prodigy le « Paradise » : LOCUS les calcule comme des gènes séparés, le résultat réel de ces croisements peut différer. Source : Morphpedia.",
-    warningEn:"T- albino (Sharp line). Photophobia in visuals. Not compatible with Kahl Albino. According to Morphpedia, Sharp × BWC gives the « Paradigm » and Sharp × Prodigy the « Paradise »: LOCUS calculates them as separate genes, the real result of these pairings may differ. Source: Morphpedia."},
-  {id:'bci_bwc', name:'Albino (BWC / Caramel)', type:'recessive', locus:'bci_bwc', cat:'Récessif', species:'boa_bci',
-    warning:"Aussi appelé Caramel Albino ou Boa Woman Caramel. Photophobie chez les visuels. Voir l'avertissement de l'Albino Sharp (« Paradigm »). Source : Morphpedia.",
-    warningEn:"Also called Caramel Albino or Boa Woman Caramel. Photophobia in visuals. See the Sharp Albino warning (« Paradigm »). Source: Morphpedia."},
-  {id:'bci_prodigy', name:'Albino (Prodigy)', type:'recessive', locus:'bci_prodigy', cat:'Récessif', species:'boa_bci',
-    warning:"Photophobie chez les visuels. Morphpedia le décrit comme « essentiellement une autre lignée du BWC » sans confirmer qu'il s'agit du même gène : LOCUS les garde séparés. Voir aussi l'Albino Sharp (« Paradise »). Source : Morphpedia.",
-    warningEn:"Photophobia in visuals. Morphpedia describes it as « essentially another line of BWC » without confirming it is the same gene: LOCUS keeps them separate. See also Sharp Albino (« Paradise »). Source: Morphpedia."},
+  {id:'bci_sharp', name:'Albino (Sharp)', type:'recessive', locus:'bci_albinocx', cat:'Récessif', species:'boa_bci',
+    warning:"Lignée Sharp. Photophobie chez les visuels. Pas compatible avec l'Albino Kahl (gène différent). Même gène que BWC et Prodigy (complexe albinos) : Sharp + BWC = « Paradigm », Sharp + Prodigy = « Paradise ». Sources : Morphpedia, communauté MorphMarket, Blumen Boas.",
+    warningEn:"Sharp line. Photophobia in visuals. Not compatible with Kahl Albino (different gene). Same gene as BWC and Prodigy (albino complex): Sharp + BWC = « Paradigm », Sharp + Prodigy = « Paradise ». Sources: Morphpedia, MorphMarket community, Blumen Boas."},
+  {id:'bci_bwc', name:'Albino (BWC / Caramel)', type:'recessive', locus:'bci_albinocx', cat:'Récessif', species:'boa_bci',
+    warning:"Aussi appelé Caramel Albino ou Boa Woman Caramel. Photophobie chez les visuels. Même gène que Sharp et Prodigy : BWC + Sharp = « Paradigm ». L'apparence de BWC + Prodigy n'est pas documentée. Sources : Morphpedia, communauté MorphMarket, Blumen Boas.",
+    warningEn:"Also called Caramel Albino or Boa Woman Caramel. Photophobia in visuals. Same gene as Sharp and Prodigy: BWC + Sharp = « Paradigm ». The look of BWC + Prodigy is not documented. Sources: Morphpedia, MorphMarket community, Blumen Boas."},
+  {id:'bci_prodigy', name:'Albino (Prodigy)', type:'recessive', locus:'bci_albinocx', cat:'Récessif', species:'boa_bci',
+    warning:"Photophobie chez les visuels. Même gène que Sharp et BWC : Prodigy + Sharp = « Paradise ». L'apparence de Prodigy + BWC n'est pas documentée. Sources : Morphpedia, communauté MorphMarket.",
+    warningEn:"Photophobia in visuals. Same gene as Sharp and BWC: Prodigy + Sharp = « Paradise ». The look of Prodigy + BWC is not documented. Sources: Morphpedia, MorphMarket community."},
   {id:'bci_vpi', name:'Albino (VPI T+)', type:'recessive', locus:'bci_vpi', cat:'Récessif', species:'boa_bci',
     warning:"Albinos T+. Photophobie chez les visuels. Source : Morphpedia.",
     warningEn:"T+ albino. Photophobia in visuals. Source: Morphpedia."},
@@ -4511,20 +4511,20 @@ const GENES = [
     warning:"Même gène que le Motley colombien (complexe Motley). Le Super Hypo a un problème musculaire, mais se reproduit et vit normalement selon ce qui est documenté. Source : Morphpedia.",
     warningEn:"Same gene as Colombian Motley (Motley complex). The Super Hypo has a muscle issue but breeds and lives normally as far as documented. Source: Morphpedia."},
   {id:'bci_motley', name:'Motley (Colombian)', type:'incdom', locus:'bci_motleycx', cat:'Codominant / Incomplet dominant', species:'boa_bci', superLabel:'Super Motley',
-    warning:"Même gène que l'Hypo (complexe Motley). Le Super Motley survit très rarement au-delà de quelques années (« fatal super » selon Morphpedia) : évite Motley × Motley. Source : Morphpedia.",
-    warningEn:"Same gene as Hypo (Motley complex). The Super Motley very rarely survives past a few years (« fatal super » per Morphpedia): avoid Motley × Motley. Source: Morphpedia."},
+    warning:"Même gène que l'Hypo (complexe Motley). Le Super Motley survit très rarement au-delà de 2 ans (perte de fonction musculaire, problèmes à évacuer) : évite Motley × Motley. Figure sur la liste des gènes nuisibles de la REPTA (association du commerce des reptiles du Royaume-Uni). Sources : Morphpedia, REPTA, communauté MorphMarket.",
+    warningEn:"Same gene as Hypo (Motley complex). The Super Motley very rarely survives past 2 years (loss of muscle function, trouble passing waste): avoid Motley × Motley. Listed in the deleterious genes policy of REPTA (UK reptile trade association). Sources: Morphpedia, REPTA, MorphMarket community."},
   {id:'bci_motleyca', name:'Motley (Central American)', type:'incdom', locus:'bci_motleyca', cat:'Codominant / Incomplet dominant', species:'boa_bci'},
   {id:'bci_aztec', name:'Aztec', type:'incdom', locus:'bci_aztec', cat:'Codominant / Incomplet dominant', species:'boa_bci', superLabel:'Super Aztec',
-    warning:"Super Aztec : wobble (trouble neurologique) et infertilité rapportés. Source : Morphpedia.",
-    warningEn:"Super Aztec: wobble (neurological issue) and infertility reported. Source: Morphpedia."},
+    warning:"Super Aztec : wobble (trouble neurologique) et infertilité rapportés ; certains meurent jeunes. Sources : Morphpedia, communauté MorphMarket.",
+    warningEn:"Super Aztec: wobble (neurological issue) and infertility reported; some die young. Sources: Morphpedia, MorphMarket community."},
   {id:'bci_fire', name:'Fire', type:'incdom', locus:'bci_fire', cat:'Codominant / Incomplet dominant', species:'boa_bci', superLabel:'Super Fire'},
   {id:'bci_harlequin', name:'Harlequin', type:'incdom', locus:'bci_harlequin', cat:'Codominant / Incomplet dominant', species:'boa_bci'},
   {id:'bci_jaguar', name:'Jaguar (Colombian)', type:'incdom', locus:'bci_jaguar', cat:'Codominant / Incomplet dominant', species:'boa_bci',
     warning:"Morphpedia ne documente pas la forme à 2 copies (Super Jaguar) : ne te fie pas au calcul pour Jaguar × Jaguar. Source : Morphpedia.",
     warningEn:"Morphpedia does not document the 2-copy form (Super Jaguar): don't rely on the calculation for Jaguar × Jaguar. Source: Morphpedia."},
   {id:'bci_jungle', name:'Jungle', type:'incdom', locus:'bci_jungle', cat:'Codominant / Incomplet dominant', species:'boa_bci', superLabel:'Super Jungle',
-    warning:"Super Jungle : taux élevé de problèmes de fertilité. Source : Morphpedia.",
-    warningEn:"Super Jungle: high rate of fertility problems. Source: Morphpedia."},
+    warning:"Super Jungle : taux élevé de problèmes de fertilité. Sources : Morphpedia, communauté MorphMarket.",
+    warningEn:"Super Jungle: high rate of fertility problems. Sources: Morphpedia, MorphMarket community."},
   {id:'bci_keywest', name:'Key West', type:'incdom', locus:'bci_keywest', cat:'Codominant / Incomplet dominant', species:'boa_bci', superLabel:'Super Key West',
     warning:"Super Key West : mortalité inhabituellement élevée à la naissance. Morphpedia indique que Key West est peut-être identique au Roswell Laddertail : LOCUS les garde séparés. Source : Morphpedia.",
     warningEn:"Super Key West: unusually high death rate at birth. Morphpedia says Key West may be identical to Roswell Laddertail: LOCUS keeps them separate. Source: Morphpedia."},
@@ -4578,6 +4578,15 @@ const COMPOUND_NAMES = {
   // v5.16 — Motley domine Stripe : un Motley/Stripe a l'air Motley (Morphpedia l'écrit « Motley/stripe »).
   cs_motley: {
     'cs_motley+cs_stripe': 'Motley/Stripe',
+  },
+  // v5.33 — boa BCI : complexe albinos Sharp / BWC / Prodigy (Morphpedia + fil « Allelic Morphs » de la communauté MorphMarket + Blumen Boas)
+  bci_albinocx: {
+    'bci_bwc+bci_sharp': 'Paradigm',
+    'bci_prodigy+bci_sharp': 'Paradise',
+  },
+  // v5.33 — boa BCI : complexe Motley (Hypo + Motley colombien)
+  bci_motleycx: {
+    'bci_hypo+bci_motley': 'Hypo Motley',
   }
 };
 
@@ -5493,6 +5502,20 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.34', date:'2026-10-30',
+    title:{ fr:'Synchro plus sûre entre deux appareils', en:'Safer sync between two devices' },
+    changes:{
+      fr:[ '🔄 Si ton cellulaire et ton ordinateur sont ouverts en même temps, une donnée notée sur l\'un (ex. une pesée) ne peut plus être effacée du serveur par une modification faite sur l\'autre (ex. un repas). Avant d\'envoyer une fiche, l\'app relit maintenant la version du serveur et garde les deux.' ],
+      en:[ '🔄 If your phone and your computer are open at the same time, something logged on one (e.g. a weigh-in) can no longer be erased from the server by a change made on the other (e.g. a feeding). Before sending a record, the app now re-reads the server copy and keeps both.' ]
+    }
+  },
+  { version:'5.33', date:'2026-10-29',
+    title:{ fr:'Boa BCI : 2e vérification', en:'BCI boa: second check' },
+    changes:{
+      fr:[ '🧬 Boa BCI, après vérification dans une 2e source : les albinos Sharp, BWC et Prodigy sont le même gène. Le calculateur affiche maintenant les vrais résultats de leurs croisements : Sharp + BWC = « Paradigm », Sharp + Prodigy = « Paradise ». Les avertissements du Super Motley, du Super Aztec et du Super Jungle sont confirmés et précisés. Sources ajoutées : Blumen Boas, la communauté MorphMarket et la REPTA (association du commerce des reptiles du Royaume-Uni).' ],
+      en:[ '🧬 BCI boa, after checking a second source: Sharp, BWC and Prodigy albinos are the same gene. The calculator now shows the real results of their pairings: Sharp + BWC = « Paradigm », Sharp + Prodigy = « Paradise ». The Super Motley, Super Aztec and Super Jungle warnings are confirmed and detailed. Sources added: Blumen Boas, the MorphMarket community and REPTA (UK reptile trade association).' ]
+    }
+  },
   { version:'5.32', date:'2026-10-29',
     title:{ fr:'Calculateur : boa BCI', en:'Calculator: BCI boa' },
     changes:{
@@ -16944,10 +16967,43 @@ function markPushed(kind, sent){
   });
   if(acked.length) recordSnakeBase(acked, false); // v4.04 — le serveur a maintenant ces valeurs
 }
+// v5.34 — fusion AVANT envoi : avant, une fiche envoyée remplaçait en entier celle du serveur. Avec deux
+// appareils ouverts (pesée notée sur le PC, puis repas sur le cell avec sa copie périmée), la pesée
+// disparaissait du serveur jusqu'à la réouverture du PC — perdue pour de bon si le PC perdait ses données
+// entre-temps. Maintenant on relit les fiches à envoyer et on fusionne (mêmes règles que le tirage) avant l'envoi.
+async function mergeSnakesBeforePush(dirty){
+  var res = await sb.from('snakes').select('*').in('id', dirty.map(function(s){ return s.id; }));
+  if(!res || res.error){ console.warn('LOCUS: relecture avant envoi échouée', res && res.error); return false; }
+  var byId = {};
+  (res.data||[]).forEach(function(r){ byId[r.id] = r; });
+  var changed = false;
+  dirty.forEach(function(local){
+    var row = byId[local.id];
+    if(!row) return;
+    var cloud = rowToSnake(row);
+    var merged = fieldMergeSnake(mergeSnakeRecords(local, cloud), local, cloud);
+    try{ ensureSnakeMeta(merged); }catch(e){}
+    if(contentSignature(merged)===contentSignature(local)) return;
+    var i = savedSnakes.indexOf(local);
+    if(i<0) i = savedSnakes.findIndex(function(x){ return x.id===local.id; });
+    if(i>=0){ savedSnakes[i] = merged; changed = true; }
+  });
+  if(changed){
+    storage.save(savedSnakes); // re-signe les fiches fusionnées (elles restent « à envoyer »)
+    try{ renderSavedList(); }catch(e){}
+  }
+  return true;
+}
 async function pushKindRows(kind, arr, forceAll, toRow){
   if(!arr || !arr.length) return true;
   var dirty = itemsToPush(kind, arr, forceAll);
   if(!dirty.length) return true;
+  if(kind==='snakes' && !forceAll){
+    if(!(await mergeSnakesBeforePush(dirty))) return false;
+    arr = savedSnakes;
+    dirty = itemsToPush(kind, arr, false);
+    if(!dirty.length) return true;
+  }
   var sent = dirty.map(function(it){ return [it.id, lastSyncSnapshot[kind][it.id]]; });
   var res = await sb.from(kind).upsert(dirty.map(toRow));
   if(res && res.error){ console.warn('LOCUS: envoi échoué (' + kind + ')', res.error); return false; }

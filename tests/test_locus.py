@@ -219,7 +219,7 @@ class App:
         self.errors = []
         self.page.on('pageerror', lambda e: self.errors.append('pageerror: ' + str(e)))
         self.page.on('console', lambda m: m.type == 'error' and self.errors.append('console: ' + m.text[:300]))
-        self.page.on('dialog', lambda d: (self.errors.append('dialog: ' + d.message[:200]), d.accept()))
+        self.page.on('dialog', lambda d: d.accept())
 
     def open(self, wait=1500):
         t = time.time(); self.page.goto(self.url); self.page.wait_for_load_state('load')
@@ -376,9 +376,11 @@ def t_deux_appareils_ouverts(browser, url):
     a.js(f"sessionStorage.setItem('__fake_db', {json.dumps(json.dumps(db2))})")
     tour_fed(a, sid); a.page.wait_for_timeout(2500)
     db3 = a.js("window.__fakeSb.db()")
-    if '"value": 777' not in json.dumps(db3):
-        warn('fenêtre de perte : la pesée de l\'appareil 2 disparaît du serveur jusqu\'à ce que l\'appareil 2 se rouvre',
-             'l\'envoi remplace la fiche entière sans relire le serveur — si l\'appareil 2 perd ses données avant de se rouvrir, la pesée est perdue')
+    # v5.34 — fusion avant envoi : la pesée de l'appareil 2 ne doit JAMAIS disparaître du serveur
+    check('le repas de l\'appareil 1 n\'efface pas la pesée de l\'appareil 2 sur le serveur',
+          '"value": 777' in json.dumps(db3) and '"fed"' in json.dumps(db3))
+    check('l\'appareil 1 reçoit la pesée au moment de son envoi',
+          a.js(f"savedSnakes.find(x=>x.id==='{sid}').health.weights.some(w=>w.value===777)"))
     b.js(f"sessionStorage.setItem('__fake_db', {json.dumps(json.dumps(db3))})"); b.reload(wait=4000)
     db4 = b.js("window.__fakeSb.db()")
     check('à la réouverture de l\'appareil 2, le serveur a la pesée ET le repas',
@@ -388,6 +390,20 @@ def t_deux_appareils_ouverts(browser, url):
     check('puis l\'appareil 1 a les deux aussi', both)
     check('pas d\'erreur JS (deux appareils)', not a.real_errors() and not b.real_errors(), (a.real_errors() + b.real_errors())[:3])
     a.close(); b.close()
+
+def t_suppression_ne_revient_pas(browser, url):
+    section('Une entrée supprimée ne revient pas du serveur')
+    base = make_snake(5, days_history=30); sid = base['id']
+    a = App(browser, url, snakes=[base]); a.open(wait=2500)
+    a.js("pushAllUserData(true)"); a.page.wait_for_timeout(500)
+    n0 = a.js(f"savedSnakes.find(x=>x.id==='{sid}').health.events.length")
+    # supprime la 1re entrée du journal par la vraie fonction (confirmation acceptée automatiquement)
+    a.js(f"deleteHealthEvent('{sid}', 0)"); a.page.wait_for_timeout(2500)
+    n1 = a.js(f"savedSnakes.find(x=>x.id==='{sid}').health.events.length")
+    srv = a.js(f"((window.__fakeSb.db().snakes||[]).find(r=>r.id==='{sid}')||{{}}).health")
+    check('suppression gardée sur l\'appareil après l\'envoi', n1 == n0 - 1, (n0, n1))
+    check('suppression envoyée au serveur (pas ramenée par la fusion avant envoi)', srv and len(srv.get('events', [])) == n0 - 1, srv and len(srv.get('events', [])))
+    a.close()
 
 def t_import(browser, url):
     section('Import d\'un fichier CSV')
@@ -531,7 +547,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()
