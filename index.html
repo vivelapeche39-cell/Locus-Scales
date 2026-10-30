@@ -810,6 +810,50 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 .modal-head{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:18px;}
 .modal-head h2{font-family:Georgia,'Times New Roman',serif;font-size:20px;margin:0;color:var(--gold);}
 .modal-close{background:transparent;border:none;color:var(--ink-dim);font-size:22px;cursor:pointer;line-height:1;padding:0 4px;}
+/* v5.36 — Parcours (fiche d'un animal) */
+.prc-bar{display:flex;flex-direction:column;gap:10px;margin-bottom:8px;}
+.prc-seg{display:inline-flex;align-self:flex-start;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--bg-panel-2);}
+.prc-seg button{border:0;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600;background:transparent;color:var(--ink-dim);cursor:pointer;font-family:inherit;}
+.prc-seg button.on{background:var(--gold);color:#000;}
+.prc-chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch;}
+.prc-chip{flex:none;display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:7px 13px;font-size:14px;cursor:pointer;white-space:nowrap;background:transparent;color:var(--ink-dim);border:2px solid var(--line);font-family:inherit;}
+.prc-chip.on{background:var(--bg-panel-2);color:var(--ink);}
+.prc-dot{display:inline-block;flex:none;border-radius:50%;box-sizing:border-box;vertical-align:middle;}
+.prc-empty{font-size:13px;color:var(--ink-dim);padding:10px 0;}
+.prc-v{max-height:520px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-right:4px;}
+.prc-year{width:100%;display:flex;align-items:center;gap:12px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:10px 0 4px;color:var(--ink);text-align:left;cursor:pointer;font-family:inherit;}
+.prc-year b{font-family:Georgia,'Times New Roman',serif;font-size:20px;color:var(--gold);}
+.prc-year .sum{flex:1;font-size:13px;color:var(--ink-dim);line-height:1.4;}
+.prc-month{font-family:'Courier New',monospace;font-size:12px;font-weight:700;letter-spacing:2px;color:var(--gold);padding:14px 0 6px 96px;}
+.prc-row{display:flex;align-items:stretch;min-height:52px;}
+.prc-row.child{opacity:.85;}
+.prc-date{width:62px;flex:none;text-align:right;font-family:'Courier New',monospace;font-size:12.5px;color:var(--ink-dim);padding-top:1px;line-height:1.3;white-space:nowrap;}
+.prc-date.rng{white-space:normal;}
+.prc-rail{width:34px;flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding-top:3px;background:linear-gradient(var(--line),var(--line)) center/2px 100% no-repeat;}
+.prc-txt{flex:1;min-width:0;padding-bottom:12px;}
+.prc-txt .l,.prc-grp .l{display:block;font-size:15px;font-weight:600;line-height:1.3;}
+.prc-txt .d,.prc-grp .d{display:block;font-size:13.5px;color:var(--ink-dim);margin-top:2px;line-height:1.35;}
+.prc-grp{flex:1;min-width:0;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin:0 0 12px;padding:8px 12px;background:var(--bg-panel-2);border:1px dashed var(--line);border-radius:10px;color:var(--ink);text-align:left;cursor:pointer;font-family:inherit;font-size:14px;}
+.prc-ynav{display:flex;align-items:center;justify-content:center;gap:16px;margin:4px 0 8px;}
+.prc-ynav button{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--bg-panel-2);color:var(--gold);font-size:22px;line-height:1;cursor:pointer;}
+.prc-ynav button:disabled{color:var(--line);cursor:default;}
+.prc-ynav b{font-family:Georgia,'Times New Roman',serif;font-size:22px;color:var(--gold);min-width:64px;text-align:center;}
+.prc-hscroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border-bottom:1px solid var(--bg-panel-2);}
+.prc-hin{display:flex;flex-direction:column;width:max-content;}
+.prc-lane{display:flex;height:58px;border-top:1px solid var(--bg-panel-2);}
+.prc-lane.head{height:30px;border-top:0;}
+.prc-lab{width:96px;flex:none;position:sticky;left:0;z-index:3;background:var(--bg-panel);display:flex;align-items:center;gap:7px;padding-left:6px;box-sizing:border-box;font-size:13px;font-weight:600;border-right:1px solid var(--line);}
+.prc-track{position:relative;width:1460px;flex:none;}
+.prc-mline{position:absolute;top:0;bottom:0;width:1px;background:var(--bg-panel-2);}
+.prc-mlab{position:absolute;top:8px;font-family:'Courier New',monospace;font-size:11.5px;font-weight:700;letter-spacing:1px;color:var(--ink-dim);padding-left:4px;white-space:nowrap;}
+.prc-hdot{position:absolute;top:0;height:58px;width:26px;margin-left:-13px;padding:0;background:transparent;border:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;z-index:1;}
+.prc-hdot .v{font-family:'Courier New',monospace;font-size:10.5px;font-weight:700;color:#E0B25A;white-space:nowrap;}
+.prc-hdot.sel{z-index:2;}
+.prc-hdot.sel .prc-dot{box-shadow:0 0 0 3px var(--bg-panel),0 0 0 5px var(--ink);}
+.prc-today{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--gold);opacity:.7;}
+.prc-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--ink-dim);margin-top:8px;}
+.prc-legend>span{display:inline-flex;align-items:center;gap:6px;}
+.prc-card{margin-top:12px;padding:14px 16px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:12px;}
 .modal-close:hover{color:var(--ink);}
 .modal-section{margin-bottom:20px;}
 .modal-section h3{font-family:'Courier New',monospace;font-size:10.5px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);margin:0 0 8px;}
@@ -1321,6 +1365,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
       <button class="sc-btn accent" id="mine-toggle-draft-btn" style="flex:1;min-width:150px;" onclick="toggleDraftPanel()">➕ <span data-i18n="newReptileTitle">Nouveau reptile</span></button>
       <button class="sc-btn" id="mine-toggle-filters-btn" style="flex:1;min-width:150px;" onclick="toggleFilterPanel()">🔍 <span data-i18n="filtersSortBtn">Filtres & tri</span></button>
+      <button class="sc-btn" id="batch-mode-toggle-btn" style="flex:1;min-width:150px;" onclick="toggleBatchMode()">☑️ <span data-i18n="batchSelectBtn">Sélection multiple</span></button><!-- v5.37 — sorti du panneau Filtres (demande d'Alex) -->
     </div>
 
     <!-- v4.81 — demande d'Alex : le panneau Filtres & tri s'ouvre AU-DESSUS des reptiles (plus besoin de défiler toute la liste) -->
@@ -1375,11 +1420,14 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <select id="mine-saved-filter-select" class="egg-select" onchange="if(this.value!=='') applySavedMineFilter(parseInt(this.value));"></select>
         <button class="sc-btn" onclick="const sel=document.getElementById('mine-saved-filter-select'); if(sel.value!=='') deleteSavedMineFilter(parseInt(sel.value)); else alert(currentLang==='en'?'Pick a saved filter first.':'Choisis d\'abord un filtre sauvegardé.');" title="Supprimer le filtre sélectionné" data-i18n-title="deleteSavedFilterTitle">🗑</button>
         <button class="sc-btn" onclick="saveCurrentMineFilterAsPreset()">⭐ <span data-i18n="saveFilterBtn">Sauvegarder ce filtre</span></button>
-        <button class="sc-btn" id="batch-mode-toggle-btn" onclick="toggleBatchMode()">☑️ <span data-i18n="batchSelectBtn">Sélection multiple</span></button>
       </div>
-      <div id="batch-action-bar" style="display:none;background:var(--bg-panel-2);border:1px solid var(--gold);border-radius:12px;padding:10px 14px;margin-bottom:14px;gap:8px;flex-wrap:wrap;align-items:center;">
+    </div>
+
+    <!-- v5.37 — barre de la Sélection multiple : hors du panneau Filtres pour rester visible quand il est fermé -->
+    <div id="batch-action-bar" style="display:none;background:var(--bg-panel-2);border:1px solid var(--gold);border-radius:12px;padding:10px 14px;margin-bottom:14px;gap:8px;flex-wrap:wrap;align-items:center;">
         <span id="batch-count-label" style="font-family:'Courier New',monospace;font-size:11px;color:var(--gold);font-weight:600;"></span>
         <button class="sc-btn accent" onclick="batchMarkFed()">🍽 <span data-i18n="batchFeedBtn">Nourrir</span></button>
+        <button class="sc-btn" onclick="openBatchPreyModal()">🐭 <span data-i18n="batchPreyBtn">Proie</span></button>
         <button class="sc-btn" onclick="batchToggleTerrarium()">🏠 <span data-i18n="batchMoveBtn">Rack ↔ Terrarium</span></button>
         <input type="number" id="batch-price-input" class="price-input" style="width:80px;" placeholder="Prix $" min="0"/>
         <button class="sc-btn" onclick="batchSetPrice()">💰 <span data-i18n="batchPriceBtn">Prix en masse</span></button>
@@ -1387,9 +1435,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <button class="sc-btn" id="batch-group-remove-btn" style="display:none;" onclick="batchRemoveFromGroup()">➖ <span data-i18n="batchGroupRemoveBtn">Retirer du groupe</span></button>
         <button class="sc-btn" onclick="batchSelectAll()"><span data-i18n="batchSelectAllBtn">Tout sélectionner</span></button>
         <button class="sc-btn danger" onclick="toggleBatchMode()">✕ <span data-i18n="batchCancelBtn">Annuler</span></button>
-      </div>
     </div>
-
     <div id="genetic-health-container"></div>
     <div id="saved-grid" class="saved-grid"></div>
 
@@ -1575,7 +1621,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
           <option value="1" data-i18n="horizonToday">Aujourd'hui seulement</option>
         </select>
       </div>
-      <div class="results-hdr"><h2 style="font-size:16px;" data-i18n="defrostListTitle">📋 Liste de décongélation</h2></div>
+      <div class="results-hdr"><h2 style="font-size:16px;" data-i18n="defrostListTitle">📋 Liste de décongélation</h2><button type="button" class="sc-btn" id="defrost-toggle-btn" style="font-size:14px;padding:7px 12px;" onclick="toggleDefrostList()" aria-expanded="true" aria-controls="defrost-list"></button></div>
       <div id="defrost-list" class="expense-breakdown"></div>
       <div class="results-hdr" style="margin-top:26px;"><h2 style="font-size:16px;" data-i18n="preyMissingTitle">⚠ Proie non renseignée</h2></div>
       <div id="prey-missing-list" class="sale-list"></div>
@@ -1731,8 +1777,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       </label>
       <label id="clutch-temp-wrap" style="display:none;align-items:center;gap:6px;font-family:'Courier New',monospace;font-size:11px;color:var(--ink-dim);">
         <span id="clutch-temp-label">Temp.</span>
-        <input type="number" id="clutch-incub-temp" step="0.1" min="20" max="40" oninput="updateClutchTsdHint()" style="width:64px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:4px;color:var(--ink);font-family:'Courier New',monospace;font-size:14px;padding:7px 6px;text-align:center;"/>
-        °C
+        <input type="number" id="clutch-incub-temp" step="0.1" oninput="updateClutchTsdHint()" style="width:64px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:4px;color:var(--ink);font-family:'Courier New',monospace;font-size:14px;padding:7px 6px;text-align:center;"/>
+        <span id="clutch-temp-unit">°C</span>
       </label>
       <button class="save-btn" onclick="addClutch()" data-i18n="saveClutchBtn">Enregistrer la portée</button>
       <div id="clutch-tsd-hint" style="display:none;width:100%;font-size:13px;line-height:1.5;color:var(--ink);"></div>
@@ -2303,7 +2349,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.35';
+const APP_VERSION = '2026.09.01.5.39';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3200,7 +3246,7 @@ function getShowFields(s){
   showFieldDefs().forEach(d=>{ out[d.k] = d.off ? f[d.k]===true : (d.followsMeals && f[d.k]===undefined) ? f.meals!==false : f[d.k]!==false; }); // v4.13 — les nouveaux champs suivent « repas » tant qu'on n'y a pas touché
   return out;
 }
-function showUrlFor(token){ return location.origin + location.pathname + '?show=' + encodeURIComponent(token); }
+function showUrlFor(token){ return location.origin + location.pathname + '?show=' + encodeURIComponent(token) + '&u=' + unitUrlCode(); } // v5.39 — unités du propriétaire
 function newShowToken(){
   try{ const b = new Uint8Array(16); crypto.getRandomValues(b); return Array.from(b, x=>x.toString(16).padStart(2,'0')).join(''); }
   catch(e){ return (Date.now().toString(16)+Math.random().toString(16).slice(2)+Math.random().toString(16).slice(2)).slice(0,32); }
@@ -3284,7 +3330,7 @@ function showAncestorHtml(a, roleLabel, isEn, small){
     if(a.meals){
       const m = a.meals;
       const prey = showPreyLabel(m, isEn);
-      const w = m.weight && m.weight.value!=null ? escapeHtml(String(m.weight.value))+' g'+(m.weight.date ? ' ('+escapeHtml(String(m.weight.date))+')' : '') : '';
+      const w = m.weight && m.weight.value!=null ? escapeHtml(fmtWeight(m.weight.value))+(m.weight.date ? ' ('+escapeHtml(String(m.weight.date))+')' : '') : '';
       html += '<div style="'+card+'">'+h2('🍽 '+(isEn?'Feeding':'Alimentation'))+
         '<div style="font-size:16px;color:var(--ink);line-height:1.7;">'+
           (isEn ? 'Last 90 days: <b>'+Number(m.fed_90||0)+'</b> meal(s), <b>'+Number(m.refused_90||0)+'</b> refusal(s)'
@@ -3354,8 +3400,8 @@ function showWeightChartSvg(ws, isEn){
   return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="'+(isEn?'Weight chart':'Courbe de poids')+'" style="display:block;">'+
     '<line x1="'+padL+'" y1="'+Y(max)+'" x2="'+(W-padR)+'" y2="'+Y(max)+'" stroke="var(--line)"/>'+
     '<line x1="'+padL+'" y1="'+Y(min)+'" x2="'+(W-padR)+'" y2="'+Y(min)+'" stroke="var(--line)"/>'+
-    '<text x="'+(padL-6)+'" y="'+(Y(max)+4)+'" text-anchor="end" font-size="14" fill="var(--ink-dim)">'+Math.round(max)+' g</text>'+
-    '<text x="'+(padL-6)+'" y="'+(Y(min)+4)+'" text-anchor="end" font-size="14" fill="var(--ink-dim)">'+Math.round(min)+' g</text>'+
+    '<text x="'+(padL-6)+'" y="'+(Y(max)+4)+'" text-anchor="end" font-size="14" fill="var(--ink-dim)">'+fmtWeight(max)+'</text>'+
+    '<text x="'+(padL-6)+'" y="'+(Y(min)+4)+'" text-anchor="end" font-size="14" fill="var(--ink-dim)">'+fmtWeight(min)+'</text>'+
     '<text x="'+padL+'" y="'+(H-6)+'" font-size="14" fill="var(--ink-dim)">'+escapeHtml(ws[0].date)+'</text>'+
     '<text x="'+(W-padR)+'" y="'+(H-6)+'" text-anchor="end" font-size="14" fill="var(--ink-dim)">'+escapeHtml(ws[ws.length-1].date)+'</text>'+
     '<polyline points="'+pts+'" fill="none" stroke="var(--gold)" stroke-width="2.5" stroke-linejoin="round"/>'+
@@ -5502,6 +5548,64 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.39', date:'2026-10-30',
+    title:{ fr:'Unités partout dans l\'app', en:'Units across the whole app' },
+    changes:{
+      fr:[ '🥚 Deux nouveaux réglages dans Configuration → Unités : l\'incubateur (°F par défaut) et les dimensions des terrariums (pouces par défaut), séparés du reste — comme au Québec, où l\'incubateur et les terrariums restent souvent en impérial.',
+           '🌡️ Les températures écrites dans les fiches d\'espèces, la FAQ, les guides et l\'incubation suivent maintenant ton unité. Quand un texte donnait les deux (« 88-92°F (31-33°C) »), seule la tienne reste.',
+           '⚖ Poids dans ton unité aussi dans les statistiques, la courbe de poids, les journaux, la saison de reproduction, le Mode Verrou, la charte des proies (poids de l\'animal), la fiche imprimée, l\'étiquette de bac et le texte d\'annonce.',
+           '🔗 QR de show et lien public : les visiteurs voient tes unités. Régénère le QR ou recopie le lien pour qu\'il les inclue.',
+           '📥 Import : un poids écrit « 3 lb 2 oz » est maintenant bien lu (avant : 32 lb). Les colonnes en lb, oz ou kg l\'étaient déjà.',
+           '💾 Les exports de données (CSV, Excel, sauvegarde) restent en métrique avec l\'unité dans l\'en-tête, pour se réimporter sans erreur.' ],
+      en:[ '🥚 Two new settings in Settings → Units: the incubator (°F by default) and enclosure size (inches by default), separate from the rest — like in Quebec, where incubators and enclosures often stay imperial.',
+           '🌡️ Temperatures written in species sheets, the FAQ, guides and incubation now follow your unit. When a text gave both (« 88-92°F (31-33°C) »), only yours is kept.',
+           '⚖ Weights in your unit also in statistics, the weight chart, logs, breeding season, Lock Mode, the prey chart (animal weight), the printed sheet, the tub label and the sale text.',
+           '🔗 Show QR and public link: visitors see your units. Regenerate the QR or copy the link again so it includes them.',
+           '📥 Import: a weight written « 3 lb 2 oz » is now read correctly (before: 32 lb). Columns in lb, oz or kg already were.',
+           '💾 Data exports (CSV, Excel, backup) stay metric with the unit in the header, so they re-import without errors.' ]
+    }
+  },
+  { version:'5.38', date:'2026-10-30',
+    title:{ fr:'Choisis tes unités : °C/°F, g ou oz/lb, cm ou pouces', en:'Pick your units: °C/°F, g or oz/lb, cm or inches' },
+    changes:{
+      fr:[ '🌡️ Configuration → Unités : température en °C ou °F, poids en grammes ou oz/lb, longueur en cm ou pouces. Gratuit.',
+           '📋 Déjà appliqué sur la fiche (températures côté chaud/froid, historique des pesées et longueurs, repère de croissance, alerte de baisse de poids), aux saisies (pesée, pesée en lot, longueur, entrée passée), à la carte de Mes reptiles et au Parcours. Le reste de l\'app suit dans une prochaine version.',
+           '🔒 Tes données ne changent pas : LOCUS garde tout en métrique et convertit seulement à l\'écran. La charte des proies reste en grammes.' ],
+      en:[ '🌡️ Settings → Units: temperature in °C or °F, weight in grams or oz/lb, length in cm or inches. Free.',
+           '📋 Already applied to the record (warm/cool side temperatures, weigh-in and length history, growth guide, weight-loss alert), to entry (weigh-in, batch weigh-in, length, past entry), to the My reptiles card and to History. The rest of the app follows in an upcoming version.',
+           '🔒 Your data doesn\'t change: LOCUS keeps everything in metric and only converts on screen. The prey chart stays in grams.' ]
+    }
+  },
+  { version:'5.37', date:'2026-10-30',
+    title:{ fr:'Proie en lot : plusieurs animaux d\'un coup', en:'Bulk prey: many animals at once' },
+    changes:{
+      fr:[ '🐭 Mes reptiles → Sélection multiple → nouveau bouton « Proie » : coche tes animaux (ou « Tout sélectionner »), choisis la proie et la taille une seule fois, et c\'est appliqué à tous. Idéal quand les bébés passent de pinky à fuzzy.',
+           '☑️ Dans cette fenêtre, « Cocher aussi tous ceux en Souris Pinky » (par exemple) retrouve d\'un toucher tous les animaux qui mangent la même proie — pas besoin de les recocher un par un.',
+           '🍽 Mode Tournée : quand plusieurs animaux n\'ont pas encore de taille de proie, la fenêtre a maintenant une case par animal, « Tout cocher » et « Appliquer aux cochés » pour leur donner la même proie d\'un coup.',
+           '🛡 Une proie qui ne convient pas à l\'espèce d\'un animal n\'est jamais posée : il est sauté et nommé. Gratuit.',
+           '☑️ Le bouton « Sélection multiple » est maintenant à côté de « Nouveau reptile » (avant, il était caché dans Filtres & tri).',
+           '📋 Élevage › Nourriture : la liste de décongélation peut être masquée (bouton « Masquer » à côté du titre). Ton choix est retenu sur l\'appareil.' ],
+      en:[ '🐭 My reptiles → Multi-select → new « Prey » button: check your animals (or « Select all »), pick the prey and size once, and it applies to all of them. Perfect when babies move from pinky to fuzzy.',
+           '☑️ In that window, « Also check all on Mouse Pinky » (for example) finds every animal eating the same prey in one tap — no need to check them again one by one.',
+           '🍽 Round Mode: when several animals don\'t have a prey size yet, the window now has a checkbox per animal, « Check all » and « Apply to checked » to give them the same prey at once.',
+           '🛡 A prey that doesn\'t suit an animal\'s species is never set: that animal is skipped and named. Free.',
+           '☑️ The « Multi-select » button is now next to « New reptile » (it used to be hidden in Filters & sort).',
+           '📋 Husbandry › Food: the thaw list can be hidden (« Hide » button next to the title). Your choice is remembered on the device.' ]
+    }
+  },
+  { version:'5.36', date:'2026-10-30',
+    title:{ fr:'Nouveau : le Parcours de chaque animal', en:'New: each animal\'s History' },
+    changes:{
+      fr:[ '🧭 Sur la fiche de chaque animal, une nouvelle section « Parcours » montre toute sa vie sur une ligne : repas, refus, mues, pesées, longueurs, véto, selles, accouplements, naissance, arrivée.',
+           '↕↔ Choisis l\'affichage vertical (une ligne qui descend, par mois) ou horizontal (une rangée par type, une année à la fois). Ton choix est retenu sur l\'appareil.',
+           '🍽 Les repas réguliers d\'un même mois sont regroupés (« 4 repas · aux 7 jours ») pour que la liste reste courte ; touche « Voir » pour les détailler. Les années passées sont repliées avec un résumé.',
+           '🎛 Filtres par type (Repas, Mues, Pesées, Santé, Reproduction). Gratuit, pour tout le monde.' ],
+      en:[ '🧭 Each animal\'s record now has a « History » section showing its whole life on one line: feedings, refusals, sheds, weigh-ins, lengths, vet, poop, pairings, birth, arrival.',
+           '↕↔ Pick the vertical view (a line going down, by month) or the horizontal view (one row per type, one year at a time). Your choice is remembered on the device.',
+           '🍽 Regular feedings in the same month are grouped (« 4 meals · about every 7 days ») to keep the list short; tap « Show » to expand them. Past years are folded with a summary.',
+           '🎛 Filters by type (Meals, Sheds, Weigh-ins, Health, Breeding). Free for everyone.' ]
+    }
+  },
   { version:'5.35', date:'2026-10-30',
     title:{ fr:'Repas plus rapide avec une grosse collection', en:'Faster feeding log for large collections' },
     changes:{
@@ -7227,7 +7331,7 @@ const I18N = {
     batchSelectBtn: 'Sélection multiple',
     batchFeedBtn: 'Nourrir',
     batchMoveBtn: 'Rack ↔ Terrarium',
-    batchPriceBtn: 'Prix en masse',
+    batchPriceBtn: 'Prix en masse', batchPreyBtn: 'Proie',
     batchSelectAllBtn: 'Tout sélectionner',
     batchGroupBtn: 'Ajouter à un groupe', batchGroupRemoveBtn: 'Retirer du groupe', // v4.49
     rodentImportBtn: 'Importer (Excel, CSV, texte)', // v4.61
@@ -7817,7 +7921,7 @@ const I18N = {
     batchSelectBtn: 'Batch select',
     batchFeedBtn: 'Feed',
     batchMoveBtn: 'Rack ↔ Enclosure',
-    batchPriceBtn: 'Bulk price',
+    batchPriceBtn: 'Bulk price', batchPreyBtn: 'Prey',
     batchSelectAllBtn: 'Select all',
     batchGroupBtn: 'Add to a group', batchGroupRemoveBtn: 'Remove from group', // v4.49
     rodentImportBtn: 'Import (Excel, CSV, text)', // v4.61
@@ -8351,6 +8455,7 @@ function openConfigModal(){
       '<button class="sc-btn'+(cfg.lang==='en'?' accent':'')+'" style="flex:1;" onclick="setAppLanguage(\'en\')">🇬🇧 English</button>'+
     '</div>'+
     '<p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 18px;">'+(isEn?'✅ Fully bilingual interface — every tab, menu, Help, FAQ, and legal document switches live.':'✅ Interface entièrement bilingue — tous les onglets, menus, l\'Aide, la FAQ et les documents légaux basculent en direct.')+'</p>'+
+    unitsConfigHtml()+ // v5.38 — unités
     // v3.77 — délai sans manipulation après un repas
     '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:8px;">🤚 '+(isEn?'No handling after a meal':'Pas de manipulation après un repas')+'</label>'+
     '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">'+
@@ -11292,7 +11397,7 @@ function renderSavedList(){
     const placeLabel = placementCode(s) ? escapeHtml(placementCode(s)) : snakeIsUnplaced(s) ? (isEn?'To place':'À classer') : s.placement.mode==='rack' ? ((isEn?'Rack — Row ':'Rack — Rangée ')+s.placement.row+(isEn?' / Tub ':' / Bac ')+s.placement.tub) : (isEn?'Terrarium':'Terrarium'); // v4.45 — « Rack A-R2-B5 »
     const w = s.health.weights;
     const weightLine = w.length
-      ? '⚖ '+w[w.length-1].value+'g'+(w.length>1 ? ' ('+(w[w.length-1].value-w[w.length-2].value>=0?'+':'')+(w[w.length-1].value-w[w.length-2].value)+(isEn?'g since last weigh-in)':'g depuis dernière pesée)') : (isEn?' — 1st weigh-in':' — 1ʳᵉ pesée'))
+      ? '⚖ '+fmtWeight(w[w.length-1].value)+(w.length>1 ? ' ('+fmtWeightDelta(w[w.length-1].value-w[w.length-2].value)+(isEn?' since last weigh-in)':' depuis dernière pesée)') : (isEn?' — 1st weigh-in':' — 1ʳᵉ pesée'))
       : (isEn?'⚖ No weight recorded':'⚖ Aucune pesée enregistrée');
     const sexBadge = s.sex==='male' ? '<span class="sc-sex male">'+(isEn?'Male':'Mâle')+'</span>' : s.sex==='female' ? '<span class="sc-sex female">'+(isEn?'Female':'Femelle')+'</span>' : '<span class="sc-sex unknown">'+(isEn?'Unsexed':'Non sexé')+'</span>';
     const statusBadge = '<span class="sc-status '+s.status+'">'+saleStatusLabel(s.status)+'</span>';
@@ -13900,16 +14005,16 @@ function openLogbook(id){
   const weightsHtml = s.health.weights.length
     ? [...s.health.weights].reverse().map((w,i,arr)=>{
         const prevIdx = i+1;
-        const delta = prevIdx<arr.length ? ' ('+(w.value-arr[prevIdx].value>=0?'+':'')+(w.value-arr[prevIdx].value)+'g)' : '';
-        return mrow(w.date, w.value+'g'+delta);
+        const delta = prevIdx<arr.length ? ' ('+fmtWeightDelta(w.value-arr[prevIdx].value)+')' : ''; // v5.38
+        return mrow(w.date, fmtWeight(w.value)+delta);
       }).join('')
     : '<div class="modal-row"><span>'+t('noWeighInRecorded')+'</span></div>';
 
   const lengthsHtml = s.health.lengths.length
     ? [...s.health.lengths].reverse().map((l,i,arr)=>{
         const prevIdx = i+1;
-        const delta = prevIdx<arr.length ? ' ('+(l.value-arr[prevIdx].value>=0?'+':'')+(l.value-arr[prevIdx].value)+'cm)' : '';
-        return mrow(l.date, l.value+'cm'+delta);
+        const delta = prevIdx<arr.length ? ' ('+fmtLengthDelta(l.value-arr[prevIdx].value)+')' : ''; // v5.38
+        return mrow(l.date, fmtLength(l.value)+delta);
       }).join('')
     : '<div class="modal-row"><span>'+t('noLengthRecorded')+'</span></div>';
 
@@ -13920,7 +14025,7 @@ function openLogbook(id){
   // identiques se ressemblent en tout point, exactement le cas d'un doublon.
   const eventRowHtml = e=>{
         const idx = s.health.events.indexOf(e);
-        const label = eventLabelFor(e)+(e.type==='weigh'?' ('+e.value+'g)':'')+(e.type==='length'?' ('+e.value+'cm)':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(currentLang==='en'?'partial':'partiel'):'')+feedPreyTag(e)+(e.partner?' — '+escapeHtml(e.partner):'');
+        const label = eventLabelFor(e)+(e.type==='weigh'?' ('+fmtWeight(e.value)+')':'')+(e.type==='length'?' ('+fmtLength(e.value)+')':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(currentLang==='en'?'partial':'partiel'):'')+feedPreyTag(e)+(e.partner?' — '+escapeHtml(e.partner):'');
         const swapBtn = (e.type==='shed' || e.type==='inshed') ? '<button class="sc-btn" style="padding:2px 8px;font-size:12px;line-height:1.2;" onclick="toggleShedEventType(\''+id+'\','+idx+')" title="'+(currentLang==='en'?(e.type==='shed'?'Change to « In shed »':'Change to « Shed »'):(e.type==='shed'?'Changer en « En mue »':'Changer en « A mué »'))+'">⇄ '+(e.type==='shed'?(currentLang==='en'?'In shed':'En mue'):(currentLang==='en'?'Shed':'A mué'))+'</button>' : ''; // v3.90
         const editBtn = '<button class="sc-btn" style="padding:2px 8px;font-size:12px;line-height:1.2;" onclick="openEditEventModal(\''+id+'\','+idx+')" aria-label="'+(currentLang==='en'?'Edit':'Modifier')+'">✏️</button>'; // v3.92
         return '<div class="modal-row"><span>'+e.date+'</span><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">'+label+editBtn+swapBtn+'<button class="sc-btn danger" style="padding:2px 8px;font-size:11px;line-height:1;" onclick="deleteHealthEvent(\''+id+'\','+idx+')">×</button></span></div>';
@@ -13989,7 +14094,7 @@ function openLogbook(id){
       const preyRecLabel = (status==='above'||status==='obesity-alert')
         ? (currentLang==='en'?'🐭 Recommended prey (sized down — target weight for age)':'🐭 Proie recommandée (réduite — poids cible pour l\'âge)')
         : (currentLang==='en'?'🐭 Recommended prey (current weight)':'🐭 Proie recommandée (poids actuel)');
-      growthCompareHtml = '<div class="modal-row"><span style="color:'+statusColor+';">'+statusText+'</span><span>'+range.min+'-'+range.max+'g</span></div>'+
+      growthCompareHtml = '<div class="modal-row"><span style="color:'+statusColor+';">'+statusText+'</span><span>'+fmtWeightRange(range.min, range.max)+'</span></div>'+
         '<div class="modal-row"><span>'+preyRecLabel+'</span><span>'+preyRec.preyMin+'-'+preyRec.preyMax+'g — '+preyRec.label+'</span></div>'+
         ((status==='above'||status==='obesity-alert') ? '<p class="husbandry-health-note" style="margin-top:6px;">'+(currentLang==='en'
           ? 'Sizing prey to the current (elevated) weight would only reinforce the trend — this recommendation targets the top of the typical range for this age instead. Spacing out feedings can also help more than shrinking prey alone.'
@@ -14130,6 +14235,7 @@ function openLogbook(id){
           : (isEn?'No unit price for this prey yet — add it in Breeding › Food.':'Pas encore de prix unitaire pour cette proie — ajoute-le dans Élevage › Nourriture.'))+'</div>';
     })()+
     (feedCount(s)>0 && cumulativeFeedCost(s)>0 ? '<div class="modal-row"><span>'+(isEn?'Cumulative feeding cost (estimate)':'Coût de nourriture cumulé (estimé)')+'</span><span style="color:var(--gold);font-weight:600;">'+cumulativeFeedCost(s).toFixed(2)+' $</span></div>' : '')+
+    '<div class="modal-section"><h3>🧭 '+(isEn?'History':'Parcours')+'</h3><div id="parcours-box">'+parcoursInnerHtml(s)+'</div></div>'+ // v5.36
     '<div class="modal-section"><h3>'+t('careJournalTourTitle')+'</h3>'+
       '<button class="sc-btn accent" style="font-size:14px;padding:9px 12px;margin-bottom:8px;" onclick="openAddPastEventModal(\''+id+'\')">＋ '+(isEn?'Past entry':'Entrée passée')+'</button>'+ // v3.92
       eventsHtml+'</div>'+
@@ -14166,10 +14272,10 @@ function openLogbook(id){
       '</div>'
       ) : '')+
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">'+
-        '<label style="flex:1;min-width:110px;"><span style="font-size:10.5px;color:var(--ink-dim);display:block;margin-bottom:4px;">'+(currentLang==='en'?'Warm side (°C)':'Côté chaud (°C)')+'</span>'+
-          '<input type="number" step="0.5" style="width:100%;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" value="'+(s.careParams.tempWarm??'')+'" oninput="setCareParamSoon(\''+id+'\',\'tempWarm\',this.value)" onchange="setCareParam(\''+id+'\',\'tempWarm\',this.value)"/></label>'+
-        '<label style="flex:1;min-width:110px;"><span style="font-size:10.5px;color:var(--ink-dim);display:block;margin-bottom:4px;">'+(currentLang==='en'?'Cool side (°C)':'Côté froid (°C)')+'</span>'+
-          '<input type="number" step="0.5" style="width:100%;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" value="'+(s.careParams.tempCool??'')+'" oninput="setCareParamSoon(\''+id+'\',\'tempCool\',this.value)" onchange="setCareParam(\''+id+'\',\'tempCool\',this.value)"/></label>'+
+        '<label style="flex:1;min-width:110px;"><span style="font-size:10.5px;color:var(--ink-dim);display:block;margin-bottom:4px;">'+(currentLang==='en'?'Warm side':'Côté chaud')+' ('+tempUnitLabel()+')'+'</span>'+
+          '<input type="number" step="0.5" style="width:100%;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" value="'+tempToInput(s.careParams.tempWarm)+'" oninput="setCareParamSoon(\''+id+'\',\'tempWarm\',this.value)" onchange="setCareParam(\''+id+'\',\'tempWarm\',this.value)"/></label>'+
+        '<label style="flex:1;min-width:110px;"><span style="font-size:10.5px;color:var(--ink-dim);display:block;margin-bottom:4px;">'+(currentLang==='en'?'Cool side':'Côté froid')+' ('+tempUnitLabel()+')'+'</span>'+
+          '<input type="number" step="0.5" style="width:100%;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" value="'+tempToInput(s.careParams.tempCool)+'" oninput="setCareParamSoon(\''+id+'\',\'tempCool\',this.value)" onchange="setCareParam(\''+id+'\',\'tempCool\',this.value)"/></label>'+
         '<label style="flex:1;min-width:110px;"><span style="font-size:10.5px;color:var(--ink-dim);display:block;margin-bottom:4px;">'+(currentLang==='en'?'Humidity (%)':'Humidité (%)')+'</span>'+
           '<input type="number" step="1" style="width:100%;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" value="'+(s.careParams.humidity??'')+'" oninput="setCareParamSoon(\''+id+'\',\'humidity\',this.value)" onchange="setCareParam(\''+id+'\',\'humidity\',this.value)"/></label>'+
       '</div>'+
@@ -14325,7 +14431,7 @@ function openLogbook(id){
 // retourne QUE les colonnes explicitement listées côté serveur (nom, sexe, génétique, pedigree,
 // photos) — jamais prix/acheteur/emplacement, peu importe ce qu'un client mal intentionné demande.
 function publicShareUrl(token){
-  return location.origin + location.pathname + '?public=' + token;
+  return location.origin + location.pathname + '?public=' + token + '&u=' + unitUrlCode(); // v5.39
 }
 // Page vitrine pour une ponte complète (2 septembre) — même principe que le lien public par
 // animal, mais pour toute une portée d'un coup (pensé pour un post Facebook "Voici ma nouvelle
@@ -14466,7 +14572,7 @@ function openRackLogbookModal(rackId){
   all.sort((a,b)=>b.date.localeCompare(a.date));
   const recent = all.slice(0,60);
   const body = recent.length ? recent.map(e=>
-    '<div class="modal-row"><span>'+e.date+' — '+escapeHtml(e.snakeName)+' <small style="color:var(--ink-dim);">(R'+e.row+'/B'+e.tub+')</small></span><span>'+eventLabelFor(e)+(e.type==='weigh'?' ('+e.value+'g)':'')+(e.type==='length'?' ('+e.value+'cm)':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(isEn?'partial':'partiel'):'')+feedPreyTag(e)+'</span></div>'
+    '<div class="modal-row"><span>'+e.date+' — '+escapeHtml(e.snakeName)+' <small style="color:var(--ink-dim);">(R'+e.row+'/B'+e.tub+')</small></span><span>'+eventLabelFor(e)+(e.type==='weigh'?' ('+fmtWeight(e.value)+')':'')+(e.type==='length'?' ('+fmtLength(e.value)+')':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(isEn?'partial':'partiel'):'')+feedPreyTag(e)+'</span></div>'
   ).join('') : '<div class="empty">'+(isEn?'No activity logged in this rack yet.':'Aucune activité enregistrée dans ce rack pour l\'instant.')+'</div>';
   showQuickModal('🗒️ '+(isEn?'Rack journal — ':'Journal du rack — ')+escapeHtml(rack.name), body);
 }
@@ -14530,7 +14636,7 @@ function printTubLabel(id){
   const isEn = currentLang==='en';
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
-  const lastWeight = s.health.weights.length ? s.health.weights[s.health.weights.length-1].value+'g' : null;
+  const lastWeight = s.health.weights.length ? fmtWeight(s.health.weights[s.health.weights.length-1].value) : null;
   const speciesLabel = speciesDisplayLabel(s.species); // v3.52 — nom traduit
   const lines = [];
   if(s.animalId && s.name) lines.push('ID : '+s.animalId); // v4.16 — sans nom, l'ID est déjà le titre de l'étiquette
@@ -14569,11 +14675,11 @@ function exportSnakeSheet(id, vetMode){
   const dam = s.damId ? savedSnakes.find(x=>x.id===s.damId) : null;
 
   const weightsRows = s.health.weights.length
-    ? [...s.health.weights].reverse().map(w=>'<tr><td>'+w.date+'</td><td>'+w.value+' g</td></tr>').join('')
+    ? [...s.health.weights].reverse().map(w=>'<tr><td>'+w.date+'</td><td>'+fmtWeight(w.value)+'</td></tr>').join('')
     : '<tr><td colspan="2">'+t('noWeighInRecorded')+'</td></tr>';
 
   const eventsRows = [...s.health.events].sort((a,b)=>b.date.localeCompare(a.date)).map(e=>
-    '<tr><td>'+e.date+'</td><td>'+eventLabelFor(e)+(e.type==='weigh'?' ('+e.value+'g)':'')+feedPreyTag(e)+'</td></tr>'
+    '<tr><td>'+e.date+'</td><td>'+eventLabelFor(e)+(e.type==='weigh'?' ('+fmtWeight(e.value)+')':'')+feedPreyTag(e)+'</td></tr>'
   ).join('') || '<tr><td colspan="2">'+t('noEventRecorded')+'</td></tr>';
 
   // Mode vétérinaire : version allégée sans génétique/emplacement/QR — pensée pour être montrée
@@ -14881,12 +14987,12 @@ function openWeighModal(id){
   if(!s) return;
   ensureSnakeMeta(s);
   const w = s.health.weights;
-  const lastLine = w.length ? '<div style="font-size:11.5px;color:var(--ink-dim);margin-bottom:10px;">'+(isEn?'Last weigh-in: ':'Dernière pesée : ')+w[w.length-1].value+(isEn?'g on ':'g le ')+w[w.length-1].date+'</div>' : '';
+  const lastLine = w.length ? '<div style="font-size:11.5px;color:var(--ink-dim);margin-bottom:10px;">'+(isEn?'Last weigh-in: ':'Dernière pesée : ')+fmtWeight(w[w.length-1].value)+(isEn?' on ':' le ')+w[w.length-1].date+'</div>' : '';
   showQuickModal((isEn?'Weigh ':'Peser ')+s.name,
     lastLine+
     '<div style="display:flex;gap:8px;align-items:center;">'+
       '<input type="number" id="quick-weight-input" class="price-input" style="width:110px;font-size:16px;padding:9px 10px;" placeholder="'+(isEn?'Weight':'Poids')+'" min="0"/>'+
-      '<span style="color:var(--ink-dim);font-family:\'Courier New\',monospace;">'+(isEn?'grams':'grammes')+'</span>'+
+      '<span style="color:var(--ink-dim);font-family:\'Courier New\',monospace;">'+weightInputUnitLabel()+'</span>'+
     '</div>'+
     '<button class="save-btn" style="margin-top:16px;width:100%;" onclick="confirmWeigh(\''+id+'\')">'+(isEn?'Save weigh-in':'Enregistrer la pesée')+'</button>'
   );
@@ -14894,8 +15000,8 @@ function openWeighModal(id){
 }
 function confirmWeigh(id){
   const inp = document.getElementById('quick-weight-input');
-  const val = inp ? parseFloat(inp.value) : NaN;
-  if(isNaN(val) || val<=0){ showToast(currentLang==='en'?'Enter a valid weight in grams.':'Entre un poids valide en grammes.', 'error'); return; }
+  const val = inp ? weightFromInput(parseFloat(inp.value)) : NaN; // v5.38 — en g
+  if(isNaN(val) || val<=0){ showToast(currentLang==='en'?'Enter a valid weight.':'Entre un poids valide.', 'error'); return; }
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
   ensureSnakeMeta(s);
@@ -14904,8 +15010,9 @@ function confirmWeigh(id){
   s.health.events.push({date:today, type:'weigh', value:val});
   storage.save(savedSnakes);
   closeQuickModal();
-  showToast('⚖ '+s.name+' — '+(currentLang==='en'?'weighed: ':'pesé : ')+val+'g', 'success');
+  showToast('⚖ '+s.name+' — '+(currentLang==='en'?'weighed: ':'pesé : ')+fmtWeight(val), 'success');
   renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderFirstSnakeTip();
+  try{ if(document.getElementById('view-mine').style.display!=='none') renderSavedList(); }catch(e){} // v5.38 — la carte de Mes reptiles gardait l'ancien poids
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
   if(document.getElementById('view-dash').style.display!=='none') renderDashboard();
 }
@@ -14917,12 +15024,12 @@ function openLengthModal(id){
   if(!s) return;
   ensureSnakeMeta(s);
   const l = s.health.lengths;
-  const lastLine = l.length ? '<div style="font-size:11.5px;color:var(--ink-dim);margin-bottom:10px;">'+(isEn?'Last measurement: ':'Dernière mesure : ')+l[l.length-1].value+(isEn?'cm on ':'cm le ')+l[l.length-1].date+'</div>' : '';
+  const lastLine = l.length ? '<div style="font-size:11.5px;color:var(--ink-dim);margin-bottom:10px;">'+(isEn?'Last measurement: ':'Dernière mesure : ')+fmtLength(l[l.length-1].value)+(isEn?' on ':' le ')+l[l.length-1].date+'</div>' : '';
   showQuickModal((isEn?'Measure ':'Mesurer ')+s.name,
     lastLine+
     '<div style="display:flex;gap:8px;align-items:center;">'+
       '<input type="number" id="quick-length-input" class="price-input" style="width:110px;font-size:16px;padding:9px 10px;" placeholder="'+(isEn?'Length':'Longueur')+'" min="0" step="0.5"/>'+
-      '<span style="color:var(--ink-dim);font-family:\'Courier New\',monospace;">cm</span>'+
+      '<span style="color:var(--ink-dim);font-family:\'Courier New\',monospace;">'+lengthUnitLabel()+'</span>'+
     '</div>'+
     '<button class="save-btn" style="margin-top:16px;width:100%;" onclick="confirmLength(\''+id+'\')">'+(isEn?'Save measurement':'Enregistrer la mesure')+'</button>'
   );
@@ -14931,8 +15038,8 @@ function openLengthModal(id){
 function confirmLength(id){
   const isEn = currentLang==='en';
   const inp = document.getElementById('quick-length-input');
-  const val = inp ? parseFloat(inp.value) : NaN;
-  if(isNaN(val) || val<=0){ showToast(isEn?'Enter a valid length in cm.':'Entre une longueur valide en cm.', 'error'); return; }
+  const val = inp ? lengthFromInput(parseFloat(inp.value)) : NaN; // v5.38 — en cm
+  if(isNaN(val) || val<=0){ showToast(isEn?'Enter a valid length.':'Entre une longueur valide.', 'error'); return; }
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
   ensureSnakeMeta(s);
@@ -14941,7 +15048,7 @@ function confirmLength(id){
   s.health.events.push({date:today, type:'length', value:val});
   storage.save(savedSnakes);
   closeQuickModal();
-  showToast('📏 '+s.name+(isEn?' measured: ':' mesuré : ')+val+'cm', 'success');
+  showToast('📏 '+s.name+(isEn?' measured: ':' mesuré : ')+fmtLength(val), 'success');
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
 }
 // Qualité de l'eau (15 sept, déplacé au niveau terrarium le même jour) — espèces aquatiques
@@ -14995,7 +15102,7 @@ function openTerrariumWaterQualityModal(terrariumId){
   const wqParts = e=>{
     const p = [];
     if(e.ph!=null) p.push('pH '+e.ph);
-    if(e.temp!=null) p.push(e.temp+'°C');
+    if(e.temp!=null) p.push(fmtTemp(e.temp));
     if(e.ammonia!=null) p.push('NH3 '+e.ammonia);
     if(e.nitrite!=null) p.push('NO2 '+e.nitrite);
     if(e.nitrate!=null) p.push('NO3 '+e.nitrate);
@@ -15011,7 +15118,7 @@ function openTerrariumWaterQualityModal(terrariumId){
   const lastParts = [];
   if(last){
     if(last.ph!=null) lastParts.push('pH '+last.ph);
-    if(last.temp!=null) lastParts.push(last.temp+'°C');
+    if(last.temp!=null) lastParts.push(fmtTemp(last.temp));
     if(last.ammonia!=null) lastParts.push('NH3 '+last.ammonia+'ppm');
     if(last.nitrite!=null) lastParts.push('NO2 '+last.nitrite+'ppm');
     if(last.nitrate!=null) lastParts.push('NO3 '+last.nitrate+'ppm');
@@ -15021,7 +15128,7 @@ function openTerrariumWaterQualityModal(terrariumId){
     lastLine+
     '<div style="display:flex;flex-direction:column;gap:8px;">'+
       '<label style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--ink-dim);">pH</span><input type="number" id="quick-wq-ph" class="price-input" style="width:90px;" min="0" max="14" step="0.1" placeholder="7.0"/></label>'+
-      '<label style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--ink-dim);">'+(isEn?'Water temp (°C)':'Temp. eau (°C)')+'</span><input type="number" id="quick-wq-temp" class="price-input" style="width:90px;" step="0.5"/></label>'+
+      '<label style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--ink-dim);">'+(isEn?'Water temp':'Temp. eau')+' ('+tempUnitLabel()+')'+'</span><input type="number" id="quick-wq-temp" class="price-input" style="width:90px;" step="0.5"/></label>'+
       '<label style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--ink-dim);">'+(isEn?'Ammonia (ppm)':'Ammoniaque (ppm)')+'</span><input type="number" id="quick-wq-ammonia" class="price-input" style="width:90px;" min="0" step="0.1"/></label>'+
       '<label style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--ink-dim);">'+(isEn?'Nitrite (ppm)':'Nitrite (ppm)')+'</span><input type="number" id="quick-wq-nitrite" class="price-input" style="width:90px;" min="0" step="0.1"/></label>'+
       '<label style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--ink-dim);">'+(isEn?'Nitrate (ppm)':'Nitrate (ppm)')+'</span><input type="number" id="quick-wq-nitrate" class="price-input" style="width:90px;" min="0" step="0.5"/></label>'+
@@ -15033,7 +15140,7 @@ function openTerrariumWaterQualityModal(terrariumId){
 function confirmTerrariumWaterQuality(terrariumId){
   const isEn = currentLang==='en';
   const getVal = fieldId=>{ const el = document.getElementById(fieldId); const v = el ? parseFloat(el.value) : NaN; return isNaN(v) ? null : v; };
-  const entry = { id:'twq_'+Date.now(), date:localTodayStr(), ph:getVal('quick-wq-ph'), temp:getVal('quick-wq-temp'), ammonia:getVal('quick-wq-ammonia'), nitrite:getVal('quick-wq-nitrite'), nitrate:getVal('quick-wq-nitrate') };
+  const entry = { id:'twq_'+Date.now(), date:localTodayStr(), ph:getVal('quick-wq-ph'), temp:(function(){ const v = getVal('quick-wq-temp'); return v==null ? null : tempFromInput(v); })(), /* v5.39 — saisie dans l'unité choisie */ ammonia:getVal('quick-wq-ammonia'), nitrite:getVal('quick-wq-nitrite'), nitrate:getVal('quick-wq-nitrate') };
   if(entry.ph==null && entry.temp==null && entry.ammonia==null && entry.nitrite==null && entry.nitrate==null){
     showToast(isEn?'Enter at least one value.':'Entre au moins une valeur.', 'error'); return;
   }
@@ -15183,7 +15290,7 @@ function pastEventFieldsHtml(type, isEn){
   const sel = 'width:100%;font-size:16px;padding:10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);margin-bottom:12px;';
   if(type==='shed') return '<label style="display:block;font-size:13px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Quality':'Qualité')+'</label><select id="pe-quality" style="'+sel+'">'+SHED_QUALITIES.map(q=>'<option value="'+q+'">'+shedQualityLabel(q)+'</option>').join('')+'</select>';
   if(type==='fed') return '<label style="display:block;font-size:13px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Prey':'Proie')+'</label><select id="pe-preytype" style="'+sel+'"><option value="frozen">❄️ '+t('preyTypeFrozen')+'</option><option value="live">🐭 '+t('preyTypeLive')+'</option></select>';
-  if(type==='weigh') return '<label style="display:block;font-size:13px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Weight (g)':'Poids (g)')+'</label><input type="number" id="pe-weight" min="0" style="'+sel+'"/>';
+  if(type==='weigh') return '<label style="display:block;font-size:13px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Weight':'Poids')+' ('+weightInputUnitLabel(true)+')'+'</label><input type="number" id="pe-weight" min="0" style="'+sel+'"/>';
   return '';
 }
 // v3.93 — « Refus (mue) » : un refus avec la raison « En mue », et l'animal passe « En mue » s'il ne
@@ -15310,8 +15417,8 @@ function saveAddPastEvent(id){
   const type = (document.getElementById('pe-type')||{}).value;
   if(!date || date > localTodayStr()){ showToast(isEn?'Choose a date (not in the future).':'Choisis une date (pas dans le futur).', 'error'); return; }
   if(type==='weigh'){
-    const v = parseFloat((document.getElementById('pe-weight')||{}).value);
-    if(isNaN(v) || v<=0){ showToast(isEn?'Enter a valid weight in grams.':'Entre un poids valide en grammes.', 'error'); return; }
+    const v = weightFromInput(parseFloat((document.getElementById('pe-weight')||{}).value)); // v5.38 — en g
+    if(isNaN(v) || v<=0){ showToast(isEn?'Enter a valid weight.':'Entre un poids valide.', 'error'); return; }
     s.health.weights.push({ date, value:v });
     s.health.weights.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
     s.health.events.push({ date, type:'weigh', value:v });
@@ -15362,7 +15469,7 @@ function openTourFedPreyModal(action, missing){
     if(sug.sp && !allowed.includes(sug.sp)) allowed.unshift(sug.sp);
     const w = snakeLastWeight(x);
     return '<div class="tfp-row" data-id="'+escapeHtml(String(x.id))+'" style="border-bottom:1px solid var(--line);padding:9px 0;">'+
-      '<div style="font-size:14px;margin-bottom:6px;"><b>'+escapeHtml(snakeName(x))+'</b> <small style="color:var(--ink-dim);">— '+(w?w+' g':(isEn?'not weighed':'pas pesé'))+'</small></div>'+
+      '<label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:6px;cursor:pointer;"><input type="checkbox" class="tfp-cb" checked style="width:22px;height:22px;accent-color:var(--gold);flex:none;" onchange="tfpUpdateCount()"/><span><b>'+escapeHtml(snakeName(x))+'</b> <small style="color:var(--ink-dim);">— '+(w?fmtWeight(w):(isEn?'not weighed':'pas pesé'))+'</small></span></label>'+ // v5.37 — case pour la proie en lot
       '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+
         '<select class="tfp-sp" style="'+sel+'" onchange="tourFedSpeciesChanged(this)"><option value="">'+(isEn?'Prey…':'Proie…')+'</option>'+allowed.map(k=>'<option value="'+k+'"'+(k===sug.sp?' selected':'')+'>'+PREY_TYPES[k].icon+' '+escapeHtml(isEn?PREY_TYPES[k].labelEn:PREY_TYPES[k].labelFr)+'</option>').join('')+'</select>'+
         '<select class="tfp-size" style="'+sel+'">'+tourFedSizeOptions(sug.sp, sug.size)+'</select>'+
@@ -15372,10 +15479,163 @@ function openTourFedPreyModal(action, missing){
   }).join('');
   showQuickModal('🍽 '+(isEn?'Prey for '+missing.length+' animal(s) without size':'Proie de '+missing.length+' animal(aux) sans taille'),
     '<div style="font-size:12.5px;color:var(--ink-dim);margin-bottom:8px;">'+(isEn?'Check the suggested prey and fix it if needed. It becomes each animal\'s usual prey, and you won\'t be asked again.':'Vérifie la proie suggérée et corrige au besoin. Elle devient la proie habituelle de chaque animal, et on ne te la redemandera plus.')+'</div>'+
+    (missing.length>=2 ? tfpBulkBoxHtml(missing) : '')+ // v5.37
     '<div style="max-height:52vh;overflow-y:auto;">'+rows+'</div>'+
     '<button class="save-btn" style="margin-top:14px;width:100%;font-size:16px;" onclick="confirmTourFedPrey(true)">✅ '+(isEn?'Confirm all and log the meals':'Tout confirmer et noter les repas')+'</button>'+
     '<button class="sc-btn" style="margin-top:8px;width:100%;" onclick="confirmTourFedPrey(false)">'+(isEn?'Skip — log the meals without size':'Passer — noter les repas sans taille')+'</button>'
   );
+}
+/* ==================== v5.37 — Proie en lot (choix d'Alex le 30 oct : A + B, gratuit) ====================
+   A) Fenêtre « Proie de N animaux sans taille » du Mode Tournée : une case par ligne, « Tout cocher »,
+      une proie + taille choisies une fois, « Appliquer aux cochés » (remplit les lignes ; « Tout
+      confirmer » enregistre, comme avant).
+   B) Mes reptiles → Sélection multiple → « 🐭 Proie » : change la proie habituelle de tous les animaux
+      cochés, n'importe quand (ex. bébés pinky → fuzzy), avec « Cocher aussi tous ceux en [proie] » pour
+      retrouver le même lot sans groupe. Une proie pas adaptée à l'espèce d'un animal n'est jamais posée
+      (l'animal est sauté et nommé). Les repas déjà notés ne changent pas. */
+function preyAllowedFor(x, sp){
+  let a = [];
+  try{ a = preyTypesForSpecies(x.species||'ball_python'); }catch(e){ a = ['mouse','rat']; }
+  return a.includes(sp);
+}
+function preyKeysForSnakes(list){
+  const keys = [];
+  list.forEach(x=>{
+    let a = [];
+    try{ a = preyTypesForSpecies(x.species||'ball_python'); }catch(e){ a = ['mouse','rat']; }
+    a.forEach(k=>{ if(PREY_TYPES[k] && !keys.includes(k)) keys.push(k); });
+  });
+  return keys;
+}
+function preySpeciesOptionsHtml(keys, selected){
+  const isEn = currentLang==='en';
+  return '<option value="">'+(isEn?'Prey…':'Proie…')+'</option>'+keys.map(k=>'<option value="'+k+'"'+(k===selected?' selected':'')+'>'+PREY_TYPES[k].icon+' '+escapeHtml(isEn?PREY_TYPES[k].labelEn:PREY_TYPES[k].labelFr)+'</option>').join('');
+}
+function preyComboLabel(sp, size){
+  const isEn = currentLang==='en';
+  return PREY_TYPES[sp] ? PREY_TYPES[sp].icon+' '+escapeHtml(isEn?PREY_TYPES[sp].labelEn:PREY_TYPES[sp].labelFr)+' '+escapeHtml(size) : escapeHtml(sp+' '+size);
+}
+
+function preyComboText(sp, size){ // texte brut (notifications : textContent)
+  const isEn = currentLang==='en';
+  return PREY_TYPES[sp] ? PREY_TYPES[sp].icon+' '+(isEn?PREY_TYPES[sp].labelEn:PREY_TYPES[sp].labelFr)+' '+size : sp+' '+size;
+}
+// ---- A) fenêtre du Mode Tournée
+function tfpBulkBoxHtml(missing){
+  const isEn = currentLang==='en';
+  const keys = preyKeysForSnakes(missing);
+  const counts = {};
+  missing.forEach(x=>{ try{ const sg = suggestPreyFor(x); if(sg.sp) counts[sg.sp] = (counts[sg.sp]||0)+1; }catch(e){} });
+  const sp0 = Object.keys(counts).sort((a,b)=>counts[b]-counts[a])[0] || keys[0] || '';
+  const sel = 'font-size:16px;padding:7px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);flex:1;min-width:110px;';
+  return '<div style="background:rgba(201,151,62,.08);border:1px solid var(--gold);border-radius:10px;padding:10px 12px;margin-bottom:10px;">'+
+    '<div style="font-size:15px;font-weight:600;margin-bottom:8px;">☑️ '+(isEn?'Same prey for several at once':'Même proie pour plusieurs d\'un coup')+'</div>'+
+    '<label style="display:flex;align-items:center;gap:8px;font-size:15px;margin-bottom:8px;cursor:pointer;"><input type="checkbox" id="tfp-all" checked style="width:22px;height:22px;accent-color:var(--gold);flex:none;" onchange="tfpCheckAll(this.checked)"/>'+
+      (isEn?'Check all':'Tout cocher')+' <span id="tfp-count" style="color:var(--ink-dim);">('+missing.length+'/'+missing.length+')</span></label>'+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+
+      '<select id="tfp-bulk-sp" style="'+sel+'" onchange="document.getElementById(\'tfp-bulk-size\').innerHTML=tourFedSizeOptions(this.value,\'\')">'+preySpeciesOptionsHtml(keys, sp0)+'</select>'+
+      '<select id="tfp-bulk-size" style="'+sel+'">'+tourFedSizeOptions(sp0, '')+'</select>'+
+    '</div>'+
+    '<button type="button" class="sc-btn accent" style="margin-top:8px;width:100%;font-size:15px;padding:9px;" onclick="tfpApplyBulk()">'+(isEn?'Apply to checked':'Appliquer aux cochés')+'</button>'+
+  '</div>';
+}
+function tfpUpdateCount(){
+  const cbs = [...document.querySelectorAll('.tfp-row .tfp-cb')];
+  const n = cbs.filter(c=>c.checked).length;
+  const all = document.getElementById('tfp-all'); if(all) all.checked = n===cbs.length;
+  const lab = document.getElementById('tfp-count'); if(lab) lab.textContent = '('+n+'/'+cbs.length+')';
+}
+function tfpCheckAll(v){
+  document.querySelectorAll('.tfp-row .tfp-cb').forEach(c=>{ c.checked = v; });
+  tfpUpdateCount();
+}
+function tfpApplyBulk(){
+  const isEn = currentLang==='en';
+  const sp = (document.getElementById('tfp-bulk-sp')||{}).value || '';
+  const size = (document.getElementById('tfp-bulk-size')||{}).value || '';
+  if(!sp || !PREY_TYPES[sp] || !size || !PREY_TYPES[sp].sizes.includes(size)){ showToast(isEn?'Pick the prey and its size first.':'Choisis d\'abord la proie et sa taille.', 'error'); return; }
+  let n = 0; const skipped = [];
+  document.querySelectorAll('.tfp-row').forEach(r=>{
+    const cb = r.querySelector('.tfp-cb'); if(!cb || !cb.checked) return;
+    const x = savedSnakes.find(y=>String(y.id)===r.getAttribute('data-id')); if(!x) return;
+    if(!preyAllowedFor(x, sp)){ skipped.push(snakeName(x)); return; }
+    const spSel = r.querySelector('.tfp-sp'), szSel = r.querySelector('.tfp-size');
+    if(!spSel || !szSel) return;
+    if(![...spSel.options].some(o=>o.value===sp)) spSel.insertAdjacentHTML('beforeend', '<option value="'+sp+'">'+preyComboLabel(sp,'').trim()+'</option>');
+    spSel.value = sp;
+    szSel.innerHTML = tourFedSizeOptions(sp, size);
+    const why = r.querySelector('.tfp-why'); if(why) why.textContent = '☑️ '+(isEn?'set for the group':'choisi en lot');
+    n++;
+  });
+  showToast('☑️ '+n+' '+(isEn?'row(s) filled — tap « Confirm all » to save.':'ligne(s) remplie(s) — touche « Tout confirmer » pour enregistrer.')+
+    (skipped.length ? ' '+(isEn?'Not suited to: ':'Pas adaptée pour : ')+skipped.join(', ') : ''), skipped.length ? 'warning' : 'success');
+}
+
+// ---- B) Sélection multiple de Mes reptiles
+var batchPreyCombos = [];
+function openBatchPreyModal(){
+  const isEn = currentLang==='en';
+  const list = [...batchSelectedIds].map(id=>savedSnakes.find(x=>x.id===id)).filter(Boolean);
+  if(!list.length) return;
+  list.forEach(ensureSnakeMeta);
+  const keys = preyKeysForSnakes(list);
+  const combos = {};
+  let none = 0;
+  list.forEach(x=>{
+    if(x.preySpecies && PREY_TYPES[x.preySpecies] && x.preySize){ const k = x.preySpecies+'|'+x.preySize; combos[k] = (combos[k]||0)+1; }
+    else none++;
+  });
+  const sorted = Object.keys(combos).sort((a,b)=>combos[b]-combos[a]);
+  batchPreyCombos = sorted.map(k=>k.split('|'));
+  const top = batchPreyCombos[0];
+  const sp0 = top ? top[0] : (keys[0]||''), sz0 = top ? top[1] : '';
+  const now = sorted.map(k=>{ const [sp,sz] = k.split('|'); return preyComboLabel(sp,sz)+' ×'+combos[k]; });
+  if(none) now.push((isEn?'no prey':'sans proie')+' ×'+none);
+  const sameBtns = batchPreyCombos.map(([sp,sz],i)=>{
+    const extra = savedSnakes.filter(y=>isActiveSnake(y) && y.preySpecies===sp && y.preySize===sz && !batchSelectedIds.has(y.id)).length;
+    return extra ? '<button type="button" class="sc-btn" style="width:100%;margin-top:6px;text-align:left;font-size:14px;padding:9px 12px;" onclick="batchPreyAddSame('+i+')">☑️ '+(isEn?'Also check all on ':'Cocher aussi tous ceux en ')+preyComboLabel(sp,sz)+' (+'+extra+')</button>' : '';
+  }).join('');
+  const sel = 'font-size:16px;padding:8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);flex:1;min-width:120px;';
+  showQuickModal('🐭 '+(isEn?'Usual prey':'Proie habituelle')+' — '+list.length+' '+(isEn?'animal(s)':'animal(aux)'),
+    '<div style="font-size:14px;color:var(--ink-dim);margin-bottom:6px;">'+(isEn?'Right now: ':'En ce moment : ')+now.join(' · ')+'</div>'+
+    sameBtns+
+    '<div style="font-size:15px;font-weight:600;margin:14px 0 6px;">'+(isEn?'New prey for the checked animals':'Nouvelle proie pour les animaux cochés')+'</div>'+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+
+      '<select id="bp-sp" style="'+sel+'" onchange="document.getElementById(\'bp-size\').innerHTML=tourFedSizeOptions(this.value,\'\')">'+preySpeciesOptionsHtml(keys, sp0)+'</select>'+
+      '<select id="bp-size" style="'+sel+'">'+tourFedSizeOptions(sp0, sz0)+'</select>'+
+    '</div>'+
+    '<div style="font-size:12.5px;color:var(--ink-dim);margin-top:8px;line-height:1.45;">'+(isEn?'It becomes their usual prey, like on each record. Meals already logged don\'t change.':'Elle devient leur proie habituelle, comme sur chaque fiche. Les repas déjà notés ne changent pas.')+'</div>'+
+    '<button type="button" class="save-btn" style="margin-top:12px;width:100%;font-size:16px;" onclick="applyBatchPrey()">✅ '+(isEn?'Apply to ':'Appliquer à ')+list.length+' '+(isEn?'animal(s)':'animal(aux)')+'</button>'+
+    '<button type="button" class="sc-btn" style="margin-top:8px;width:100%;" onclick="closeQuickModal()">'+(isEn?'Cancel':'Annuler')+'</button>'
+  );
+}
+function batchPreyAddSame(i){
+  const c = batchPreyCombos[i]; if(!c) return;
+  savedSnakes.forEach(y=>{ if(isActiveSnake(y) && y.preySpecies===c[0] && y.preySize===c[1]) batchSelectedIds.add(y.id); });
+  try{ renderSavedList(); }catch(e){}
+  renderBatchActionBar();
+  openBatchPreyModal();
+}
+function applyBatchPrey(){
+  const isEn = currentLang==='en';
+  const sp = (document.getElementById('bp-sp')||{}).value || '';
+  const size = (document.getElementById('bp-size')||{}).value || '';
+  if(!sp || !PREY_TYPES[sp] || !size || !PREY_TYPES[sp].sizes.includes(size)){ showToast(isEn?'Pick the prey and its size first.':'Choisis d\'abord la proie et sa taille.', 'error'); return; }
+  let n = 0; const skipped = [];
+  batchSelectedIds.forEach(id=>{
+    const x = savedSnakes.find(y=>y.id===id); if(!x) return;
+    ensureSnakeMeta(x);
+    if(!preyAllowedFor(x, sp)){ skipped.push(snakeName(x)); return; }
+    if(x.preySpecies===sp && x.preySize===size && !x.preySizeEstimated) return;
+    x.preySpecies = sp; x.preySize = size; x.preySizeEstimated = false; x.updatedAt = Date.now(); n++;
+  });
+  if(n) storage.save(savedSnakes);
+  closeQuickModal();
+  showToast('🐭 '+n+' '+(isEn?'animal(s) now on ':'animal(aux) maintenant en ')+preyComboText(sp,size)+'.'+
+    (skipped.length ? ' '+(isEn?'Skipped (prey not suited to the species): ':'Sautés (proie pas adaptée à l\'espèce) : ')+skipped.join(', ') : ''), skipped.length ? 'warning' : 'success');
+  toggleBatchMode();
+  renderRackGrid(); renderTerrariumList(); renderTourGrid();
+  try{ renderFoodView(); }catch(e){}
 }
 function confirmTourFedPrey(save){
   const isEn = currentLang==='en';
@@ -15650,6 +15910,189 @@ function renderDefecationsHtml(s){
 // v3.77 — délai sans manipulation après un repas (demande vue chez les utilisateurs de Snekup) :
 // réglable dans Configuration (24/48/72 h ou désactivé), 48 h par défaut. Les repas notés « aujourd'hui »
 // gardent leur heure exacte (event.at) ; un repas noté à une date passée compte à partir de midi ce jour-là.
+/* ==================== v5.38 — Unités d'affichage (choix d'Alex le 30 oct : 2 étapes, gratuit) ====================
+   Les données restent TOUJOURS en métrique (°C, g, cm) : base, synchro, calculs, chartes et exports ne changent pas.
+   On convertit seulement à l'affichage et à la saisie. Défaut tant que la personne n'a rien choisi : selon la
+   langue (français = °C / g / cm ; anglais = °F / g / pouces). Poids : g ou oz/lb (la charte des proies reste en g).
+   Étape 1 (5.38) : Configuration, fiche (températures, pesées, longueurs, croissance), saisies (pesée, pesée en lot,
+   longueur, entrée passée), carte de Mes reptiles, Parcours. Étape 2 (plus tard) : graphiques, tableau de bord,
+   guides et fiches d'espèces, incubation, exports. */
+var __unitPrefsCache = null; // v5.39 — appelé des centaines de fois par grille : on ne relit pas la configuration à chaque poids
+function unitPrefs(){
+  const lang = (typeof currentLang!=='undefined') ? currentLang : '';
+  if(__unitPrefsCache && __unitPrefsCache.lang===lang) return __unitPrefsCache.v;
+  const v = unitPrefsCompute();
+  __unitPrefsCache = { lang, v };
+  return v;
+}
+function unitPrefsCompute(){
+  const o = unitUrlOverride() || {}; // v5.39 — page publique : unités du propriétaire (dans le lien)
+  let u = {}; try{ u = (loadAppConfig().units) || {}; }catch(e){}
+  const en = (typeof currentLang!=='undefined') && currentLang==='en';
+  const pick = (k, ok, dflt)=> ok.includes(o[k]) ? o[k] : ok.includes(u[k]) ? u[k] : dflt;
+  return {
+    temp: pick('temp', ['c','f'], en ? 'f' : 'c'),
+    weight: pick('weight', ['g','lb'], 'g'),
+    length: pick('length', ['cm','in'], en ? 'in' : 'cm'),
+    inc: pick('inc', ['c','f'], 'f'),   // v5.39 — incubateur : °F par défaut (Québec et É.-U.)
+    dims: pick('dims', ['cm','in'], 'in') // v5.39 — dimensions des terrariums : pouces par défaut
+  };
+}
+// v5.39 — étape 2 (choix d'Alex le 30 oct). Au Québec, l'incubateur se règle en °F et les terrariums se
+// mesurent en pouces même quand le reste est métrique : deux réglages séparés, °F et pouces par défaut.
+// Liens publics (QR de show, lien public) : l'unité du PROPRIÉTAIRE voyage dans le lien (&u=…).
+function unitUrlOverride(){
+  if(window.__unitOverrideParsed) return window.__unitOverride;
+  window.__unitOverrideParsed = true;
+  try{
+    const u = new URLSearchParams(location.search).get('u');
+    if(u){ const p = u.split('.'); window.__unitOverride = { temp:p[0], weight:p[1], length:p[2], inc:p[3], dims:p[4] }; }
+  }catch(e){}
+  return window.__unitOverride || null;
+}
+function unitUrlCode(){ const u = unitPrefs(); return [u.temp, u.weight, u.length, u.inc, u.dims].join('.'); }
+// --- température d'incubation (stockée en °C)
+function incUnitLabel(){ return unitPrefs().inc==='f' ? '°F' : '°C'; }
+function incToInput(c){ if(c==null || c==='' || isNaN(Number(c))) return ''; const v = unitPrefs().inc==='f' ? Number(c)*9/5+32 : Number(c); return String(Math.round(v*10)/10); }
+function incFromInput(v){ const n = parseFloat(v); if(isNaN(n)) return NaN; return unitPrefs().inc==='f' ? Math.round((n-32)*5/9*100)/100 : n; }
+function fmtTempInc(c){ if(c==null || isNaN(Number(c))) return '—'; return unitPrefs().inc==='f' ? unitNum(Number(c)*9/5+32, 1)+' °F' : unitNum(Number(c), 1)+' °C'; }
+// --- dimensions des terrariums (texte libre : seulement l'exemple suit l'unité)
+function dimsExample(){ const isEn = currentLang==='en'; return unitPrefs().dims==='in' ? (isEn?'e.g. 36x18x18 in':'ex. 36x18x18 po') : (isEn?'e.g. 90x45x45 cm':'ex. 90x45x45 cm'); }
+
+// --- °C / °F écrits dans les textes (fiches d'espèces, FAQ, guides, conseils, indices TSD…)
+// « 88-92°F (31-33°C) » : on garde la moitié dans l'unité choisie. « 30-32°C » seul : converti.
+// Le texte d'origine est gardé à part, donc changer d'unité plusieurs fois ne déforme rien.
+var UNIT_NUM_RE = '(\\d+(?:[.,]\\d+)?)';
+var UNIT_RANGE_RE = UNIT_NUM_RE+'(?:\\s*[-–]\\s*'+UNIT_NUM_RE+')?';
+var UNIT_PAIR_RE = new RegExp(UNIT_RANGE_RE+'\\s*°\\s*([CF])\\s*\\(\\s*'+UNIT_RANGE_RE+'\\s*°\\s*([CF])\\s*\\)', 'g');
+var UNIT_SLASH_RE = new RegExp(UNIT_RANGE_RE+'\\s*°\\s*([CF])\\s*/\\s*'+UNIT_RANGE_RE+'\\s*°\\s*([CF])', 'g'); // « 18-21°C/65-70°F »
+var UNIT_ONE_RE = new RegExp(UNIT_RANGE_RE+'\\s*°\\s*([CF])(?![a-zA-Z])', 'g');
+function unitProseTemp(str, want){
+  if(!str || str.indexOf('°')<0) return str;
+  const W = want==='f' ? 'F' : 'C';
+  const num = x=>parseFloat(String(x).replace(',','.'));
+  const fmt = n=> W==='F' ? String(Math.round(n)) : unitNum(n, 1);
+  const keep = (m,a1,b1,u1,a2,b2,u2)=>{
+    if(u1===u2) return m;
+    const a = u1===W ? a1 : a2, b = u1===W ? b1 : b2;
+    return a+(b!=null ? '-'+b : '')+' °'+W;
+  };
+  str = str.replace(UNIT_PAIR_RE, keep).replace(UNIT_SLASH_RE, keep);
+  return str.replace(UNIT_ONE_RE, (m,a,b,u,off,all)=>{
+    if(u===W) return m;
+    // « ±2°F » = un ÉCART, pas une température : 2 °F d'écart = 1,1 °C (pas −16,7 °C)
+    const delta = /±\s*$/.test(all.slice(Math.max(0,off-3), off));
+    const conv = x=> delta ? (W==='F' ? num(x)*9/5 : num(x)*5/9) : (W==='F' ? num(x)*9/5+32 : (num(x)-32)*5/9);
+    return fmt(conv(a))+(b!=null ? '-'+fmt(conv(b)) : '')+' °'+W;
+  });
+}
+var UNIT_TXT_ORIG = new WeakMap(), UNIT_TXT_OUT = new WeakMap();
+function unitizeTextNode(n){
+  let v = n.nodeValue;
+  if(UNIT_TXT_OUT.get(n)===v) v = UNIT_TXT_ORIG.get(n);
+  else { if(!v || v.indexOf('°')<0) return; UNIT_TXT_ORIG.set(n, v); }
+  const p = n.parentElement;
+  if(!p || p.closest('script,style,textarea,[data-no-unit]')) return;
+  const out = unitProseTemp(v, p.closest('[data-unit-ctx="inc"]') ? unitPrefs().inc : unitPrefs().temp);
+  UNIT_TXT_OUT.set(n, out);
+  if(out!==n.nodeValue) n.nodeValue = out;
+}
+function unitTreeHasDegree(root){ return (root.textContent||'').indexOf('°')>=0; } // un texte converti garde toujours son °
+function unitizeTree(root){
+  if(!root) return;
+  if(root.nodeType===3) return unitizeTextNode(root);
+  if(root.nodeType!==1) return;
+  if(!unitTreeHasDegree(root)) return; // rapide : la plupart des blocs (grilles, listes) n'ont aucun °
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let n; while((n = w.nextNode())) unitizeTextNode(n);
+}
+var unitObserver = null;
+function installUnitObserver(){
+  if(unitObserver || typeof MutationObserver==='undefined' || !document.body) return;
+  unitizeTree(document.body);
+  unitObserver = new MutationObserver(muts=>{
+    for(const m of muts){
+      if(m.type==='characterData') unitizeTextNode(m.target);
+      else m.addedNodes.forEach(unitizeTree);
+    }
+  });
+  unitObserver.observe(document.body, { childList:true, subtree:true, characterData:true });
+}
+setTimeout(function(){ try{ installUnitObserver(); }catch(e){ console.warn('LOCUS: unités', e); } }, 0);
+function setUnitPref(kind, v){
+  const cfg = loadAppConfig();
+  cfg.units = Object.assign({}, cfg.units||{}, { [kind]: v });
+  try{ localStorage.setItem(APP_CONFIG_KEY, JSON.stringify(cfg)); }catch(e){}
+  __unitPrefsCache = null;
+  try{ renderSavedList(); }catch(e){}
+  try{ if(currentLogbookId && document.getElementById('logbook-overlay').style.display==='flex') openLogbook(currentLogbookId); }catch(e){}
+  try{ renderClutches(); updateClutchTsdHint(); }catch(e){} // v5.39
+  openConfigModal();
+  try{ unitizeTree(document.body); }catch(e){} // v5.39 — textes déjà affichés
+}
+function unitNum(n, dec){
+  const r = Math.round(n*Math.pow(10,dec))/Math.pow(10,dec);
+  return currentLang==='en' ? String(r) : String(r).replace('.',',');
+}
+// --- température
+function tempUnitLabel(){ return unitPrefs().temp==='f' ? '°F' : '°C'; }
+function tempToInput(c){ if(c==null || c==='' || isNaN(Number(c))) return ''; const v = unitPrefs().temp==='f' ? Number(c)*9/5+32 : Number(c); return String(Math.round(v*10)/10); }
+function tempFromInput(v){ const n = parseFloat(v); if(isNaN(n)) return NaN; return unitPrefs().temp==='f' ? Math.round((n-32)*5/9*100)/100 : n; }
+function fmtTemp(c){ if(c==null || isNaN(Number(c))) return '—'; return unitPrefs().temp==='f' ? unitNum(Number(c)*9/5+32, 0)+' °F' : unitNum(Number(c), 1)+' °C'; }
+// --- poids (stocké en g)
+const G_PER_OZ = 28.349523125;
+function weightInputUnitLabel(short){ const isEn = currentLang==='en'; return unitPrefs().weight==='lb' ? 'oz' : (short ? 'g' : (isEn?'grams':'grammes')); }
+function weightFromInput(v){ const n = Number(v); if(isNaN(n)) return NaN; return unitPrefs().weight==='lb' ? Math.round(n*G_PER_OZ*10)/10 : n; }
+function fmtWeight(g){
+  if(g==null || isNaN(Number(g))) return '—';
+  g = Number(g);
+  if(unitPrefs().weight!=='lb') return unitNum(g, 1)+' g';
+  const oz = Math.round(g/G_PER_OZ*10)/10; // arrondi AVANT de séparer lb/oz (sinon 47,97 oz = « 2 lb 16 oz »)
+  if(oz < 16) return unitNum(oz, 1)+' oz';
+  const lb = Math.floor(oz/16), rest = Math.round((oz - lb*16)*10)/10;
+  return lb+' lb'+(rest>0 ? ' '+unitNum(rest, 1)+' oz' : '');
+}
+function fmtWeightDelta(dg){
+  dg = Number(dg)||0;
+  const sign = dg>=0 ? '+' : '−';
+  if(unitPrefs().weight!=='lb') return sign+unitNum(Math.abs(dg), 1)+' g';
+  return sign+unitNum(Math.abs(dg)/G_PER_OZ, 1)+' oz';
+}
+function fmtWeightRange(a, b){
+  if(unitPrefs().weight!=='lb') return a+'-'+b+' g';
+  return unitNum(a/G_PER_OZ, 1)+'-'+unitNum(b/G_PER_OZ, 1)+' oz';
+}
+// --- longueur (stockée en cm)
+function lengthUnitLabel(){ return unitPrefs().length==='in' ? (currentLang==='en' ? 'in' : 'po') : 'cm'; }
+function lengthFromInput(v){ const n = Number(v); if(isNaN(n)) return NaN; return unitPrefs().length==='in' ? Math.round(n*2.54*10)/10 : n; }
+function fmtLength(cm){
+  if(cm==null || isNaN(Number(cm))) return '—';
+  return unitPrefs().length==='in' ? unitNum(Number(cm)/2.54, 1)+' '+lengthUnitLabel() : unitNum(Number(cm), 1)+' cm';
+}
+function fmtLengthDelta(dcm){
+  dcm = Number(dcm)||0;
+  const sign = dcm>=0 ? '+' : '−';
+  return unitPrefs().length==='in' ? sign+unitNum(Math.abs(dcm)/2.54, 1)+' '+lengthUnitLabel() : sign+unitNum(Math.abs(dcm), 1)+' cm';
+}
+function unitsConfigHtml(){
+  const isEn = currentLang==='en';
+  return '<div data-no-unit>'+unitsConfigInnerHtml()+'</div>';
+}
+function unitsConfigInnerHtml(){
+  const isEn = currentLang==='en';
+  const u = unitPrefs();
+  const lab = txt => '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:8px;">'+txt+'</label>';
+  const row = (kind, opts) => '<div style="display:flex;gap:8px;margin-bottom:14px;">'+opts.map(o=>
+    '<button class="sc-btn'+(u[kind]===o[0]?' accent':'')+'" style="flex:1;" aria-pressed="'+(u[kind]===o[0])+'" onclick="setUnitPref(\''+kind+'\',\''+o[0]+'\')">'+o[1]+'</button>').join('')+'</div>';
+  return lab('🌡️ '+(isEn?'Temperature':'Température'))+row('temp', [['c','°C'],['f','°F']])+
+    lab('⚖ '+(isEn?'Weight':'Poids'))+row('weight', [['g', isEn?'grams (g)':'grammes (g)'],['lb','oz / lb']])+
+    lab('📏 '+(isEn?'Length':'Longueur'))+row('length', [['cm','cm'],['in', isEn?'inches (in)':'pouces (po)']])+
+    lab('🥚 '+(isEn?'Incubator':'Incubateur'))+row('inc', [['c','°C'],['f','°F']])+
+    lab('🏠 '+(isEn?'Enclosure size':'Dimensions des terrariums'))+row('dims', [['cm','cm'],['in', isEn?'inches (in)':'pouces (po)']])+
+    '<p style="font-size:10.5px;color:var(--ink-dim);margin:-6px 0 18px;">'+(isEn
+      ? 'Display and entry only — your data stays the same. The prey chart stays in grams (feeders are sold by weight in grams). Data exports (CSV, Excel, backup) stay metric; printed sheets, labels, sale text and public links use your units.'
+      : 'Affichage et saisie seulement — tes données ne changent pas. La charte des proies reste en grammes (les proies se vendent au gramme). Les exports de données (CSV, Excel, sauvegarde) restent en métrique; les fiches imprimées, étiquettes, textes d\'annonce et liens publics suivent tes unités.')+'</p>';
+}
 function handlingWaitHours(){
   const cfg = loadAppConfig();
   const h = cfg.handlingWaitHours;
@@ -15841,14 +16284,14 @@ function showNextBatchWeigh(){
   saveBatchWeighState();
   ensureSnakeMeta(s);
   const w = s.health.weights;
-  const lastLine = w.length ? '<div style="font-size:11.5px;color:var(--ink-dim);margin-bottom:10px;">'+(isEn?'Last weigh-in: ':'Dernière pesée : ')+w[w.length-1].value+(isEn?'g on ':'g le ')+w[w.length-1].date+'</div>' : '';
+  const lastLine = w.length ? '<div style="font-size:11.5px;color:var(--ink-dim);margin-bottom:10px;">'+(isEn?'Last weigh-in: ':'Dernière pesée : ')+fmtWeight(w[w.length-1].value)+(isEn?' on ':' le ')+w[w.length-1].date+'</div>' : '';
   batchWeighOpen = true;
   try{ renderBatchWeighResume(); }catch(e){}
   showQuickModal((isEn?'Weigh ':'Peser ')+snakeName(s)+' ('+(batchWeighIndex+1)+'/'+batchWeighQueue.length+')',
     lastLine+
     '<div style="display:flex;gap:8px;align-items:center;">'+
       '<input type="number" id="quick-weight-input" class="price-input" inputmode="decimal" style="width:110px;font-size:16px;padding:9px 10px;" placeholder="'+(isEn?'Weight':'Poids')+'" min="0"/>'+
-      '<span style="color:var(--ink-dim);font-family:\'Courier New\',monospace;">'+(isEn?'grams':'grammes')+'</span>'+
+      '<span style="color:var(--ink-dim);font-family:\'Courier New\',monospace;">'+weightInputUnitLabel()+'</span>'+
     '</div>'+
     '<div id="batch-weigh-warn" class="warn" style="display:none;margin-top:12px;font-size:13px;"></div>'+
     '<div style="display:flex;gap:8px;margin-top:16px;">'+
@@ -15869,8 +16312,8 @@ function resetBatchWeighWarn(){
 function confirmBatchWeigh(){
   const isEn = currentLang==='en';
   const inp = document.getElementById('quick-weight-input');
-  const val = inp ? parseFloat(inp.value) : NaN;
-  if(isNaN(val) || val<=0){ showToast(isEn?'Enter a valid weight in grams.':'Entre un poids valide en grammes.', 'error'); return; }
+  const val = inp ? weightFromInput(parseFloat(inp.value)) : NaN; // v5.38 — en g
+  if(isNaN(val) || val<=0){ showToast(isEn?'Enter a valid weight.':'Entre un poids valide.', 'error'); return; }
   const s = currentBatchWeighSnake();
   if(!s){ showToast(isEn?'This reptile no longer exists — skipped.':'Ce reptile n\'existe plus — passé.', 'error'); batchWeighIndex++; showNextBatchWeigh(); return; }
   ensureSnakeMeta(s);
@@ -15885,10 +16328,10 @@ function confirmBatchWeigh(){
     const box = document.getElementById('batch-weigh-warn');
     if(box){
       box.style.display = 'block';
-      box.innerHTML = '⚠️ <b>'+val+' g</b>'+(isEn?' is ':', c\'est ')+how+' ('+ref.value+' g'+(isEn?' on ':' le ')+escapeHtml(String(ref.date))+'). '+(isEn?'Check the number.':'Vérifie le chiffre.');
+      box.innerHTML = '⚠️ <b>'+fmtWeight(val)+'</b>'+(isEn?' is ':', c\'est ')+how+' ('+fmtWeight(ref.value)+(isEn?' on ':' le ')+escapeHtml(String(ref.date))+'). '+(isEn?'Check the number.':'Vérifie le chiffre.');
     }
     const btn = document.getElementById('batch-weigh-save-btn');
-    if(btn) btn.textContent = isEn?('Yes, save '+val+' g'):('Oui, enregistrer '+val+' g');
+    if(btn) btn.textContent = isEn?('Yes, save '+fmtWeight(val)):('Oui, enregistrer '+fmtWeight(val));
     return;
   }
   // v3.68 — date choisie dans le Mode Tournée (peut être antérieure) ; pesées gardées en ordre chronologique.
@@ -16124,7 +16567,7 @@ function spPrepChecks(femaleId, maleId){
     const min = MIN_BREEDING_WEIGHT[sex];
     const dW = daysSinceLastWeigh(s);
     if(w===null) out.push({ ok:false, txt:escapeHtml(snakeName(s))+' — '+(isEn?'never weighed':'jamais pesé'+(sex==='female'?'e':'')) });
-    else out.push({ ok:w>=min, txt:escapeHtml(snakeName(s))+' — '+w+' g '+(w>=min?'✓':(isEn?'(under '+min+' g)':'(sous '+min+' g)'))+(dW!=null&&dW>14?(isEn?' · weighed '+dW+'d ago':' · pesé'+(sex==='female'?'e':'')+' il y a '+dW+' j'):'') });
+    else out.push({ ok:w>=min, txt:escapeHtml(snakeName(s))+' — '+fmtWeight(w)+' '+(w>=min?'✓':(isEn?'(under '+fmtWeight(min)+')':'(sous '+fmtWeight(min)+')'))+(dW!=null&&dW>14?(isEn?' · weighed '+dW+'d ago':' · pesé'+(sex==='female'?'e':'')+' il y a '+dW+' j'):'') });
   });
   return out;
 }
@@ -16165,6 +16608,253 @@ function journalGroupedHtml(sortedDesc, rowFn){
     '</details>';
   }).join('');
 }
+/* ==================== v5.36 — Parcours (la vie d'un animal sur une ligne, gratuit) ====================
+   Décidé par Alex le 30 oct (maquette) : section sur la fiche de chaque animal, bascule Verticale /
+   Horizontale (défaut : verticale sur cellulaire, horizontale sur PC, puis le choix est retenu sur
+   l'appareil), filtres par type, années passées repliées avec résumé, 3 repas ou plus d'un même mois
+   regroupés en une ligne. Lecture seule : se construit à partir de ce qui existe déjà (événements,
+   pesées, longueurs, véto, selles, dates de naissance / acquisition / vente / décès) — aucune
+   nouvelle donnée, aucune colonne. Les pesées et longueurs viennent de weights/lengths (pas des
+   événements weigh/length, qui les doublent). Eau et nettoyage = entretien du bac, pas montrés. */
+var PARCOURS_CATS = [
+  { k:'repas', fr:'Repas', en:'Meals', c:'#A9BD82' },
+  { k:'mue', fr:'Mues', en:'Sheds', c:'#86B8EC' },
+  { k:'pesee', fr:'Pesées', en:'Weigh-ins', c:'#E0B25A' },
+  { k:'sante', fr:'Santé', en:'Health', c:'#EE9CBC' },
+  { k:'repro', fr:'Reproduction', en:'Breeding', c:'#BFA3F0' }
+];
+var PARCOURS_VIE = { k:'vie', fr:'Vie', en:'Life', c:'#EDE3CE' };
+var PARCOURS_MOIS_FR = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+var PARCOURS_MOIS_EN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var parcoursUi = { id:null, off:{}, openY:{}, openG:{}, hy:null, sel:null, scrolled:false };
+
+function parcoursColor(cat){
+  const c = PARCOURS_CATS.find(x=>x.k===cat);
+  return c ? c.c : PARCOURS_VIE.c;
+}
+function parcoursDotHtml(ev, size){
+  const col = ev.ring && ev.cat==='repas' ? '#E8875A' : parcoursColor(ev.cat);
+  const st = 'width:'+size+'px;height:'+size+'px;'+(ev.ring ? 'border:'+Math.max(3,Math.round(size/5))+'px solid '+col+';background:transparent;' : 'background:'+col+';');
+  return '<span class="prc-dot" style="'+st+'"></span>';
+}
+function parcoursGetOrient(){
+  try{ const v = localStorage.getItem('locus_parcours_orient'); if(v==='v' || v==='h') return v; }catch(e){}
+  return (window.innerWidth||0) >= 900 ? 'h' : 'v';
+}
+function parcoursDateShort(ev){
+  return currentLang==='en' ? PARCOURS_MOIS_EN[ev.m]+' '+ev.dd : ev.dd+' '+PARCOURS_MOIS_FR[ev.m];
+}
+function parcoursDateLong(ev){
+  return currentLang==='en' ? MONTHS_EN[ev.m]+' '+ev.dd+', '+ev.y : ev.dd+' '+MONTHS_FR[ev.m]+' '+ev.y;
+}
+
+// Liste des moments de la vie de l'animal, du plus récent au plus ancien. Tout texte libre
+// (partenaire, raison véto, note de selles) passe par escapeHtml().
+function parcoursEvents(s){
+  const isEn = currentLang==='en';
+  const out = [];
+  let n = 0;
+  const add = (date, cat, ring, label, detail, extra)=>{
+    if(typeof date!=='string' || !/^\d{4}-\d{2}-\d{2}/.test(date)) return;
+    const d = date.slice(0,10);
+    out.push(Object.assign({ d, y:+d.slice(0,4), m:+d.slice(5,7)-1, dd:+d.slice(8,10), cat, ring:!!ring, label, detail:detail||'', val:'', k:d+'_'+(n++) }, extra||{}));
+  };
+  const h = s.health || {};
+  (h.events||[]).forEach(e=>{
+    if(!e || !e.type) return;
+    let cat = 'repas', ring = false, detail = '';
+    if(e.type==='fed') detail = (e.quantity==='partial' ? (isEn?'partial':'partiel') : '') + feedPreyTag(e);
+    else if(e.type==='refused' || e.type==='skipped'){ ring = true; detail = feedPreyTag(e); }
+    else if(e.type==='supplement') detail = feedPreyTag(e);
+    else if(e.type==='inshed'){ cat = 'mue'; ring = true; }
+    else if(e.type==='shed'){ cat = 'mue'; if(e.quality) detail = shedQualityLabel(e.quality); }
+    else if(e.type==='lock' || e.type==='pair_in' || e.type==='pair_out'){ cat = 'repro'; if(e.partner) detail = escapeHtml(e.partner); }
+    else return;
+    add(e.date, cat, ring, eventLabelFor(e), String(detail).replace(/^\s*—\s*/,'').trim(), { fed: e.type==='fed', prey: e.type==='fed' ? (e.preyType==='live'?'🐭':(e.preyType?'❄️':'')) : '' });
+  });
+  const ws = [...(h.weights||[])].filter(w=>w && w.date).sort((a,b)=>a.date.localeCompare(b.date));
+  ws.forEach((w,i)=>{
+    const prev = i>0 ? ws[i-1].value : null;
+    const delta = prev!=null ? ' ('+fmtWeightDelta(w.value-prev)+')' : '';
+    add(w.date, 'pesee', false, '⚖ '+(isEn?'Weigh-in':'Pesée'), fmtWeight(w.value)+delta, { val: fmtWeight(w.value) });
+  });
+  const ls = [...(h.lengths||[])].filter(l=>l && l.date).sort((a,b)=>a.date.localeCompare(b.date));
+  ls.forEach((l,i)=>{
+    const prev = i>0 ? ls[i-1].value : null;
+    const delta = prev!=null ? ' ('+fmtLengthDelta(l.value-prev)+')' : '';
+    add(l.date, 'pesee', false, '📏 '+(isEn?'Length':'Longueur'), fmtLength(l.value)+delta, { val: fmtLength(l.value) });
+  });
+  (h.vetVisits||[]).forEach(v=>{ if(v) add(v.date, 'sante', false, '🩺 '+(isEn?'Vet':'Véto'), v.reason ? escapeHtml(v.reason) : ''); });
+  (h.defecations||[]).forEach(dd=>{ if(dd) add(dd.date, 'sante', false, '💩 '+(isEn?'Poop':'Selles'), dd.note ? escapeHtml(dd.note) : ''); });
+  if(s.birthDate){
+    const bp = birthPrecision(s.birthDate);
+    if(bp==='full' || bp==='month') add(bp==='full' ? s.birthDate : s.birthDate+'-01', 'vie', false, '🥚 '+(isEn?'Born':'Naissance'), bp==='month' ? (isEn?'month only':'mois seulement') : '');
+  }
+  if(s.acquisitionDate) add(s.acquisitionDate, 'vie', false, '🏠 '+(isEn?'Arrival':'Arrivée'), '');
+  if(s.status==='sold' && s.soldDate) add(s.soldDate, 'vie', false, '🤝 '+(isEn?'Sold':'Vente'), '');
+  if(s.status==='deceased' && s.deceasedDate) add(s.deceasedDate, 'vie', false, '🕊 '+(isEn?'Passed away':'Décès'), '');
+  out.sort((a,b)=> b.d.localeCompare(a.d) || (a.k < b.k ? 1 : -1));
+  return out;
+}
+
+function parcoursSummary(list){
+  const isEn = currentLang==='en';
+  const c = f => list.filter(f).length;
+  const parts = [
+    [c(e=>e.fed), isEn?'meals':'repas'],
+    [c(e=>e.cat==='repas' && e.ring), isEn?'refusals/skips':'refus/sautés'],
+    [c(e=>e.cat==='mue' && !e.ring), isEn?'sheds':'mues'],
+    [c(e=>e.cat==='pesee'), isEn?'measurements':'mesures'],
+    [c(e=>e.cat==='sante'), isEn?'health':'santé'],
+    [c(e=>e.cat==='repro'), isEn?'breeding':'repro']
+  ];
+  return parts.filter(p=>p[0]>0).map(p=>p[0]+' '+p[1]).join(' · ') || (isEn?'Nothing logged':'Rien de noté');
+}
+
+function parcoursVerticalHtml(all, vis){
+  const isEn = currentLang==='en';
+  const ui = parcoursUi;
+  const curY = +localTodayStr().slice(0,4);
+  const years = [...new Set(all.map(e=>e.y))].sort((a,b)=>b-a);
+  const row = (ev, child)=>
+    '<div class="prc-row'+(child?' child':'')+'"><div class="prc-date">'+parcoursDateShort(ev)+'</div>'+
+    '<div class="prc-rail">'+parcoursDotHtml(ev,14)+'</div>'+
+    '<div class="prc-txt"><div class="l">'+ev.label+'</div>'+(ev.detail?'<div class="d">'+ev.detail+'</div>':'')+'</div></div>';
+  let html = '';
+  years.forEach(y=>{
+    const open = ui.openY[y]!==undefined ? ui.openY[y] : (y===curY || y===years[0]);
+    html += '<button class="prc-year" aria-expanded="'+open+'" onclick="parcoursToggleYear('+y+')"><b>'+y+'</b><span class="sum">'+parcoursSummary(all.filter(e=>e.y===y))+'</span><span aria-hidden="true" style="color:var(--gold);">'+(open?'▾':'▸')+'</span></button>';
+    if(!open) return;
+    const ye = vis.filter(e=>e.y===y);
+    let m = -1, i = 0;
+    while(i<ye.length){
+      const e = ye[i];
+      if(e.m!==m){ m = e.m; html += '<div class="prc-month">'+(isEn?MONTHS_EN[m]:MONTHS_FR[m]).toUpperCase()+' '+y+'</div>'; }
+      if(e.fed){
+        let j = i;
+        while(j<ye.length && ye[j].fed && ye[j].m===m) j++;
+        const run = ye.slice(i,j);
+        if(run.length>=3){
+          const gk = run[0].k, go = !!ui.openG[gk];
+          const first = run[run.length-1], last = run[0];
+          const gap = Math.round((Date.parse(last.d)-Date.parse(first.d))/864e5/(run.length-1));
+          const preys = [...new Set(run.map(r=>r.prey).filter(Boolean))].join(' ');
+          html += '<div class="prc-row"><div class="prc-date rng">'+(isEn ? PARCOURS_MOIS_EN[m]+' '+first.dd+'–'+last.dd : first.dd+'–'+last.dd+' '+PARCOURS_MOIS_FR[m])+'</div>'+
+            '<div class="prc-rail">'+parcoursDotHtml(run[0],11)+parcoursDotHtml(run[0],11)+parcoursDotHtml(run[0],11)+'</div>'+
+            '<button class="prc-grp" aria-expanded="'+go+'" onclick="parcoursToggleGroup(\''+gk+'\')"><span><span class="l">'+run.length+' '+(isEn?'meals':'repas')+'</span>'+
+            '<span class="d">'+(gap>0 ? (isEn?'about every '+gap+' days':'aux '+gap+' jours environ') : '')+(preys?' · '+preys:'')+'</span></span>'+
+            '<span style="color:var(--gold);white-space:nowrap;">'+(go?(isEn?'Hide':'Masquer'):(isEn?'Show':'Voir'))+'</span></button></div>';
+          if(go) run.forEach(r=>{ html += row(r, true); });
+          i = j; continue;
+        }
+      }
+      html += row(e, false); i++;
+    }
+    if(!ye.length) html += '<div class="prc-empty">'+(isEn?'Nothing for these filters this year.':'Rien pour ces filtres cette année.')+'</div>';
+  });
+  return '<div class="prc-v" id="parcours-v">'+html+'</div>';
+}
+
+function parcoursHorizontalHtml(all, vis){
+  const isEn = currentLang==='en';
+  const ui = parcoursUi;
+  const today = localTodayStr();
+  const curY = +today.slice(0,4);
+  const minY = Math.min(curY, ...all.map(e=>e.y));
+  const maxY = Math.max(curY, ...all.map(e=>e.y));
+  if(ui.hy==null || ui.hy<minY || ui.hy>maxY) ui.hy = Math.min(curY, maxY);
+  const hy = ui.hy;
+  const y0 = Date.UTC(hy,0,1), days = (Date.UTC(hy+1,0,1)-y0)/864e5;
+  const pct = d => Math.round(((Date.UTC(+d.slice(0,4), +d.slice(5,7)-1, +d.slice(8,10))-y0)/864e5 + 0.5)/days*10000)/100;
+  const months = PARCOURS_MOIS_FR.map((_,m)=>({ m, x: pct(hy+'-'+String(m+1).padStart(2,'0')+'-01') - 0.14 }));
+  const mlines = months.map(o=>'<span class="prc-mline" style="left:'+o.x+'%;"></span>').join('');
+  const yev = vis.filter(e=>e.y===hy);
+  if(!ui.sel || !yev.some(e=>e.k===ui.sel)) ui.sel = yev.length ? yev[0].k : null;
+  const lanes = PARCOURS_CATS.filter(c=>!ui.off[c.k]).concat(yev.some(e=>e.cat==='vie') ? [PARCOURS_VIE] : []);
+  let html = '<div class="prc-ynav">'+
+    '<button onclick="parcoursYear(-1)" aria-label="'+(isEn?'Previous year':'Année précédente')+'"'+(hy<=minY?' disabled':'')+'>‹</button>'+
+    '<b>'+hy+'</b>'+
+    '<button onclick="parcoursYear(1)" aria-label="'+(isEn?'Next year':'Année suivante')+'"'+(hy>=maxY?' disabled':'')+'>›</button></div>';
+  html += '<div class="prc-hscroll" id="parcours-h"><div class="prc-hin">';
+  html += '<div class="prc-lane head"><div class="prc-lab"></div><div class="prc-track">'+
+    months.map(o=>'<span class="prc-mlab" style="left:'+o.x+'%;">'+(isEn?PARCOURS_MOIS_EN[o.m]:PARCOURS_MOIS_FR[o.m]).toUpperCase()+'</span>').join('')+'</div></div>';
+  lanes.forEach(l=>{
+    const evs = yev.filter(e=>e.cat===l.k).slice().reverse();
+    html += '<div class="prc-lane"><div class="prc-lab"><span class="prc-dot" style="width:10px;height:10px;background:'+l.c+';"></span>'+(isEn?l.en:l.fr)+'</div><div class="prc-track">'+mlines+
+      evs.map(e=>'<button class="prc-hdot'+(e.k===ui.sel?' sel':'')+'" style="left:'+pct(e.d)+'%;" onclick="parcoursPick(\''+e.k+'\')" aria-label="'+escapeHtml(String(e.label).replace(/<[^>]*>/g,'')+', '+parcoursDateLong(e))+'">'+
+        parcoursDotHtml(e,16)+(e.val?'<span class="v">'+e.val+'</span>':'')+'</button>').join('')+
+      (hy===curY ? '<span class="prc-today" style="left:'+pct(today)+'%;"></span>' : '')+
+      '</div></div>';
+  });
+  html += '</div></div>';
+  html += '<div class="prc-legend"><span><span class="prc-dot" style="width:12px;height:12px;background:var(--ink-dim);"></span>'+(isEn?'filled = done':'plein = fait')+'</span>'+
+    '<span><span class="prc-dot" style="width:12px;height:12px;border:3px solid var(--ink-dim);"></span>'+(isEn?'ring = refused / skipped / in shed':'anneau = refus / sauté / en mue')+'</span>'+
+    (hy===curY ? '<span><span style="display:inline-block;width:3px;height:14px;background:var(--gold);"></span>'+(isEn?'today':'aujourd\'hui')+'</span>' : '')+'</div>';
+  const sel = yev.find(e=>e.k===ui.sel);
+  html += sel
+    ? '<div class="prc-card"><div style="display:flex;align-items:center;gap:10px;">'+parcoursDotHtml(sel,16)+'<span style="font-size:17px;font-weight:700;">'+sel.label+'</span></div>'+
+      '<div style="font-family:\'Courier New\',monospace;font-size:13px;color:var(--gold);margin-top:6px;">'+parcoursDateLong(sel).toUpperCase()+'</div>'+
+      (sel.detail ? '<div style="font-size:15px;margin-top:6px;line-height:1.4;">'+sel.detail+'</div>' : '')+'</div>'
+    : '<div class="prc-empty">'+(isEn?'Nothing for these filters this year.':'Rien pour ces filtres cette année.')+'</div>';
+  return html;
+}
+
+function parcoursInnerHtml(s){
+  const isEn = currentLang==='en';
+  const ui = parcoursUi;
+  if(ui.id!==s.id){ parcoursUi = { id:s.id, off:ui.off||{}, openY:{}, openG:{}, hy:null, sel:null, scrolled:false }; }
+  const all = parcoursEvents(s);
+  if(!all.length) return '<div class="prc-empty">'+(isEn?'Nothing yet — every feeding, shed and weigh-in will show up here.':'Rien encore — chaque repas, mue et pesée apparaîtra ici.')+'</div>';
+  const vis = all.filter(e=>e.cat==='vie' || !parcoursUi.off[e.cat]);
+  const o = parcoursGetOrient();
+  let html = '<div class="prc-bar"><div class="prc-seg" role="group" aria-label="'+(isEn?'Orientation':'Orientation')+'">'+
+    '<button class="'+(o==='v'?'on':'')+'" aria-pressed="'+(o==='v')+'" onclick="parcoursSetOrient(\'v\')">'+(isEn?'Vertical':'Verticale')+'</button>'+
+    '<button class="'+(o==='h'?'on':'')+'" aria-pressed="'+(o==='h')+'" onclick="parcoursSetOrient(\'h\')">'+(isEn?'Horizontal':'Horizontale')+'</button></div>'+
+    '<div class="prc-chips" role="group" aria-label="'+(isEn?'Filters':'Filtres')+'">'+
+    PARCOURS_CATS.map(c=>{
+      const on = !parcoursUi.off[c.k];
+      return '<button class="prc-chip'+(on?' on':'')+'" aria-pressed="'+on+'" style="border-color:'+(on?c.c:'var(--line)')+';" onclick="parcoursToggleCat(\''+c.k+'\')">'+
+        '<span class="prc-dot" style="width:10px;height:10px;'+(on?'background:'+c.c+';':'border:2px solid '+c.c+';')+'"></span>'+(isEn?c.en:c.fr)+'</button>';
+    }).join('')+'</div></div>';
+  html += o==='v' ? parcoursVerticalHtml(all, vis) : parcoursHorizontalHtml(all, vis);
+  if(o==='h' && !parcoursUi.scrolled) setTimeout(parcoursScrollToSel, 0);
+  return html;
+}
+function parcoursScrollToSel(){
+  const box = document.getElementById('parcours-h');
+  if(!box) return;
+  parcoursUi.scrolled = true;
+  const btn = box.querySelector('.prc-hdot.sel') || box.querySelector('.prc-today');
+  if(!btn) return;
+  const lab = box.querySelector('.prc-lab');
+  const left = btn.offsetLeft + (lab ? lab.offsetWidth : 0);
+  box.scrollLeft = Math.max(0, left - box.clientWidth + 60);
+}
+function parcoursRefresh(){
+  const s = savedSnakes.find(x=>x.id===currentLogbookId);
+  const box = document.getElementById('parcours-box');
+  if(!s || !box) return;
+  const v = document.getElementById('parcours-v'), keepV = v ? v.scrollTop : 0;
+  const hEl = document.getElementById('parcours-h'), keepH = hEl ? hEl.scrollLeft : null;
+  box.innerHTML = parcoursInnerHtml(s);
+  const v2 = document.getElementById('parcours-v'); if(v2) v2.scrollTop = keepV;
+  const h2 = document.getElementById('parcours-h'); if(h2 && keepH!=null && parcoursUi.scrolled) h2.scrollLeft = keepH;
+}
+function parcoursSetOrient(o){
+  try{ localStorage.setItem('locus_parcours_orient', o); }catch(e){}
+  parcoursUi.scrolled = false;
+  parcoursRefresh();
+}
+function parcoursToggleCat(k){ parcoursUi.off[k] = !parcoursUi.off[k]; parcoursRefresh(); }
+function parcoursToggleYear(y){
+  const curY = +localTodayStr().slice(0,4);
+  const box = document.querySelector('#parcours-v .prc-year[onclick="parcoursToggleYear('+y+')"]');
+  const wasOpen = box ? box.getAttribute('aria-expanded')==='true' : (y===curY);
+  parcoursUi.openY[y] = !wasOpen; parcoursRefresh();
+}
+function parcoursToggleGroup(k){ parcoursUi.openG[k] = !parcoursUi.openG[k]; parcoursRefresh(); }
+function parcoursYear(d){ parcoursUi.hy = (parcoursUi.hy||+localTodayStr().slice(0,4)) + d; parcoursUi.sel = null; parcoursUi.scrolled = false; parcoursRefresh(); }
+function parcoursPick(k){ parcoursUi.sel = k; parcoursRefresh(); }
 function logPairingJournal(p, type, date, extra){
   [p.maleId, p.femaleId].forEach(id=>{
     const s = savedSnakes.find(x=>x.id===id); if(!s) return;
@@ -16450,8 +17140,8 @@ function startSeasonSession(planId, sessionId){
     if(female) ensureSnakeMeta(female);
     const warnings = [];
     const mw = male ? lastWeight(male) : null, fw = female ? lastWeight(female) : null;
-    if(mw===null || mw<MIN_BREEDING_WEIGHT.male) warnings.push((isEn?'Male ':'Mâle ')+spSnakeName(plan.maleId)+' : '+(mw===null?(isEn?'not weighed':'non pesé'):mw+' g')+' (≥ '+MIN_BREEDING_WEIGHT.male+' g)');
-    if(fw===null || fw<MIN_BREEDING_WEIGHT.female) warnings.push((isEn?'Female ':'Femelle ')+spSnakeName(se.femaleId)+' : '+(fw===null?(isEn?'not weighed':'non pesée'):fw+' g')+' (≥ '+MIN_BREEDING_WEIGHT.female+' g)');
+    if(mw===null || mw<MIN_BREEDING_WEIGHT.male) warnings.push((isEn?'Male ':'Mâle ')+spSnakeName(plan.maleId)+' : '+(mw===null?(isEn?'not weighed':'non pesé'):fmtWeight(mw))+' (≥ '+fmtWeight(MIN_BREEDING_WEIGHT.male)+')');
+    if(fw===null || fw<MIN_BREEDING_WEIGHT.female) warnings.push((isEn?'Female ':'Femelle ')+spSnakeName(se.femaleId)+' : '+(fw===null?(isEn?'not weighed':'non pesée'):fmtWeight(fw))+' (≥ '+fmtWeight(MIN_BREEDING_WEIGHT.female)+')');
     const pairF = inbreedingCoefficient(plan.maleId, se.femaleId);
     if(pairF>0) warnings.push((isEn?'Inbreeding coefficient: ':'Coefficient de consanguinité : ')+(Math.round(pairF*10000)/100)+' %');
     if(warnings.length && !confirm((isEn?'⚠ Points to check:\n\n':'⚠ Points à vérifier :\n\n')+warnings.join('\n')+(isEn?'\n\nStart anyway?':'\n\nDémarrer quand même ?'))) return;
@@ -19751,6 +20441,8 @@ function importWeightGrams(raw, headerUnit){
   let t = String(raw).trim().toLowerCase().replace(/^(approx\.?|approximately|about|around|env\.?|environ|ca\.?|circa|~|±|\+\/-)\s*/,''); // v4.30 — « approx 499 grams »
   if(!t) return null;
   if(/^-/.test(t)) return NaN;
+  const lbOz = t.match(/^(\d+(?:[.,]\d+)?)\s*(?:lbs?|pounds?|livres?)\.?\s*,?\s*(\d+(?:[.,]\d+)?)\s*(?:oz|ounces?|onces?)\.?$/); // v5.39 — « 3 lb 2 oz »
+  if(lbOz) return parseFloat(lbOz[1].replace(',','.'))*453.592 + parseFloat(lbOz[2].replace(',','.'))*28.3495;
   let unit = /\bkg\b|kilo/.test(t) ? 'kg' : /\blbs?\b|pound|livre/.test(t) ? 'lb' : /\boz\b|ounce|once/.test(t) ? 'oz' : /\bg\b|gr\b|gram/.test(t) ? 'g' : (headerUnit||'g');
   let n = t.replace(/[^0-9.,\s]/g,'').trim();
   if(!n) return NaN;
@@ -20937,11 +21629,11 @@ function weightDropNoteHtml(s){
   const isEn = currentLang==='en';
   const pctTxt = isEn ? String(d.pct) : String(d.pct).replace('.',',');
   if(d.postLay) return '<p class="husbandry-health-note" style="margin-top:8px;font-size:14px;">🥚 '+(isEn
-    ? 'Down '+pctTxt+'% since '+escapeHtml(d.peakDate)+' ('+d.peak+' g → '+d.last+' g) — normal weight loss after laying, no alert.'
-    : 'Baisse de '+pctTxt+' % depuis le '+escapeHtml(d.peakDate)+' ('+d.peak+' g → '+d.last+' g) — perte normale après la ponte, pas d\'alerte.')+'</p>';
+    ? 'Down '+pctTxt+'% since '+escapeHtml(d.peakDate)+' ('+fmtWeight(d.peak)+' → '+fmtWeight(d.last)+') — normal weight loss after laying, no alert.'
+    : 'Baisse de '+pctTxt+' % depuis le '+escapeHtml(d.peakDate)+' ('+fmtWeight(d.peak)+' → '+fmtWeight(d.last)+') — perte normale après la ponte, pas d\'alerte.')+'</p>';
   return '<div style="margin-top:8px;padding:10px 12px;border:1px solid var(--rust);border-radius:10px;background:linear-gradient(rgba(200,70,50,.14),rgba(200,70,50,.14)),var(--bg-panel);font-size:14.5px;line-height:1.45;color:var(--ink);">📉 <b>'+(isEn?'Weight loss: −'+pctTxt+'%':'Perte de poids : −'+pctTxt+' %')+'</b><br>'+(isEn
-    ? d.peak+' g on '+escapeHtml(d.peakDate)+' → '+d.last+' g on '+escapeHtml(d.lastDate)+'. A loss of 10% or more in under 2 months is worth a closer look; if it continues, see a vet (see Utility › Health).'
-    : d.peak+' g le '+escapeHtml(d.peakDate)+' → '+d.last+' g le '+escapeHtml(d.lastDate)+'. Une perte de 10 % ou plus en moins de 2 mois mérite qu\'on s\'y attarde; si ça continue, consulte un vétérinaire (voir Utilitaire › Santé).')+'</div>';
+    ? fmtWeight(d.peak)+' on '+escapeHtml(d.peakDate)+' → '+fmtWeight(d.last)+' on '+escapeHtml(d.lastDate)+'. A loss of 10% or more in under 2 months is worth a closer look; if it continues, see a vet (see Utility › Health).'
+    : fmtWeight(d.peak)+' le '+escapeHtml(d.peakDate)+' → '+fmtWeight(d.last)+' le '+escapeHtml(d.lastDate)+'. Une perte de 10 % ou plus en moins de 2 mois mérite qu\'on s\'y attarde; si ça continue, consulte un vétérinaire (voir Utilitaire › Santé).')+'</div>';
 }
 
 // Prédit la prochaine mue à partir de l'intervalle moyen entre les mues déjà enregistrées —
@@ -21432,7 +22124,7 @@ function suggestPreyFor(s){
   const w = snakeLastWeight(s);
   if(w){
     let est = null; try{ est = estimatePreySizeFromWeight(Object.assign({}, s, { preySpecies:sp })); }catch(e){ est = null; }
-    if(est && sizes.includes(est)) return { sp, size:est, why:(isEn?'weight chart ('+w+' g)':'charte selon le poids ('+w+' g)') };
+    if(est && sizes.includes(est)) return { sp, size:est, why:(isEn?'weight chart ('+fmtWeight(w)+')':'charte selon le poids ('+fmtWeight(w)+')') };
     let best = null;
     peers.forEach(x=>{
       if(x.preySpecies!==sp || !x.preySize || !sizes.includes(x.preySize)) return;
@@ -21440,7 +22132,7 @@ function suggestPreyFor(s){
       const d = Math.abs(xw-w);
       if(!best || d<best.d) best = { d, x, xw };
     });
-    if(best && best.d <= Math.max(150, w*0.3)) return { sp, size:best.x.preySize, why:(isEn?'like ':'comme ')+snakeName(best.x)+' ('+best.xw+' g)' };
+    if(best && best.d <= Math.max(150, w*0.3)) return { sp, size:best.x.preySize, why:(isEn?'like ':'comme ')+snakeName(best.x)+' ('+fmtWeight(best.xw)+')' };
   }
   if(s.placement && s.placement.mode==='rack' && s.placement.rackId){
     const cnt = {};
@@ -21454,9 +22146,9 @@ var PREY_WEIGHT_BANDS = [['lt100',0,100],['100-300',100,300],['300-500',300,500]
 function preyBulkWeightBandLabel(k, isEn){
   if(k==='nowt') return isEn?'Never weighed':'Jamais pesé';
   const b = PREY_WEIGHT_BANDS.find(x=>x[0]===k); if(!b) return isEn?'All weights':'Tous les poids';
-  if(b[1]===0) return '< '+b[2]+' g';
-  if(b[2]===Infinity) return '≥ '+b[1]+' g';
-  return b[1]+'–'+b[2]+' g';
+  if(b[1]===0) return '< '+fmtWeight(b[2]);
+  if(b[2]===Infinity) return '≥ '+fmtWeight(b[1]);
+  return fmtWeight(b[1])+' – '+fmtWeight(b[2]);
 }
 function preyBulkPlaceKey(s){
   const pl = s.placement||{};
@@ -21741,7 +22433,7 @@ function renderFoodView(){
     ? preyBulkBarHtml(withoutPrey)+'<div class="empty" style="grid-column:1 / -1;">'+(isEn?'No animal matches these filters.':'Aucun animal ne correspond à ces filtres.')+'</div>'
     : preyBulkBarHtml(withoutPrey) + (function(){ const pg = pagerSlice('preymissing', withoutPrey, renderFoodView); return pg.top+pg.items.map(s=>miniAnimalCardHtml( // v4.50
         snakeName(s),
-        (function(){ const w = snakeLastWeight(s); const sug = suggestPreyFor(s); return '⚖ '+(w ? w+' g' : (isEn?'not weighed':'pas pesé'))+' · '+escapeHtml(preyBulkPlaceLabel(s, isEn))+'<br>'+(sug.size ? '✨ '+(isEn?'Suggested: ':'Suggéré : ')+escapeHtml((isEn?PREY_TYPES[sug.sp].labelEn:PREY_TYPES[sug.sp].labelFr)+' '+sug.size)+' <small style="color:var(--ink-dim);">('+escapeHtml(sug.why)+')</small><br>' : ''); })()+ // v5.06
+        (function(){ const w = snakeLastWeight(s); const sug = suggestPreyFor(s); return '⚖ '+(w ? fmtWeight(w) : (isEn?'not weighed':'pas pesé'))+' · '+escapeHtml(preyBulkPlaceLabel(s, isEn))+'<br>'+(sug.size ? '✨ '+(isEn?'Suggested: ':'Suggéré : ')+escapeHtml((isEn?PREY_TYPES[sug.sp].labelEn:PREY_TYPES[sug.sp].labelFr)+' '+sug.size)+' <small style="color:var(--ink-dim);">('+escapeHtml(sug.why)+')</small><br>' : ''); })()+ // v5.06
         (isEn?'Meal due ':'Repas prévu le ')+nextFeedingDate(s)+(s.preySpecies && PREY_TYPES[s.preySpecies] ? '<br>'+PREY_TYPES[s.preySpecies].icon+' '+escapeHtml(isEn?PREY_TYPES[s.preySpecies].labelEn:PREY_TYPES[s.preySpecies].labelFr)+' — '+(isEn?'size?':'taille ?') : ''),
         '<label style="display:flex;align-items:center;gap:6px;font-size:14px;margin:4px 0;"><input type="checkbox" style="width:22px;height:22px;accent-color:var(--gold);"'+(pb.sel.has(s.id)?' checked':'')+' onchange="preyBulkToggle(\''+s.id+'\', this.checked)"/>'+(isEn?'Select':'Cocher')+'</label>'+
         '<button class="sc-btn accent" onclick="openLogbook(\''+s.id+'\')">'+t('fillPreyBtn')+'</button>'
@@ -21774,10 +22466,24 @@ function frozenAvailableFor(species, size){
   }
   return { qty:n, tracked };
 }
+// v5.37 — demande d'Alex : pouvoir masquer la liste de décongélation. Retenu sur l'appareil (préférence d'affichage).
+function defrostListHidden(){ try{ return localStorage.getItem('locus_defrost_hidden')==='1'; }catch(e){ return false; } }
+function applyDefrostListVisibility(){
+  const isEn = currentLang==='en';
+  const hidden = defrostListHidden();
+  const wrap = document.getElementById('defrost-list'); if(wrap) wrap.style.display = hidden ? 'none' : '';
+  const btn = document.getElementById('defrost-toggle-btn');
+  if(btn){ btn.textContent = hidden ? '▸ '+(isEn?'Show':'Afficher') : '▾ '+(isEn?'Hide':'Masquer'); btn.setAttribute('aria-expanded', hidden ? 'false' : 'true'); }
+}
+function toggleDefrostList(){
+  try{ localStorage.setItem('locus_defrost_hidden', defrostListHidden() ? '0' : '1'); }catch(e){}
+  applyDefrostListVisibility();
+}
 function renderDefrostList(){
   const isEn = currentLang==='en';
   const wrap = document.getElementById('defrost-list');
   if(!wrap) return;
+  applyDefrostListVisibility(); // v5.37
   savedSnakes.forEach(ensureSnakeMeta);
   const todayStr = localTodayStr();
   const horizon = addDays(todayStr, foodHorizonDays-1);
@@ -24000,7 +24706,7 @@ function setCareParam(id, field, value){
   if(field==='cycleNotes'){
     s.careParams.cycleNotes = value;
   } else {
-    const n = parseFloat(value);
+    const n = (field==='tempWarm' || field==='tempCool') ? tempFromInput(value) : parseFloat(value); // v5.38 — saisie dans l'unité choisie, stockée en °C
     s.careParams[field] = (value==='' || isNaN(n)) ? null : n;
   }
   storage.save(savedSnakes);
@@ -25537,7 +26243,7 @@ function snakeBriefInfo(s, isEn){ // âge (groupe) + dernier poids — pour savo
   const g = placeAgeGroup(s);
   const lbl = ({ baby:isEn?'baby':'bébé', juvenile:isEn?'juvenile':'juvénile', adult:isEn?'adult':'adulte', unknown:isEn?'age ?':'âge ?' })[g];
   const w = snakeLastWeight(s);
-  return lbl + (w!=null ? ' · '+w+' g' : '');
+  return lbl + (w!=null ? ' · '+fmtWeight(w) : '');
 }
 function tubOccupant(rackId, row, tub){
   return savedSnakes.find(x=>{ ensureSnakeMeta(x); return x.placement.mode==='rack' && x.placement.rackId===rackId && +x.placement.row===+row && +x.placement.tub===+tub && snakeIsActiveForPlacement(x); }) || null;
@@ -25790,7 +26496,7 @@ function openTerrariumEditModal(terrariumId){
   const body =
     '<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Name':'Nom')+'</span>'+
       '<input type="text" id="te-edit-name" value="'+escapeHtml(te.name||'')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
-    '<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Size (e.g. 90x45x45cm)':'Taille (ex. 90x45x45cm)')+'</span>'+
+    '<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Size':'Taille')+' ('+dimsExample()+')'+'</span>'+
       '<input type="text" id="te-edit-size" value="'+escapeHtml(te.size||'')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
     '<label style="display:block;margin-bottom:10px;"><span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'Lighting':'Éclairage')+'</span>'+
       '<select id="te-edit-lighting" onchange="toggleCustomFieldInput(this,\'te-edit-lighting-custom\'); toggleUvbDateField(this)" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+fieldOptionsHtml('lighting', te.lighting)+'</select>'+
@@ -26775,8 +27481,8 @@ function addPairing(){
   ensureSnakeMeta(male); ensureSnakeMeta(female);
   const warnings = [];
   const mw = lastWeight(male), fw = lastWeight(female);
-  if(mw===null || mw<MIN_BREEDING_WEIGHT.male) warnings.push((isEn?'Male ':'Mâle ')+male.name+(isEn?': weight ':' : poids ')+(mw===null?(isEn?'not recorded':'non enregistré'):mw+'g')+(isEn?' — recommended threshold ≥ ':' — seuil recommandé ≥ ')+MIN_BREEDING_WEIGHT.male+'g.');
-  if(fw===null || fw<MIN_BREEDING_WEIGHT.female) warnings.push((isEn?'Female ':'Femelle ')+female.name+(isEn?': weight ':' : poids ')+(fw===null?(isEn?'not recorded':'non enregistré'):fw+'g')+(isEn?' — recommended threshold ≥ ':' — seuil recommandé ≥ ')+MIN_BREEDING_WEIGHT.female+'g.');
+  if(mw===null || mw<MIN_BREEDING_WEIGHT.male) warnings.push((isEn?'Male ':'Mâle ')+male.name+(isEn?': weight ':' : poids ')+(mw===null?(isEn?'not recorded':'non enregistré'):fmtWeight(mw))+(isEn?' — recommended threshold ≥ ':' — seuil recommandé ≥ ')+fmtWeight(MIN_BREEDING_WEIGHT.male)+'.');
+  if(fw===null || fw<MIN_BREEDING_WEIGHT.female) warnings.push((isEn?'Female ':'Femelle ')+female.name+(isEn?': weight ':' : poids ')+(fw===null?(isEn?'not recorded':'non enregistré'):fmtWeight(fw))+(isEn?' — recommended threshold ≥ ':' — seuil recommandé ≥ ')+fmtWeight(MIN_BREEDING_WEIGHT.female)+'.');
   const pairF = inbreedingCoefficient(maleId, femaleId);
   if(pairF>0){
     const pairFpct = Math.round(pairF*10000)/100;
@@ -28001,7 +28707,7 @@ function tsdHintText(speciesId, temp){
   const n = parseFloat(temp);
   if(isNaN(n)) return isEn ? '🌡️ Enter the incubation temperature to see the probable sex of the babies.' : '🌡️ Entre la température d\'incubation pour voir le sexe probable des bébés.';
   const z = info.zones.find(zz=>n<=zz.max) || info.zones[info.zones.length-1];
-  return '🌡️ '+(isEn?n.toFixed(1):n.toFixed(1).replace('.',','))+' °C → <b>'+(isEn?z.en:z.fr)+'</b><br/><small style="color:var(--ink-dim);">'+(isEn?'Probable trend, not a guarantee. Source: ':'Tendance probable, pas une garantie. Source : ')+info.src+'</small>';
+  return '<span data-unit-ctx="inc">🌡️ '+fmtTempInc(n)+' → <b>'+(isEn?z.en:z.fr)+'</b><br/><small style="color:var(--ink-dim);">'+(isEn?'Probable trend, not a guarantee. Source: ':'Tendance probable, pas une garantie. Source : ')+info.src+'</small>'+'</span>';
 }
 function updateClutchTsdHint(){
   const wrap = document.getElementById('clutch-temp-wrap');
@@ -28012,14 +28718,16 @@ function updateClutchTsdHint(){
   wrap.style.display = info && !info.debated ? 'flex' : 'none';
   const lbl = document.getElementById('clutch-temp-label');
   if(lbl) lbl.textContent = currentLang==='en' ? 'Incub. temp.' : 'Temp. incub.';
-  const txt = info ? tsdHintText(sp, document.getElementById('clutch-incub-temp').value) : '';
+  const tv = incFromInput(document.getElementById('clutch-incub-temp').value); // v5.39 — saisie dans l'unité de l'incubateur
+  const unitEl = document.getElementById('clutch-temp-unit'); if(unitEl) unitEl.textContent = incUnitLabel();
+  const txt = info ? tsdHintText(sp, isNaN(tv) ? '' : tv) : '';
   hint.innerHTML = txt;
   hint.style.display = txt ? '' : 'none';
 }
 function setClutchIncubTemp(id, value){
   const c = clutches.find(x=>x.id===id);
   if(!c) return;
-  const n = parseFloat(value);
+  const n = incFromInput(value); // v5.39 — saisie dans l'unité de l'incubateur, gardée en °C
   c.incubTempC = (value==='' || isNaN(n)) ? null : n;
   saveElevage();
   renderClutches();
@@ -28343,7 +29051,7 @@ function addClutch(){
     hatchDate, hatched:false, hatchedAt:null,
     liveCount:null, stillbornCount:null, slugCount:null,
     pairingId:pendingPairingIdForClutch, candidateSireIds,
-    incubTempC: (function(){ const el = document.getElementById('clutch-incub-temp'); const n = el ? parseFloat(el.value) : NaN; return (!isOvo && TSD_BY_SPECIES[clutchSpeciesFor(sireId, damId)] && !isNaN(n)) ? n : null; })()
+    incubTempC: (function(){ const el = document.getElementById('clutch-incub-temp'); const n = el ? incFromInput(el.value) : NaN; /* v5.39 */ return (!isOvo && TSD_BY_SPECIES[clutchSpeciesFor(sireId, damId)] && !isNaN(n)) ? n : null; })()
   });
   pendingPairingIdForClutch = null; // consommé — repasse en création "libre" par défaut
   saveElevage();
@@ -28462,7 +29170,7 @@ function renderClutches(){
           const info = TSD_BY_SPECIES[sp];
           if(isOvo || !info) return '';
           if(info.debated) return '<div style="font-size:12.5px;margin-top:6px;">'+tsdHintText(sp, null)+'</div>';
-          return '<div class="modal-row"><span>🌡️ '+(isEn?'Incubation temp.':'Temp. d\'incubation')+'</span><span><input type="number" step="0.1" min="20" max="40" class="price-input" style="width:70px;font-size:15px;" value="'+(c.incubTempC!=null?c.incubTempC:'')+'" onchange="setClutchIncubTemp(\''+c.id+'\', this.value)"/> °C</span></div>'+
+          return '<div class="modal-row"><span>🌡️ '+(isEn?'Incubation temp.':'Temp. d\'incubation')+'</span><span><input type="number" step="0.1" class="price-input" style="width:70px;font-size:15px;" value="'+incToInput(c.incubTempC)+'" onchange="setClutchIncubTemp(\''+c.id+'\', this.value)"/> '+incUnitLabel()+' °C</span></div>'+
             '<div style="font-size:12.5px;line-height:1.5;margin:4px 0 2px;">'+tsdHintText(sp, c.incubTempC)+'</div>';
         })() +
       '</div>'+
@@ -30130,7 +30838,7 @@ function renderStatsView(){
       (withW.length ? withW.map(s=>'<option value="'+escapeHtml(s.id)+'"'+(s.id===statsWeightSnakeId?' selected':'')+'>'+escapeHtml(snakeName(s))+(isActiveSnake(s)?'':' ('+saleStatusLabel(s.status)+')')+'</option>').join('') : '<option>—</option>')+
       '</select></label></div>';
     charts.push({ id:'weight', html: statsLineChart({ id:'weight', pre: weightSel, title: ws ? (isEn?'Weight — ':'Poids — ')+ws.name : (isEn?'Weight':'Poids'), color: STATS_COLORS.blue,
-      points: ws ? ws.health.weights.map(w=>({ date:w.date, value:Number(w.value) })) : [], fmt:v=>Math.round(v)+' g', xName: 'Date', yName: isEn?'Weight':'Poids',
+      points: ws ? ws.health.weights.map(w=>({ date:w.date, value:Number(w.value) })) : [], fmt:v=>fmtWeight(v), xName: 'Date', yName: isEn?'Weight':'Poids',
       empty: isEn?'At least 2 weigh-ins are needed to draw a curve.':'Il faut au moins 2 pesées pour tracer une courbe.' }), title: isEn?'Weight per animal':'Poids par animal' });
     charts.push({ id:'sheds', html: statsBarChart({ id:'sheds', title: isEn?'Sheds per month':'Mues par mois', subtitle: statsMonthsSubtitle(monthsShed, 12, isEn),
       categories: monthsShed.map(m=>({ label: statsMonthLabel(m, isEn) })), series:[ { name: isEn?'Sheds':'Mues', color: STATS_COLORS.aqua, values: fmShed.sheds } ] }), title: isEn?'Sheds per month':'Mues par mois' });
@@ -30174,7 +30882,7 @@ function renderStatsView(){
           td(r.fed)+td(r.refused+(r.refusalPct!=null?' ('+r.refusalPct+' %)':''))+
           td(m.current+' / '+m.best)+
           td(r.mealGap!=null ? r.mealGap+(isEn?' d':' j') : '—')+td(r.sheds)+td(r.shedGap!=null ? r.shedGap+(isEn?' d':' j') : '—')+
-          td(r.weight!=null ? escapeHtml(String(r.weight))+' g' : '—')+
+          td(r.weight!=null ? escapeHtml(fmtWeight(r.weight)) : '—')+
           td(r.growth!=null ? (r.growth>=0?'+':'')+r.growth+(isEn?' g/mo':' g/mois') : '—')+
           td(r.cost>0 ? statsFmtMoney(r.cost) : '—')+
         '</tr>'; }).join('')+'</table></div>'
@@ -30800,7 +31508,7 @@ function generateListingText(id, lang){
   const morphStr = visualLabels.length ? visualLabels.join(' ') : tLang('normalMorph',lang);
   const sexLabel = s.sex==='male'?tLang('sexMale',lang):s.sex==='female'?tLang('sexFemale',lang):tLang('sexUnknown',lang);
   const w = s.health.weights;
-  const weightStr = w.length ? w[w.length-1].value+'g' : tLang('weightNotRecorded',lang);
+  const weightStr = w.length ? fmtWeight(w[w.length-1].value) : tLang('weightNotRecorded',lang);
   const year = s.birthDate ? s.birthDate.slice(0,4) : new Date().getFullYear();
   const sire = s.sireId ? savedSnakes.find(x=>x.id===s.sireId) : null;
   const dam = s.damId ? savedSnakes.find(x=>x.id===s.damId) : null;
@@ -33019,7 +33727,7 @@ function renderLockModePairingSelects(){
   const males = savedSnakes.filter(s=>s.sex==='male');
   const females = savedSnakes.filter(s=>s.sex==='female');
   const prevM = maleSel.value, prevF = femaleSel.value;
-  const opt = s=>{ const w = snakeLastWeight(s); return '<option value="'+s.id+'">'+escapeHtml(snakeName(s))+(w!=null?' — '+w+' g':'')+'</option>'; }; // v4.94 — poids dans la liste
+  const opt = s=>{ const w = snakeLastWeight(s); return '<option value="'+s.id+'">'+escapeHtml(snakeName(s))+(w!=null?' — '+fmtWeight(w):'')+'</option>'; }; // v4.94 — poids dans la liste
   maleSel.innerHTML = males.length ? males.map(opt).join('') : '<option value="">'+(isEn?'No male registered':'Aucun mâle enregistré')+'</option>';
   femaleSel.innerHTML = females.length ? females.map(opt).join('') : '<option value="">'+(isEn?'No female registered':'Aucune femelle enregistrée')+'</option>';
   if(prevM && males.some(x=>x.id===prevM)) maleSel.value = prevM;
@@ -33067,7 +33775,7 @@ function renderLockModePicker(){
     return '<button type="button" onclick="lmChoose(\''+s.sex+'\',\''+s.id+'\')" style="display:block;width:100%;text-align:left;margin:0 0 5px;padding:8px 10px;border-radius:9px;cursor:pointer;line-height:1.35;color:var(--ink);'+
       (chosen?'border:2px solid var(--gold);background:rgba(201,151,62,.16);':'border:1px solid var(--line);background:var(--bg-panel-2);')+'">'+
       '<span style="font-size:15px;"><b>'+escapeHtml(snakeName(s))+'</b>'+(isProvenSnake(s)?' <span style="color:var(--sage);font-size:12px;">✅ Proven</span>':'')+'</span>'+
-      '<span style="float:right;font-size:14px;color:var(--gold);">'+(w!=null?w+' g':(isEn?'no weight':'sans poids'))+'</span><br/>'+
+      '<span style="float:right;font-size:14px;color:var(--gold);">'+(w!=null?fmtWeight(w):(isEn?'no weight':'sans poids'))+'</span><br/>'+
       '<small style="color:var(--ink-dim);font-size:12.5px;">'+escapeHtml(g)+(m!=null?' · '+(m>=24?Math.floor(m/12)+(isEn?' yr':' an(s)'):m+(isEn?' mo':' mois')):'')+(par?' · '+escapeHtml(par):'')+'</small></button>';
   };
   const col = (sex, title, crit)=>{
@@ -33105,8 +33813,8 @@ function quickAddPairingFromLockMode(){
   ensureSnakeMeta(male); ensureSnakeMeta(female);
   const warnings = [];
   const mw = lastWeight(male), fw = lastWeight(female);
-  if(mw===null || mw<MIN_BREEDING_WEIGHT.male) warnings.push((isEn?'Male ':'Mâle ')+male.name+(isEn?': weight ':' : poids ')+(mw===null?(isEn?'not recorded':'non enregistré'):mw+'g')+(isEn?' — recommended threshold ≥ ':' — seuil recommandé ≥ ')+MIN_BREEDING_WEIGHT.male+'g.');
-  if(fw===null || fw<MIN_BREEDING_WEIGHT.female) warnings.push((isEn?'Female ':'Femelle ')+female.name+(isEn?': weight ':' : poids ')+(fw===null?(isEn?'not recorded':'non enregistré'):fw+'g')+(isEn?' — recommended threshold ≥ ':' — seuil recommandé ≥ ')+MIN_BREEDING_WEIGHT.female+'g.');
+  if(mw===null || mw<MIN_BREEDING_WEIGHT.male) warnings.push((isEn?'Male ':'Mâle ')+male.name+(isEn?': weight ':' : poids ')+(mw===null?(isEn?'not recorded':'non enregistré'):fmtWeight(mw))+(isEn?' — recommended threshold ≥ ':' — seuil recommandé ≥ ')+fmtWeight(MIN_BREEDING_WEIGHT.male)+'.');
+  if(fw===null || fw<MIN_BREEDING_WEIGHT.female) warnings.push((isEn?'Female ':'Femelle ')+female.name+(isEn?': weight ':' : poids ')+(fw===null?(isEn?'not recorded':'non enregistré'):fmtWeight(fw))+(isEn?' — recommended threshold ≥ ':' — seuil recommandé ≥ ')+fmtWeight(MIN_BREEDING_WEIGHT.female)+'.');
   const pairF = inbreedingCoefficient(maleId, femaleId);
   if(pairF>0){
     const pairFpct = Math.round(pairF*10000)/100;
@@ -33770,8 +34478,8 @@ function setHealthLogSort(key){
 }
 function healthLogEventDetail(e){
   const isEn = currentLang==='en';
-  if(e.type==='weigh') return e.value+'g';
-  if(e.type==='length') return e.value+'cm';
+  if(e.type==='weigh') return fmtWeight(e.value);
+  if(e.type==='length') return fmtLength(e.value);
   if(e.type==='shed' && e.quality) return shedQualityLabel(e.quality);
   if(e.type==='fed'){
     let d = (e.quantity==='partial') ? (isEn?'partial':'partiel') : (isEn?'complete':'complet');
@@ -33837,7 +34545,7 @@ function renderHealthLog(){
   }
   const recent = all.slice(0,40);
   wrap.innerHTML = recent.length ? recent.map(e=>
-    '<div class="timeline-card" style="padding:9px 14px;"><span class="timeline-title" style="font-size:12.5px;">'+e.date+' — '+escapeHtml(e.snake)+' : '+eventLabelFor(e)+(e.type==='weigh'?' ('+e.value+'g)':'')+(e.type==='length'?' ('+e.value+'cm)':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(currentLang==='en'?'partial':'partiel'):'')+feedPreyTag(e)+'</span></div>'
+    '<div class="timeline-card" style="padding:9px 14px;"><span class="timeline-title" style="font-size:12.5px;">'+e.date+' — '+escapeHtml(e.snake)+' : '+eventLabelFor(e)+(e.type==='weigh'?' ('+fmtWeight(e.value)+')':'')+(e.type==='length'?' ('+fmtLength(e.value)+')':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(currentLang==='en'?'partial':'partiel'):'')+feedPreyTag(e)+'</span></div>'
   ).join('') : '<div class="empty">'+t('noHealthLogEmpty')+'</div>';
 }
 
@@ -34282,7 +34990,7 @@ function speciesUvbBlockHtml(uvbText, isEn){
 // où la fourchette va du simple au triple selon la température).
 function speciesIncubationBlockHtml(incubationText, isEn){
   if(!incubationText) return '';
-  return '<p style="font-size:12.5px;line-height:1.6;color:var(--ink);margin:0 0 16px;"><b style="color:var(--gold);">'+(isEn?'Incubation: ':'Incubation : ')+'</b>'+incubationText+'</p>';
+  return '<p data-unit-ctx="inc" style="font-size:12.5px;line-height:1.6;color:var(--ink);margin:0 0 16px;"><b style="color:var(--gold);">'+(isEn?'Incubation: ':'Incubation : ')+'</b>'+incubationText+'</p>';
 }
 // Bloc pontes/oeufs (2 septembre) — plusieurs geckos ont un vrai fait surprenant pour un débutant :
 // rétention de sperme, plusieurs pontes viables d'un seul accouplement, très différent des
@@ -34398,7 +35106,7 @@ function buildSpeciesGuideHtml(speciesId){
       + speciesClutchInfoBlockHtml(isEn?ref.clutchesPerMatingEn:ref.clutchesPerMatingFr, isEn?ref.avgEggCountEn:ref.avgEggCountFr, isEn);
     const statCard = (label, val, unit) => val==null ? '' :
       '<div style="flex:1;min-width:110px;padding:12px;background:var(--bg-panel-2);border-radius:10px;text-align:center;"><div style="font-size:9.5px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:1px;">'+label+'</div><div style="font-size:20px;color:var(--gold);font-family:\'Courier New\',monospace;">'+val+unit+'</div></div>';
-    const statsRow = statCard(isEn?'Warm side':'Côté chaud', ref.tempWarm, '°C') + statCard(isEn?'Cool side':'Côté froid', ref.tempCool, '°C') + statCard(isEn?'Humidity':'Humidité', ref.humidity, '%');
+    const statsRow = statCard(isEn?'Warm side':'Côté chaud', ref.tempWarm==null?null:tempToInput(ref.tempWarm), tempUnitLabel()) + statCard(isEn?'Cool side':'Côté froid', ref.tempCool==null?null:tempToInput(ref.tempCool), tempUnitLabel()) + statCard(isEn?'Humidity':'Humidité', ref.humidity, '%');
     const speciesFaq = isEn ? ref.faqEn : ref.faqFr;
     const faqHtml = (speciesFaq && speciesFaq.length)
       ? '<h3 style="font-size:14px;margin:22px 0 4px;color:var(--ink);">'+(isEn?'Common questions':'Questions fréquentes')+'</h3>'+
