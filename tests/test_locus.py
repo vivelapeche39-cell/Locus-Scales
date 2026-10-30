@@ -405,6 +405,21 @@ def t_suppression_ne_revient_pas(browser, url):
     check('suppression envoyée au serveur (pas ramenée par la fusion avant envoi)', srv and len(srv.get('events', [])) == n0 - 1, srv and len(srv.get('events', [])))
     a.close()
 
+def t_grille_elevage_a_jour(browser, url):
+    section('Onglet Élevage à jour après un repas noté ailleurs (v5.35)')
+    snakes = [make_snake(i) for i in range(1, 4)]
+    for s_ in snakes: s_['placement'] = {"mode": "rack", "rackId": "rack_1", "row": 1, "tub": int(s_['id'][-1])}
+    a = App(browser, url, snakes=snakes); a.open()
+    sid = snakes[0]['id']
+    a.js("showTab('elevage')"); a.page.wait_for_timeout(200)
+    before = a.js("document.getElementById('tour-grid').innerText")
+    tour_fed(a, sid)  # repas noté depuis Mes reptiles : Élevage caché
+    a.js("document.getElementById('logbook-overlay').style.display='none'; showTab('elevage')"); a.page.wait_for_timeout(200)
+    after = a.js("document.getElementById('tour-grid').innerText")
+    check('grille d\'Élevage redessinée à l\'ouverture (repas visible)', before != after and 'Testeur 1' in after, (before[:120], after[:120]))
+    check('pas d\'erreur JS (grille Élevage)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+
 def t_import(browser, url):
     section('Import d\'un fichier CSV')
     a = App(browser, url, snakes=[])
@@ -547,7 +562,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()

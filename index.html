@@ -2303,7 +2303,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.34';
+const APP_VERSION = '2026.09.01.5.35';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5502,6 +5502,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.35', date:'2026-10-30',
+    title:{ fr:'Repas plus rapide avec une grosse collection', en:'Faster feeding log for large collections' },
+    changes:{
+      fr:[ '⚡ Noter un repas est plus rapide quand tu as beaucoup d\'animaux : l\'app ne redessine plus en arrière-plan l\'onglet Élevage quand tu ne le regardes pas. Il se met à jour dès que tu l\'ouvres.' ],
+      en:[ '⚡ Logging a feeding is faster when you have a lot of animals: the app no longer redraws the Husbandry tab in the background when you\'re not looking at it. It updates as soon as you open it.' ]
+    }
+  },
   { version:'5.34', date:'2026-10-30',
     title:{ fr:'Synchro plus sûre entre deux appareils', en:'Safer sync between two devices' },
     changes:{
@@ -26251,7 +26258,13 @@ function clearTourRackFilter(){
   tourRackFilter = null;
   renderTourGrid();
 }
+// v5.35 — la grille de tournée n'est redessinée que si l'onglet Élevage est affiché : avec 200 animaux,
+// la redessiner en arrière-plan à chaque repas coûtait ~200 ms (mesuré). showTab('elevage') la redessine à l'ouverture.
+var tourGridStale = false;
 function renderTourGrid(){
+  const elevView = document.getElementById('view-elevage');
+  if(elevView && elevView.style.display==='none'){ tourGridStale = true; return; }
+  tourGridStale = false;
   const isEn = currentLang==='en';
   renderTourDateBar();
   try{ renderBatchWeighResume(); }catch(e){} // v5.03
