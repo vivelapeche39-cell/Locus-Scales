@@ -868,6 +868,57 @@ def t_tournee_deselection(browser, url):
     check('pas d\'erreur JS (Mode Tournée)', not a.real_errors(), a.real_errors()[:3])
     a.close()
 
+def t_combos_bci(browser, url):
+    section('Noms de combos BCI (v5.42)')
+    m = make_snake(41, species='boa_bci', genes={'bci_kahl': 'visual', 'bci_anery1': 'visual', 'bci_hypo': 'single', 'bci_jungle': 'single'})
+    f = make_snake(42, species='boa_bci', genes={'bci_kahl': 'visual', 'bci_anery1': 'visual', 'bci_hypo': 'single'})
+    m['sex'], f['sex'] = 'male', 'female'
+    m['name'] = 'Lune'
+    bp = make_snake(43)
+    a = App(browser, url, snakes=[m, f, bp]); a.open(wait=3000)
+    cases = a.js("""[
+      speciesComboTitle({bci_kahl:'visual', bci_anery1:'visual', bci_hypo:'single', bci_jungle:'single'}, 'boa_bci'),
+      speciesComboTitle({bci_kahl:'visual', bci_anery1:'visual'}, 'boa_bci'),
+      speciesComboTitle({bci_sharp:'visual', bci_anery1:'visual'}, 'boa_bci'),
+      speciesComboTitle({bci_bwc:'het', bci_sharp:'het', bci_anery1:'visual'}, 'boa_bci'),
+      speciesComboTitle({bci_hypo:'homo', bci_kahl:'visual'}, 'boa_bci'),
+      speciesComboTitle({bci_kahl:'visual', bci_anery1:{status:'visual', possible:true}}, 'boa_bci'),
+      speciesComboTitle({bci_hypo:'homo', bci_jungle:'homo', bci_vpi:'visual'}, 'boa_bci'),
+      speciesComboTitle({pastel:'single', spider:'single'}, 'ball_python'),
+      speciesComboTitle({bci_kahl:'visual', bci_hypo:'single', bci_anery1:'het'}, 'boa_bci')
+    ]""")
+    check('Moonglow + Jungle (le plus précis gagne)', cases[0] == 'Moonglow · Jungle', cases[0])
+    check('Snow = Kahl + Anery 1 ; Sharp Snow = Sharp + Anery 1', cases[1] == 'Snow' and cases[2] == 'Sharp Snow', cases[1:3])
+    check('Artic = Paradigm (het BWC + het Sharp) + Anery 1', cases[3] == 'Artic', cases[3])
+    check('Super Hypo + Albino Kahl : pas de nom inventé', cases[4] is None, cases[4])
+    check('gène « possible » : ne compte pas pour un combo', cases[5] is None, cases[5])
+    check('Super Tanglow = Super Hypo + Super Jungle + VPI', cases[6] == 'Super Tanglow', cases[6])
+    check('python royal : pas encore de combos affichés (décidé : BCI d\'abord)', cases[7] is None, cases[7])
+    check('het Anery ne fait pas un Moonglow (reste Sunglow)', cases[8] == 'Sunglow', cases[8])
+    # calculateur
+    a.js("showTab('calc')"); a.page.wait_for_timeout(200)
+    a.js("loadSnake(%s,'male'); loadSnake(%s,'female'); runCross();" % (json.dumps(m['id']), json.dumps(f['id']))); a.page.wait_for_timeout(300)
+    res = a.js("document.getElementById('results').textContent")
+    check('calculateur : Moonglow et Moonglow · Jungle dans les résultats, gènes visibles', 'Moonglow · Jungle' in res and 'Moonglow' in res and 'Anerythristic' in res, res[:300])
+    # carte + fiche + annonce
+    a.js("showTab('mine')"); a.page.wait_for_timeout(200)
+    card = a.js("document.getElementById('saved-grid').textContent")
+    check('carte de Mes reptiles : « Moonglow · Jungle »', 'Moonglow · Jungle' in card)
+    open_card(a, m['id'])
+    body = a.js("document.getElementById('logbook-body').textContent")
+    check('fiche : nom de combo au-dessus des gènes', 'Moonglow · Jungle' in body)
+    t = a.js("generateListingText(%s,'en').title" % json.dumps(m['id']))
+    tbp = a.js("generateListingText(%s,'en').title" % json.dumps(bp['id']))
+    check('annonce : « Moonglow Jungle » + vraie espèce (pas « Ball Python »)', 'Moonglow Jungle' in t and 'Ball Python' not in t, t)
+    check('annonce python royal : toujours « Ball Python »', 'Ball Python' in tbp, tbp)
+    # import
+    g = a.js("parseImportGenes('Sharp Snow het Blood', 'boa_bci').genes")
+    check('import : « Sharp Snow het Blood » → Sharp + Anery 1 + het Blood', g.get('bci_sharp') == 'visual' and g.get('bci_anery1') == 'visual' and g.get('bci_blood') == 'het' and 'bci_kahl' not in g, g)
+    g = a.js("parseImportGenes('Moonglow', 'boa_bci').genes")
+    check('import : « Moonglow » → Kahl + Anery 1 + Hypo', g == {'bci_kahl': 'visual', 'bci_anery1': 'visual', 'bci_hypo': 'single'}, g)
+    check('pas d\'erreur JS (combos)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+
 def t_perf(browser, url):
     section('Mesure : 200 animaux + 2 ans d\'historique')
     rng = random.Random(42)
@@ -906,7 +957,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()

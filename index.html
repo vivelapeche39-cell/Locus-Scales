@@ -2349,7 +2349,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.41';
+const APP_VERSION = '2026.09.01.5.42';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5548,6 +5548,19 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.42', date:'2026-10-30',
+    title:{ fr:'Boa BCI : les noms de combos (Snow, Sunglow, Moonglow…)', en:'BCI boa: combo names (Snow, Sunglow, Moonglow…)' },
+    changes:{
+      fr:[ '🐍 22 noms de combos du boa BCI reconnus, avec la bonne lignée d\'albinos : Snow, Sharp Snow, VPI Snow, Sunglow, Moonglow, Snowglow, Ghost, CA Ghost, Junglow, Tanglow, Hytec, Artic, Avalanche, Paraglow, Eclipse et plus. Sources : Morphpedia (pages Hypo et Anery Type 1), Blumen Boas (Eclipse).',
+           '🧮 Le nom s\'affiche en premier dans les résultats du calculateur, sur la carte et la fiche de l\'animal, avec la liste des gènes juste dessous (rien de caché). Le plus précis gagne : un Moonglow n\'est jamais affiché « Snow + Hypo ».',
+           '📝 Texte d\'annonce : le titre utilise le nom du combo (« 2026 Moonglow Jungle Boa… ») et la vraie espèce — avant, il écrivait toujours « Ball Python », même pour un boa.',
+           '📥 Import : « Sunglow », « Sharp Snow », « Moonglow »… dans un fichier sont traduits en gènes. Gratuit.' ],
+      en:[ '🐍 22 BCI boa combo names recognized, with the right albino line: Snow, Sharp Snow, VPI Snow, Sunglow, Moonglow, Snowglow, Ghost, CA Ghost, Junglow, Tanglow, Hytec, Artic, Avalanche, Paraglow, Eclipse and more. Sources: Morphpedia (Hypo and Anery Type 1 pages), Blumen Boas (Eclipse).',
+           '🧮 The name shows first in calculator results and on the animal\'s card and record, with the gene list right below (nothing hidden). The most specific wins: a Moonglow is never shown as « Snow + Hypo ».',
+           '📝 Sale text: the title uses the combo name (« 2026 Moonglow Jungle Boa… ») and the real species — before, it always said « Ball Python », even for a boa.',
+           '📥 Import: « Sunglow », « Sharp Snow », « Moonglow »… in a file are translated into genes. Free.' ]
+    }
+  },
   { version:'5.41', date:'2026-10-30',
     title:{ fr:'Mode Tournée : retoucher un bouton désélectionne', en:'Round Mode: tap a button again to deselect' },
     changes:{
@@ -10200,6 +10213,87 @@ function speciesDisplayLabel(species, isEnOpt){
 // « visuel » n'est jamais écrit (un dominant/incdom à 1 copie est toujours visuel ; un récessif
 // visuel s'écrit juste par son nom). Les boutons du calculateur gardent statusLabel() (bascule).
 // Nom court « Super X » ici — superLabel (long, ex. BlkEL) reste pour le calculateur/annonces.
+/* ==================== v5.42 — Noms de combos entre gènes DIFFÉRENTS (choix d'Alex le 30 oct, point 4a) ====================
+   Affichage « nom + gènes » : le nom du combo en premier, la liste des gènes reste visible dessous (rien de caché).
+   Montré dans les résultats du calculateur, la carte et la fiche, le titre d'annonce ; lu à l'import.
+   Le plus précis gagne (un Moonglow n'est jamais affiché « Snow + Hypo »). Gratuit.
+   RÈGLE : une ligne = un combo SOURCÉ, gènes et lignée d'albinos exacts. Jamais deviner.
+   Exigences : vis = récessif visuel, het = une copie d'un récessif, one = UNE copie d'un incomplet dominant/dominant,
+   super = deux copies. (« one » ne prend pas un Super : Morphpedia nomme les Super à part, ex. Tanglow / Super Tanglow.)
+   BCI d'abord ; python royal plus tard (décidé par Alex). */
+var SPECIES_COMBOS = {
+  boa_bci: [
+    // Morphpedia, page Hypo (« Related Traits »)
+    { name:'Super Tanglow', req:{ bci_hypo:'super', bci_jungle:'super', bci_vpi:'vis' } },
+    { name:'Tanglow', req:{ bci_hypo:'one', bci_jungle:'super', bci_vpi:'vis' } },
+    { name:'Junglow', req:{ bci_hypo:'one', bci_jungle:'one', bci_kahl:'vis' } },
+    { name:'Sharp Junglow', alias:['sharp albino junglow'], req:{ bci_hypo:'one', bci_jungle:'one', bci_sharp:'vis' } },
+    { name:'VPI Junglow', alias:['vpi albino junglow'], req:{ bci_hypo:'one', bci_jungle:'one', bci_vpi:'vis' } },
+    { name:'Sunglow', alias:['sun glow'], req:{ bci_hypo:'one', bci_kahl:'vis' } },
+    { name:'Sharp Sunglow', alias:['sharp albino sunglow'], req:{ bci_hypo:'one', bci_sharp:'vis' } },
+    { name:'VPI Sunglow', alias:['vpi albino sunglow'], req:{ bci_hypo:'one', bci_vpi:'vis' } },
+    { name:'Paraglow', req:{ bci_hypo:'one', bci_bwc:'het', bci_sharp:'het' } },
+    { name:'Hytec', req:{ bci_aztec:'one', bci_hypo:'one' } },
+    { name:'CA Ghost', req:{ bci_hypo:'one', bci_anery2:'vis' } },
+    { name:'Bloody Ghost', req:{ bci_hypo:'one', bci_anery2:'vis', bci_blood:'vis' } },
+    // Morphpedia, pages Hypo + Anerythristic (Type 1)
+    { name:'Moonglow', alias:['moon glow'], req:{ bci_hypo:'one', bci_kahl:'vis', bci_anery1:'vis' } },
+    { name:'Snowglow', alias:['snow glow'], req:{ bci_hypo:'one', bci_sharp:'vis', bci_anery1:'vis' } },
+    { name:'Artic Glow', req:{ bci_hypo:'one', bci_bwc:'het', bci_sharp:'het', bci_anery1:'vis' } },
+    { name:'Ghost', req:{ bci_hypo:'one', bci_anery1:'vis' } },
+    // Morphpedia, page Anerythristic (Type 1)
+    { name:'Snow', req:{ bci_kahl:'vis', bci_anery1:'vis' } },
+    { name:'Sharp Snow', alias:['sharp albino snow'], req:{ bci_sharp:'vis', bci_anery1:'vis' } },
+    { name:'VPI Snow', alias:['vpi albino snow'], req:{ bci_vpi:'vis', bci_anery1:'vis' } },
+    { name:'Artic', req:{ bci_bwc:'het', bci_sharp:'het', bci_anery1:'vis' } },
+    { name:'Avalanche', req:{ bci_arabesque:'one', bci_kahl:'vis', bci_anery1:'vis' } },
+    // Blumen Boas (élevage spécialisé) : Eclipse = Leopard + Motley colombien
+    { name:'Eclipse', req:{ bci_leopard:'vis', bci_motley:'one' } }
+  ]
+};
+var COMBO_REQ_STATUS = { vis:'visual', het:'het', one:'single', super:'homo' };
+// Combos trouvés dans un ensemble de gènes (fiche ou bébé du calculateur). Les gènes « possibles » ne comptent pas.
+function speciesComboInfo(genes, species){
+  const list = SPECIES_COMBOS[species||'ball_python'];
+  if(!list || !genes) return null;
+  const st = {};
+  Object.keys(genes).forEach(gid=>{
+    if(isFreewayKey(gid)) return;
+    const n = normalizeGeneEntry(genes[gid]);
+    if(!n.possible) st[gid] = n.status;
+  });
+  const used = new Set(), names = [];
+  // Égalité de taille (ex. Kahl + Anery 1 + Hypo + Jungle = Moonglow OU Junglow) : le combo qui couvre le plus de
+  // récessifs gagne (« Moonglow · Jungle » plutôt que « Junglow · Anery ») — aucun nom n'est sourcé pour l'animal entier.
+  const rec = c=>Object.values(c.req).filter(v=>v==='vis' || v==='het').length;
+  list.map((c,i)=>({ c, i, n:Object.keys(c.req).length, r:rec(c) })).sort((a,b)=> b.n-a.n || b.r-a.r || a.i-b.i).forEach(({ c })=>{
+    const ids = Object.keys(c.req);
+    if(ids.some(id=>used.has(id))) return;
+    if(!ids.every(id=>st[id]===COMBO_REQ_STATUS[c.req[id]])) return;
+    names.push(c.name); ids.forEach(id=>used.add(id));
+  });
+  if(!names.length) return null;
+  const leftover = [];
+  Object.keys(st).forEach(gid=>{
+    if(used.has(gid) || st[gid]==='het') return;
+    const g = GENES.find(x=>x.id===gid); if(!g) return;
+    leftover.push(g.type!=='recessive' && st[gid]==='homo' ? superName(g) : g.name);
+  });
+  return { names, leftover: leftover.sort(), used };
+}
+// « Moonglow · Jungle » — null si aucun combo connu
+function speciesComboTitle(genes, species){
+  const ci = speciesComboInfo(genes, species);
+  if(!ci) return null;
+  return ci.names.join(' ')+(ci.leftover.length ? ' · '+ci.leftover.join(' ') : '');
+}
+// Pour l'import : { n:[noms], g:{ id:statut } }
+function speciesImportCombos(species){
+  return (SPECIES_COMBOS[species]||[]).map(c=>({
+    n:[c.name.toLowerCase()].concat(c.alias||[]),
+    g:Object.fromEntries(Object.keys(c.req).map(id=>[id, COMBO_REQ_STATUS[c.req[id]]]))
+  }));
+}
 function summarizeGenes(genes){
   genes = genes || {};
   const groups = { sup:[], vis:[], pos:[], het:[] };
@@ -11437,6 +11531,7 @@ function renderSavedList(){
     if(batchSelectMode) card.classList.toggle('batch-selected', batchSelectedIds.has(s.id));
     card.innerHTML = (mineView==='cards' ? minePhotoBannerHtml(s, isEn) : '')+
       '<div class="sc-head"><span class="sc-name" style="display:flex;align-items:center;">'+batchCheckbox+thumb+escapeHtml(snakeName(s))+'</span><span>'+sexBadge+provenBadgeHtml(s, isEn)+(isInShed(s)?'<span class="sc-status" style="background:rgba(57,135,229,.16);border:1px solid rgba(57,135,229,.45);color:#8fb8ef;">🔵 '+(isEn?'In shed':'En mue')+'</span>':'')+statusBadge+unverifiedBadge+quarantineBadge+speciesBadge+tagsBadges+'</span></div>'+
+      (function(){ const ct = speciesComboTitle(s.genes, s.species); return ct ? '<div class="sc-genes" style="color:var(--gold);font-weight:600;">'+escapeHtml(ct)+'</div>' : ''; })()+ // v5.42
       '<div class="sc-genes">'+summarizeGenes(s.genes)+'</div>'+
       '<div class="sc-genes" style="color:var(--sage);">📍 '+placeLabel+'</div>'+
       '<div class="sc-genes">'+weightLine+'</div>'+
@@ -12448,7 +12543,7 @@ function runCross(){
     });
     const name = visuals.length ? visuals.join(' ') : (isEn?'Normal':'Normal');
     const key = name + '||' + hets.join(',');
-    if(!agg[key]) agg[key] = {name, hets, prob:0, warnings, visualsCount: visuals.length};
+    if(!agg[key]) agg[key] = {name, hets, prob:0, warnings, visualsCount: visuals.length, combo: speciesComboTitle(d.genotype, calcSpecies)}; // v5.42
     agg[key].prob += d.prob;
   });
 
@@ -12480,7 +12575,7 @@ function runCross(){
     }
     let wf = (r.visualsCount>=3 && calcSpecies==='ball_python') ? '<div class="worldfirst">🌍 '+(isEn?'Possible World First — no known price reference':'Possible World First — pas de référence de prix connue')+'</div>' : '';
     card.innerHTML = '<div class="pct">'+(r.prob*100).toFixed(2).replace(/\.00$/,'')+'%</div>'+
-      '<div class="name">'+r.name+'</div>'+
+      (r.combo ? '<div class="name">'+escapeHtml(r.combo)+'</div><div class="subline">'+r.name+'</div>' : '<div class="name">'+r.name+'</div>')+ // v5.42 — nom de combo + gènes (couleurs de la carte : lisible sur fond crème)
       (sub?'<div class="subline">'+sub+'</div>':'') + warn + wf;
     grid.appendChild(card);
   });
@@ -14276,7 +14371,7 @@ function openLogbook(id){
     '<div class="modal-section"><h3>'+t('identityTitle')+'</h3>'+
       '<div class="modal-row"><span>'+(isEn?'ID':'ID')+'</span><span>'+(s.animalId ? '<b>'+escapeHtml(s.animalId)+'</b>' : '<span style="color:var(--ink-dim);">'+(isEn?'none — add one with ✏️ Edit':'aucun — ajoute-le avec ✏️ Modifier')+'</span>')+'</span></div>'+ // v4.16
       '<div class="modal-row"><span>'+t('sexLabel')+'</span><span>'+sexLbl+(!s.sex?' <button class="sc-btn accent" style="margin-left:6px;padding:3px 8px;" onclick="sexSnake(\''+id+'\')">'+t('sexBtn')+'</button>':'')+'</span></div>'+
-      '<div class="modal-row"><span>'+t('geneticsLabel')+'</span><span>'+summarizeGenes(s.genes)+(!s.genesVerified?' <button class="sc-btn accent" style="margin-left:6px;padding:3px 8px;" onclick="confirmGenetics(\''+id+'\')">'+t('geneticsConfirmedBtn')+'</button>':' <span style="color:var(--sage);font-size:10.5px;">'+t('geneticsConfirmedTag')+'</span>')+'</span></div>'+
+      '<div class="modal-row"><span>'+t('geneticsLabel')+'</span><span>'+(function(){ const ct = speciesComboTitle(s.genes, s.species); return ct ? '<b style="color:var(--gold);">'+escapeHtml(ct)+'</b><br/>' : ''; })()+summarizeGenes(s.genes)+(!s.genesVerified?' <button class="sc-btn accent" style="margin-left:6px;padding:3px 8px;" onclick="confirmGenetics(\''+id+'\')">'+t('geneticsConfirmedBtn')+'</button>':' <span style="color:var(--sage);font-size:10.5px;">'+t('geneticsConfirmedTag')+'</span>')+'</span></div>'+
       mrow(t('locationLabel'), placeLabel) +
       mrow(t('birthLabel'), formatBirthLabel(s.birthDate)) +
       (s.birthDate ? mrow(t('ageLabel').replace(':',''), computeAgeLabel(s.birthDate)) : '')+
@@ -18634,8 +18729,9 @@ function parseImportGenes(text, species){
   const esc = x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
   // v4.31 — noms de combos d'abord (le plus long en premier : « killer queen bee » avant « queen bee »)
   const fromCombos = {}, combos = [];
-  if((species||'ball_python')==='ball_python'){
-    IMPORT_COMBO_NAMES.flatMap(c=>c.n.map(n=>({ c, n:importGeneNorm(n) }))).sort((a,b)=>b.n.length-a.n.length).forEach(({ c, n })=>{
+  const comboList = (species||'ball_python')==='ball_python' ? IMPORT_COMBO_NAMES : speciesImportCombos(species); // v5.42
+  if(comboList.length){
+    comboList.flatMap(c=>c.n.map(n=>({ c, n:importGeneNorm(n) }))).sort((a,b)=>b.n.length-a.n.length).forEach(({ c, n })=>{
       const re = new RegExp(' '+esc(n)+'(?= )','g');
       work = work.replace(re, ()=>{
         Object.keys(c.g).forEach(id=>{ if(GENES.some(x=>x.id===id) && importStatusRank(c.g[id]) > importStatusRank(fromCombos[id])) fromCombos[id] = c.g[id]; });
@@ -31616,16 +31712,16 @@ function generateListingText(id, lang){
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return {title:'', body:''};
   ensureSnakeMeta(s);
-  const visualLabels = [], hetLabels = [];
+  const visualLabels = [], hetLabels = [], visIds = []; // v5.42 — visIds : gène de chaque étiquette visuelle
   Object.keys(s.genes).forEach(gid=>{
-    if(isFreewayKey(gid)){ visualLabels.push(freewayLabel(freewayLocusFromKey(gid))+' '+tLang('unconfirmedTag',lang)); return; }
+    if(isFreewayKey(gid)){ visualLabels.push(freewayLabel(freewayLocusFromKey(gid))+' '+tLang('unconfirmedTag',lang)); visIds.push(null); return; }
     const g = GENES.find(x=>x.id===gid);
     if(!g) return;
     const norm = normalizeGeneEntry(s.genes[gid]);
     if(g.type==='recessive'){
       if(norm.status==='visual'){
         const prefix = norm.possible ? (norm.percent ? norm.percent+'% '+tLang('possiblePrefix',lang).toLowerCase()+' ' : tLang('possiblePrefix',lang)+' ') : '';
-        visualLabels.push(prefix+morphMarketLabel(g.name));
+        visualLabels.push(prefix+morphMarketLabel(g.name)); visIds.push(gid);
       } else {
         const pctLabel = norm.possible ? (norm.percent!=null ? norm.percent+'%' : tLang('possiblePrefix',lang)) : '100%';
         hetLabels.push(pctLabel+' Het '+morphMarketLabel(g.name));
@@ -31633,7 +31729,7 @@ function generateListingText(id, lang){
     } else {
       const baseName = norm.status==='homo' ? superName(g) : g.name;
       const prefix = norm.possible ? (norm.percent ? norm.percent+'% '+tLang('possiblePrefix',lang).toLowerCase()+' ' : tLang('possiblePrefix',lang)+' ') : '';
-      visualLabels.push(prefix+morphMarketLabel(baseName));
+      visualLabels.push(prefix+morphMarketLabel(baseName)); visIds.push(gid);
     }
   });
   const morphStr = visualLabels.length ? visualLabels.join(' ') : tLang('normalMorph',lang);
@@ -31645,7 +31741,10 @@ function generateListingText(id, lang){
   const dam = s.damId ? savedSnakes.find(x=>x.id===s.damId) : null;
   const hetSuffix = hetLabels.length ? ' '+hetLabels.join(', ') : '';
 
-  const title = year+' '+morphStr+hetSuffix+' Ball Python '+sexLabel+' — '+weightStr;
+  const ci = speciesComboInfo(s.genes, s.species); // v5.42 — « 2026 Moonglow Jungle Boa… »
+  const titleMorph = ci ? ci.names.concat(visualLabels.filter((_,i)=>!ci.used.has(visIds[i]))).join(' ') : morphStr;
+  const speciesName = (s.species||'ball_python')==='ball_python' ? 'Ball Python' : speciesDisplayLabel(s.species, true); // v5.42 — était toujours « Ball Python »
+  const title = year+' '+titleMorph+hetSuffix+' '+speciesName+' '+sexLabel+' — '+weightStr;
   const body =
     tLang('morphLabel',lang)+' '+morphStr+(hetLabels.length ? ' / '+hetLabels.join(', ') : '')+'\n'+
     tLang('sexLabel',lang)+' : '+sexLabel+'\n'+
