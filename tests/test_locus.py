@@ -783,6 +783,91 @@ def t_unites_etape2(browser, url):
     check('lien avec &u= : la page suit les unités du propriétaire', b.js("JSON.stringify(unitPrefs())") == json.dumps({"temp": "c", "weight": "lb", "length": "cm", "inc": "c", "dims": "cm"}, separators=(',', ':')), b.js("JSON.stringify(unitPrefs())"))
     b.close()
 
+def t_proie_repas(browser, url):
+    section('Proie au repas (v5.40)')
+    s = make_snake(21); sid = s['id']
+    s.update({'preySpecies': 'mouse', 'preySize': 'Pinky', 'preyType': 'frozen', 'preySizeEstimated': False})
+    n = make_snake(22); nid = n['id']
+    for k in ('preySpecies', 'preySize'): n.pop(k, None)
+    a = App(browser, url, snakes=[s, n]); a.open()
+    a.js("feederStock[feederStockKey('mouse','Pinky')] = 10; feederStock[feederStockKey('mouse','Fuzzy')] = 10; feederStock[feederStockKey('mouse','Hopper')] = 5;")
+    last = lambda i: a.js("(()=>{ const x=savedSnakes.find(y=>y.id===%s); const e=x.health.events.filter(e=>e.type==='fed').slice(-1)[0]; return { sp:e.preySpecies||null, sz:e.preySize||null, fsp:x.preySpecies||null, fsz:x.preySize||null, est:!!x.preySizeEstimated }; })()" % json.dumps(i))
+    stock = lambda z: a.js("feederStock[feederStockKey('mouse',%s)]" % json.dumps(z))
+    # 1) un seul toucher, comme avant
+    tour_fed(a, sid)
+    r = last(sid)
+    check('un toucher : repas noté avec la proie habituelle (Pinky)', r['sp'] == 'mouse' and r['sz'] == 'Pinky' and r['fsz'] == 'Pinky', r)
+    check('un toucher : le stock de Pinky baisse de 1', stock('Pinky') == 9, stock('Pinky'))
+    # 2) changer de taille → demandé dès ce repas (coché) → nouvelle proie habituelle
+    a.page.locator('#logbook-body button.tour-action-btn.fed').first.click(); a.page.wait_for_timeout(150)
+    check('fenêtre Repas : Pinky déjà choisie, pas de question tant qu\'on ne change rien', a.page.locator('#fed-prey-box button[aria-pressed="true"]:has-text("Pinky")').count() == 1 and a.page.locator('#fed-habit').count() == 0)
+    a.page.locator('#fed-prey-box button:has-text("Fuzzy")').click(); a.page.wait_for_timeout(100)
+    check('autre taille touchée : « En faire la proie habituelle » apparaît, cochée', a.page.locator('#fed-habit').is_checked())
+    a.page.locator(f"button[onclick=\"confirmFed('{sid}', 'complete')\"]").click(); a.page.wait_for_timeout(200)
+    r = last(sid)
+    check('repas en Fuzzy + Fuzzy devient la proie habituelle', r['sz'] == 'Fuzzy' and r['fsz'] == 'Fuzzy' and not r['est'], r)
+    check('stock : Fuzzy baisse, Pinky ne bouge pas', stock('Fuzzy') == 9 and stock('Pinky') == 9, (stock('Fuzzy'), stock('Pinky')))
+    # 3) juste cette fois
+    a.page.locator('#logbook-body button.tour-action-btn.fed').first.click(); a.page.wait_for_timeout(150)
+    a.page.locator('#fed-prey-box button:has-text("Hopper")').click(); a.page.wait_for_timeout(100)
+    a.page.locator('#fed-habit').uncheck()
+    a.page.locator(f"button[onclick=\"confirmFed('{sid}', 'complete')\"]").click(); a.page.wait_for_timeout(200)
+    r = last(sid)
+    check('« juste cette fois » : repas en Hopper, la fiche reste en Fuzzy', r['sz'] == 'Hopper' and r['fsz'] == 'Fuzzy', r)
+    check('stock : Hopper baisse (5 → 4)', stock('Hopper') == 4, stock('Hopper'))
+    body = a.js("document.getElementById('logbook-body').textContent")
+    check('journal : la taille donnée est écrite (Hopper)', 'Hopper' in body)
+    # 4) animal sans proie : choisir au premier repas
+    a.js("closeLogbook()"); a.page.wait_for_timeout(100)
+    open_card(a, nid)
+    a.page.locator('#logbook-body button.tour-action-btn.fed').first.click(); a.page.wait_for_timeout(150)
+    a.page.select_option('#fed-prey-box select', 'rat'); a.page.wait_for_timeout(100)
+    a.page.locator('#fed-prey-box button:has-text("Weanling")').click(); a.page.wait_for_timeout(100)
+    a.page.locator(f"button[onclick=\"confirmFed('{nid}', 'complete')\"]").click(); a.page.wait_for_timeout(200)
+    r = last(nid)
+    check('sans proie : choisie au 1er repas → devient la proie habituelle', r['sp'] == 'rat' and r['sz'] == 'Weanling' and r['fsp'] == 'rat' and r['fsz'] == 'Weanling', r)
+    a.reload(wait=2500)
+    check('proie habituelle gardée après réouverture', last(sid)['fsz'] == 'Fuzzy' and last(nid)['fsz'] == 'Weanling')
+    check('pas d\'erreur JS (proie au repas)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+    b = App(browser, url, snakes=[s], lang='en'); b.open()
+    open_card(b, sid)
+    b.page.locator('#logbook-body button.tour-action-btn.fed').first.click(); b.page.wait_for_timeout(150)
+    b.page.locator('#fed-prey-box button:has-text("Fuzzy")').click(); b.page.wait_for_timeout(100)
+    t = b.js("document.getElementById('fed-prey-box').textContent")
+    check('anglais : fenêtre Repas traduite', 'Prey given' in t and 'usual prey' in t and not re.search(r'Proie|habituelle', t), t[:120])
+    b.close()
+
+def t_tournee_deselection(browser, url):
+    section('Mode Tournée : retoucher pour désélectionner (v5.41)')
+    snakes = [make_snake(i) for i in range(31, 36)]
+    for k, s_ in enumerate(snakes[:3]): s_['placement'] = {"mode": "rack", "rackId": "rack_1", "row": 1, "tub": k+1}
+    for s_ in snakes[3:]: s_['placement'] = {"mode": "terrarium", "terrariumId": None, "row": None, "tub": None}
+    snakes[4]['preyType'] = 'live'
+    a = App(browser, url, snakes=snakes); a.open(wait=3500)
+    a.js("showTab('elevage'); showSubtab('tour')"); a.page.wait_for_timeout(300)
+    size = lambda: a.js("tourSelection.size")
+    rackBtn = lambda: a.page.locator('#tour-grid [data-allrack]').first
+    rackBtn().click(); a.page.wait_for_timeout(150)
+    check('« Tout ce rack » : 3 bacs sélectionnés, bouton marqué ✓', size() == 3 and '✓' in rackBtn().inner_text(), (size(), rackBtn().inner_text()))
+    rackBtn().click(); a.page.wait_for_timeout(150)
+    check('« Tout ce rack » retouché : désélectionné', size() == 0 and '✓' not in rackBtn().inner_text(), size())
+    a.page.locator('#tour-select-terra').click(); a.page.wait_for_timeout(150)
+    check('« Sél. tous » terrariums : 2 sélectionnés', size() == 2 and '✓' in a.page.locator('#tour-select-terra').inner_text(), size())
+    a.page.locator('#tour-select-terra').click(); a.page.wait_for_timeout(150)
+    check('« Sél. tous » retouché : désélectionnés', size() == 0)
+    # un rack sélectionné + terrariums retouchés : le rack reste
+    rackBtn().click(); a.page.locator('#tour-select-terra').click(); a.page.locator('#tour-select-terra').click(); a.page.wait_for_timeout(150)
+    check('retoucher les terrariums ne touche pas au rack', size() == 3, size())
+    rackBtn().click(); a.page.wait_for_timeout(100)
+    fz = a.page.locator('#tour-quickselect [onclick="selectByPreyType(\'frozen\')"]')
+    fz.click(); a.page.wait_for_timeout(150)
+    check('« Tout le décongelé » : 4 sélectionnés, bouton ✓', size() == 4 and '✓' in fz.inner_text(), (size(), fz.inner_text()))
+    fz.click(); a.page.wait_for_timeout(150)
+    check('« Tout le décongelé » retouché : sélection retirée', size() == 0 and '✓' not in fz.inner_text(), size())
+    check('pas d\'erreur JS (Mode Tournée)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+
 def t_perf(browser, url):
     section('Mesure : 200 animaux + 2 ans d\'historique')
     rng = random.Random(42)
@@ -821,7 +906,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()

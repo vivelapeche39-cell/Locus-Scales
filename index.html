@@ -2349,7 +2349,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.39';
+const APP_VERSION = '2026.09.01.5.41';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5548,6 +5548,26 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.41', date:'2026-10-30',
+    title:{ fr:'Mode Tournée : retoucher un bouton désélectionne', en:'Round Mode: tap a button again to deselect' },
+    changes:{
+      fr:[ '👆 « ⚡ Tout ce rack », « Sél. tous » (terrariums), « ❄️ Tout le décongelé » et « 🐭 Tout le vivant » se désélectionnent maintenant d\'un 2e toucher, comme les rangées. Fini de tout décocher à la main après un toucher par erreur.',
+           '✓ Un bouton dont tout est sélectionné est marqué d\'un ✓.' ],
+      en:[ '👆 « ⚡ This whole rack », « Select all » (enclosures), « ❄️ All frozen-thawed » and « 🐭 All live » now deselect with a 2nd tap, like rows. No more unchecking everything by hand after a mistaken tap.',
+           '✓ A button whose animals are all selected shows a ✓.' ]
+    }
+  },
+  { version:'5.40', date:'2026-10-30',
+    title:{ fr:'Changer de proie au repas, en un toucher', en:'Change the prey at feeding time, in one tap' },
+    changes:{
+      fr:[ '🐭 La fenêtre Repas montre la proie habituelle, déjà choisie : « Mangé au complet » note le repas d\'un toucher, comme avant.',
+           '👆 Il a eu autre chose? Touche la taille (Pinky, Fuzzy, Hopper…), ❄️/🐭 ou une autre espèce. Dès ce premier repas, LOCUS demande si ça devient sa proie habituelle (case cochée; décoche-la pour « juste cette fois »).',
+           '📋 Chaque repas garde maintenant la proie vraiment donnée (visible dans le journal et le Parcours), et le stock retire la bonne proie. Gratuit.' ],
+      en:[ '🐭 The Feeding window shows the usual prey, already picked: « Ate completely » logs the meal in one tap, as before.',
+           '👆 Fed something else? Tap the size (Pinky, Fuzzy, Hopper…), ❄️/🐭 or another species. Right at that first meal, LOCUS asks if it becomes the usual prey (box checked; uncheck it for « just this once »).',
+           '📋 Each meal now keeps the prey actually given (shown in the log and History), and the stock removes the right prey. Free.' ]
+    }
+  },
   { version:'5.39', date:'2026-10-30',
     title:{ fr:'Unités partout dans l\'app', en:'Units across the whole app' },
     changes:{
@@ -11120,6 +11140,7 @@ function batchMarkFed(){
     ensureSnakeMeta(s);
     s.health.consecutiveRefusals = 0;
     const ev = {date:today, type:'fed', preyType: s.preyType||'frozen'};
+    if(s.preySpecies && s.preySize){ ev.preySpecies = s.preySpecies; ev.preySize = s.preySize; } // v5.40
     if(today===localTodayStr()) ev.at = new Date().toISOString(); // v3.77 — heure du repas (délai de manipulation)
     s.health.events.push(ev);
     count++;
@@ -14828,6 +14849,54 @@ function logAction(id, type){
 
 // Quantité de repas — complet vs partiel, en plus du simple "a mangé" déjà suivi. Deux boutons
 // rapides plutôt qu'un formulaire, puisque nourrir est l'action la plus fréquente de l'app.
+/* ==================== v5.40 — Proie du repas (choix d'Alex le 30 oct, point 5 de l'éleveur grincheux) ====================
+   Aucune étape de plus : la fenêtre Repas montre la proie habituelle déjà choisie, « Mangé au complet » note
+   le repas d'un toucher comme avant. Changer de proie = un toucher sur une taille (ou ❄️/🐭, ou une autre espèce).
+   Dès ce premier repas différent, LOCUS demande (case cochée par défaut) si ça devient la proie habituelle.
+   Chaque repas garde maintenant la proie vraiment donnée (preySpecies/preySize sur l'événement) et le stock
+   retire celle-là. Gratuit. */
+function fedPreyBoxHtml(s){
+  const isEn = currentLang==='en';
+  const sp = (s.preySpecies && PREY_TYPES[s.preySpecies]) ? s.preySpecies : '';
+  return '<div id="fed-prey-box" data-id="'+escapeHtml(String(s.id))+'" data-sp="'+sp+'" data-sz="'+escapeHtml(sp ? (s.preySize||'') : '')+'" data-type="'+((s.preyType||'frozen')==='live'?'live':'frozen')+'" style="margin-bottom:14px;">'+
+    fedPreyInnerHtml(s, sp, sp ? (s.preySize||'') : '', (s.preyType||'frozen')==='live'?'live':'frozen')+'</div>';
+}
+function fedPreyInnerHtml(s, sp, sz, type){
+  const isEn = currentLang==='en';
+  let allowed = []; try{ allowed = preyTypesForSpecies(s.species||'ball_python').filter(k=>PREY_TYPES[k]); }catch(e){ allowed = ['mouse','rat']; }
+  if(sp && !allowed.includes(sp)) allowed.unshift(sp);
+  const chip = (on, label, onclick, aria)=>'<button type="button" class="sc-btn'+(on?' accent':'')+'" aria-pressed="'+on+'" style="flex:none;font-size:15px;padding:8px 12px;'+(on?'background:var(--gold);color:#1a1409;':'')+'" onclick="'+onclick+'"'+(aria?' aria-label="'+aria+'"':'')+'>'+label+'</button>';
+  const sizes = sp ? PREY_TYPES[sp].sizes : [];
+  const isNew = !!(sp && sz) && (sp!==(s.preySpecies||'') || sz!==(s.preySize||'') || type!==((s.preyType||'frozen')==='live'?'live':'frozen'));
+  return '<div style="font-size:12px;color:var(--ink-dim);margin-bottom:6px;">'+(isEn?'Prey given:':'Proie donnée :')+'</div>'+
+    '<div style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;margin-bottom:6px;">'+
+      '<select aria-label="'+(isEn?'Prey species':'Espèce de proie')+'" style="flex:1 1 auto;min-width:0;font-size:15px;padding:7px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" onchange="fedPickSpecies(this.value)">'+preySpeciesOptionsHtml(allowed, sp)+'</select>'+
+      chip(type==='frozen', '❄️', "fedPickType('frozen')", isEn?'Frozen-thawed':'Décongelée')+
+      chip(type==='live', '🐭', "fedPickType('live')", isEn?'Live':'Vivante')+
+    '</div>'+
+    (sizes.length ? '<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;">'+sizes.map(z=>chip(z===sz, escapeHtml(z), "fedPickSize('"+escapeHtml(z).replace(/'/g,"\\'")+"')")).join('')+'</div>' : '')+
+    (isNew ? '<label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:15px;cursor:pointer;background:rgba(201,151,62,.10);border:1px solid var(--gold);border-radius:10px;padding:9px 10px;">'+
+      '<input type="checkbox" id="fed-habit" checked style="width:22px;height:22px;accent-color:var(--gold);flex:none;"/>'+
+      '<span>'+(isEn?'Make it '+escapeHtml(snakeName(s))+'\'s usual prey':'En faire la proie habituelle de '+escapeHtml(snakeName(s)))+'</span></label>' : '');
+}
+function fedPreyRefresh(){
+  const box = document.getElementById('fed-prey-box'); if(!box) return;
+  const s = savedSnakes.find(x=>String(x.id)===box.getAttribute('data-id')); if(!s) return;
+  const keep = document.getElementById('fed-habit');
+  const was = keep ? keep.checked : true;
+  box.innerHTML = fedPreyInnerHtml(s, box.dataset.sp||'', box.dataset.sz||'', box.dataset.type||'frozen');
+  const hb = document.getElementById('fed-habit'); if(hb) hb.checked = was;
+}
+function fedPickSize(z){ const box = document.getElementById('fed-prey-box'); if(!box) return; box.dataset.sz = z; fedPreyRefresh(); }
+function fedPickType(kind){ const box = document.getElementById('fed-prey-box'); if(!box) return; box.dataset.type = kind==='live'?'live':'frozen'; fedPreyRefresh(); }
+function fedPickSpecies(sp){
+  const box = document.getElementById('fed-prey-box'); if(!box) return;
+  sp = (sp && PREY_TYPES[sp]) ? sp : '';
+  const sz = box.dataset.sz||'';
+  box.dataset.sp = sp;
+  box.dataset.sz = (sp && PREY_TYPES[sp].sizes.includes(sz)) ? sz : '';
+  fedPreyRefresh();
+}
 function openFedModal(id){
   const isEn = currentLang==='en';
   const s = savedSnakes.find(x=>x.id===id);
@@ -14843,6 +14912,7 @@ function openFedModal(id){
       '<span style="font-size:12px;color:var(--ink-dim);">'+(isEn?'Number of prey items:':'Nombre de proies :')+'</span>'+
       '<input type="number" id="fed-prey-count" min="1" value="1" style="width:64px;font-size:16px;padding:6px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);text-align:center;"/>'+
     '</div>'+
+    fedPreyBoxHtml(s)+ // v5.40 — proie donnée (déjà choisie : aucun toucher de plus)
     '<div style="display:flex;flex-direction:column;gap:8px;">'+
       '<button class="save-btn" onclick="confirmFed(\''+id+'\', \'complete\')">'+(isEn?'✅ Ate completely':'✅ Mangé au complet')+'</button>'+
       '<button class="sc-btn" onclick="confirmFed(\''+id+'\', \'partial\')">'+(isEn?'🍽 Partially eaten':'🍽 Mangé partiellement')+'</button>'+
@@ -14960,11 +15030,22 @@ function confirmFed(id, quantity){
   const countInput = document.getElementById('fed-prey-count');
   const preyCount = countInput ? Math.max(1, parseInt(countInput.value)||1) : 1;
   s.health.consecutiveRefusals = 0;
-  const event = {date:today, type:'fed', quantity, preyType: s.preyType||'frozen', preyCount};
+  // v5.40 — proie vraiment donnée (fenêtre Repas) ; sinon la proie de la fiche
+  const pbox = document.getElementById('fed-prey-box');
+  let gSp = s.preySpecies||'', gSz = s.preySize||'', gType = (s.preyType||'frozen')==='live'?'live':'frozen';
+  if(pbox && pbox.getAttribute('data-id')===String(s.id)){ gSp = pbox.dataset.sp||''; gSz = pbox.dataset.sz||''; gType = pbox.dataset.type==='live'?'live':'frozen'; }
+  if(!(gSp && PREY_TYPES[gSp] && gSz && PREY_TYPES[gSp].sizes.includes(gSz))){ gSp = s.preySpecies||''; gSz = s.preySize||''; }
+  const preyDiffers = gSp!==(s.preySpecies||'') || gSz!==(s.preySize||'') || gType!==((s.preyType||'frozen')==='live'?'live':'frozen');
+  const habitBox = document.getElementById('fed-habit');
+  const madeHabit = preyDiffers && !!(gSp && gSz) && !!habitBox && habitBox.checked;
+  if(madeHabit){ s.preySpecies = gSp; s.preySize = gSz; s.preySizeEstimated = false; s.preyType = gType; s.updatedAt = Date.now(); }
+  const event = {date:today, type:'fed', quantity, preyType: gType, preyCount};
+  if(gSp && gSz){ event.preySpecies = gSp; event.preySize = gSz; }
   if(today===localTodayStr()) event.at = new Date().toISOString(); // v3.77 — heure du repas (délai de manipulation)
   let stockMsg = '';
-  if(s.preySpecies && s.preySize){
-    const rec = consumePreyForEvent(s, s.preyType||'frozen', preyCount);
+  if(gSp && gSz){
+    const preySrc = (gSp===s.preySpecies && gSz===s.preySize) ? s : Object.assign({}, s, { preySpecies:gSp, preySize:gSz }); // « juste cette fois » : la fiche ne change pas
+    const rec = consumePreyForEvent(preySrc, gType, preyCount);
     if(rec) event.stockDraw = rec;
     saveElevage();
     stockMsg = stockDrawMessage(rec);
@@ -14975,7 +15056,8 @@ function confirmFed(id, quantity){
   try{ renderDefrostList(); }catch(e){}
   closeQuickModal();
   const countTag = preyCount>1 ? (isEn?' ('+preyCount+' prey)':' ('+preyCount+' proies)') : '';
-  showToast('🍽 '+escapeHtml(snakeName(s))+(isEn?' ate':' a mangé')+(quantity==='partial'?(isEn?' (partial).':' (partiellement).'):'.')+countTag+stockMsg, 'success', 'undoLastLoggedEvent()');
+  const habitMsg = madeHabit ? ' '+(isEn?'New usual prey: ':'Nouvelle proie habituelle : ')+escapeHtml(preyComboText(gSp, gSz))+'.' : ''; // v5.40
+  showToast('🍽 '+escapeHtml(snakeName(s))+(isEn?' ate':' a mangé')+(quantity==='partial'?(isEn?' (partial).':' (partiellement).'):'.')+countTag+stockMsg+habitMsg, 'success', 'undoLastLoggedEvent()');
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
   renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderFirstSnakeTip();
   if(document.getElementById('view-dash').style.display!=='none') renderDashboard();
@@ -27014,7 +27096,9 @@ function renderTourGrid(){
     if(rackOverflowSnakes(rack).length) unit.insertAdjacentHTML('beforeend', rackOverflowBannerHtml(rack)); // v4.51
     const headBar = document.createElement('div');
     headBar.className = 'rack-row';
-    headBar.innerHTML = '<span class="rack-row-label">'+escapeHtml(rack.name)+'</span><button class="rack-row-select accent-select" data-allrack="'+rack.id+'">⚡ '+(isEn?'This whole rack':'Tout ce rack')+'</button>';
+    const rackKeysAll = tourRackKeys(rack); // v5.41 — bouton réversible
+    const rackFull = rackKeysAll.length>0 && rackKeysAll.every(k=>tourSelection.has(k));
+    headBar.innerHTML = '<span class="rack-row-label">'+escapeHtml(rack.name)+'</span><button class="rack-row-select accent-select'+(rackFull?' active':'')+'" aria-pressed="'+rackFull+'" data-allrack="'+rack.id+'">'+(rackFull?'✓ ':'⚡ ')+(isEn?'This whole rack':'Tout ce rack')+'</button>';
     unit.appendChild(headBar);
 
     rackDisplayRows(rack).forEach(dr=>{
@@ -27095,20 +27179,32 @@ function renderTourGrid(){
   grid.querySelectorAll('[data-allrack]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const rack = getRack(btn.dataset.allrack);
-      let count = 0;
-      rackDisplayRows(rack).forEach(dr=>{ // v4.51 — inclut les bacs « à déplacer »
-        const row = dr.row;
-        [...Array(dr.real).keys()].map(i=>i+1).concat(dr.extra).forEach(tubIdx=>{ if(snakeAt(rack.id,row,tubIdx)){ tourSelection.add(tubKey(rack.id,row,tubIdx)); count++; } });
-      });
-      showToast('⚡ "'+rack.name+'" '+(isEn?'selected — ':'sélectionné — ')+count+' reptile(s).', 'success');
+      const keys = tourRackKeys(rack); // v4.51 — inclut les bacs « à déplacer »
+      if(keys.length && keys.every(k=>tourSelection.has(k))){ // v5.41 — 2e toucher = désélectionner
+        keys.forEach(k=>tourSelection.delete(k));
+        showToast('"'+rack.name+'" '+(isEn?'deselected.':'désélectionné.'));
+      } else {
+        keys.forEach(k=>tourSelection.add(k));
+        showToast('⚡ "'+rack.name+'" '+(isEn?'selected — ':'sélectionné — ')+keys.length+' reptile(s).', 'success');
+      }
       renderTourGrid();
     });
   });
   renderTourTerrariums();
+  try{ updateTourQuickSelectButtons(); }catch(e){} // v5.41
   document.getElementById('tour-count').textContent = tourSelection.size + t('tourCountSuffix');
   renderHealthAlerts();
 }
 
+// v5.41 — bacs occupés d'un rack (même liste que « Tout ce rack »)
+function tourRackKeys(rack){
+  const keys = [];
+  if(!rack) return keys;
+  rackDisplayRows(rack).forEach(dr=>{
+    [...Array(dr.real).keys()].map(i=>i+1).concat(dr.extra).forEach(tubIdx=>{ if(snakeAt(rack.id,dr.row,tubIdx)) keys.push(tubKey(rack.id,dr.row,tubIdx)); });
+  });
+  return keys;
+}
 function renderTourTerrariums(){
   const isEn = currentLang==='en';
   const wrap = document.getElementById('tour-terrariums');
@@ -27155,7 +27251,19 @@ function renderTourTerrariums(){
     }
   });
   const selBtn = document.getElementById('tour-select-terra');
-  if(selBtn) selBtn.onclick = ()=>{ list.forEach(s=>tourSelection.add(terraKey(s.id))); renderTourGrid(); };
+  if(selBtn){ // v5.41 — 2e toucher = désélectionner
+    const keys = list.map(s=>terraKey(s.id));
+    const full = keys.length>0 && keys.every(k=>tourSelection.has(k));
+    selBtn.classList.toggle('active', full);
+    selBtn.setAttribute('aria-pressed', full ? 'true' : 'false');
+    selBtn.textContent = (full ? '✓ ' : '')+t('selectAllTerraBtn');
+    selBtn.onclick = ()=>{
+      const allIn = keys.length>0 && keys.every(k=>tourSelection.has(k));
+      keys.forEach(k=> allIn ? tourSelection.delete(k) : tourSelection.add(k));
+      if(allIn) showToast(isEn?'Enclosures deselected.':'Terrariums désélectionnés.');
+      renderTourGrid();
+    };
+  }
 }
 
 function clearTourSelection(){ tourSelection.clear(); renderTourGrid(); }
@@ -27163,18 +27271,40 @@ function clearTourSelection(){ tourSelection.clear(); renderTourGrid(); }
 // Sélection rapide en lot par type de proie — remplace la sélection actuelle (pas un ajout) pour
 // que le geste soit prévisible : "montre-moi juste le vivant" plutôt que "ajoute le vivant à ce qui
 // était déjà sélectionné". Ignore les reptiles sans emplacement assigné (aucune carte à sélectionner).
-function selectByPreyType(type){
-  const isEn = currentLang==='en';
-  tourSelection.clear();
+function tourPreyTypeKeys(type){ // v5.41
+  const keys = [];
   savedSnakes.forEach(s=>{
     ensureSnakeMeta(s);
     if((s.preyType||'frozen')!==type) return;
-    if(s.placement.mode==='rack' && s.placement.rackId){
-      tourSelection.add(tubKey(s.placement.rackId, s.placement.row, s.placement.tub));
-    } else if(s.placement.mode==='terrarium'){
-      tourSelection.add(terraKey(s.id));
-    }
+    if(s.placement.mode==='rack' && s.placement.rackId) keys.push(tubKey(s.placement.rackId, s.placement.row, s.placement.tub));
+    else if(s.placement.mode==='terrarium') keys.push(terraKey(s.id));
   });
+  return keys;
+}
+function tourPreyTypeActive(type){
+  const keys = tourPreyTypeKeys(type);
+  return keys.length>0 && tourSelection.size===keys.length && keys.every(k=>tourSelection.has(k));
+}
+function updateTourQuickSelectButtons(){
+  ['frozen','live'].forEach(type=>{
+    const b = document.querySelector('#tour-quickselect [onclick="selectByPreyType(\''+type+'\')"]');
+    if(!b) return;
+    const on = tourPreyTypeActive(type);
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.textContent = (on ? '✓ ' : '')+t(type==='live' ? 'selectLiveBtn' : 'selectFrozenBtn');
+  });
+}
+function selectByPreyType(type){
+  const isEn = currentLang==='en';
+  if(tourPreyTypeActive(type)){ // v5.41 — 2e toucher = tout désélectionner (même sélection qu'au 1er toucher)
+    tourSelection.clear();
+    renderTourGrid();
+    showToast(isEn?'Selection cleared.':'Sélection retirée.');
+    return;
+  }
+  tourSelection.clear();
+  tourPreyTypeKeys(type).forEach(k=>tourSelection.add(k));
   renderTourGrid();
   const label = type==='live' ? (isEn?'live':'vivant') : (isEn?'frozen-thawed':'décongelé');
   showToast((type==='live'?'🐭 ':'❄️ ')+tourSelection.size+(isEn?' reptile(s) — '+label+' selected.':' reptile(s) '+label+' sélectionné(s).'), 'success');
@@ -27237,6 +27367,7 @@ function applyTourAction(action){
       // bon (sans avertir), ce qui faussait ensuite la liste de décongélation.
       snake.health.consecutiveRefusals = 0;
       const event = {date:today, type:'fed', preyType};
+      if(snake.preySpecies && snake.preySize){ event.preySpecies = snake.preySpecies; event.preySize = snake.preySize; } // v5.40 — proie donnée gardée sur le repas
       if(today===localTodayStr()) event.at = new Date().toISOString(); // v3.77
       if(snake.preySpecies && snake.preySize){
         const rec = consumePreyForEvent(snake, preyType, 1);
@@ -34424,7 +34555,8 @@ function feedPreyTag(e){
   if(e.type==='fed' && e.plate) return ' 🥗'; // v3.52 — assiette
   if(e.type!=='fed' || !e.preyType) return '';
   const countTag = (e.preyCount && e.preyCount>1) ? ' ×'+e.preyCount : '';
-  return ' '+(e.preyType==='live'?'🐭':'❄️')+countTag;
+  const sizeTag = (e.preySpecies && e.preySize) ? ' '+escapeHtml(preyLabelShort(e.preySpecies, e.preySize)) : ''; // v5.40 — proie vraiment donnée
+  return ' '+(e.preyType==='live'?'🐭':'❄️')+sizeTag+countTag;
 }
 /* ==================== Vue tableau du journal (2 septembre) — colonnes activables/désactivables
    et triables, alternative "spreadsheet" au flux de cartes déjà existant. Préférences persistées
