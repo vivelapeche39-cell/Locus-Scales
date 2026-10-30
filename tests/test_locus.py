@@ -893,7 +893,7 @@ def t_combos_bci(browser, url):
     check('Super Hypo + Albino Kahl : pas de nom inventé', cases[4] is None, cases[4])
     check('gène « possible » : ne compte pas pour un combo', cases[5] is None, cases[5])
     check('Super Tanglow = Super Hypo + Super Jungle + VPI', cases[6] == 'Super Tanglow', cases[6])
-    check('python royal : pas encore de combos affichés (décidé : BCI d\'abord)', cases[7] is None, cases[7])
+    check('python royal : Bumblebee (5.43)', cases[7] == 'Bumblebee', cases[7])
     check('het Anery ne fait pas un Moonglow (reste Sunglow)', cases[8] == 'Sunglow', cases[8])
     # calculateur
     a.js("showTab('calc')"); a.page.wait_for_timeout(200)
@@ -917,6 +917,35 @@ def t_combos_bci(browser, url):
     g = a.js("parseImportGenes('Moonglow', 'boa_bci').genes")
     check('import : « Moonglow » → Kahl + Anery 1 + Hypo', g == {'bci_kahl': 'visual', 'bci_anery1': 'visual', 'bci_hypo': 'single'}, g)
     check('pas d\'erreur JS (combos)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+
+def t_combos_bp(browser, url):
+    section('Noms de combos python royal (v5.43)')
+    m = make_snake(51, genes={'pastel': 'single', 'spider': 'single'}); m['sex'] = 'male'
+    f = make_snake(52, genes={'pastel': 'single'}); f['sex'] = 'female'
+    a = App(browser, url, snakes=[m, f]); a.open(wait=3000)
+    c = a.js("""[
+      speciesComboTitle({pastel:'single', spider:'single'}, 'ball_python'),
+      speciesComboTitle({pastel:'homo', spider:'single'}, 'ball_python'),
+      speciesComboTitle({lesser:'single', pinstripe:'single', spider:'single'}, 'ball_python'),
+      speciesComboTitle({albino:'het', candy:'het'}, 'ball_python'),
+      speciesComboTitle({butter:'single', pastel:'single', spider:'single'}, 'ball_python'),
+      speciesComboTitle({albino:'visual'}, 'ball_python'),
+      speciesComboTitle({blackpastel:'single', cinnamon:'single'}, 'ball_python')
+    ]""")
+    check('Bumblebee, Killer Bee, King Spin', c[:3] == ['Bumblebee', 'Killer Bee', 'King Spin'], c[:3])
+    check('Candino/Toffino et 8 Ball : pas en double (déjà nommés par le même locus)', c[3] is None and c[6] is None, (c[3], c[6]))
+    check('Queen Bee (ambigu) jamais affiché : Butter + Bumblebee à la place', c[4] == 'Bumblebee · Butter', c[4])
+    check('un seul gène : pas de nom de combo', c[5] is None, c[5])
+    a.js("showTab('calc')"); a.page.wait_for_timeout(200)
+    a.js("loadSnake(%s,'male'); loadSnake(%s,'female'); runCross();" % (json.dumps(m['id']), json.dumps(f['id']))); a.page.wait_for_timeout(300)
+    res = a.js("document.getElementById('results').textContent")
+    check('calculateur : Bumblebee et Killer Bee dans les résultats', 'Bumblebee' in res and 'Killer Bee' in res, res[:200])
+    a.js("showTab('mine')"); a.page.wait_for_timeout(200)
+    check('carte : « Bumblebee »', 'Bumblebee' in a.js("document.getElementById('saved-grid').textContent"))
+    t = a.js("generateListingText(%s,'en').title" % json.dumps(m['id']))
+    check('annonce : « Bumblebee Ball Python »', 'Bumblebee Ball Python' in t, t)
+    check('pas d\'erreur JS (combos python royal)', not a.real_errors(), a.real_errors()[:3])
     a.close()
 
 def t_perf(browser, url):
@@ -957,7 +986,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()

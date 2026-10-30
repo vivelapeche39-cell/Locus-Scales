@@ -2349,7 +2349,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.42';
+const APP_VERSION = '2026.09.01.5.43';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5548,6 +5548,15 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.43', date:'2026-10-30',
+    title:{ fr:'Python royal : les noms de combos affichés partout', en:'Ball python: combo names shown everywhere' },
+    changes:{
+      fr:[ '🐍 Les noms de combos du python royal (Bumblebee, Killer Bee, Spinner, King Spin, Lemon Blast, Pewter, Silver Streak, Mochi, Purple Passion, Freeway, Dreamsicle…) s\'affichent maintenant comme pour le boa BCI : dans les résultats du calculateur, sur la carte et la fiche, et dans le titre d\'annonce — avec les gènes juste dessous.',
+           '✅ Mêmes noms que ceux déjà reconnus à l\'import, vérifiés un par un sur World of Ball Pythons. Les noms ambigus (Queen Bee, Snow, BEL) ne sont jamais affichés : ils peuvent vouloir dire plusieurs choses. Gratuit.' ],
+      en:[ '🐍 Ball python combo names (Bumblebee, Killer Bee, Spinner, King Spin, Lemon Blast, Pewter, Silver Streak, Mochi, Purple Passion, Freeway, Dreamsicle…) now show like for the BCI boa: in calculator results, on the card and record, and in the sale title — with the genes right below.',
+           '✅ Same names as those already recognized at import, checked one by one on World of Ball Pythons. Ambiguous names (Queen Bee, Snow, BEL) are never shown: they can mean several things. Free.' ]
+    }
+  },
   { version:'5.42', date:'2026-10-30',
     title:{ fr:'Boa BCI : les noms de combos (Snow, Sunglow, Moonglow…)', en:'BCI boa: combo names (Snow, Sunglow, Moonglow…)' },
     changes:{
@@ -10252,10 +10261,39 @@ var SPECIES_COMBOS = {
   ]
 };
 var COMBO_REQ_STATUS = { vis:'visual', het:'het', one:'single', super:'homo' };
+// v5.43 — python royal : mêmes noms que l'import (IMPORT_COMBO_NAMES, vérifiés sur World of Ball Pythons).
+// Écartés de l'affichage : les noms ambigus (avec une note : Queen Bee, Snow, BEL), ceux d'un seul gène, ceux déjà
+// donnés par COMPOUND_NAMES (même locus : Candino, 8 Ball) et les doublons de gènes (Toffino = mêmes gènes que Candino).
+function bpDisplayCombos(){
+  const compoundNames = new Set(); Object.values(COMPOUND_NAMES).forEach(o=>Object.values(o).forEach(n=>compoundNames.add(String(n).toLowerCase())));
+  const toReq = { visual:'vis', het:'het', single:'one', homo:'super' };
+  const seen = new Set(), out = [];
+  (typeof IMPORT_COMBO_NAMES!=='undefined' ? IMPORT_COMBO_NAMES : []).forEach(c=>{
+    const ids = Object.keys(c.g||{});
+    if(c.note || ids.length<2 || !ids.every(id=>GENES.some(x=>x.id===id) && toReq[c.g[id]])) return;
+    const sig = ids.slice().sort().map(id=>id+':'+c.g[id]).join(',');
+    if(c.n.some(n=>compoundNames.has(n))){ seen.add(sig); return; } // ses gènes sont déjà nommés par le même locus (ex. Candino → Toffino écarté aussi)
+    if(seen.has(sig)) return; seen.add(sig);
+    const name = c.n[0].split(' ').map(w=> w==='vpi' ? 'VPI' : w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+    out.push({ name, req:Object.fromEntries(ids.map(id=>[id, toReq[c.g[id]]])) });
+  });
+  return out;
+}
+var __comboListCache = {};
+function speciesComboList(species){
+  const sp = species||'ball_python';
+  if(__comboListCache[sp]) return __comboListCache[sp];
+  const list = sp==='ball_python' ? bpDisplayCombos() : (SPECIES_COMBOS[sp]||[]);
+  // Le plus de gènes d'abord ; à égalité, le plus de récessifs ; puis l'ordre de la table.
+  const rec = c=>Object.values(c.req).filter(v=>v==='vis' || v==='het').length;
+  const sorted = list.map((c,i)=>({ c, i, n:Object.keys(c.req).length, r:rec(c) })).sort((a,b)=> b.n-a.n || b.r-a.r || a.i-b.i).map(x=>x.c);
+  if(sp!=='ball_python' || typeof IMPORT_COMBO_NAMES!=='undefined') __comboListCache[sp] = sorted; // pas de cache avant que la table de l'import soit chargée
+  return sorted;
+}
 // Combos trouvés dans un ensemble de gènes (fiche ou bébé du calculateur). Les gènes « possibles » ne comptent pas.
 function speciesComboInfo(genes, species){
-  const list = SPECIES_COMBOS[species||'ball_python'];
-  if(!list || !genes) return null;
+  const list = speciesComboList(species); // v5.43 — python royal inclus
+  if(!list.length || !genes) return null;
   const st = {};
   Object.keys(genes).forEach(gid=>{
     if(isFreewayKey(gid)) return;
@@ -10263,10 +10301,9 @@ function speciesComboInfo(genes, species){
     if(!n.possible) st[gid] = n.status;
   });
   const used = new Set(), names = [];
-  // Égalité de taille (ex. Kahl + Anery 1 + Hypo + Jungle = Moonglow OU Junglow) : le combo qui couvre le plus de
-  // récessifs gagne (« Moonglow · Jungle » plutôt que « Junglow · Anery ») — aucun nom n'est sourcé pour l'animal entier.
-  const rec = c=>Object.values(c.req).filter(v=>v==='vis' || v==='het').length;
-  list.map((c,i)=>({ c, i, n:Object.keys(c.req).length, r:rec(c) })).sort((a,b)=> b.n-a.n || b.r-a.r || a.i-b.i).forEach(({ c })=>{
+  // Liste déjà triée (speciesComboList) : à égalité de taille, le plus de récessifs gagne
+  // (« Moonglow · Jungle » plutôt que « Junglow · Anery ») — aucun nom n'est sourcé pour l'animal entier.
+  list.forEach(c=>{
     const ids = Object.keys(c.req);
     if(ids.some(id=>used.has(id))) return;
     if(!ids.every(id=>st[id]===COMBO_REQ_STATUS[c.req[id]])) return;
