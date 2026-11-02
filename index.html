@@ -2216,6 +2216,15 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
     </div>
   </div>
 
+  <!-- v5.44 — export lisible partout (point 11 : « et si le développeur arrête ? ») -->
+  <div class="reg-card">
+    <div class="reg-card-head"><span class="reg-flag">📦</span><h3 data-i18n="exportAllExcelTitle">Tout en Excel — lisible partout</h3></div>
+    <p data-i18n="exportAllExcelDesc">Un seul fichier Excel avec tout ton historique, un onglet par sujet : animaux, repas, refus et mues, pesées, longueurs, santé, accouplements, pontes, dépenses. Il s'ouvre sans LOCUS (Excel, Google Sheets, Numbers) et se réimporte dans LOCUS. Tes données t'appartiennent. Gratuit, toujours.</p>
+    <div class="reg-links">
+      <button class="save-btn" onclick="exportEverythingExcel()" data-i18n="exportAllExcelBtn">📦 Tout exporter en Excel</button>
+    </div>
+  </div>
+
   <div class="reg-card">
     <div class="reg-card-head"><span class="reg-flag">📂</span><h3 data-i18n="exportImportTitle">Importer une sauvegarde</h3></div>
     <p data-i18n="exportImportDesc">Remplace toutes les données actuelles par celles d'un fichier de sauvegarde LOCUS déjà exporté. Une confirmation est demandée avant de remplacer quoi que ce soit.</p>
@@ -2349,7 +2358,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.43';
+const APP_VERSION = '2026.09.01.5.47';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4554,11 +4563,14 @@ const GENES = [
   {id:'bci_squaretail', name:'Square Tail', type:'recessive', locus:'bci_squaretail', cat:'Récessif', species:'boa_bci'},
   {id:'bci_sterling', name:'Sterling', type:'recessive', locus:'bci_sterling', cat:'Récessif', species:'boa_bci'},
   {id:'bci_hypo', name:'Hypo', type:'incdom', locus:'bci_motleycx', cat:'Codominant / Incomplet dominant', species:'boa_bci', superLabel:'Super Hypo',
-    warning:"Même gène que le Motley colombien (complexe Motley). Le Super Hypo a un problème musculaire, mais se reproduit et vit normalement selon ce qui est documenté. Source : Morphpedia.",
-    warningEn:"Same gene as Colombian Motley (Motley complex). The Super Hypo has a muscle issue but breeds and lives normally as far as documented. Source: Morphpedia."},
+    warning:"Même gène que le Motley colombien et le Keltic (complexe Motley). Le Super Hypo a un problème musculaire, mais se reproduit et vit normalement selon ce qui est documenté. Source : Morphpedia.",
+    warningEn:"Same gene as Colombian Motley and Keltic (Motley complex). The Super Hypo has a muscle issue but breeds and lives normally as far as documented. Source: Morphpedia."},
   {id:'bci_motley', name:'Motley (Colombian)', type:'incdom', locus:'bci_motleycx', cat:'Codominant / Incomplet dominant', species:'boa_bci', superLabel:'Super Motley',
-    warning:"Même gène que l'Hypo (complexe Motley). Le Super Motley survit très rarement au-delà de 2 ans (perte de fonction musculaire, problèmes à évacuer) : évite Motley × Motley. Figure sur la liste des gènes nuisibles de la REPTA (association du commerce des reptiles du Royaume-Uni). Sources : Morphpedia, REPTA, communauté MorphMarket.",
-    warningEn:"Same gene as Hypo (Motley complex). The Super Motley very rarely survives past 2 years (loss of muscle function, trouble passing waste): avoid Motley × Motley. Listed in the deleterious genes policy of REPTA (UK reptile trade association). Sources: Morphpedia, REPTA, MorphMarket community."},
+    warning:"Même gène que l'Hypo et le Keltic (complexe Motley). Motley + Keltic = « Smoke », létal comme le Super Motley. Le Super Motley survit très rarement au-delà de 2 ans (perte de fonction musculaire, problèmes à évacuer) : évite Motley × Motley. Figure sur la liste des gènes nuisibles de la REPTA (association du commerce des reptiles du Royaume-Uni). Sources : Morphpedia, REPTA, communauté MorphMarket.",
+    warningEn:"Same gene as Hypo and Keltic (Motley complex). Motley + Keltic = « Smoke », lethal like the Super Motley. The Super Motley very rarely survives past 2 years (loss of muscle function, trouble passing waste): avoid Motley × Motley. Listed in the deleterious genes policy of REPTA (UK reptile trade association). Sources: Morphpedia, REPTA, MorphMarket community."},
+  {id:'bci_keltic', name:'Keltic', type:'incdom', locus:'bci_motleycx', cat:'Codominant / Incomplet dominant', species:'boa_bci', superLabel:'Super Keltic', // v5.45 ; v5.46 — le Super Keltic existe (r/boas)
+    warning:"Même gène que le Motley colombien et l'Hypo (complexe Motley). Keltic + Motley = « Smoke », un combo LÉTAL comme le Super Motley : évite Keltic × Motley. Le Super Keltic (2 copies) existe, mais sa santé n'est pas documentée : il pourrait avoir des problèmes comme le Smoke ou le Super Motley, prudence avec Keltic × Keltic. Sources : communauté r/boas, communauté MorphMarket (complexes alléliques).",
+    warningEn:"Same gene as Colombian Motley and Hypo (Motley complex). Keltic + Motley = « Smoke », a LETHAL combo like the Super Motley: avoid Keltic × Motley. The Super Keltic (2 copies) exists, but its health is not documented: it may have issues like the Smoke or Super Motley, be careful with Keltic × Keltic. Sources: r/boas community, MorphMarket community (allelic complexes)."},
   {id:'bci_motleyca', name:'Motley (Central American)', type:'incdom', locus:'bci_motleyca', cat:'Codominant / Incomplet dominant', species:'boa_bci'},
   {id:'bci_aztec', name:'Aztec', type:'incdom', locus:'bci_aztec', cat:'Codominant / Incomplet dominant', species:'boa_bci', superLabel:'Super Aztec',
     warning:"Super Aztec : wobble (trouble neurologique) et infertilité rapportés ; certains meurent jeunes. Sources : Morphpedia, communauté MorphMarket.",
@@ -4633,6 +4645,7 @@ const COMPOUND_NAMES = {
   // v5.33 — boa BCI : complexe Motley (Hypo + Motley colombien)
   bci_motleycx: {
     'bci_hypo+bci_motley': 'Hypo Motley',
+    'bci_keltic+bci_motley': 'Smoke', // v5.45 — Keltic + Motley (r/boas + MorphMarket) : létal, avertissements des deux gènes
   }
 };
 
@@ -5548,6 +5561,44 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.47', date:'2026-11-01',
+    title:{ fr:'Refus : choisir congelée ou vivante', en:'Refusal: pick frozen or live' },
+    changes:{
+      fr:[ '🐭 Mode Tournée → Refus → « et la proie ? » : chaque animal a maintenant ❄️ / 🐭 pour dire si la proie refusée était congelée ou vivante (avant, c\'était figé sur la fiche). Avec plusieurs refus : « Tous : ❄️ / 🐭 ».',
+           '📦 Le bon stock est retiré (congelé ou vivant), et si la proie est passée à un autre, son repas est noté avec le bon type. Le choix par défaut suit : congelée → gaspillée, vivante → retournée au bac.' ],
+      en:[ '🐭 Round Mode → Refused → « and the prey? »: each animal now has ❄️ / 🐭 to say whether the refused prey was frozen or live (before, it was fixed by the record). With several refusals: « All: ❄️ / 🐭 ».',
+           '📦 The right stock is removed (frozen or live), and if the prey went to another animal, its meal is logged with the right type. The default follows: frozen → wasted, live → back in the bin.' ]
+    }
+  },
+  { version:'5.46', date:'2026-10-31',
+    title:{ fr:'Boa BCI : Super Keltic', en:'BCI boa: Super Keltic' },
+    changes:{
+      fr:[ '🧬 Le Super Keltic (Keltic × Keltic) existe bien : il s\'affiche maintenant sous ce nom. Sa santé n\'est pas documentée; l\'avertissement conseille la prudence, comme pour le Smoke et le Super Motley. Merci encore à r/boas.' ],
+      en:[ '🧬 The Super Keltic (Keltic × Keltic) does exist: it now shows under that name. Its health is not documented; the warning advises caution, as with the Smoke and Super Motley. Thanks again to r/boas.' ]
+    }
+  },
+  { version:'5.45', date:'2026-10-31',
+    title:{ fr:'Boa BCI : Keltic, Smoke, Red Dragon et Sun Dragon', en:'BCI boa: Keltic, Smoke, Red Dragon and Sun Dragon' },
+    changes:{
+      fr:[ '🧬 Nouveau gène Keltic (incomplet dominant, complexe Motley). Keltic + Motley s\'affiche « Smoke », avec un avertissement : combo LÉTAL comme le Super Motley.',
+           '🐍 Nouveaux noms de combos : Red Dragon (Albino Kahl ou Sharp + Blood) et Sun Dragon (+ Hypo).',
+           '🙏 Merci à la communauté r/boas pour les précisions. Axanthic reste absent : ce serait en fait un anery (lignée Carbon / RDR BEA), pas un gène à part.' ],
+      en:[ '🧬 New Keltic gene (incomplete dominant, Motley complex). Keltic + Motley shows as « Smoke », with a warning: LETHAL combo like the Super Motley.',
+           '🐍 New combo names: Red Dragon (Kahl or Sharp Albino + Blood) and Sun Dragon (+ Hypo).',
+           '🙏 Thanks to the r/boas community for the details. Axanthic stays out: it appears to be an anery (Carbon / RDR BEA line), not a separate gene.' ]
+    }
+  },
+  { version:'5.44', date:'2026-10-30',
+    title:{ fr:'Tout ton historique en Excel, lisible partout', en:'Your whole history in Excel, readable anywhere' },
+    changes:{
+      fr:[ '📦 Export & sauvegarde (et Configuration) → « Tout exporter en Excel » : un seul fichier avec un onglet par sujet — animaux, journal (repas, refus, mues, pesées, accouplements), longueurs, santé (véto, selles), accouplements, pontes, dépenses — plus un onglet « Lisez-moi ».',
+           '🔓 Il s\'ouvre sans LOCUS (Excel, Google Sheets, Numbers) : tes données t\'appartiennent, même si LOCUS n\'existait plus. Les onglets « Animaux » et « Journal » se réimportent aussi dans LOCUS.',
+           '📏 Données en grammes, centimètres et °C (unités écrites dans les en-têtes), dates AAAA-MM-JJ. Gratuit, pour tout le monde, invités compris.' ],
+      en:[ '📦 Export & backup (and Settings) → « Export everything to Excel »: one file with a sheet per topic — animals, log (meals, refusals, sheds, weigh-ins, pairings), lengths, health (vet, poop), pairings, clutches, expenses — plus a « Read me » sheet.',
+           '🔓 It opens without LOCUS (Excel, Google Sheets, Numbers): your data belongs to you, even if LOCUS no longer existed. The « Animals » and « Log » sheets also re-import into LOCUS.',
+           '📏 Data in grams, centimetres and °C (units written in the headers), YYYY-MM-DD dates. Free, for everyone, guests included.' ]
+    }
+  },
   { version:'5.43', date:'2026-10-30',
     title:{ fr:'Python royal : les noms de combos affichés partout', en:'Ball python: combo names shown everywhere' },
     changes:{
@@ -7240,6 +7291,8 @@ const I18N = {
     fiscalExportExcelBtn: '📊 Exporter en Excel',
     kpiDashboardBtn: '📊 Tableau de bord KPI',
     inventoryExportBtn: 'Rapport d\'inventaire complet',
+    exportAllExcelTitle: 'Tout en Excel — lisible partout', exportAllExcelBtn: '📦 Tout exporter en Excel', // v5.44
+    exportAllExcelDesc: 'Un seul fichier Excel avec tout ton historique, un onglet par sujet : animaux, repas, refus et mues, pesées, longueurs, santé, accouplements, pontes, dépenses. Il s\'ouvre sans LOCUS (Excel, Google Sheets, Numbers) et se réimporte dans LOCUS. Tes données t\'appartiennent. Gratuit, toujours.',
     inventoryPdfBtn: 'Version PDF (imprimable)',
     fiscalSalesYearTitle: "Ventes de l'année",
     acquisitionCostsTitle: "Coûts d'acquisition (prix payé par animal)",
@@ -7830,6 +7883,8 @@ const I18N = {
     fiscalExportExcelBtn: '📊 Export to Excel',
     kpiDashboardBtn: '📊 KPI Dashboard',
     inventoryExportBtn: 'Full inventory report',
+    exportAllExcelTitle: 'Everything in Excel — readable anywhere', exportAllExcelBtn: '📦 Export everything to Excel', // v5.44
+    exportAllExcelDesc: 'A single Excel file with your whole history, one sheet per topic: animals, meals, refusals and sheds, weigh-ins, lengths, health, pairings, clutches, expenses. It opens without LOCUS (Excel, Google Sheets, Numbers) and re-imports into LOCUS. Your data belongs to you. Free, always.',
     inventoryPdfBtn: 'PDF version (printable)',
     fiscalSalesYearTitle: "This year's sales",
     acquisitionCostsTitle: 'Acquisition costs (price paid per animal)',
@@ -8509,6 +8564,7 @@ function openConfigModal(){
       '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); openStorageDetails();">💾 '+(isEn?'Storage space':'Espace de stockage')+'</button>'+
       (isStandaloneMode() ? '' : '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); showInstallBanner(true);">📲 '+(isEn?'Install the app':'Installer l\'app')+'</button>')+
       '<button class="sc-btn" style="width:100%;" onclick="exportBackup();">📤 '+(isEn?'Export my backup':'Exporter ma sauvegarde')+'</button>'+
+      '<button class="sc-btn" style="width:100%;" onclick="exportEverythingExcel();">📦 '+(isEn?'Export everything to Excel':'Tout exporter en Excel')+'</button>'+
       '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); openAutoBackups();">🛟 '+(isEn?'Automatic copies (last 5)':'Copies automatiques (5 dernières)')+'</button>'+
       '<button class="sc-btn" style="width:100%;color:var(--rust);border-color:var(--rust);" onclick="reinitialiserDonneesLocales();">🔄 '+(isEn?'Reset local data (re-download from server)':'Réinitialiser les données locales (retélécharger du serveur)')+'</button>'+
       (isAdminUser ? '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); diagToggle();">🐛 '+(isEn?'Diagnostic log (admin)':'Journal de diagnostic (admin)')+(diagErrorCount>0?' — '+diagErrorCount:'')+'</button>' : '')+
@@ -10257,7 +10313,13 @@ var SPECIES_COMBOS = {
     { name:'Artic', req:{ bci_bwc:'het', bci_sharp:'het', bci_anery1:'vis' } },
     { name:'Avalanche', req:{ bci_arabesque:'one', bci_kahl:'vis', bci_anery1:'vis' } },
     // Blumen Boas (élevage spécialisé) : Eclipse = Leopard + Motley colombien
-    { name:'Eclipse', req:{ bci_leopard:'vis', bci_motley:'one' } }
+    { name:'Eclipse', req:{ bci_leopard:'vis', bci_motley:'one' } },
+    // v5.45 — r/boas (31 oct) + Morphpedia page Albino Kahl (« Red Dragon : 2 traits », « Sun Dragon : 3 traits ») :
+    // même nom pour la lignée Kahl ou Sharp. À l'import, la lignée est inconnue → voir IMPORT_COMBO_NOTES.bci_dragon.
+    { name:'Red Dragon', req:{ bci_kahl:'vis', bci_blood:'vis' }, noImport:true },
+    { name:'Red Dragon', req:{ bci_sharp:'vis', bci_blood:'vis' }, noImport:true },
+    { name:'Sun Dragon', req:{ bci_hypo:'one', bci_kahl:'vis', bci_blood:'vis' }, noImport:true },
+    { name:'Sun Dragon', req:{ bci_hypo:'one', bci_sharp:'vis', bci_blood:'vis' }, noImport:true }
   ]
 };
 var COMBO_REQ_STATUS = { vis:'visual', het:'het', one:'single', super:'homo' };
@@ -10326,10 +10388,15 @@ function speciesComboTitle(genes, species){
 }
 // Pour l'import : { n:[noms], g:{ id:statut } }
 function speciesImportCombos(species){
-  return (SPECIES_COMBOS[species]||[]).map(c=>({
+  const extra = species==='boa_bci' ? [ // v5.45 — lignée d'albinos inconnue : seuls les gènes certains, avec une note
+    { n:['red dragon'], g:{ bci_blood:'visual' }, note:'bci_dragon' },
+    { n:['sun dragon'], g:{ bci_blood:'visual', bci_hypo:'single' }, note:'bci_dragon' },
+    { n:['smoke'], g:{ bci_keltic:'single', bci_motley:'single' } }
+  ] : [];
+  return extra.concat((SPECIES_COMBOS[species]||[]).filter(c=>!c.noImport).map(c=>({
     n:[c.name.toLowerCase()].concat(c.alias||[]),
     g:Object.fromEntries(Object.keys(c.req).map(id=>[id, COMBO_REQ_STATUS[c.req[id]]]))
-  }));
+  })));
 }
 function summarizeGenes(genes){
   genes = genes || {};
@@ -15892,22 +15959,45 @@ function openTourRefusalPreyModal(){
   const sel = 'width:100%;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);';
   const rows = refusers.map(x=>{
     ensureSnakeMeta(x);
-    const def = (x.preyType||'frozen')==='frozen' ? 'lost' : 'returned';
-    const prey = (x.preySpecies && x.preySize) ? escapeHtml(x.preySpecies+' '+x.preySize)+' '+((x.preyType||'frozen')==='frozen'?'❄️':'🐭') : (isEn?'prey not set':'proie non renseignée');
-    return '<div class="trp-row" data-id="'+escapeHtml(String(x.id))+'" style="border-bottom:1px solid var(--line);padding:9px 0;">'+
-      '<div style="font-size:14px;margin-bottom:6px;"><b>'+escapeHtml(snakeName(x))+'</b> <small style="color:var(--ink-dim);">— '+prey+'</small></div>'+
+    const ptype = (x.preyType||'frozen')==='live' ? 'live' : 'frozen'; // v5.47 — modifiable ici
+    const def = ptype==='frozen' ? 'lost' : 'returned';
+    const prey = (x.preySpecies && x.preySize) ? escapeHtml(x.preySpecies+' '+x.preySize) : (isEn?'prey not set':'proie non renseignée');
+    return '<div class="trp-row" data-id="'+escapeHtml(String(x.id))+'" data-type="'+ptype+'" style="border-bottom:1px solid var(--line);padding:9px 0;">'+
+      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;margin-bottom:6px;"><span style="flex:1;min-width:120px;"><b>'+escapeHtml(snakeName(x))+'</b> <small style="color:var(--ink-dim);">— '+prey+'</small></span>'+
+        trpTypeButtonsHtml(ptype)+'</div>'+
       '<select class="trp-fate" style="'+sel+'" onchange="this.parentNode.querySelector(\'.trp-to\').style.display=this.value===\'passed\'?\'block\':\'none\'">'+tourRefusalFateOptions(def)+'</select>'+
       '<select class="trp-to" style="'+sel+'margin-top:6px;display:none;">'+recipientOpts+'</select>'+
     '</div>';
   }).join('');
   const allBtn = (v,l)=>'<button class="sc-btn" style="font-size:13px;" onclick="tourRefusalSetAll(\''+v+'\')">'+l+'</button>';
   showQuickModal('⚠ '+(isEn?'Refusal — the prey?':'Refus — et la proie ?'),
-    (refusers.length>1 ? '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;font-size:12px;">'+(isEn?'All:':'Tous :')+' '+allBtn('lost','🗑')+allBtn('passed','🔁')+allBtn('returned','↩')+'</div>' : '')+
+    (refusers.length>1 ? '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;font-size:12px;">'+(isEn?'All:':'Tous :')+' '+allBtn('lost','🗑')+allBtn('passed','🔁')+allBtn('returned','↩')+
+      ' <button class="sc-btn" style="font-size:13px;" onclick="tourRefusalSetAllType(\'frozen\')">❄️</button><button class="sc-btn" style="font-size:13px;" onclick="tourRefusalSetAllType(\'live\')">🐭</button></div>' : '')+
     '<div style="max-height:52vh;overflow-y:auto;">'+rows+'</div>'+
     '<div style="font-size:11.5px;color:var(--ink-dim);margin-top:8px;">'+(isEn?'Given to another: the meal is logged for the one who ate it, and only one prey leaves the stock.':'Passée à un autre : le repas est noté pour celui qui l\'a mangée, et une seule proie sort du stock.')+'</div>'+
     '<button class="save-btn" style="margin-top:14px;width:100%;" onclick="confirmTourRefusalPrey()">'+(isEn?'Save refusal(s)':'Enregistrer le(s) refus')+'</button>'
   );
 }
+// v5.47 — ❄️ congelée / 🐭 vivante pour la proie refusée (le stock retiré et le repas du receveur en dépendent)
+function trpTypeButtonsHtml(ptype){
+  const isEn = currentLang==='en';
+  const b = (v, icon, label)=>'<button type="button" class="sc-btn trp-type-btn" data-type="'+v+'" aria-pressed="'+(ptype===v)+'" aria-label="'+label+'" style="font-size:16px;padding:6px 12px;'+(ptype===v?'background:var(--gold);color:#1a1409;border-color:var(--gold);':'')+'" onclick="trpSetType(this.closest(\'.trp-row\'), \''+v+'\')">'+icon+'</button>';
+  return b('frozen','❄️', isEn?'Frozen-thawed':'Décongelée')+b('live','🐭', isEn?'Live':'Vivante');
+}
+function trpSetType(row, ptype){
+  if(!row) return;
+  const old = row.getAttribute('data-type');
+  row.setAttribute('data-type', ptype);
+  row.querySelectorAll('.trp-type-btn').forEach(btn=>{
+    const on = btn.getAttribute('data-type')===ptype;
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btn.style.background = on ? 'var(--gold)' : ''; btn.style.color = on ? '#1a1409' : ''; btn.style.borderColor = on ? 'var(--gold)' : '';
+  });
+  // le choix par défaut suit le type (congelée → gaspillée, vivante → retournée au bac), sauf « passée à un autre »
+  const f = row.querySelector('.trp-fate');
+  if(f && old!==ptype && f.value!=='passed') f.value = ptype==='frozen' ? 'lost' : 'returned';
+}
+function tourRefusalSetAllType(ptype){ document.querySelectorAll('.trp-row').forEach(r=>trpSetType(r, ptype)); }
 function tourRefusalSetAll(v){
   document.querySelectorAll('.trp-row').forEach(r=>{
     const f = r.querySelector('.trp-fate'); if(f) f.value = v;
@@ -15926,7 +16016,7 @@ function confirmTourRefusalPrey(){
     const toVal = (r.querySelector('.trp-to')||{}).value || '';
     const to = toVal ? savedSnakes.find(x=>String(x.id)===toVal) : null;
     if(fate==='passed' && !to) missing = true;
-    plan[sn.id] = { fate, toId: to ? to.id : null };
+    plan[sn.id] = { fate, toId: to ? to.id : null, preyType: r.getAttribute('data-type')==='live' ? 'live' : 'frozen' }; // v5.47
   });
   if(missing){ showToast(isEn?'Pick who ate the prey (or choose Wasted).':'Choisis qui a mangé la proie (ou « Gaspillée »).', 'error'); return; }
   closeQuickModal();
@@ -18750,6 +18840,7 @@ var IMPORT_COMBO_NAMES = [
   { n:['bel','blue eyed leucistic','blue eye leucistic','blue eyed lucy','blue eye lucy'], g:{}, note:'bel' } // plusieurs combinaisons possibles (WOBP : Lesser Mojave Vanilla = BEL Vanilla; Blue Eyed Lucy Super Stripe = Lesser Mojave Specter Yellow Belly)
 ];
 var IMPORT_COMBO_NOTES = {
+  bci_dragon: ['Red/Sun Dragon = Albino Kahl OU Sharp + Blood (+ Hypo pour Sun Dragon) : la lignée d\'albinos n\'est pas dans le nom — Blood ajouté, choisis l\'Albino (Kahl ou Sharp) sur la fiche.', 'Red/Sun Dragon = Kahl OR Sharp Albino + Blood (+ Hypo for Sun Dragon): the albino line is not in the name — Blood added, pick the Albino (Kahl or Sharp) on the record.'], // v5.45
   queenbee: ['Queen Bee lu comme Butter + Pastel + Spider (World of Ball Pythons) — certains l\'emploient pour Lesser : vérifie sur la fiche.', 'Queen Bee read as Butter + Pastel + Spider (World of Ball Pythons) — some use it for Lesser: check on the sheet.'],
   snow: ['Snow = Albino + Axanthic : la lignée Axanthic (VPI, TSK, Jolliff, MJ…) n\'est pas dans le nom — Albino ajouté, choisis l\'Axanthic sur la fiche.', 'Snow = Albino + Axanthic: the Axanthic line (VPI, TSK, Jolliff, MJ…) isn\'t in the name — Albino added, pick the Axanthic on the sheet.'],
   axanthic: ['Axanthic sans lignée : il y en a plusieurs qui ne sont pas compatibles entre elles (VPI, TSK, Jolliff, MJ, GCR) — aucune devinée, choisis la lignée sur la fiche (le vendeur ou l\'éleveur d\'origine la connaît normalement).', 'Axanthic without a line: there are several that aren\'t compatible with each other (VPI, TSK, Jolliff, MJ, GCR) — none guessed, pick the line on the sheet (the seller or original breeder normally knows it).'],
@@ -27519,11 +27610,13 @@ function applyTourAction(action){
     else if(action==='refused'){
       snake.health.consecutiveRefusals = (snake.health.consecutiveRefusals||0)+1;
       // v5.04 — sort de la proie choisi dans la fenêtre (avant : congelée = jetée d'office, vivante = rien).
-      const preyType = snake.preyType||'frozen';
-      const plan = (tourRefusalPlan && tourRefusalPlan[snake.id]) || { fate: preyType==='frozen' ? 'lost' : 'returned' };
+      const planIn = tourRefusalPlan && tourRefusalPlan[snake.id];
+      const preyType = (planIn && planIn.preyType) || snake.preyType || 'frozen'; // v5.47 — type choisi dans la fenêtre
+      const plan = planIn || { fate: preyType==='frozen' ? 'lost' : 'returned' };
       const recipient = plan.fate==='passed' ? savedSnakes.find(x=>x.id===plan.toId && x.id!==snake.id) : null;
       const fate = (plan.fate==='passed' && !recipient) ? 'lost' : plan.fate;
-      const event = {date:today, type:'refused', reason:'unknown', lostPrey: fate==='lost', preyFate: fate};
+      const event = {date:today, type:'refused', reason:'unknown', lostPrey: fate==='lost', preyFate: fate, preyType}; // v5.47 — type gardé sur le refus
+      if(snake.preySpecies && snake.preySize){ event.preySpecies = snake.preySpecies; event.preySize = snake.preySize; }
       if(recipient) event.passedTo = snakeName(recipient);
       let rec = null;
       if(fate!=='returned' && snake.preySpecies && snake.preySize){
@@ -33478,6 +33571,110 @@ function exportBudgetExcel(){
 // Rapport d'inventaire complet (2 septembre) — toute la collection, peu importe le statut, dans un
 // seul fichier Excel. Distinct du rapport fiscal (qui ne couvre que ventes/dépenses de l'année) :
 // celui-ci sert d'inventaire général (assurance, permis, vue d'ensemble à montrer/imprimer).
+/* ==================== v5.44 — « 📦 Tout exporter en Excel » (point 11 de l'éleveur grincheux, gratuit) ====================
+   « Et si le développeur arrête ? » : la sauvegarde JSON ne se relit que dans LOCUS. Ce fichier-ci s'ouvre partout
+   (Excel, Google Sheets, Numbers) et garde TOUT l'historique, un onglet par sujet. Les en-têtes des onglets
+   « Animaux » et « Journal » sont ceux que l'import de LOCUS reconnaît : le fichier se réimporte aussi.
+   Données en métrique (g, cm, °C) avec l'unité dans l'en-tête (décision du 30 oct : exports de données = métrique).
+   Ouvert aussi aux invités (leurs données ne sont que sur l'appareil : raison de plus de pouvoir les sortir). */
+function exportEverythingExcel(){
+  const isEn = currentLang==='en';
+  if(typeof XLSX==='undefined'){ showToast(isEn?'The Excel tool is not loaded — check your connection and try again.':'L\'outil Excel n\'est pas chargé — vérifie ta connexion et réessaie.', 'error'); return; }
+  savedSnakes.forEach(ensureSnakeMeta);
+  const L = (fr, en)=> isEn ? en : fr;
+  const byId = {}; savedSnakes.forEach(s=>{ byId[s.id] = s; });
+  const who = id=>{ const s = byId[id]; return s ? (s.animalId || snakeName(s)) : ''; };
+  const sexL = s=> s.sex==='male' ? L('Mâle','Male') : s.sex==='female' ? L('Femelle','Female') : L('Inconnu','Unknown');
+  const statusL = s=> s.status==='deceased' ? L('Décédé','Deceased') : s.status==='sold' ? L('Vendu','Sold') : s.status==='reserved' ? L('Réservé','Reserved') : s.status==='forsale' ? L('À vendre','For sale') : L('Gardé','Kept');
+  const placeL = s=>{
+    if(s.placement.mode==='rack'){ const rack = getRack(s.placement.rackId); return placementCode(s) || ((rack?rack.name:'?')+'-R'+s.placement.row+'-B'+s.placement.tub); }
+    const te = s.placement.terrariumId ? getTerrarium(s.placement.terrariumId) : null;
+    return te ? te.name : '';
+  };
+  const preyL = (sp, sz, type)=> (sp && sz ? preyLabelShort(sp, sz) : '') + (type ? (sp && sz ? ' ' : '') + (type==='live' ? L('vivante','live') : L('congelée','frozen')) : '');
+  const sheets = [];
+  const add = (name, header, rows, widths)=>{ const ws = XLSX.utils.aoa_to_sheet([header].concat(rows)); if(widths) ws['!cols'] = widths.map(w=>({ wch:w })); sheets.push([name, ws]); };
+
+  // 1) Animaux — en-têtes reconnus par l'import
+  add(L('Animaux','Animals'),
+    [L('ID','ID'), L('Nom','Name'), L('Sexe','Sex'), L('Espèce','Species'), L('Génétique','Genetics'), L('Nom de combo','Combo name'), L('Date de naissance','Birth date'), L('Date d\'acquisition','Acquisition date'), L('Provenance','Provenance'), L('Statut','Status'), L('Prix d\'achat','Purchase price'), L('Prix demandé','Asking price'), L('Prix de vente','Sold price'), L('Date de vente','Sale date'), L('Acheteur','Buyer'), L('Date du décès','Date of death'), L('Emplacement','Location'), L('Père','Sire'), L('Mère','Dam'), L('Proie habituelle','Usual prey'), L('Intervalle de repas (jours)','Feeding interval (days)'), L('Dernier poids (g)','Last weight (g)'), L('Notes','Notes')],
+    savedSnakes.map(s=>{
+      const w = s.health.weights.length ? [...s.health.weights].sort((a,b)=>String(a.date).localeCompare(String(b.date))).slice(-1)[0].value : '';
+      return [s.animalId||'', s.name||'', sexL(s), speciesDisplayLabel(s.species, isEn), summarizeGenes(s.genes), speciesComboTitle(s.genes, s.species)||'',
+        s.birthDate||'', s.acquisitionDate||'', s.provenance||'', statusL(s), s.purchasePrice!=null?s.purchasePrice:'', s.askingPrice!=null?s.askingPrice:'',
+        s.soldPrice!=null?s.soldPrice:'', s.soldDate||'', s.buyer||'', s.deceasedDate||'', placeL(s), s.sireId?who(s.sireId):'', s.damId?who(s.damId):'',
+        preyL(s.preySpecies, s.preySize, s.preyType||'frozen'), s.feedingIntervalDays||'', w, s.notes||''];
+    }), [12,16,8,18,30,18,12,12,16,10,10,10,10,12,16,12,14,12,12,20,10,10,40]);
+
+  // 2) Journal — même format que l'import d'historique (ID, Nom, Date, Activité, Proie, Quantité, Poids (g), Notes)
+  const actL = { fed:L('A mangé','Fed'), refused:L('Refus','Refused'), skipped:L('Repas sauté','Skipped meal'), inshed:L('En mue','In shed'), shed:L('Mue','Shed'),
+    supplement:L('Supplément','Supplement'), lock:'Lock', pair_in:L('Mis ensemble','Put together'), pair_out:L('Séparés','Separated'), water:L('Changement d\'eau','Water change') };
+  const jrows = [];
+  savedSnakes.forEach(s=>{
+    s.health.events.forEach(e=>{
+      if(!e || !e.type || e.type==='weigh' || e.type==='length') return; // pesées et longueurs : depuis leurs listes (pas de doublon)
+      const notes = [];
+      if(e.type==='fed' && e.quantity==='partial') notes.push(L('partiel','partial'));
+      if(e.type==='refused' && e.reason==='in_shed') notes.push(L('en mue','in shed'));
+      if(e.type==='shed' && e.quality) notes.push(shedQualityLabel(e.quality));
+      if(e.partner) notes.push(String(e.partner));
+      if(e.passedFrom) notes.push(L('refusée par ','refused by ')+e.passedFrom);
+      if(e.type==='supplement' && e.kind) notes.push(supplementKindLabel(e.kind));
+      if(e.note) notes.push(String(e.note));
+      jrows.push([s.animalId||'', s.name||'', e.date||'', actL[e.type]||e.type, (e.type==='fed'||e.type==='refused') ? preyL(e.preySpecies, e.preySize, e.preyType) : '', e.preyCount>1 ? e.preyCount : '', '', notes.join(' · ')]);
+    });
+    s.health.weights.forEach(w=>{ if(w) jrows.push([s.animalId||'', s.name||'', w.date||'', L('Pesée','Weigh-in'), '', '', w.value, '']); });
+  });
+  jrows.sort((a,b)=> String(a[1]).localeCompare(String(b[1])) || String(a[2]).localeCompare(String(b[2])));
+  add(L('Journal','Log'), ['ID', L('Nom','Name'), 'Date', L('Activité','Activity'), L('Proie','Prey'), L('Quantité','Quantity'), L('Poids (g)','Weight (g)'), 'Notes'], jrows, [12,16,12,16,22,10,10,40]);
+
+  // 3) Longueurs
+  const lrows = [];
+  savedSnakes.forEach(s=> s.health.lengths.forEach(l=>{ if(l) lrows.push([s.animalId||'', s.name||'', l.date||'', l.value]); }));
+  add(L('Longueurs','Lengths'), ['ID', L('Nom','Name'), 'Date', L('Longueur (cm)','Length (cm)')], lrows, [12,16,12,12]);
+
+  // 4) Santé : véto + selles
+  const hrows = [];
+  savedSnakes.forEach(s=>{
+    (s.health.vetVisits||[]).forEach(v=>{ if(v) hrows.push([s.animalId||'', s.name||'', v.date||'', L('Véto','Vet'), v.reason||'', v.findings||'']); });
+    (s.health.defecations||[]).forEach(d=>{ if(d) hrows.push([s.animalId||'', s.name||'', d.date||'', L('Selles','Poop'), '', d.note||'']); });
+  });
+  add(L('Santé','Health'), ['ID', L('Nom','Name'), 'Date', 'Type', L('Motif','Reason'), L('Observations','Findings')], hrows, [12,16,12,10,24,40]);
+
+  // 5) Accouplements
+  add(L('Accouplements','Pairings'), [L('Mâle','Male'), L('Femelle','Female'), L('Date de début','Start date'), L('Nombre de locks','Lock count'), L('Dates des locks','Lock dates'), L('Ovulation','Ovulation'), L('Date d\'ovulation','Ovulation date')],
+    (pairings||[]).map(p=>[who(p.maleId), who(p.femaleId), p.pairedDate||'', (p.lockDates||[]).length, (p.lockDates||[]).join(', '), p.ovulationConfirmed?L('Oui','Yes'):L('Non','No'), p.ovulationDate||'']),
+    [14,14,12,10,40,10,12]);
+
+  // 6) Pontes
+  add(L('Pontes','Clutches'), [L('Référence','Reference'), L('Père','Sire'), L('Mère','Dam'), L('Date de ponte','Lay date'), L('Œufs','Eggs'), L('Jours d\'incubation','Incubation days'), L('Éclosion prévue','Expected hatch'), L('Éclos','Hatched'), L('Nés vivants','Born alive'), L('Mort-nés','Stillborn'), 'Slugs', L('Temp. d\'incubation (°C)','Incubation temp (°C)')],
+    (clutches||[]).map(c=>[c.ref||'', c.sireId?who(c.sireId):'', c.damId?who(c.damId):'', c.layDate||'', c.eggCount!=null?c.eggCount:'', c.incubationDays||'', c.hatchDate||'', c.hatched?L('Oui','Yes'):L('Non','No'), c.liveCount!=null?c.liveCount:'', c.stillbornCount!=null?c.stillbornCount:'', c.slugCount!=null?c.slugCount:'', c.incubTempC!=null?c.incubTempC:'']),
+    [14,12,12,12,8,10,12,8,10,10,8,12]);
+
+  // 7) Dépenses
+  add(L('Dépenses','Expenses'), ['Date', L('Catégorie','Category'), L('Montant ($)','Amount ($)'), 'Notes'],
+    (expenses||[]).map(e=>[e.date||'', e.category||'', e.amount!=null?e.amount:'', e.note||'']), [12,22,12,40]);
+
+  // 0) Lisez-moi (en premier)
+  const readme = [
+    [L('LOCUS Scales — export complet','LOCUS Scales — full export')],
+    [L('Date de l\'export','Export date'), localTodayStr()],
+    [L('Version de LOCUS','LOCUS version'), APP_VERSION],
+    [L('Animaux','Animals'), savedSnakes.length],
+    [L('Unités','Units'), L('poids en grammes (g), longueurs en centimètres (cm), températures en °C, prix en $','weights in grams (g), lengths in centimetres (cm), temperatures in °C, prices in $')],
+    [L('Dates','Dates'), L('format AAAA-MM-JJ','YYYY-MM-DD format')],
+    [''],
+    [L('Ce fichier t\'appartient. Il s\'ouvre sans LOCUS (Excel, Google Sheets, Numbers).','This file is yours. It opens without LOCUS (Excel, Google Sheets, Numbers).')],
+    [L('Pour le remettre dans LOCUS : Mes reptiles → importer l\'onglet « Animaux », puis l\'onglet « Journal » avec l\'import d\'historique.','To put it back into LOCUS: My reptiles → import the « Animals » sheet, then the « Log » sheet with the history import.')],
+    [L('Pour une copie identique (photos, réglages, tout), utilise aussi « Exporter ma sauvegarde » (fichier .json).','For an identical copy (photos, settings, everything), also use « Export my backup » (.json file).')]
+  ];
+  const rws = XLSX.utils.aoa_to_sheet(readme); rws['!cols'] = [{ wch:28 }, { wch:90 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, rws, L('Lisez-moi','Read me'));
+  sheets.forEach(([n, ws])=> XLSX.utils.book_append_sheet(wb, ws, n));
+  XLSX.writeFile(wb, (isEn?'LOCUS-Scales-full-export-':'LOCUS-Scales-export-complet-')+localTodayStr()+'.xlsx');
+  showToast('📦 '+(isEn?'Full export ready: ':'Export complet prêt : ')+savedSnakes.length+(isEn?' animal(s), every sheet.':' animal(aux), tous les onglets.'), 'success');
+}
 function exportInventoryExcel(){
   if(!requireAuthOrPrompt()) return;
   const isEn = currentLang==='en';

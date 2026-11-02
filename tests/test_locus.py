@@ -948,6 +948,99 @@ def t_combos_bp(browser, url):
     check('pas d\'erreur JS (combos python royal)', not a.real_errors(), a.real_errors()[:3])
     a.close()
 
+XLSX_STUB = """(()=>{ if(typeof XLSX!=='undefined' && XLSX.__real!==false && XLSX.utils && XLSX.read) return; window.XLSX = { __real:false, utils:{
+  book_new:()=>({ SheetNames:[], Sheets:{} }), aoa_to_sheet:(aoa)=>({ __aoa:aoa }),
+  book_append_sheet:(wb, ws, n)=>{ wb.SheetNames.push(n); wb.Sheets[n] = ws; } },
+  writeFile:(wb, name)=>{ window.__xlsxOut = { name, sheets: wb.SheetNames.map(n=>({ n, rows: wb.Sheets[n].__aoa })) }; } }; })()"""
+
+def t_export_complet(browser, url):
+    section('Tout exporter en Excel (v5.44)')
+    import csv
+    s1 = make_snake(61, days_history=90); s2 = make_snake(62, days_history=60)
+    s1['health']['vetVisits'] = [{"id": "v1", "date": iso(TODAY - datetime.timedelta(days=5)), "reason": "Bilan", "findings": "RAS"}]
+    s1['health']['lengths'] = [{"date": iso(TODAY - datetime.timedelta(days=4)), "value": 92.5}]
+    a = App(browser, url, snakes=[s1, s2]); a.open(wait=2500)
+    a.js(XLSX_STUB)  # la vraie librairie (lib/xlsx.full.min.js) est dans le dépôt, pas dans le zip de test
+    a.js("showTab('export')"); a.page.wait_for_timeout(200)
+    a.page.locator('#view-export button[onclick="exportEverythingExcel()"]').click(); a.page.wait_for_timeout(300)
+    out = a.js("window.__xlsxOut")
+    sh = {x['n']: x['rows'] for x in (out or {}).get('sheets', [])}
+    check('fichier : Lisez-moi + 7 onglets', list(sh.keys()) == ['Lisez-moi', 'Animaux', 'Journal', 'Longueurs', 'Santé', 'Accouplements', 'Pontes', 'Dépenses'], list(sh.keys()))
+    an = sh.get('Animaux', []); jr = sh.get('Journal', [])
+    n_events = sum(len(s['health']['events']) for s in (s1, s2)); n_w = sum(len(s['health']['weights']) for s in (s1, s2))
+    check('Animaux : 2 lignes', len(an) == 3, len(an))
+    check('Journal : chaque événement + chaque pesée', len(jr) - 1 == n_events + n_w, (len(jr) - 1, n_events, n_w))
+    check('Santé et Longueurs remplis', len(sh.get('Santé', [])) == 2 and sh.get('Longueurs', [[], [0, 0, 0, None]])[1][3] == 92.5)
+    # l'import reconnaît les en-têtes et les activités du Journal
+    hm = a.js("(h)=>mapLogHeaders(h)", jr[0]) if jr else None
+    acts = a.js("(rows)=>[...new Set(rows.slice(1).map(r=>r[3]))].map(x=>[x, mapLogActivity(x)])", jr) if jr else []
+    check('Journal : en-têtes reconnus par l\'import d\'historique', bool(hm), hm)
+    want = {'A mangé': 'fed', 'Refus': 'refused', 'Mue': 'shed', 'Pesée': 'weight'}
+    check('Journal : activités relues correctement (A mangé, Refus, Mue, Pesée)', all(dict(acts).get(k) == v for k, v in want.items() if k in dict(acts)) and 'A mangé' in dict(acts), acts)
+    check('pas d\'erreur JS (export)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+    # aller-retour : l'onglet Animaux réimporté (en CSV) dans une app vide
+    path = os.path.join(tempfile.mkdtemp(), 'animaux.csv')
+    with open(path, 'w', encoding='utf-8', newline='') as fh: csv.writer(fh).writerows(an)
+    b = App(browser, url, snakes=[]); b.open(); b.js("showTab('mine')")
+    b.page.set_input_files('#generic-csv-file-input', path); b.page.wait_for_timeout(1000)
+    b.js("""(()=>{ const btns=[...document.querySelectorAll('button')].filter(x=>x.offsetParent && /import/i.test(x.textContent) && !/fichier|file|choisir|choose/i.test(x.textContent)); if(btns.length) btns[btns.length-1].click(); })()""")
+    b.page.wait_for_timeout(1200)
+    got = b.js("savedSnakes.map(s=>({n:s.name, sex:s.sex, w:(s.health&&s.health.weights||[]).map(x=>x.value)}))")
+    lastw = lambda s: sorted(s['health']['weights'], key=lambda w: w['date'])[-1]['value'] if s['health']['weights'] else None
+    ok = sorted(x['n'] for x in got) == sorted([s1['name'], s2['name']]) and all((x['w'][-1] if x['w'] else None) == lastw(s1 if x['n'] == s1['name'] else s2) for x in got)
+    check('réimport de l\'onglet Animaux : les 2 animaux reviennent, avec sexe et dernier poids', ok, got)
+    b.close()
+def t_keltic_dragons(browser, url):
+    section('BCI : Keltic, Smoke, Red/Sun Dragon (v5.45)')
+    m = make_snake(71, species='boa_bci', genes={'bci_keltic': 'single'}); m['sex'] = 'male'
+    f = make_snake(72, species='boa_bci', genes={'bci_motley': 'single'}); f['sex'] = 'female'
+    a = App(browser, url, snakes=[m, f]); a.open(wait=2500)
+    a.js("showTab('calc')"); a.page.wait_for_timeout(150)
+    a.js("loadSnake(%s,'male'); loadSnake(%s,'female'); runCross();" % (json.dumps(m['id']), json.dumps(f['id']))); a.page.wait_for_timeout(300)
+    res = a.js("document.getElementById('results').textContent")
+    pct = a.js("(()=>{ let p=0; lastDistributions.forEach(d=>{ if(d.traits.some(t=>t.label==='Smoke')) p+=d.prob; }); return p; })()")
+    check('Keltic × Motley : 25 % « Smoke »', abs(pct - 0.25) < 1e-9, pct)
+    check('Smoke : avertissement létal affiché', 'Smoke' in res and ('LÉTAL' in res or 'létal' in res), res[:300])
+    c = a.js("""[
+      speciesComboTitle({bci_kahl:'visual', bci_blood:'visual'}, 'boa_bci'),
+      speciesComboTitle({bci_sharp:'visual', bci_blood:'visual'}, 'boa_bci'),
+      speciesComboTitle({bci_hypo:'single', bci_sharp:'visual', bci_blood:'visual'}, 'boa_bci'),
+      speciesComboTitle({bci_hypo:'single', bci_kahl:'visual'}, 'boa_bci')
+    ]""")
+    check('Red Dragon (Kahl ou Sharp + Blood), Sun Dragon (+ Hypo), Sunglow intact', c == ['Red Dragon', 'Red Dragon', 'Sun Dragon', 'Sunglow'], c)
+    p = a.js("parseImportGenes('Red Dragon', 'boa_bci')")
+    check('import « Red Dragon » : Blood seulement + note (lignée inconnue)', p['genes'] == {'bci_blood': 'visual'} and any(x.get('note') == 'bci_dragon' for x in p.get('combos', [])), p)
+    g = a.js("parseImportGenes('Smoke', 'boa_bci').genes")
+    check('import « Smoke » : Keltic + Motley', g == {'bci_keltic': 'single', 'bci_motley': 'single'}, g)
+    check('Super Keltic nommé', a.js("speciesComboTitle({bci_keltic:'homo', bci_kahl:'visual', bci_anery1:'visual'}, 'boa_bci')") == 'Snow · Super Keltic', a.js("speciesComboTitle({bci_keltic:'homo', bci_kahl:'visual', bci_anery1:'visual'}, 'boa_bci')"))
+    check('pas d\'erreur JS (Keltic)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+
+def t_refus_type_proie(browser, url):
+    section('Refus → proie passée à un autre : ❄️ / 🐭 (v5.47)')
+    r = make_snake(81); g = make_snake(82)
+    for s_ in (r, g):
+        s_['placement'] = {"mode": "terrarium", "terrariumId": None, "row": None, "tub": None}
+        s_['preySpecies'] = 'mouse'; s_['preySize'] = 'Fuzzy'; s_['preyType'] = 'frozen'
+    a = App(browser, url, snakes=[r, g]); a.open(wait=3500)
+    a.js("feederStock[feederStockKey('mouse','Fuzzy')] = 10; feederStockLive[feederStockKey('mouse','Fuzzy')] = 4;")
+    a.js("showTab('elevage'); showSubtab('tour')"); a.page.wait_for_timeout(300)
+    a.js("tourSelection.clear(); tourSelection.add('terra:%s')" % r['id'])
+    a.page.locator('button.tour-action-btn.refused[onclick="applyTourAction(\'refused\')"]').first.click(); a.page.wait_for_timeout(250)
+    row = a.page.locator('.trp-row').first
+    check('fenêtre de refus : boutons ❄️ et 🐭 visibles, ❄️ actif (fiche)', row.locator('.trp-type-btn').count() == 2 and row.get_attribute('data-type') == 'frozen', row.get_attribute('data-type'))
+    row.locator('.trp-type-btn[data-type="live"]').click(); a.page.wait_for_timeout(100)
+    check('🐭 touché : type vivant, défaut « retournée au bac »', row.get_attribute('data-type') == 'live' and row.locator('.trp-fate').input_value() == 'returned', row.locator('.trp-fate').input_value())
+    row.locator('.trp-fate').select_option('passed'); row.locator('.trp-to').select_option(g['id'])
+    a.page.locator('button[onclick="confirmTourRefusalPrey()"]').click(); a.page.wait_for_timeout(300)
+    st = a.js("[feederStock[feederStockKey('mouse','Fuzzy')], feederStockLive[feederStockKey('mouse','Fuzzy')]]")
+    check('stock : une vivante retirée, congelé intact', st == [10, 3], st)
+    ev = a.js("(()=>{ const T=localTodayStr(); const f=savedSnakes.find(x=>x.id==='%s').health.events.find(e=>e.type==='fed'&&e.date===T); const rf=savedSnakes.find(x=>x.id==='%s').health.events.find(e=>e.type==='refused'&&e.date===T); return [f&&f.preyType, rf&&rf.preyType, rf&&rf.preyFate]; })()" % (g['id'], r['id']))
+    check('repas du receveur noté 🐭 vivant, refus garde le type', ev == ['live', 'live', 'passed'], ev)
+    check('pas d\'erreur JS (refus)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+
 def t_perf(browser, url):
     section('Mesure : 200 animaux + 2 ans d\'historique')
     rng = random.Random(42)
@@ -986,7 +1079,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()
