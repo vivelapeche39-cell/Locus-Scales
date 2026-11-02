@@ -1041,6 +1041,40 @@ def t_refus_type_proie(browser, url):
     check('pas d\'erreur JS (refus)', not a.real_errors(), a.real_errors()[:3])
     a.close()
 
+def t_renote_apres_suppression(browser, url):
+    section('Entrée supprimée puis renotée à l\'identique : elle reste (v5.48)')
+    s = make_snake(91); sid = s['id']
+    s['placement'] = {"mode": "terrarium", "terrariumId": None, "row": None, "tub": None}
+    s['preySpecies'] = 'rat'; s['preySize'] = 'Small'; s['preyType'] = 'frozen'
+    a = App(browser, url, snakes=[s]); a.open(wait=3500)
+    a.js("showTab('elevage'); showSubtab('tour')"); a.page.wait_for_timeout(300)
+    past = iso(TODAY - datetime.timedelta(days=2))
+    fed = lambda: a.js("(()=>{ setTourDateChoice('other'); tourDateOtherValue='%s'; tourSelection.clear(); tourSelection.add('terra:%s'); applyTourAction('fed_frozen'); })()" % (past, sid))
+    count = lambda: a.js("savedSnakes.find(x=>x.id==='%s').health.events.filter(e=>e.type==='fed').length" % sid)
+    fed(); a.page.wait_for_timeout(2500)
+    a.js("undoLastLoggedEvent()"); a.page.wait_for_timeout(2500)
+    check('repas annulé : parti, pierre tombale posée', count() == 0, count())
+    # un 2e appareil (copie à jour, pierre tombale comprise) note une pesée sur le même animal
+    db = a.js("window.__fakeSb.db()")
+    b = App(browser, url, snakes=[], server_db=db); b.open(wait=3000)
+    b.js("(()=>{const s=savedSnakes.find(x=>x.id==='%s'); s.health.weights.push({date:localTodayStr(), value:777}); s.updatedAt=Date.now(); storage.save(savedSnakes);})()" % sid)
+    b.page.wait_for_timeout(2500); db2 = b.js("window.__fakeSb.db()"); b.close()
+    # le 1er appareil renote le même repas : fusion avant envoi avec une fiche changée des deux côtés
+    a.js("sessionStorage.setItem('__fake_db', %s)" % json.dumps(json.dumps(db2)))
+    fed(); a.page.wait_for_timeout(3000)
+    srv = lambda: sum(1 for e in ((a.js("(window.__fakeSb.db().snakes||[]).find(r=>r.id==='%s')" % sid) or {}).get('health') or {}).get('events', []) if e.get('type') == 'fed')
+    check('renoté à l\'identique pendant qu\'un autre appareil a modifié la fiche : arrive au serveur (avant 5.48 : effacé)', srv() == 1 and count() == 1, (srv(), count()))
+    a.reload(wait=4000)
+    check('renoté : toujours là après réouverture', count() == 1, count())
+    check('le repas renoté est bien à la date choisie', a.js("savedSnakes.find(x=>x.id==='%s').health.events.find(e=>e.type==='fed').date" % sid) == past)
+    # pesée : même chose
+    a.js("(()=>{ const x=savedSnakes.find(y=>y.id==='%s'); addHealthTombstone(x, measureKey('w', {date:'2026-10-30', value:1152})); pushHealthMeasure(x, 'weights', {date:'2026-10-30', value:1152}); storage.save(savedSnakes); })()" % sid)
+    a.page.wait_for_timeout(3000); a.reload(wait=4000)
+    w = a.js("savedSnakes.find(x=>x.id==='%s').health.weights.filter(w=>w.date==='2026-10-30').length" % sid)
+    check('pesée renotée après suppression : reste', w == 1, w)
+    check('pas d\'erreur JS (renoter)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+
 def t_perf(browser, url):
     section('Mesure : 200 animaux + 2 ans d\'historique')
     rng = random.Random(42)
@@ -1079,7 +1113,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()

@@ -2358,7 +2358,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.47';
+const APP_VERSION = '2026.09.01.5.48';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5561,6 +5561,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.48', date:'2026-11-02',
+    title:{ fr:'Correctif : une entrée supprimée puis renotée ne disparaît plus', en:'Fix: an entry deleted then re-entered no longer disappears' },
+    changes:{
+      fr:[ '🛠 Si tu supprimais (ou annulais) un repas, une pesée ou une mue, puis la renotais exactement pareille (même date, même proie), elle disparaissait de nouveau à la synchro suivante. C\'est corrigé : la nouvelle entrée reste, sur tous tes appareils.' ],
+      en:[ '🛠 If you deleted (or undid) a meal, weigh-in or shed and then entered it again exactly the same (same date, same prey), it disappeared again at the next sync. Fixed: the new entry stays, on all your devices.' ]
+    }
+  },
   { version:'5.47', date:'2026-11-01',
     title:{ fr:'Refus : choisir congelée ou vivante', en:'Refusal: pick frozen or live' },
     changes:{
@@ -11340,7 +11347,7 @@ function batchMarkFed(){
     const ev = {date:today, type:'fed', preyType: s.preyType||'frozen'};
     if(s.preySpecies && s.preySize){ ev.preySpecies = s.preySpecies; ev.preySize = s.preySize; } // v5.40
     if(today===localTodayStr()) ev.at = new Date().toISOString(); // v3.77 — heure du repas (délai de manipulation)
-    s.health.events.push(ev);
+    pushHealthEvent(s, ev);
     count++;
     if(s.preySpecies && s.preySize){
       const rec = consumePreyForEvent(s, s.preyType||'frozen', 1);
@@ -15157,7 +15164,7 @@ function confirmPlate(id, appetite){
     if(day===localTodayStr()) event.at = new Date().toISOString(); // v3.77
     msg = '🥗 '+escapeHtml(snakeName(s))+(appetite==='partial' ? (isEn?' ate some of the plate.':' a mangé un peu.') : (isEn?' ate the whole plate.':' a tout mangé.'));
   }
-  s.health.events.push(event);
+  pushHealthEvent(s, event);
   storage.save(savedSnakes);
   registerEventUndo([{snakeId:id, event}]);
   closeQuickModal();
@@ -15211,7 +15218,7 @@ function confirmSupplement(id, kind){
   const el = document.getElementById('supp-date-input');
   const day = (el && el.value) ? el.value : localTodayStr();
   const event = {date:day, type:'supplement', kind};
-  s.health.events.push(event);
+  pushHealthEvent(s, event);
   storage.save(savedSnakes);
   registerEventUndo([{snakeId:id, event}]);
   closeQuickModal();
@@ -15249,7 +15256,7 @@ function confirmFed(id, quantity){
     saveElevage();
     stockMsg = stockDrawMessage(rec);
   }
-  s.health.events.push(event);
+  pushHealthEvent(s, event);
   storage.save(savedSnakes);
   registerEventUndo([{snakeId:id, event}]);
   try{ renderDefrostList(); }catch(e){}
@@ -15287,8 +15294,8 @@ function confirmWeigh(id){
   if(!s) return;
   ensureSnakeMeta(s);
   const today = localTodayStr();
-  s.health.weights.push({date:today, value:val});
-  s.health.events.push({date:today, type:'weigh', value:val});
+  pushHealthMeasure(s, 'weights', {date:today, value:val});
+  pushHealthEvent(s, {date:today, type:'weigh', value:val});
   storage.save(savedSnakes);
   closeQuickModal();
   showToast('⚖ '+s.name+' — '+(currentLang==='en'?'weighed: ':'pesé : ')+fmtWeight(val), 'success');
@@ -15325,8 +15332,8 @@ function confirmLength(id){
   if(!s) return;
   ensureSnakeMeta(s);
   const today = localTodayStr();
-  s.health.lengths.push({date:today, value:val});
-  s.health.events.push({date:today, type:'length', value:val});
+  pushHealthMeasure(s, 'lengths', {date:today, value:val});
+  pushHealthEvent(s, {date:today, type:'length', value:val});
   storage.save(savedSnakes);
   closeQuickModal();
   showToast('📏 '+s.name+(isEn?' measured: ':' mesuré : ')+fmtLength(val), 'success');
@@ -15474,7 +15481,7 @@ function confirmShed(id){
   const note = noteEl ? noteEl.value.trim() : '';
   const today = localTodayStr();
   const event = {date:today, type:'shed', quality, note};
-  s.health.events.push(event);
+  pushHealthEvent(s, event);
   storage.save(savedSnakes);
   registerEventUndo([{snakeId:id, event}]);
   closeQuickModal();
@@ -15518,7 +15525,7 @@ function logInShed(id){
   ensureSnakeMeta(s);
   const isEn = currentLang==='en';
   const event = { date: localTodayStr(), type:'inshed' };
-  s.health.events.push(event);
+  pushHealthEvent(s, event);
   storage.save(savedSnakes);
   registerEventUndo([{snakeId:id, event}]);
   showToast('🔵 '+escapeHtml(snakeName(s))+(isEn?' — in shed. Refusals won\'t be flagged until « Shed ».':' — en mue. Les refus ne seront pas signalés jusqu\'à « A mué ».'), 'success', 'undoLastLoggedEvent()');
@@ -15593,7 +15600,7 @@ function logRefusedInShed(id){
   ensureSnakeMeta(s);
   const isEn = currentLang==='en';
   const evs = refusedInShedEvents(s, localTodayStr());
-  evs.forEach(ev=>s.health.events.push(ev));
+  evs.forEach(ev=>pushHealthEvent(s, ev));
   if(evs.some(ev=>ev.stockDraw)){ saveElevage(); try{ renderDefrostList(); renderFeederStockList(); }catch(e){} }
   storage.save(savedSnakes);
   registerEventUndo(evs.map(ev=>({ snakeId:id, event:ev })));
@@ -15607,7 +15614,7 @@ function logSkippedMeal(id){
   ensureSnakeMeta(s);
   const isEn = currentLang==='en';
   const event = { date: localTodayStr(), type:'skipped' };
-  s.health.events.push(event);
+  pushHealthEvent(s, event);
   storage.save(savedSnakes);
   registerEventUndo([{snakeId:id, event}]);
   showToast('⏭ '+escapeHtml(snakeName(s))+(isEn?' — meal skipped on purpose (not a refusal).':' — repas sauté volontairement (pas un refus).'), 'success', 'undoLastLoggedEvent()');
@@ -15663,7 +15670,7 @@ function saveEditedEvent(id, idx){
     else if(e.reason==='in_shed') e.reason = 'unknown';
   }
   e.date = newDate;
-  if(wantShed && !inShedOnDate(s, newDate)) s.health.events.push({ date:newDate, type:'inshed' });
+  if(wantShed && !inShedOnDate(s, newDate)) pushHealthEvent(s, { date:newDate, type:'inshed' });
   recomputeConsecutiveRefusals(s);
   storage.save(savedSnakes);
   closeQuickModal();
@@ -15700,17 +15707,17 @@ function saveAddPastEvent(id){
   if(type==='weigh'){
     const v = weightFromInput(parseFloat((document.getElementById('pe-weight')||{}).value)); // v5.38 — en g
     if(isNaN(v) || v<=0){ showToast(isEn?'Enter a valid weight.':'Entre un poids valide.', 'error'); return; }
-    s.health.weights.push({ date, value:v });
+    pushHealthMeasure(s, 'weights', { date, value:v });
     s.health.weights.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
-    s.health.events.push({ date, type:'weigh', value:v });
+    pushHealthEvent(s, { date, type:'weigh', value:v });
   } else if(type==='refused_shed'){ // v3.93 — refus + en mue (pas de retrait de stock pour une entrée passée)
-    if(!inShedOnDate(s, date)) s.health.events.push({ date, type:'inshed' });
-    s.health.events.push({ date, type:'refused', reason:'in_shed' });
+    if(!inShedOnDate(s, date)) pushHealthEvent(s, { date, type:'inshed' });
+    pushHealthEvent(s, { date, type:'refused', reason:'in_shed' });
   } else if(EDITABLE_EVENT_TYPES.includes(type)){
     const ev = { date, type };
     if(type==='shed') ev.quality = (document.getElementById('pe-quality')||{}).value || 'complete';
     if(type==='fed') ev.preyType = (document.getElementById('pe-preytype')||{}).value || s.preyType || 'frozen';
-    s.health.events.push(ev);
+    pushHealthEvent(s, ev);
   } else return;
   recomputeConsecutiveRefusals(s);
   storage.save(savedSnakes);
@@ -16105,7 +16112,7 @@ function confirmRefused(id){
     saveElevage();
     stockMsg = stockDrawMessage(rec);
   }
-  s.health.events.push(event);
+  pushHealthEvent(s, event);
   storage.save(savedSnakes);
   registerEventUndo([{snakeId:id, event}]);
   try{ renderDefrostList(); }catch(e){}
@@ -16640,9 +16647,9 @@ function confirmBatchWeigh(){
   }
   // v3.68 — date choisie dans le Mode Tournée (peut être antérieure) ; pesées gardées en ordre chronologique.
   const today = batchWeighDate || localTodayStr();
-  s.health.weights.push({date:today, value:val});
+  pushHealthMeasure(s, 'weights', {date:today, value:val});
   s.health.weights.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
-  s.health.events.push({date:today, type:'weigh', value:val});
+  pushHealthEvent(s, {date:today, type:'weigh', value:val});
   storage.save(savedSnakes);
   batchWeighIndex++;
   showNextBatchWeigh();
@@ -17164,7 +17171,7 @@ function logPairingJournal(p, type, date, extra){
     const s = savedSnakes.find(x=>x.id===id); if(!s) return;
     ensureSnakeMeta(s);
     const otherId = id===p.maleId ? p.femaleId : p.maleId;
-    s.health.events.push(Object.assign({ type, date, partner: spSnakeName(otherId), pairingId:p.id }, extra||{}));
+    pushHealthEvent(s, Object.assign({ type, date, partner: spSnakeName(otherId), pairingId:p.id }, extra||{}));
   });
   storage.save(savedSnakes);
 }
@@ -17659,7 +17666,28 @@ function healthEventKey(e){
   ['type','date','value','preyType','preyCount','preySpecies','preySize','quantity','quality','partner','pairingId','lockId','note','reason','kind'].forEach(k=>{ if(e[k]!=null && e[k]!=='') o[k] = e[k]; });
   return 'e|'+JSON.stringify(o);
 }
-function measureKey(kind, m){ return kind+'|'+(m&&m.date)+'|'+Number(m&&m.value); }
+function measureKey(kind, m){ return (m && m.id) ? kind+'|id|'+m.id : kind+'|'+(m&&m.date)+'|'+Number(m&&m.value); } // v5.48 — id si présent
+// v5.48 — VRAI BUG (signalé par Alex le 2 nov) : une entrée supprimée laisse une pierre tombale basée sur son
+// CONTENU (type + date + proie…). Si on la renote ensuite à l'identique, elle a la même clé et la fusion avec
+// le serveur la retire à nouveau, à chaque fois (repas du 31 oct perdu 2 fois). Une entrée NOUVELLE dont le
+// contenu correspond à une pierre tombale reçoit donc un identifiant unique : sa clé devient « id|… ».
+function healthNewId(prefix){ return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8); }
+function pushHealthEvent(s, ev){
+  if(!s || !ev) return;
+  if(!s.health) s.health = { consecutiveRefusals:0, weights:[], events:[] };
+  if(!Array.isArray(s.health.events)) s.health.events = [];
+  const rm = Array.isArray(s.health.removed) ? s.health.removed : [];
+  if(!ev.id && rm.length && rm.indexOf(healthEventKey(ev))>-1) ev.id = healthNewId('ev');
+  const evList = s.health.events; evList.push(ev);
+}
+function pushHealthMeasure(s, list, m){
+  if(!s || !m) return;
+  if(!s.health) s.health = { consecutiveRefusals:0, weights:[], events:[] };
+  if(!Array.isArray(s.health[list])) s.health[list] = [];
+  const rm = Array.isArray(s.health.removed) ? s.health.removed : [];
+  if(!m.id && rm.length && rm.indexOf(measureKey(list==='weights'?'w':'l', m))>-1) m.id = healthNewId(list==='weights'?'w':'l');
+  s.health[list].push(m);
+}
 function addHealthTombstone(s, key){
   if(!s || !key) return;
   if(!s.health) s.health = { consecutiveRefusals:0, weights:[], events:[] };
@@ -19543,12 +19571,12 @@ function confirmLogImport(){
   const touched = new Set();
   m.items.forEach((it, i)=>{
     const s = it.snake; ensureSnakeMeta(s);
-    if(it.type==='weight'){ s.health.weights.push({ date: it.date, value: it.value }); }
+    if(it.type==='weight'){ pushHealthMeasure(s, 'weights', { date: it.date, value: it.value }); }
     else {
       const ev = { id:'ev_log_'+base+'_'+i, type: it.type, date: it.date };
       ['preySpecies','preySize','preyType','preyCount','quality','note','reason'].forEach(k=>{ if(it[k]!=null && it[k]!=='') ev[k] = it[k]; });
-      s.health.events.push(ev);
-      if(it.reason==='in_shed'){ try{ if(!inShedOnDate(s, it.date)) s.health.events.push({ id:'ev_log_'+base+'_'+i+'_s', type:'inshed', date: it.date }); }catch(e){} } // v4.27 — comme « Refus (mue) » dans l'app
+      pushHealthEvent(s, ev);
+      if(it.reason==='in_shed'){ try{ if(!inShedOnDate(s, it.date)) pushHealthEvent(s, { id:'ev_log_'+base+'_'+i+'_s', type:'inshed', date: it.date }); }catch(e){} } // v4.27 — comme « Refus (mue) » dans l'app
     }
     touched.add(s);
   });
@@ -27603,7 +27631,7 @@ function applyTourAction(action){
           if(left!=null && left <= FEEDER_LOW_STOCK_THRESHOLD) lowStockMsgs.push(rec.species+' '+rec.size+' ('+left+')');
         }
       }
-      snake.health.events.push(event);
+      pushHealthEvent(snake, event);
       undoPairs.push({snakeId:snake.id, event});
       fedCount++;
     }
@@ -27624,7 +27652,7 @@ function applyTourAction(action){
         if(rec) stockTouched = true;
       }
       if(fate==='lost' && rec) event.stockDraw = rec;
-      snake.health.events.push(event);
+      pushHealthEvent(snake, event);
       undoPairs.push({snakeId:snake.id, event});
       if(recipient){
         // La proie est mangée par un autre : repas noté pour lui, sans retirer une 2e proie du stock.
@@ -27634,7 +27662,7 @@ function applyTourAction(action){
         if(snake.preySpecies && snake.preySize){ fedEv.preySpecies = snake.preySpecies; fedEv.preySize = snake.preySize; }
         if(today===localTodayStr()) fedEv.at = new Date().toISOString();
         if(rec) fedEv.stockDraw = rec;
-        recipient.health.events.push(fedEv);
+        pushHealthEvent(recipient, fedEv);
         undoPairs.push({snakeId:recipient.id, event:fedEv});
         tourRefusalPassedCount++;
       }
@@ -27644,26 +27672,26 @@ function applyTourAction(action){
       snake.health.consecutiveRefusals = 0;
       const event = {date:today, type:'fed', quantity:'complete', plate:true};
       if(today===localTodayStr()) event.at = new Date().toISOString(); // v3.77
-      snake.health.events.push(event);
+      pushHealthEvent(snake, event);
       undoPairs.push({snakeId:snake.id, event});
     }
     else if(action==='shed'){
       const event = {date:today, type:'shed', quality: tourShedQualityPending || 'complete'};
-      snake.health.events.push(event);
+      pushHealthEvent(snake, event);
       undoPairs.push({snakeId:snake.id, event});
     }
     else if(action==='refused_shed'){ // v3.93 — refus à cause de la mue, en un toucher
       const evs = refusedInShedEvents(snake, today);
-      evs.forEach(ev=>{ if(ev.stockDraw) stockTouched = true; snake.health.events.push(ev); undoPairs.push({snakeId:snake.id, event:ev}); });
+      evs.forEach(ev=>{ if(ev.stockDraw) stockTouched = true; pushHealthEvent(snake, ev); undoPairs.push({snakeId:snake.id, event:ev}); });
     }
     else if(action==='skipped'){ // v3.92 — repas sauté volontairement (pas un refus)
       const event = {date:today, type:'skipped'};
-      snake.health.events.push(event);
+      pushHealthEvent(snake, event);
       undoPairs.push({snakeId:snake.id, event});
     }
     else if(action==='inshed'){ // v3.90 — en mue (yeux bleus)
       const event = {date:today, type:'inshed'};
-      snake.health.events.push(event);
+      pushHealthEvent(snake, event);
       undoPairs.push({snakeId:snake.id, event});
     }
     else if(action==='defecation'){ // v3.77
@@ -27674,7 +27702,7 @@ function applyTourAction(action){
     }
     else if(action==='water'){
       const event = {date:today, type:'water'};
-      snake.health.events.push(event);
+      pushHealthEvent(snake, event);
       undoPairs.push({snakeId:snake.id, event});
     }
   });
