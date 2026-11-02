@@ -1075,6 +1075,33 @@ def t_renote_apres_suppression(browser, url):
     check('pas d\'erreur JS (renoter)', not a.real_errors(), a.real_errors()[:3])
     a.close()
 
+def t_prix_combos(browser, url):
+    section('Calculateur : prix retenus par résultat (v5.49)')
+    a = App(browser, url, snakes=[make_snake(95)]); a.open(wait=3000)
+    a.js("showTab('calc')")
+    pick_gene(a, 'male', 'pastel', 'pastel', 'single')
+    a.js("runCross()"); a.page.wait_for_timeout(300)
+    name0 = a.js("comboPriceKey(lastResults[0])")
+    inp = a.page.locator('#price-0'); inp.scroll_into_view_if_needed(); inp.fill('180'); inp.blur(); a.page.wait_for_timeout(200)
+    check('prix tapé : retenu pour ce résultat', a.js("comboPrices[%s]" % json.dumps(name0)) == 180, a.js("comboPrices"))
+    a.js("runCross()"); a.page.wait_for_timeout(300)
+    check('nouvelle simulation : case déjà remplie, valeur attendue calculée', a.page.locator('#price-0').input_value() == '180' and a.js("document.getElementById('value-expected').textContent") != '0 $', (a.page.locator('#price-0').input_value(), a.js("document.getElementById('value-expected').textContent")))
+    a.page.wait_for_timeout(2500)
+    db = a.js("window.__fakeSb.db()")
+    srv = (db.get('app_state') or [{}])
+    srv = srv[0] if isinstance(srv, list) and srv else srv
+    check('prix envoyé au serveur (app_state.combo_prices)', name0 in json.dumps(srv.get('combo_prices') if isinstance(srv, dict) else None), str(srv)[:200])
+    b = App(browser, url, snakes=[], server_db=db); b.open(wait=3500)
+    check('2e appareil : le prix arrive', b.js("comboPrices[%s]" % json.dumps(name0)) == 180, b.js("comboPrices"))
+    b.close()
+    inp = a.page.locator('#price-0'); inp.fill(''); inp.blur(); a.page.wait_for_timeout(200)
+    check('case vidée : prix oublié', a.js("comboPrices[%s]" % json.dumps(name0)) is None)
+    a.js("showTab('reglement')"); a.page.wait_for_timeout(200)
+    txt = a.js("document.getElementById('view-reglement').innerText")
+    check('Réglementation : carte États-Unis, plus de balise <i> affichée', 'États-Unis' in txt and '<i>' not in txt, txt[-300:])
+    check('pas d\'erreur JS (prix)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+
 def t_perf(browser, url):
     section('Mesure : 200 animaux + 2 ans d\'historique')
     rng = random.Random(42)
@@ -1113,7 +1140,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()

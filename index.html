@@ -1354,7 +1354,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
           <div class="vb-amount" id="value-actual">0 $</div>
         </div>
       </div>
-      <div class="value-note" data-i18n="valueNote">Ajoute un prix estimé (à ta devise) dans chaque ligne ci-dessus. « Valeur attendue » = probabilités × nombre d'œufs choisi × prix. « Valeur réelle » = ce que tu as coché ci-dessus × prix. Les prix ne sont pas fournis automatiquement — le marché varie trop pour que je les invente, à toi de les entrer.</div>
+      <div class="value-note" data-i18n="valueNote">Ajoute un prix estimé (à ta devise) dans chaque ligne ci-dessus. « Valeur attendue » = probabilités × nombre d'œufs choisi × prix. « Valeur réelle » = ce que tu as coché ci-dessus × prix. LOCUS retient ton dernier prix pour chaque résultat (réservé au palier Première ponte et Illimité après la bêta). Les prix ne sont pas fournis automatiquement — le marché varie trop pour que je les invente, à toi de les entrer.</div>
     </div>
   </div>
   </div>
@@ -2198,6 +2198,11 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
     <p data-i18n="regOtherDesc">Manitoba, Saskatchewan, Nouvelle-Écosse, Nouveau-Brunswick, Î.-P.-É., Terre-Neuve-et-Labrador, et les territoires n'ont pas encore été vérifiés en détail. Contacte le ministère de la faune/environnement de la province concernée avant toute vente ou acquisition.</p>
   </div>
 
+  <div class="reg-card">
+    <div class="reg-card-head"><span class="reg-flag">🇺🇸</span><h3 data-i18n="regUsTitle">États-Unis</h3><span class="reg-confidence low" data-i18n="regConfidenceUnverified">Non vérifié</span></div>
+    <p data-i18n="regUsDesc">Pas couvert par LOCUS. Les règles varient par État, puis souvent par comté et par ville. Vérifie auprès de l'agence de la faune de ton État et du règlement de ta ville avant toute vente ou acquisition.</p>
+  </div>
+
   <div class="footnote" data-i18n="regHelpFootnote">
     <b>Envie d'aider à compléter cette liste ?</b> Si tu obtiens une confirmation officielle pour une province manquante, écris-nous (menu ☰ › Nous contacter) avec la source : on l'ajoutera, comme pour les gènes.
   </div>
@@ -2358,7 +2363,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.48';
+const APP_VERSION = '2026.09.01.5.49';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2769,6 +2774,7 @@ const BREEDING_TIER_FEATURES = [
   'dreamSimulator',
   'lockMode', // v3.44 — Mode Verrou (choix d'Alex : Première ponte + Illimité, cohérent avec la reproduction)
   'seasonPlan', // v3.40 — Plan de saison (choix d'Alex : Première ponte + Illimité)
+  'comboPriceMemory', // v5.49 — prix retenus par résultat dans le calculateur (choix d'Alex : Première ponte + Illimité)
   'seasonChances' // v3.35 — « Mes chances cette saison » (choix d'Alex : Première ponte + Illimité)
 ];
 function currentUserTier(){
@@ -5561,6 +5567,15 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.49', date:'2026-11-02',
+    title:{ fr:'Calculateur : tes prix sont retenus', en:'Calculator: your prices are remembered' },
+    changes:{
+      fr:[ '💰 Calculateur → « Résultat réel de ta ponte » : le prix que tu tapes pour un résultat (ex. « Bumblebee het Clown ») est retenu. La prochaine fois que ce résultat sort, la case est déjà remplie, sur tous tes appareils. Tu peux toujours le changer ; vider la case l\'oublie. Réservé au palier Première ponte et Illimité après la bêta.',
+           '📜 Réglementation : ajout d\'une carte États-Unis (non couvert, à vérifier par État et par ville) et correction d\'un texte de la Colombie-Britannique qui affichait du code.' ],
+      en:[ '💰 Calculator → « Actual result of your clutch »: the price you type for a result (e.g. « Bumblebee het Clown ») is remembered. Next time that result comes up, the box is already filled, on all your devices. You can still change it; clearing the box forgets it. Reserved for the First Clutch and Unlimited tiers after the beta.',
+           '📜 Regulations: added a United States card (not covered, check by state and city) and fixed a British Columbia text that showed code.' ]
+    }
+  },
   { version:'5.48', date:'2026-11-02',
     title:{ fr:'Correctif : une entrée supprimée puis renotée ne disparaît plus', en:'Fix: an entry deleted then re-entered no longer disappears' },
     changes:{
@@ -7195,7 +7210,7 @@ const I18N = {
     colQty: 'Quantité',
     expectedValueLabel: 'Valeur attendue de la ponte',
     actualValueLabel: 'Valeur réelle enregistrée',
-    valueNote: 'Ajoute un prix estimé (à ta devise) dans chaque ligne ci-dessus. « Valeur attendue » = probabilités × nombre d\'œufs choisi × prix. « Valeur réelle » = ce que tu as coché ci-dessus × prix. Les prix ne sont pas fournis automatiquement — le marché varie trop pour que je les invente, à toi de les entrer.',
+    valueNote: 'Ajoute un prix estimé (à ta devise) dans chaque ligne ci-dessus. « Valeur attendue » = probabilités × nombre d\'œufs choisi × prix. « Valeur réelle » = ce que tu as coché ci-dessus × prix. LOCUS retient ton dernier prix pour chaque résultat (réservé au palier Première ponte et Illimité après la bêta). Les prix ne sont pas fournis automatiquement — le marché varie trop pour que je les invente, à toi de les entrer.',
     // Phase 2 — Mes reptiles
     newReptileTitle: 'Nouveau reptile',
     filtersSortBtn: 'Filtres & tri',
@@ -7338,13 +7353,14 @@ const I18N = {
     regOntarioLink: "Portail du gouvernement de l'Ontario ↗",
     regBcTitle: 'Colombie-Britannique',
     regConfidenceMedium: 'À confirmer',
-    regBcDesc: "Liste précise d'espèces interdites sous le <i>Wildlife Act</i> (« Controlled Alien Species »). Les gros pythons (+3 m) nécessitent un permis ; le python royal ne semble pas visé par l'interdiction générale, mais cette liste est mise à jour — à confirmer directement.",
+    regBcDesc: "Liste précise d'espèces interdites sous le Wildlife Act (« Controlled Alien Species »). Les gros pythons (+3 m) nécessitent un permis ; le python royal ne semble pas visé par l'interdiction générale, mais cette liste est mise à jour — à confirmer directement.",
     regBcLink: 'Controlled Alien Species (gov.bc.ca) ↗',
     regAbTitle: 'Alberta',
     regAbDesc: "Loi générale depuis 2000 : tout animal exotique nécessite un permis, sans liste d'espèces précise publiée — le python royal y serait probablement visé par principe.",
     regAbLink: "Portail du gouvernement de l'Alberta ↗",
     regOtherTitle: 'Autres provinces & territoires',
     regConfidenceUnverified: 'Non vérifié',
+    regUsTitle: 'États-Unis', regUsDesc: "Pas couvert par LOCUS. Les règles varient par État, puis souvent par comté et par ville. Vérifie auprès de l'agence de la faune de ton État et du règlement de ta ville avant toute vente ou acquisition.", // v5.49
     regOtherDesc: "Manitoba, Saskatchewan, Nouvelle-Écosse, Nouveau-Brunswick, Î.-P.-É., Terre-Neuve-et-Labrador, et les territoires n'ont pas encore été vérifiés en détail. Contacte le ministère de la faune/environnement de la province concernée avant toute vente ou acquisition.",
     regHelpFootnote: "Envie d'aider à compléter cette liste ? Si tu obtiens une confirmation officielle pour une province manquante, écris-nous (menu ☰ › Nous contacter) avec la source : on l'ajoutera, comme pour les gènes.",
     exportSauvegardeTitle: 'Export & sauvegarde',
@@ -7787,7 +7803,7 @@ const I18N = {
     colQty: 'Quantity',
     expectedValueLabel: 'Expected Clutch Value',
     actualValueLabel: 'Actual Recorded Value',
-    valueNote: 'Add an estimated price (in your currency) on each row above. "Expected Value" = probability × chosen egg count × price. "Actual Value" = what you checked off above × price. Prices aren\'t provided automatically — the market varies too much for us to guess, you enter them.',
+    valueNote: 'Add an estimated price (in your currency) on each row above. "Expected Value" = probability × chosen egg count × price. "Actual Value" = what you checked off above × price. LOCUS remembers your last price for each result (reserved for the First Clutch and Unlimited tiers after the beta). Prices aren\'t provided automatically — the market varies too much for us to guess, you enter them.',
     // Phase 2 — My Reptiles
     newReptileTitle: 'New Reptile',
     filtersSortBtn: 'Filters & sort',
@@ -7937,6 +7953,7 @@ const I18N = {
     regAbLink: 'Government of Alberta portal ↗',
     regOtherTitle: 'Other provinces & territories',
     regConfidenceUnverified: 'Unverified',
+    regUsTitle: 'United States', regUsDesc: "Not covered by LOCUS. Rules vary by state, and often by county and city. Check with your state wildlife agency and your city's bylaws before any sale or purchase.", // v5.49
     regOtherDesc: "Manitoba, Saskatchewan, Nova Scotia, New Brunswick, P.E.I., Newfoundland and Labrador, and the territories haven't been verified in detail yet. Contact the relevant province's wildlife/environment ministry before any sale or acquisition.",
     regHelpFootnote: "Want to help complete this list? If you get an official confirmation for a missing province, write to us (☰ menu › Contact us) with the source: we'll add it, just like for genes.",
     exportSauvegardeTitle: 'Export & backup',
@@ -12987,21 +13004,36 @@ var actualCounts = {};
 
 var priceByIndex = {};
 
+// v5.49 — clé de prix d'un résultat : espèce + nom affiché + hets (texte seulement)
+function comboPriceKey(r){
+  const nm = String((r && r.name) || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+  const hets = (r && r.hets && r.hets.length) ? ' het '+r.hets.map(x=>String(x).replace(/<[^>]*>/g,'')).join(', ') : '';
+  return (calcSpecies||'ball_python')+'|'+nm+hets;
+}
+function rememberComboPrice(i, val){
+  if(!hasAccess('comboPriceMemory')) return;
+  const r = lastResults[i]; if(!r) return;
+  const k = comboPriceKey(r);
+  if(val>0) comboPrices[k] = Math.round(val*100)/100; else delete comboPrices[k];
+  saveElevage();
+}
 function renderActualPanel(){
   const isEn = currentLang==='en';
   actualCounts = {};
   priceByIndex = {};
+  const mem = hasAccess('comboPriceMemory');
   const list = document.getElementById('actual-list');
   list.innerHTML = '';
   lastResults.forEach((r,i)=>{
     actualCounts[i] = 0;
-    priceByIndex[i] = 0;
+    const known = mem ? comboPrices[comboPriceKey(r)] : null; // v5.49
+    priceByIndex[i] = (known!=null && !isNaN(Number(known))) ? Number(known) : 0;
     const row = document.createElement('div');
     row.className = 'actual-row';
     row.innerHTML =
       '<span class="actual-name">'+r.name+(r.hets.length?'<small>het '+r.hets.join(', ')+'</small>':'')+
         ((r.visualsCount>=3 && calcSpecies==='ball_python')?'<small class="wf-tag">🌍 '+(isEn?'Possible World First — no known price reference':'Possible World First — aucune référence de prix connue')+'</small>':'')+'</span>'+
-      '<div class="price-field"><span>$</span><input type="number" class="price-input" id="price-'+i+'" data-i="'+i+'" min="0" step="1" placeholder="0 (manuel)"/></div>'+
+      '<div class="price-field"><span>$</span><input type="number" class="price-input" id="price-'+i+'" data-i="'+i+'" min="0" step="1" placeholder="'+(isEn?'0 (manual)':'0 (manuel)')+'"'+(priceByIndex[i]>0?' value="'+priceByIndex[i]+'" title="'+(isEn?'Your last price for this result':'Ton dernier prix pour ce résultat')+'"':'')+'/></div>'+
       '<div class="stepper">'+
         '<button class="step-btn" data-i="'+i+'" data-d="-1">−</button>'+
         '<span class="step-val" id="step-val-'+i+'">0</span>'+
@@ -13023,6 +13055,7 @@ function renderActualPanel(){
       priceByIndex[i] = parseFloat(inp.value) || 0;
       updateActualTotal();
     });
+    inp.addEventListener('change', ()=>rememberComboPrice(inp.dataset.i, parseFloat(inp.value) || 0)); // v5.49
   });
   updateActualTotal();
 }
@@ -16706,7 +16739,7 @@ function saveElevage(){
   trackLocalChanges('expenses', expenses);
   trackLocalChanges('customers', customers);
   try{
-    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, feederStockLive, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, feederPrices, rodentPriorityBins, rodentRacks, rodentGoal, dreamSnakes, seasonPlans, snakeGroups }));
+    localStorage.setItem(ELEVAGE_KEY, JSON.stringify({ racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, feederStockLive, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, feederPrices, comboPrices, rodentPriorityBins, rodentRacks, rodentGoal, dreamSnakes, seasonPlans, snakeGroups }));
     storageWriteFailed = false;
   }catch(e){
     console.warn('LOCUS: écriture élevage impossible', e);
@@ -16747,6 +16780,8 @@ var rodentExpenses = elevageData.rodentExpenses || [];
 var rodentValuePerUnit = elevageData.rodentValuePerUnit != null ? elevageData.rodentValuePerUnit : null;
 // v3.86 — prix unitaires des proies (Nourriture) : { 'espèce|taille': prix } — synchronisé via app_state.feeder_prices
 var feederPrices = (elevageData.feederPrices && typeof elevageData.feederPrices==='object') ? elevageData.feederPrices : {};
+// v5.49 — prix retenus par résultat du calculateur : { 'espèce|nom het …': prix } — synchronisé via app_state.combo_prices
+var comboPrices = (elevageData.comboPrices && typeof elevageData.comboPrices==='object') ? elevageData.comboPrices : {};
 var rodentPriorityBins = elevageData.rodentPriorityBins || {};
 // Objectif & modes Expansion/Croisière (10 sept, Phase 4) — target:null = pas d'objectif défini,
 // mode par défaut 'expansion' tant qu'aucun objectif n'est atteint. La progression se calcule en
@@ -18067,7 +18102,7 @@ async function pushAllUserData(forceAll){
         else markPushed('customers', [[cu.id, custSig]]);
       }
     }
-    var stRes = await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock, feeder_stock_live: feederStockLive, todos, genetic_ambiguities: geneticAmbiguities, rodent_bins: rodentBins, rodent_expenses: rodentExpenses, rodent_value_per_unit: rodentValuePerUnit, feeder_prices: feederPrices, rodent_priority_bins: rodentPriorityBins, rodent_racks: rodentRacks, rodent_goal: rodentGoal, dream_snakes: dreamSnakes, season_plans: seasonPlans, snake_groups: snakeGroups });
+    var stRes = await sb.from('app_state').upsert({ user_id:currentUser.id, layout, onboarding_seen: loadSeenTabs(), news_seen: loadNewsSeenDates(), custom_events: customEvents, dismissed_banners: loadDismissedBanners(), projects, feeder_stock: feederStock, feeder_stock_live: feederStockLive, todos, genetic_ambiguities: geneticAmbiguities, rodent_bins: rodentBins, rodent_expenses: rodentExpenses, rodent_value_per_unit: rodentValuePerUnit, feeder_prices: feederPrices, combo_prices: comboPrices, rodent_priority_bins: rodentPriorityBins, rodent_racks: rodentRacks, rodent_goal: rodentGoal, dream_snakes: dreamSnakes, season_plans: seasonPlans, snake_groups: snakeGroups });
     if(stRes && stRes.error){ allOk = false; console.warn('LOCUS: envoi échoué (app_state)', stRes.error); }
     else saveAppStatePushedAt(Date.now());
     var profile = loadProfile();
@@ -18191,6 +18226,7 @@ async function pullAllUserData(){
     if(stateRes.data && stateRes.data.rodent_expenses) rodentExpenses = mergeById(rodentExpenses, stateRes.data.rodent_expenses);
     if(stateRes.data && stateRes.data.rodent_value_per_unit!=null && remoteAppStateWins) rodentValuePerUnit = stateRes.data.rodent_value_per_unit;
     if(stateRes.data && stateRes.data.feeder_prices && typeof stateRes.data.feeder_prices==='object' && remoteAppStateWins) feederPrices = stateRes.data.feeder_prices; // v3.86
+    if(stateRes.data && stateRes.data.combo_prices && typeof stateRes.data.combo_prices==='object' && remoteAppStateWins) comboPrices = stateRes.data.combo_prices; // v5.49
     if(stateRes.data && stateRes.data.rodent_priority_bins && remoteAppStateWins) rodentPriorityBins = stateRes.data.rodent_priority_bins;
     if(stateRes.data && stateRes.data.rodent_racks && remoteAppStateWins) rodentRacks = stateRes.data.rodent_racks;
     if(stateRes.data && stateRes.data.rodent_goal && remoteAppStateWins) rodentGoal = stateRes.data.rodent_goal;
@@ -18270,7 +18306,7 @@ function buildBackupPayload(){
   return {
     app:'LOCUS', version:2, exportedAt:new Date().toISOString(),
     snakes: savedSnakes,
-    elevage: { racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, feederStockLive, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, feederPrices, rodentPriorityBins, rodentRacks, rodentGoal, dreamSnakes, seasonPlans }
+    elevage: { racks, terrariums, pairings, layout, clutches, expenses, customers, customEvents, projects, feederStock, feederStockLive, todos, geneticAmbiguities, rodentBins, rodentExpenses, rodentValuePerUnit, feederPrices, comboPrices, rodentPriorityBins, rodentRacks, rodentGoal, dreamSnakes, seasonPlans }
   };
 }
 function lbkOpen(){
@@ -18492,6 +18528,7 @@ function applyBackupData(data){
     rodentExpenses = el.rodentExpenses || [];
     rodentValuePerUnit = el.rodentValuePerUnit != null ? el.rodentValuePerUnit : null;
     feederPrices = (el.feederPrices && typeof el.feederPrices==='object') ? el.feederPrices : {}; // v3.86
+    comboPrices = (el.comboPrices && typeof el.comboPrices==='object') ? el.comboPrices : {}; // v5.49
     rodentPriorityBins = el.rodentPriorityBins || {};
     rodentRacks = el.rodentRacks || [];
     rodentGoal = el.rodentGoal || { unit:'females', target:null, mode:'expansion' };
