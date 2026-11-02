@@ -956,7 +956,7 @@ XLSX_STUB = """(()=>{ if(typeof XLSX!=='undefined' && XLSX.__real!==false && XLS
 def t_export_complet(browser, url):
     section('Tout exporter en Excel (v5.44)')
     import csv
-    s1 = make_snake(61, days_history=90); s2 = make_snake(62, days_history=60)
+    s1 = make_snake(61, days_history=90, genes={'pastel': 'single'}); s2 = make_snake(62, days_history=60)
     s1['health']['vetVisits'] = [{"id": "v1", "date": iso(TODAY - datetime.timedelta(days=5)), "reason": "Bilan", "findings": "RAS"}]
     s1['health']['lengths'] = [{"date": iso(TODAY - datetime.timedelta(days=4)), "value": 92.5}]
     a = App(browser, url, snakes=[s1, s2]); a.open(wait=2500)
@@ -970,11 +970,16 @@ def t_export_complet(browser, url):
     n_events = sum(len(s['health']['events']) for s in (s1, s2)); n_w = sum(len(s['health']['weights']) for s in (s1, s2))
     check('Animaux : 2 lignes', len(an) == 3, len(an))
     check('Journal : chaque événement + chaque pesée', len(jr) - 1 == n_events + n_w, (len(jr) - 1, n_events, n_w))
-    check('Santé et Longueurs remplis', len(sh.get('Santé', [])) == 2 and sh.get('Longueurs', [[], [0, 0, 0, None]])[1][3] == 92.5)
+    check('Santé et Longueurs remplis', len(sh.get('Santé', [])) == 2 and sh.get('Longueurs', [[], [0, 0, 0, 0, None]])[1][4] == 92.5)
     # l'import reconnaît les en-têtes et les activités du Journal
     hm = a.js("(h)=>mapLogHeaders(h)", jr[0]) if jr else None
-    acts = a.js("(rows)=>[...new Set(rows.slice(1).map(r=>r[3]))].map(x=>[x, mapLogActivity(x)])", jr) if jr else []
+    acts = a.js("(rows)=>[...new Set(rows.slice(1).map(r=>r[4]))].map(x=>[x, mapLogActivity(x)])", jr) if jr else []
     check('Journal : en-têtes reconnus par l\'import d\'historique', bool(hm), hm)
+    # v5.50 — colonne Génétique à côté du nom (Journal, Longueurs, Santé) ; l'import d'historique l'ignore
+    check('Journal/Longueurs/Santé : colonne Génétique en 3e position', all((sh.get(k) or [[None]*3])[0][2] == 'Génétique' for k in ('Journal', 'Longueurs', 'Santé')), [(sh.get(k) or [[]])[0][:3] for k in ('Journal', 'Longueurs', 'Santé')])
+    g1 = a.js("(id)=>{ const s=savedSnakes.find(x=>x.id===id); return summarizeGenes(s.genes)||''; }", s1['id'])
+    check('Journal : la génétique de l\'animal est remplie sur ses lignes', bool(g1) and all(r[2] and g1 in r[2] for r in jr[1:] if r[1] == s1['name']), (g1, [r[2] for r in jr[1:3]]))
+    check('Journal : l\'import lit toujours Date, Activité, Poids aux bonnes colonnes (Génétique ignorée)', bool(hm) and hm.get('date') == 3 and hm.get('activity') == 4 and hm.get('weight') == 7 and 2 not in hm.values(), hm)
     want = {'A mangé': 'fed', 'Refus': 'refused', 'Mue': 'shed', 'Pesée': 'weight'}
     check('Journal : activités relues correctement (A mangé, Refus, Mue, Pesée)', all(dict(acts).get(k) == v for k, v in want.items() if k in dict(acts)) and 'A mangé' in dict(acts), acts)
     check('pas d\'erreur JS (export)', not a.real_errors(), a.real_errors()[:3])
@@ -991,6 +996,73 @@ def t_export_complet(browser, url):
     ok = sorted(x['n'] for x in got) == sorted([s1['name'], s2['name']]) and all((x['w'][-1] if x['w'] else None) == lastw(s1 if x['n'] == s1['name'] else s2) for x in got)
     check('réimport de l\'onglet Animaux : les 2 animaux reviennent, avec sexe et dernier poids', ok, got)
     b.close()
+def t_remboursement_parents(browser, url):
+    section('Remboursement des parents (v5.51)')
+    m = make_snake(81); m['sex'] = 'male'; m['purchasePrice'] = 1000
+    f = make_snake(82); f['sex'] = 'female'; f['purchasePrice'] = 500
+    babies = []
+    for i, (st, price) in enumerate([('sold', 400), ('sold', 400), ('forsale', 900), ('sold', 200)]):
+        b = make_snake(90 + i); b['sireId'] = m['id']; b['damId'] = f['id']; b['status'] = st
+        if st == 'sold': b['soldPrice'] = price
+        else: b['askingPrice'] = price
+        babies.append(b)
+    a = App(browser, url, snakes=[m, f] + babies); a.open(wait=2500)
+    # 2 accouplements du même couple (2 saisons) : les bébés ne comptent qu'une fois ; coût total 100 $
+    a.js("""(ids)=>{ pairings.push({id:'pr_a', maleId:ids[0], femaleId:ids[1], pairedDate:'2025-10-01', lockDates:[], estimatedCost:60},
+                                   {id:'pr_b', maleId:ids[0], femaleId:ids[1], pairedDate:'2026-10-01', lockDates:[], estimatedCost:40}); saveElevage(); }""", [m['id'], f['id']])
+    r = a.js("(ids)=>{ const c=computeRepaymentCouples(); return [computeRepayment(ids[0], c), computeRepayment(ids[1], c), Object.keys(c).length]; }", [m['id'], f['id']])
+    # ventes conclues 1000 $ − coût 100 $ = 900 $ ; 50/50 → 450 $ chacun ; le bébé à vendre (900 $) ne compte pas
+    check('1 seul couple malgré 2 accouplements', r[2] == 1, r)
+    check('ventes conclues seulement, moins le coût : 450 $ au père (45 %)', r[0]['repaid'] == 450 and r[0]['pct'] == 45, r[0])
+    check('mère : 450 $ sur 500 $, pas encore remboursée', r[1]['repaid'] == 450 and not r[1]['done'], r[1])
+    a.js("setRepaySirePct('pr_a', 80)")
+    r = a.js("(ids)=>{ const c=computeRepaymentCouples(); return [computeRepayment(ids[0], c), computeRepayment(ids[1], c), pairings.filter(p=>p.id==='pr_b')[0].repaySirePct]; }", [m['id'], f['id']])
+    check('partage 80/20 : père 720 $, mère 180 $ ; appliqué aux 2 accouplements du couple', r[0]['repaid'] == 720 and r[1]['repaid'] == 180 and r[2] == 80, r)
+    a.js("(id)=>setRepayTarget(id, '150')", f['id'])
+    r = a.js("(id)=>computeRepayment(id)", f['id'])
+    check('montant à rembourser baissé à 150 $ : mère ✅ remboursée, jamais plus que le montant', r['done'] and r['repaid'] == 150, r)
+    rt = a.js("(id)=>{ window.currentUser = window.currentUser || {id:'u'}; const s=savedSnakes.find(x=>x.id===id); return [snakeToRow(s).repay_target, rowToSnake(snakeToRow(s)).repayTarget]; }", f['id'])
+    check('montant à rembourser envoyé au serveur (repay_target) et relu', rt == [150, 150], rt)
+    a.js("(id)=>openLogbook(id)", m['id']); a.page.wait_for_timeout(400)
+    txt = a.js("document.body.innerText")
+    check('fiche du père : « Remboursé par les ventes 720 $ / 1000 $ (72 %) »', 'Remboursé par les ventes' in txt and '720 $ / 1000 $ (72 %)' in txt, [l for l in txt.split('\n') if 'Rembours' in l][:3])
+    a.js("document.getElementById('logbook-overlay').style.display='none'; showTab('fiscal')"); a.page.wait_for_timeout(400)
+    roi = a.js("(document.getElementById('pairing-roi-list')||{}).innerText||''")
+    check('Fiscal → ROI : ligne « Rembourse les parents » avec le montant en $', 'Rembourse les parents' in roi and '720 $' in roi and '180 $' in roi, roi[:300])
+    nrows = a.js("document.querySelectorAll('#pairing-roi-list .sale-row').length")
+    check('ROI : 1 seule ligne pour le couple (2 accouplements), bébés comptés une fois : +1800 $', nrows == 1 and '+1800 $' in roi and '+1840' not in roi, (nrows, roi[:200]))
+    cs = a.js("(ids)=>clutchProfitSummary({ref:'PX-1'}, savedSnakes.find(x=>x.id===ids[0]), savedSnakes.find(x=>x.id===ids[1]))", [m['id'], f['id']])
+    check('ponte : plus de « Net vs coût des parents », état du remboursement à la place', 'Net vs' not in cs and 'Parents remboursés' in cs and '720 $ / 1000 $' in cs, cs[:300])
+    check('pas d\'erreur JS (remboursement)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+def t_sante_accouplement(browser, url):
+    section('Santé notée au moment d\'accoupler (v5.52)')
+    d = lambda n: iso(TODAY - datetime.timedelta(days=n))
+    gp = make_snake(101); gp['sex'] = 'male'; gp['health']['traitObs'] = [{"id": "o1", "kind": "skeletal", "level": 2, "date": d(300)}]
+    m = make_snake(103); m['sex'] = 'male'; m['sireId'] = gp['id']
+    f = make_snake(104); f['sex'] = 'female'; f['health']['traitObs'] = [{"id": "o2", "kind": "wobble", "level": 1, "date": d(200)}, {"id": "o3", "kind": "wobble", "level": 3, "date": d(20)}]
+    kids = []
+    for i, lv in enumerate([2, 3, 0]):
+        k = make_snake(110 + i); k['damId'] = f['id']; k['health']['traitObs'] = [{"id": "k%d" % i, "kind": "skeletal", "level": lv, "date": d(10)}]
+        kids.append(k)
+    clean = make_snake(120); clean['sex'] = 'female'
+    a = App(browser, url, snakes=[gp, m, f, clean] + kids); a.open(wait=2500)
+    box = a.js("(ids)=>breedingHealthBox(ids[0], ids[1], false)", [m['id'], f['id']])
+    check('mâle : kinking de son père rappelé', 'son père' in box and 'Kinking' in box and 'niveau 2' in box, box[:400])
+    check('femelle : son DERNIER niveau de wobble (3), pas l\'ancien', 'Wobble — niveau 3' in box and 'niveau 1 (' not in box, box[:400])
+    check('femelle : « 2 bébé(s) sur 3 noté(s), niveau max 3 »', '2 bébé(s) sur 3 noté(s), niveau max 3' in box, box[:500])
+    none = a.js("(ids)=>[breedingHealthBox(ids[0], ids[1], false), pairHealthIconHtml(ids[0], ids[1])]", [gp['id'] if False else clean['id'], clean['id']])
+    check('rien de noté = rien d\'affiché (boîte et bouton 🩺)', none == ['', ''], none)
+    a.js("""(ids)=>{ const ms=document.getElementById('pairing-male'), fs=document.getElementById('pairing-female');
+      ms.innerHTML='<option value="'+ids[0]+'">m</option>'; fs.innerHTML='<option value="'+ids[1]+'">f</option>'; ms.value=ids[0]; fs.value=ids[1]; updatePairingReproductionInfo(); }""", [m['id'], f['id']])
+    form = a.js("document.getElementById('pairing-health-info').textContent")
+    check('formulaire Accouplements : la boîte 🩺 apparaît au choix du couple', 'Problèmes de santé notés' in form and 'Wobble' in form, form[:200])
+    ico = a.js("(ids)=>pairHealthIconHtml(ids[0], ids[1])", [m['id'], f['id']])
+    check('Mode Verrou : bouton 🩺 sur le couple', '🩺' in ico and 'openPairHealthFacts' in ico, ico[:200])
+    a.js("(ids)=>openPairHealthFacts(ids[0], ids[1])", [m['id'], f['id']]); a.page.wait_for_timeout(200)
+    check('bouton 🩺 : la fenêtre montre les faits', 'Kinking' in a.js("document.body.innerText"))
+    check('pas d\'erreur JS (santé à l\'accouplement)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
 def t_keltic_dragons(browser, url):
     section('BCI : Keltic, Smoke, Red/Sun Dragon (v5.45)')
     m = make_snake(71, species='boa_bci', genes={'bci_keltic': 'single'}); m['sex'] = 'male'
@@ -1140,7 +1212,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()

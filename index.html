@@ -1795,6 +1795,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <span style="color:var(--ink-dim);font-family:'Courier New',monospace;font-size:11px;">×</span>
         <select id="pairing-female" onchange="updatePairingReproductionInfo()"></select>
         <div id="pairing-reproduction-info" style="font-family:'Courier New',monospace;font-size:10.5px;color:var(--gold);"></div>
+        <div id="pairing-health-info"></div>
         <label style="display:flex;flex-direction:column;gap:3px;">
           <span style="font-family:'Courier New',monospace;font-size:9.5px;color:var(--ink-dim);" data-i18n="pairingDateLabel">Date d'accouplement</span>
           <input type="date" id="pairing-date"/>
@@ -2363,7 +2364,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.49';
+const APP_VERSION = '2026.09.01.5.52';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2764,6 +2765,7 @@ const ILLIMITE_ONLY_FEATURES = [
   'objectifPlanner', 'bulkListingPrices', 'shipping', // v4.23 — morphmarketImportCsv retiré : tous les imports sont gratuits (choix d'Alex), la limite d'animaux du palier s'applique à l'import
   'fertility', 'multiGenProjects', 'seasonComparison', 'outcomesView', 'icsExport', 'fiscalSummary',
   'rodentManagement',
+  'parentRepayment', // v5.51 — remboursement des parents par les ventes (même palier que l'onglet Fiscal)
   'batchSaleImages' // v3.36 — images de vente en lot (choix d'Alex : Illimité seulement, = vente en masse)
 ];
 // Palier "reproduction" (10 sept) — Première Ponte OU Illimité, mais pas Gratuit ni Passionné (qui
@@ -5567,6 +5569,25 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.52', date:'2026-11-02',
+    title:{ fr:'La santé notée revient au moment d\'accoupler', en:'Noted health issues show up when you pair' },
+    changes:{
+      fr:[ '🩺 Les problèmes de santé que tu as notés (wobble, petits yeux, kinking ou déformation, fertilité, dépérissement, autre) sont maintenant rappelés là où tu décides : au choix du mâle et de la femelle dans Accouplements, et dans le Plan de saison. Dans le Mode Verrou, un bouton 🩺 sur le couple les affiche. On voit l\'animal lui-même, son père et sa mère, et ses bébés (ex. « 🦴 Kinking — 2 bébés sur 6 notés, niveau max 3 »). Ce sont tes observations, pas un diagnostic : rien de noté, rien d\'affiché. Gratuit.' ],
+      en:[ '🩺 The health issues you noted (wobble, small eyes, kinking or deformity, fertility, failure to thrive, other) now show up where you decide: when picking the male and female in Pairings, and in the Season plan. In Lock Mode, a 🩺 button on the pair shows them. You see the animal itself, its sire and dam, and its babies (e.g. « 🦴 Kinking — 2 of 6 noted babies, max level 3 »). These are your observations, not a diagnosis: nothing noted, nothing shown. Free.' ] } },
+  { version:'5.51', date:'2026-11-02',
+    title:{ fr:'Tes reproducteurs se remboursent-ils ?', en:'Are your breeders paying for themselves?' },
+    changes:{
+      fr:[ '💰 Fiscal → ROI par accouplement : chaque couple montre combien ses bébés vendus remboursent le père et la mère. Tu choisis le partage (ex. 60 % père, 40 % mère) et tu vois le montant en $. Seules les ventes conclues comptent, moins le coût que tu as entré.',
+           '🐍 Sur la fiche d\'un reproducteur : « Montant à rembourser » (le prix d\'achat par défaut ; baisse-le si tu veux seulement en amortir une partie) et « Remboursé : 650 $ / 1 000 $ (65 %) », puis ✅ Remboursé. Suivi de gestion, pas un calcul fiscal. Réservé au palier Illimité après la bêta.',
+           '🔧 Corrigé : le ROI par accouplement comptait les bébés en double quand un couple avait été accouplé plusieurs saisons. Maintenant : une ligne par couple, avec un coût par saison. Et chaque ponte ne retire plus le prix complet des parents (un mâle à 1 000 $ sur 3 pontes comptait 3 000 $) : elle montre où en est leur remboursement.' ],
+      en:[ '💰 Taxes → ROI per pairing: each couple shows how much its sold babies pay back the sire and the dam. You choose the split (e.g. 60 % sire, 40 % dam) and see the amount in $. Only completed sales count, minus the cost you entered.',
+           '🐍 On a breeder\'s record: « Amount to pay back » (purchase price by default; lower it if you only want to write off part of it) and « Paid back: $650 / $1,000 (65 %) », then ✅ Paid back. Management tracking, not a tax calculation. Reserved for the Unlimited tier after the beta.',
+           '🔧 Fixed: ROI per pairing counted babies twice when a couple was paired over several seasons. Now: one row per couple, with a cost per season. And each clutch no longer subtracts the full price of the parents (a $1,000 male over 3 clutches counted $3,000): it shows where their pay-back stands.' ] } },
+  { version:'5.50', date:'2026-11-02',
+    title:{ fr:'Export Excel : la génétique à côté du nom', en:'Excel export: genetics next to the name' },
+    changes:{
+      fr:[ '📦 « Tout exporter en Excel » : les onglets Journal, Longueurs et Santé ont maintenant une colonne Génétique à côté du nom. Tu peux trier ou filtrer tes pesées et tes repas par morph sans relier les onglets toi-même. Le réimport du Journal fonctionne comme avant.' ],
+      en:[ '📦 « Export everything to Excel »: the Log, Lengths and Health sheets now have a Genetics column next to the name. You can sort or filter your weigh-ins and meals by morph without linking the sheets yourself. Re-importing the Log works as before.' ] } },
   { version:'5.49', date:'2026-11-02',
     title:{ fr:'Calculateur : tes prix sont retenus', en:'Calculator: your prices are remembered' },
     changes:{
@@ -14583,6 +14604,7 @@ function openLogbook(id){
     '<div class="modal-section"><h3>'+t('saleStatusTitle')+'</h3>'+
       '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">'+statusButtonsHtml+'</div>'+
       purchasePriceRow+
+      repayFicheRows(s, isEn)+ // v5.51
       statusDetailHtml+
       realizedMarginRow+
     '</div>'+
@@ -17304,6 +17326,7 @@ function renderSeasonPlans(){
           '<br/><small style="color:var(--ink-dim);">'+checks+(fed!=null?' · '+(isEn?'last meal ':'dernier repas ')+fed+(isEn?'d ago':' j'):'')+
           (fe.coolingDate?' · ❄️ '+spFmt(fe.coolingDate):'')+'</small>'+
           (fe.notes?'<br/><small style="color:var(--ink);">📝 '+escapeHtml(fe.notes)+'</small>':'')+
+          breedingHealthBox(null, fe.femaleId, isEn)+ // v5.52
         '</span>'+
         '<span style="display:flex;gap:4px;"><button class="sc-btn" onclick="openSeasonFemaleModal(\''+plan.id+'\',\''+fe.femaleId+'\')">✏️</button>'+
         '<button class="sc-btn danger" onclick="removeSeasonFemale(\''+plan.id+'\',\''+fe.femaleId+'\')">×</button></span></div>';
@@ -17362,6 +17385,7 @@ function renderSeasonPlans(){
         '<div style="display:flex;gap:6px;"><button class="sc-btn" onclick="openSeasonPlanModal(\''+plan.id+'\')">✏️</button><button class="sc-btn danger" onclick="deleteSeasonPlan(\''+plan.id+'\')">🗑</button></div>'+
       '</div>'+
       (male ? '<div style="font-size:11.5px;margin-top:6px;">'+spPrepChecks(null, plan.maleId).map(c=>'<span style="color:'+(c.ok?'var(--sage)':'var(--gold)')+';">♂ '+c.txt+'</span>').join('')+'</div>' : '')+
+      (male ? breedingHealthBox(plan.maleId, null, isEn) : '')+ // v5.52
       '<h3 style="font-size:12px;margin:12px 0 6px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);">'+(isEn?'Females':'Femelles')+'</h3>'+femalesHtml+
       '<button class="sc-btn accent" style="margin-top:6px;" onclick="openSeasonFemaleModal(\''+plan.id+'\')">+ '+(isEn?'Add a female':'Ajouter une femelle')+'</button>'+
       '<h3 style="font-size:12px;margin:14px 0 6px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);">'+(isEn?'Male rotation':'Rotation du mâle')+'</h3>'+
@@ -17902,6 +17926,7 @@ function snakeToRow(s){
     paid_via_stripe: !!s.paidViaStripe, care_params: s.careParams||{}, public_token: s.publicToken||null, feed_cost: s.feedCost||null, transfer_token: s.transferToken||null,
     shipping_carrier: s.shippingCarrier||null, shipping_tracking: s.shippingTracking||null, shipping_date: s.shippingDate||null, shipping_delivered: !!s.shippingDelivered,
     purchase_price: s.purchasePrice!=null ? s.purchasePrice : null,
+    repay_target: s.repayTarget!=null ? s.repayTarget : null, // v5.51 — colonne migrée et vérifiée le 2 nov
     genetics_history: s.geneticsHistory||[],
     clutch_ref: s.clutchRef||null,
     loans: s.loans||[],
@@ -17926,6 +17951,7 @@ function rowToSnake(r){
     paidViaStripe: !!r.paid_via_stripe, careParams: r.care_params || {}, publicToken: r.public_token || null, feedCost: r.feed_cost!=null ? r.feed_cost : null, transferToken: r.transfer_token || null,
     shippingCarrier: r.shipping_carrier || null, shippingTracking: r.shipping_tracking || null, shippingDate: r.shipping_date || null, shippingDelivered: !!r.shipping_delivered,
     purchasePrice: r.purchase_price!=null ? r.purchase_price : null,
+    repayTarget: r.repay_target!=null ? Number(r.repay_target) : null, // v5.51
     geneticsHistory: r.genetics_history||[], clutchRef: r.clutch_ref||null, loans: r.loans||[], reservation: r.reservation||null, proven: !!r.proven, provenSeasons: Array.isArray(r.proven_seasons) ? r.proven_seasons : [], deceasedDate: r.deceased_date||null, deceasedNote: r.deceased_note||null, showToken: r.show_token||null, showFields: r.show_fields||null, vitrineBreeder: !!r.vitrine_breeder, importedCoi: r.imported_coi||null, updatedAt: r.updated_at ? Date.parse(r.updated_at) : 0
   };
 }
@@ -27882,6 +27908,8 @@ function updatePairingReproductionInfo(){
   if(!wrap) return;
   const maleId = document.getElementById('pairing-male').value;
   const femaleId = document.getElementById('pairing-female').value;
+  const hw = document.getElementById('pairing-health-info'); // v5.52
+  if(hw) hw.innerHTML = (maleId || femaleId) ? breedingHealthBox(maleId, femaleId, isEn) : '';
   if(!maleId || !femaleId){ wrap.textContent = ''; return; }
   const conf = reproductionModeForSnakes(maleId, femaleId);
   const isOvo = conf.mode==='ovovivipare';
@@ -27889,6 +27917,53 @@ function updatePairingReproductionInfo(){
   wrap.textContent = '🥚 '+label+' '+(isEn?'reference for this species: ':'de référence pour cette espèce : ')+conf.min+'–'+conf.max+' '+(isEn?'days (~':'jours (~')+conf.def+(isEn?' typical). Real countdown starts at the actual clutch/birth, not at pairing.':' typique). Le vrai compte à rebours commence à la vraie ponte/mise bas, pas à l\'accouplement.');
 }
 
+// ==================== v5.52 — Santé observée au moment d'accoupler (idée Gemini, élargie par Alex à tout problème connu) ====================
+// Affiche des FAITS notés dans LOCUS (observations de traits : wobble, yeux, kinking/déformations, fertilité,
+// dépérissement, autre…), jamais un « score » ni un verdict : avec 1-2 bébés notés, un score donnerait une
+// fausse certitude. Sources : l'animal lui-même, son père et sa mère, ses bébés. Rien de noté = rien d'affiché.
+function traitLatestObs(s){ // dernière observation datée par trait (les « pas encore sûr » ne comptent pas)
+  const out = {};
+  ((s && s.health && s.health.traitObs) || []).filter(o=>o && o.level!=null).sort((a,b)=>String(a.date).localeCompare(String(b.date))).forEach(o=>{ out[o.kind] = o; });
+  return out;
+}
+function traitKindLabel(k, isEn){ const t0 = TRAIT_KINDS[k] || TRAIT_KINDS.other; return t0.icon+' '+(isEn?t0.en:t0.fr); }
+function healthFactsLines(id, isEn){
+  const s = savedSnakes.find(x=>x.id===id); if(!s) return [];
+  const lines = [];
+  const own = traitLatestObs(s);
+  Object.keys(own).forEach(k=>{ const o = own[k]; if(o.level>=1) lines.push(traitKindLabel(k, isEn)+' — '+(isEn?'level ':'niveau ')+o.level+(o.date?' ('+escapeHtml(String(o.date))+')':'')); });
+  [['sireId', isEn?'sire':'père'], ['damId', isEn?'dam':'mère']].forEach(([f, rel])=>{
+    const par = s[f] ? savedSnakes.find(x=>x.id===s[f]) : null; if(!par) return;
+    const lv = traitLatestLevels(par);
+    Object.keys(lv).forEach(k=>{ if(lv[k]>=1) lines.push(traitKindLabel(k, isEn)+' — '+(isEn?'its ':'son ')+rel+' '+escapeHtml(snakeName(par))+(isEn?', level ':', niveau ')+lv[k]); });
+  });
+  const kids = savedSnakes.filter(x=>x.sireId===id || x.damId===id);
+  const kinds = {};
+  kids.forEach(k0=>{ const lv = traitLatestLevels(k0); Object.keys(lv).forEach(k=>{ const d = kinds[k] = kinds[k]||{ noted:0, affected:0, max:0 }; d.noted++; if(lv[k]>=1){ d.affected++; d.max = Math.max(d.max, lv[k]); } }); });
+  Object.keys(kinds).forEach(k=>{ const d = kinds[k]; if(d.affected) lines.push(traitKindLabel(k, isEn)+' — '+d.affected+(isEn?' of '+d.noted+' noted baby(ies), max level ':' bébé(s) sur '+d.noted+' noté(s), niveau max ')+d.max); });
+  return lines;
+}
+function breedingHealthBox(maleId, femaleId, isEn){
+  const blocks = [[maleId,'♂'],[femaleId,'♀']].map(([id, sym])=>{
+    const lines = id ? healthFactsLines(id, isEn) : [];
+    if(!lines.length) return '';
+    const sn = savedSnakes.find(x=>x.id===id);
+    return '<div style="margin-top:4px;"><b>'+sym+' '+escapeHtml(sn?snakeName(sn):'?')+'</b><br/>'+lines.map(l=>'· '+l).join('<br/>')+'</div>';
+  }).join('');
+  if(!blocks) return '';
+  return '<div class="pair-health-box" style="border:1px solid var(--gold);border-radius:10px;padding:8px 10px;margin:6px 0;font-size:12px;line-height:1.45;color:var(--ink);font-family:inherit;">'+
+    '<div style="font-size:12.5px;">🩺 '+(isEn?'Health issues noted in LOCUS':'Problèmes de santé notés dans LOCUS')+'</div>'+blocks+
+    '<div style="font-size:10.5px;color:var(--ink-dim);margin-top:4px;">'+(isEn?'Your own observations (animal, its parents, its babies) — not a diagnosis. You decide.':'Tes observations (l\'animal, ses parents, ses bébés) — pas un diagnostic. C\'est toi qui décides.')+'</div></div>';
+}
+function pairHealthIconHtml(maleId, femaleId){
+  if(!healthFactsLines(maleId, false).length && !healthFactsLines(femaleId, false).length) return '';
+  const isEn = currentLang==='en';
+  return ' <button class="sc-btn" style="padding:2px 7px;font-size:12px;" title="'+(isEn?'Health issues noted':'Problèmes de santé notés')+'" onclick="event.stopPropagation();openPairHealthFacts(\''+maleId+'\',\''+femaleId+'\')">🩺</button>';
+}
+function openPairHealthFacts(maleId, femaleId){
+  const isEn = currentLang==='en';
+  showQuickModal('🩺 '+(isEn?'Health issues noted':'Problèmes de santé notés'), breedingHealthBox(maleId, femaleId, isEn) || '<p>'+(isEn?'Nothing noted.':'Rien de noté.')+'</p>');
+}
 const MIN_BREEDING_WEIGHT = { male:500, female:1300 }; // grammes — seuils standards, à ajuster ici si besoin
 function lastWeight(s){ return s.health.weights.length ? s.health.weights[s.health.weights.length-1].value : null; }
 
@@ -29357,6 +29432,104 @@ function computePairingROI(p){
   const cost = p.estimatedCost || 0;
   return { offspringCount: offspring.length, realizedRevenue, potentialRevenue, totalRevenue: realizedRevenue+potentialRevenue, cost, roi: realizedRevenue+potentialRevenue-cost };
 }
+// v5.51 — Remboursement des parents (idée d'Alex, 2 nov). Par COUPLE (père+mère), pas par entrée
+// d'accouplement : un couple accouplé 2 saisons ne compte ses bébés qu'une fois. Seules les ventes
+// CONCLUES remboursent (un bébé à vendre coûte encore de la nourriture) ; moins le coût saisi des
+// accouplements du couple ; jamais négatif. Partage père/mère au choix (repaySirePct, défaut 50 %),
+// gardé sur les accouplements du couple (synchronisé avec eux). Montant à rembourser par animal :
+// repayTarget, sinon prix d'achat. Un parent déjà remboursé ne reçoit plus rien (pas de transfert
+// automatique à l'autre : l'utilisateur règle le pourcentage lui-même).
+function repayCoupleKey(m, f){ return m+'|'+f; }
+function repaySirePct(maleId, femaleId){
+  const ps = pairings.filter(p=>p.maleId===maleId && p.femaleId===femaleId && p.repaySirePct!=null);
+  if(!ps.length) return 50;
+  const v = Number(ps[ps.length-1].repaySirePct);
+  return isNaN(v) ? 50 : Math.min(100, Math.max(0, v));
+}
+function repayTargetOf(s){
+  if(!s) return 0;
+  const v = s.repayTarget!=null ? Number(s.repayTarget) : (s.purchasePrice!=null ? Number(s.purchasePrice) : 0);
+  return v>0 ? v : 0;
+}
+function computeRepaymentCouples(){
+  const couples = {};
+  pairings.forEach(p=>{
+    if(!p || !p.maleId || !p.femaleId) return;
+    const k = repayCoupleKey(p.maleId, p.femaleId);
+    if(!couples[k]) couples[k] = { maleId:p.maleId, femaleId:p.femaleId, cost:0 };
+    couples[k].cost += Number(p.estimatedCost)||0;
+  });
+  Object.values(couples).forEach(c=>{
+    const sold = savedSnakes.filter(s=>s.sireId===c.maleId && s.damId===c.femaleId && s.status==='sold');
+    c.soldCount = sold.length;
+    c.revenue = sold.reduce((a,s)=>a+(Number(s.soldPrice)||0),0);
+    c.profit = Math.max(0, c.revenue - c.cost);
+    c.sirePct = repaySirePct(c.maleId, c.femaleId);
+    c.sireShare = Math.round(c.profit*c.sirePct)/100;
+    c.damShare = Math.round((c.profit - c.sireShare)*100)/100;
+  });
+  return couples;
+}
+function computeRepayment(snakeId, couples){
+  couples = couples || computeRepaymentCouples();
+  const s = savedSnakes.find(x=>x.id===snakeId);
+  const target = repayTargetOf(s);
+  let got = 0;
+  Object.values(couples).forEach(c=>{ if(c.maleId===snakeId) got += c.sireShare; if(c.femaleId===snakeId) got += c.damShare; });
+  const repaid = Math.min(target, Math.round(got*100)/100);
+  return { target, repaid, left: Math.max(0, Math.round((target-repaid)*100)/100), pct: target ? Math.round(repaid/target*100) : 0, done: target>0 && repaid>=target };
+}
+function repayLabel(r, isEn){
+  if(r.done) return '✅ '+(isEn?'Paid back':'Remboursé')+' ('+r.target+' $)';
+  return r.repaid+' $ / '+r.target+' $ ('+r.pct+' %)';
+}
+function setRepaySirePct(pairingId, value){
+  const p = pairings.find(x=>x.id===pairingId);
+  if(!p) return;
+  let n = parseFloat(value);
+  n = (value==='' || isNaN(n)) ? null : Math.min(100, Math.max(0, Math.round(n)));
+  pairings.forEach(x=>{ if(x.maleId===p.maleId && x.femaleId===p.femaleId){ x.repaySirePct = n; } });
+  saveElevage();
+  renderPairingROI();
+}
+function setRepayTarget(id, value){
+  const s = savedSnakes.find(x=>x.id===id);
+  if(!s) return;
+  ensureSnakeMeta(s);
+  const n = parseFloat(value);
+  s.repayTarget = (value==='' || isNaN(n) || n<0) ? null : n;
+  storage.save(savedSnakes);
+  try{ renderPairingROI(); }catch(e){}
+}
+function repayFicheRows(s, isEn){
+  if(!hasAccess('parentRepayment')) return '';
+  const r = computeRepayment(s.id);
+  const isParent = pairings.some(p=>p.maleId===s.id || p.femaleId===s.id);
+  if(!isParent && s.repayTarget==null) return '';
+  const ph = s.purchasePrice!=null ? s.purchasePrice : 0;
+  let html = '<div class="modal-row"><span>'+(isEn?'Amount to pay back':'Montant à rembourser')+'</span><span><input type="number" min="0" class="price-input" style="width:90px;" value="'+(s.repayTarget!=null?s.repayTarget:'')+'" placeholder="'+ph+'" onchange="setRepayTarget(\''+s.id+'\', this.value)"/> $</span></div>';
+  if(r.target>0){
+    const color = r.done ? 'var(--sage)' : 'var(--ink)';
+    html += '<div class="modal-row"><span>'+(isEn?'Paid back by baby sales':'Remboursé par les ventes')+'</span><span style="font-weight:700;color:'+color+';">'+repayLabel(r, isEn)+'</span></div>';
+    if(!r.done && (s.status==='sold' || s.status==='deceased')) html += '<div class="modal-row"><span>'+(isEn?'Never paid back':'Jamais remboursé')+'</span><span style="color:var(--rust);">'+r.left+' $</span></div>';
+  }
+  html += '<div style="font-size:9.5px;color:var(--ink-dim);margin-top:2px;">'+(isEn?'Blank = purchase price. Only completed sales count. Management tracking, not a tax calculation.':'Vide = prix d\'achat. Seules les ventes conclues comptent. Suivi de gestion, pas un calcul fiscal.')+'</div>';
+  return html;
+}
+function repayRoiRowHtml(p, couples, isEn){
+  if(!hasAccess('parentRepayment')) return '';
+  const c = couples[repayCoupleKey(p.maleId, p.femaleId)];
+  if(!c) return '';
+  const rm = computeRepayment(p.maleId, couples), rf = computeRepayment(p.femaleId, couples);
+  if(!rm.target && !rf.target) return '';
+  return '<div style="font-size:11px;margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:6px;">'+
+    '<span>'+(isEn?'Pays back parents — sire':'Rembourse les parents — père')+'</span>'+
+    '<input type="number" min="0" max="100" class="price-input" style="width:56px;" value="'+c.sirePct+'" onchange="setRepaySirePct(\''+p.id+'\', this.value)"/>'+
+    '<span>% = '+c.sireShare+' $ · '+(isEn?'dam':'mère')+' '+(100-c.sirePct)+' % = '+c.damShare+' $</span>'+
+    '<span style="color:var(--ink-dim);">('+(isEn?'profit from ':'profit de ')+c.soldCount+(isEn?' sold baby(ies), after cost':' bébé(s) vendu(s), après le coût')+')</span>'+
+  '</div>'+
+  '<div style="font-size:10.5px;color:var(--ink-dim);margin-top:2px;">'+(isEn?'Sire: ':'Père : ')+(rm.target?repayLabel(rm, isEn):'—')+' · '+(isEn?'Dam: ':'Mère : ')+(rf.target?repayLabel(rf, isEn):'—')+'</div>';
+}
 function setPairingCost(pairingId, value){
   const p = pairings.find(x=>x.id===pairingId);
   if(!p) return;
@@ -29369,22 +29542,41 @@ function renderPairingROI(){
   const isEn = currentLang==='en';
   const wrap = document.getElementById('pairing-roi-list');
   if(!wrap) return;
-  // Seuls les accouplements ayant déjà produit des bébés enregistrés sont pertinents ici.
-  const relevant = pairings.filter(p=>savedSnakes.some(s=>s.sireId===p.maleId && s.damId===p.femaleId));
-  wrap.innerHTML = relevant.length ? '' : '<div class="empty">'+(isEn?'No pairing with recorded offspring yet.':'Aucun accouplement avec des bébés enregistrés pour l\'instant.')+'</div>';
-  relevant.forEach(p=>{
-    const male = savedSnakes.find(s=>s.id===p.maleId);
-    const female = savedSnakes.find(s=>s.id===p.femaleId);
+  // v5.51 — UNE ligne par couple (père+mère) : avant, chaque accouplement du même couple (ex. 2 saisons)
+  // comptait tous ses bébés, donc le revenu était doublé. Le coût reste saisi par saison (un champ par
+  // accouplement) et s'additionne.
+  const coupleMap = {}, coupleOrder = [];
+  pairings.forEach(p=>{
+    if(!p || !p.maleId || !p.femaleId) return;
+    if(!savedSnakes.some(s=>s.sireId===p.maleId && s.damId===p.femaleId)) return;
+    const k = repayCoupleKey(p.maleId, p.femaleId);
+    if(!coupleMap[k]){ coupleMap[k] = []; coupleOrder.push(k); }
+    coupleMap[k].push(p);
+  });
+  const repayCouples = computeRepaymentCouples(); // v5.51
+  wrap.innerHTML = coupleOrder.length ? '' : '<div class="empty">'+(isEn?'No pairing with recorded offspring yet.':'Aucun accouplement avec des bébés enregistrés pour l\'instant.')+'</div>';
+  coupleOrder.forEach(k=>{
+    const ps = coupleMap[k].slice().sort((a,b)=>String(a.pairedDate||'').localeCompare(String(b.pairedDate||'')));
+    const p0 = ps[ps.length-1];
+    const male = savedSnakes.find(s=>s.id===p0.maleId);
+    const female = savedSnakes.find(s=>s.id===p0.femaleId);
     const names = (male?escapeHtml(snakeName(male)):'?')+' × '+(female?escapeHtml(snakeName(female)):'?');
-    const r = computePairingROI(p);
+    const r = computePairingROI(p0);
+    const cost = ps.reduce((a,p)=>a+(Number(p.estimatedCost)||0),0);
+    const roi = r.totalRevenue - cost;
+    const costInputs = ps.map(p=>{
+      const yr = ps.length>1 ? '<span style="font-size:10px;color:var(--ink-dim);">'+escapeHtml(String(p.pairedDate||'').slice(0,4)||'?')+'</span>' : '';
+      return yr+'<input type="number" class="price-input" style="width:80px;" value="'+(p.estimatedCost||'')+'" placeholder="'+(isEn?'Cost $':'Coût $')+'" onchange="setPairingCost(\''+p.id+'\', this.value)"/>';
+    }).join('');
     const row = document.createElement('div');
     row.className = 'sale-row';
     row.innerHTML =
-      '<div class="sale-name">'+names+'<small>'+r.offspringCount+(isEn?' offspring — revenue ':' bébé(s) — revenu ')+r.totalRevenue+' $ ('+r.realizedRevenue+(isEn?' realized + ':' réalisé + ')+r.potentialRevenue+(isEn?' potential)':' potentiel)')+'</small></div>'+
-      '<div class="sale-price" style="display:flex;align-items:center;gap:6px;">'+
-        '<input type="number" class="price-input" style="width:80px;" value="'+(p.estimatedCost||'')+'" placeholder="'+(isEn?'Cost $':'Coût $')+'" onchange="setPairingCost(\''+p.id+'\', this.value)"/>'+
-        '<span style="color:'+(r.roi>=0?'var(--sage)':'var(--rust)')+';font-weight:700;">'+(r.roi>=0?'+':'')+r.roi+' $</span>'+
-      '</div>';
+      '<div class="sale-name">'+names+'<small>'+r.offspringCount+(isEn?' offspring — revenue ':' bébé(s) — revenu ')+r.totalRevenue+' $ ('+r.realizedRevenue+(isEn?' realized + ':' réalisé + ')+r.potentialRevenue+(isEn?' potential)':' potentiel)')+(ps.length>1 ? (isEn?' · '+ps.length+' pairings, cost per season':' · '+ps.length+' accouplements, coût par saison') : '')+'</small></div>'+
+      '<div class="sale-price" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">'+
+        costInputs+
+        '<span style="color:'+(roi>=0?'var(--sage)':'var(--rust)')+';font-weight:700;">'+(roi>=0?'+':'')+roi+' $</span>'+
+      '</div>'+
+      repayRoiRowHtml(p0, repayCouples, isEn);
     wrap.appendChild(row);
   });
 }
@@ -29533,14 +29725,22 @@ function clutchProfitSummary(c, sire, dam){
   const babies = savedSnakes.filter(s=>s.clutchRef===c.ref);
   const soldBabies = babies.filter(s=>s.status==='sold' && s.soldPrice!=null);
   const revenue = soldBabies.reduce((sum,s)=>sum+s.soldPrice, 0);
-  const parentCost = (sire && sire.purchasePrice!=null ? sire.purchasePrice : 0) + (dam && dam.purchasePrice!=null ? dam.purchasePrice : 0);
-  if(!babies.length && !parentCost) return '';
-  const netVsParents = revenue - parentCost;
+  // v5.51 — avant : le prix d'achat COMPLET des parents était retiré à chaque ponte (un mâle à 1 000 $
+  // et 3 pontes = 3 000 $). Remplacé par l'état du remboursement des parents (ventes conclues de
+  // tous leurs bébés, partage choisi dans Fiscal → ROI).
+  let repayHtml = '';
+  if(sire && dam && hasAccess('parentRepayment')){
+    const couples = computeRepaymentCouples();
+    const rs = computeRepayment(sire.id, couples), rd = computeRepayment(dam.id, couples);
+    if(rs.target || rd.target){
+      repayHtml = '<div class="modal-row"><span>'+(isEn?'Parents paid back':'Parents remboursés')+'</span><span>'+(isEn?'Sire: ':'Père : ')+(rs.target?repayLabel(rs, isEn):'—')+' · '+(isEn?'Dam: ':'Mère : ')+(rd.target?repayLabel(rd, isEn):'—')+'</span></div>'+
+        '<div style="font-size:9px;color:var(--ink-dim);margin-top:2px;">'+(isEn?'All clutches of this pair together, completed sales only. Split: Taxes → ROI per pairing.':'Toutes les pontes du couple ensemble, ventes conclues seulement. Partage : Fiscal → ROI par accouplement.')+'</div>';
+    }
+  }
+  if(!babies.length && !repayHtml) return '';
   return '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-family:\'Courier New\',monospace;font-size:10.5px;">'+
     (babies.length ? '<div class="modal-row"><span>'+(isEn?'Revenue (sold)':'Revenus (vendus)')+'</span><span style="color:var(--sage);">'+revenue.toFixed(2)+' $ ('+soldBabies.length+'/'+babies.length+')</span></div>' : '')+
-    (parentCost>0 ? '<div class="modal-row"><span>'+(isEn?'Parents\' acquisition cost':'Coût d\'acquisition des parents')+'</span><span style="color:var(--ink-dim);">'+parentCost.toFixed(2)+' $</span></div>' : '')+
-    (babies.length && parentCost>0 ? '<div class="modal-row"><span>'+(isEn?'Net vs. parent cost':'Net vs coût des parents')+'</span><span style="font-weight:700;color:'+(netVsParents>=0?'var(--sage)':'var(--rust)')+';">'+(netVsParents>=0?'+':'')+netVsParents.toFixed(2)+' $</span></div>' : '')+
-    (parentCost>0 ? '<div style="font-size:9px;color:var(--ink-dim);margin-top:2px;">'+(isEn?'Note: parent cost is often shared across several clutches — simplified view, not a strict per-clutch P&L.':'Note : le coût des parents est souvent partagé entre plusieurs pontes — vue simplifiée, pas un vrai bilan par ponte.')+'</div>' : '')+
+    repayHtml+
   '</div>';
 }
 function renderClutches(){
@@ -33656,6 +33856,7 @@ function exportEverythingExcel(){
     const te = s.placement.terrariumId ? getTerrarium(s.placement.terrariumId) : null;
     return te ? te.name : '';
   };
+  const genL = s=>{ const g = summarizeGenes(s.genes)||''; const c = speciesComboTitle(s.genes, s.species)||''; return c && g && c!==g ? c+' ('+g+')' : (c||g); }; // v5.50 — génétique à côté du nom dans Journal, Longueurs, Santé
   const preyL = (sp, sz, type)=> (sp && sz ? preyLabelShort(sp, sz) : '') + (type ? (sp && sz ? ' ' : '') + (type==='live' ? L('vivante','live') : L('congelée','frozen')) : '');
   const sheets = [];
   const add = (name, header, rows, widths)=>{ const ws = XLSX.utils.aoa_to_sheet([header].concat(rows)); if(widths) ws['!cols'] = widths.map(w=>({ wch:w })); sheets.push([name, ws]); };
@@ -33686,25 +33887,25 @@ function exportEverythingExcel(){
       if(e.passedFrom) notes.push(L('refusée par ','refused by ')+e.passedFrom);
       if(e.type==='supplement' && e.kind) notes.push(supplementKindLabel(e.kind));
       if(e.note) notes.push(String(e.note));
-      jrows.push([s.animalId||'', s.name||'', e.date||'', actL[e.type]||e.type, (e.type==='fed'||e.type==='refused') ? preyL(e.preySpecies, e.preySize, e.preyType) : '', e.preyCount>1 ? e.preyCount : '', '', notes.join(' · ')]);
+      jrows.push([s.animalId||'', s.name||'', genL(s), e.date||'', actL[e.type]||e.type, (e.type==='fed'||e.type==='refused') ? preyL(e.preySpecies, e.preySize, e.preyType) : '', e.preyCount>1 ? e.preyCount : '', '', notes.join(' · ')]);
     });
-    s.health.weights.forEach(w=>{ if(w) jrows.push([s.animalId||'', s.name||'', w.date||'', L('Pesée','Weigh-in'), '', '', w.value, '']); });
+    s.health.weights.forEach(w=>{ if(w) jrows.push([s.animalId||'', s.name||'', genL(s), w.date||'', L('Pesée','Weigh-in'), '', '', w.value, '']); });
   });
-  jrows.sort((a,b)=> String(a[1]).localeCompare(String(b[1])) || String(a[2]).localeCompare(String(b[2])));
-  add(L('Journal','Log'), ['ID', L('Nom','Name'), 'Date', L('Activité','Activity'), L('Proie','Prey'), L('Quantité','Quantity'), L('Poids (g)','Weight (g)'), 'Notes'], jrows, [12,16,12,16,22,10,10,40]);
+  jrows.sort((a,b)=> String(a[1]).localeCompare(String(b[1])) || String(a[3]).localeCompare(String(b[3])));
+  add(L('Journal','Log'), ['ID', L('Nom','Name'), L('Génétique','Genetics'), 'Date', L('Activité','Activity'), L('Proie','Prey'), L('Quantité','Quantity'), L('Poids (g)','Weight (g)'), 'Notes'], jrows, [12,16,30,12,16,22,10,10,40]);
 
   // 3) Longueurs
   const lrows = [];
-  savedSnakes.forEach(s=> s.health.lengths.forEach(l=>{ if(l) lrows.push([s.animalId||'', s.name||'', l.date||'', l.value]); }));
-  add(L('Longueurs','Lengths'), ['ID', L('Nom','Name'), 'Date', L('Longueur (cm)','Length (cm)')], lrows, [12,16,12,12]);
+  savedSnakes.forEach(s=> s.health.lengths.forEach(l=>{ if(l) lrows.push([s.animalId||'', s.name||'', genL(s), l.date||'', l.value]); }));
+  add(L('Longueurs','Lengths'), ['ID', L('Nom','Name'), L('Génétique','Genetics'), 'Date', L('Longueur (cm)','Length (cm)')], lrows, [12,16,30,12,12]);
 
   // 4) Santé : véto + selles
   const hrows = [];
   savedSnakes.forEach(s=>{
-    (s.health.vetVisits||[]).forEach(v=>{ if(v) hrows.push([s.animalId||'', s.name||'', v.date||'', L('Véto','Vet'), v.reason||'', v.findings||'']); });
-    (s.health.defecations||[]).forEach(d=>{ if(d) hrows.push([s.animalId||'', s.name||'', d.date||'', L('Selles','Poop'), '', d.note||'']); });
+    (s.health.vetVisits||[]).forEach(v=>{ if(v) hrows.push([s.animalId||'', s.name||'', genL(s), v.date||'', L('Véto','Vet'), v.reason||'', v.findings||'']); });
+    (s.health.defecations||[]).forEach(d=>{ if(d) hrows.push([s.animalId||'', s.name||'', genL(s), d.date||'', L('Selles','Poop'), '', d.note||'']); });
   });
-  add(L('Santé','Health'), ['ID', L('Nom','Name'), 'Date', 'Type', L('Motif','Reason'), L('Observations','Findings')], hrows, [12,16,12,10,24,40]);
+  add(L('Santé','Health'), ['ID', L('Nom','Name'), L('Génétique','Genetics'), 'Date', 'Type', L('Motif','Reason'), L('Observations','Findings')], hrows, [12,16,30,12,10,24,40]);
 
   // 5) Accouplements
   add(L('Accouplements','Pairings'), [L('Mâle','Male'), L('Femelle','Female'), L('Date de début','Start date'), L('Nombre de locks','Lock count'), L('Dates des locks','Lock dates'), L('Ovulation','Ovulation'), L('Date d\'ovulation','Ovulation date')],
@@ -34388,7 +34589,7 @@ function renderLockModeGrid(){
     const pills = lockModeStagePills(p, locks); // v5.08
     return '<div style="border:1px solid '+(together?'var(--sage)':'var(--line)')+';border-radius:12px;padding:8px 10px;margin-bottom:6px;">'+
       '<div style="display:flex;align-items:center;gap:6px;">'+
-        '<span style="flex:1;min-width:0;font-size:13px;"><b>♀ '+escapeHtml(spSnakeName(p.femaleId))+'</b> × ♂ '+escapeHtml(spSnakeName(p.maleId))+'<br/><small style="color:var(--ink-dim);">'+stateTxt+(lastLock?' · '+(isEn?'last lock ':'dernier lock ')+spFmt(lastLock):'')+'</small>'+(pills?'<br/>'+pills:'')+'</span>'+
+        '<span style="flex:1;min-width:0;font-size:13px;"><b>♀ '+escapeHtml(spSnakeName(p.femaleId))+'</b> × ♂ '+escapeHtml(spSnakeName(p.maleId))+pairHealthIconHtml(p.maleId, p.femaleId)+'<br/><small style="color:var(--ink-dim);">'+stateTxt+(lastLock?' · '+(isEn?'last lock ':'dernier lock ')+spFmt(lastLock):'')+'</small>'+(pills?'<br/>'+pills:'')+'</span>'+
         '<button class="sc-btn'+(lockedToday?' accent':'')+'" style="min-width:64px;" onclick="quickAddLockToday(\''+p.id+'\')">🔒 '+locks.length+(lockedToday?' ✓':' +')+'</button>'+
         '<button class="sc-btn'+(refusedToday?' accent':'')+'" title="'+(isEn?'Refusal':'Refus')+'" onclick="openPairRefusal(\''+p.id+'\')">🙅 '+refusals.length+'</button>'+ // v5.04
         '<button class="sc-btn" onclick="togglePairSession(\''+p.id+'\')">'+(together?'⏸':'🤝')+'</button>'+
