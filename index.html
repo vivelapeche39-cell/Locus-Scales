@@ -1431,6 +1431,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <button class="sc-btn" onclick="batchToggleTerrarium()">🏠 <span data-i18n="batchMoveBtn">Rack ↔ Terrarium</span></button>
         <input type="number" id="batch-price-input" class="price-input" style="width:80px;" placeholder="Prix $" min="0"/>
         <button class="sc-btn" onclick="batchSetPrice()">💰 <span data-i18n="batchPriceBtn">Prix en masse</span></button>
+        <button class="sc-btn" onclick="openBatchReservationModal()">🤝 <span data-i18n="batchReserveBtn">Réserver</span></button>
         <button class="sc-btn" onclick="batchAddToGroup()">🗂 <span data-i18n="batchGroupBtn">Ajouter à un groupe</span></button>
         <button class="sc-btn" id="batch-group-remove-btn" style="display:none;" onclick="batchRemoveFromGroup()">➖ <span data-i18n="batchGroupRemoveBtn">Retirer du groupe</span></button>
         <button class="sc-btn" onclick="batchSelectAll()"><span data-i18n="batchSelectAllBtn">Tout sélectionner</span></button>
@@ -1573,6 +1574,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <button class="tour-action-btn shed" data-i18n="actionShed" onclick="applyTourAction('shed')">A mué</button>
         <button class="tour-action-btn refused" data-i18n="actionRefused" onclick="applyTourAction('refused')">Refus</button>
         <button class="tour-action-btn" data-i18n="actionWeigh" onclick="applyTourAction('weigh')">Peser</button>
+        <button class="tour-action-btn" data-i18n="actionHealth" onclick="openTourHealthModal()">🩺 Santé</button>
         <!-- v3.25 — bouton « Changement d'eau » retiré du Mode Tournée (demande d'Alex) : l'entretien vit
              dans Racks & Terrariums (💧 sur la carte/le bac + Journal d'entretien). -->
         <button class="sc-btn" data-i18n="deselectBtn" onclick="clearTourSelection()">Désélectionner</button>
@@ -1766,6 +1768,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <span style="color:var(--ink-dim);font-family:'Courier New',monospace;font-size:11px;">×</span>
       <select id="clutch-dam" onchange="updateClutchReproductionFields()"></select>
       <input type="number" id="clutch-eggcount" min="1" max="30" placeholder="Nb d'œufs" data-i18n-placeholder="clutchEggCountPh" style="width:90px;"/>
+      <input type="number" id="clutch-slugcount" min="0" max="30" placeholder="Slugs" data-i18n-placeholder="clutchSlugCountPh" style="width:70px;" title="Slugs (optionnel)"/>
       <label id="clutch-date-wrap" style="display:flex;flex-direction:column;font-family:'Courier New',monospace;font-size:9px;color:var(--ink-dim);gap:2px;">
         <span id="clutch-date-label">Date de ponte</span>
         <input type="date" id="clutch-laydate"/>
@@ -2364,7 +2367,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.56';
+const APP_VERSION = '2026.09.01.5.58';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2776,6 +2779,7 @@ const BREEDING_TIER_FEATURES = [
   'dreamSimulator',
   'lockMode', // v3.44 — Mode Verrou (choix d'Alex : Première ponte + Illimité, cohérent avec la reproduction)
   'seasonPlan', // v3.40 — Plan de saison (choix d'Alex : Première ponte + Illimité)
+  'groupReservation', // v5.58 — commande groupée (réservation de plusieurs animaux, un acompte) : Première ponte + Illimité (choix d'Alex : pour vendre il faut reproduire)
   'comboPriceMemory', // v5.49 — prix retenus par résultat dans le calculateur (choix d'Alex : Première ponte + Illimité)
   'seasonChances' // v3.35 — « Mes chances cette saison » (choix d'Alex : Première ponte + Illimité)
 ];
@@ -5583,6 +5587,22 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.58', date:'2026-11-03',
+    title:{ fr:'Slugs à la ponte et commande groupée', en:'Slugs at laying and group orders' },
+    changes:{
+      fr:[ '🥚 Noter une ponte : nouveau champ « Slugs » à côté du nombre d\'œufs (ex. 7 œufs viables + 2 slugs). Modifiable ensuite sur la ponte (✏️ slugs). La fertilité de la femelle compte les deux. Gratuit.',
+           '🤝 Mes reptiles → Sélection multiple → « Réserver » : plusieurs animaux, un acheteur, un seul acompte. Le partage de l\'acompte est pré-rempli selon le prix et tu le changes comme tu veux. Frais de livraison ajoutés à tes Dépenses. Sur chaque fiche : la commande, le total, le solde, « Reçu de la commande » et « Commande vendue ».',
+           '💰 Annuler une réservation avec acompte : LOCUS demande ce qu\'il devient — gardé (compté comme revenu dans Fiscal), remboursé, ou reporté sur le reste de la commande. La commande groupée est réservée aux paliers Première ponte et Illimité après la bêta.' ],
+      en:[ '🥚 Log a clutch: new « Slugs » field next to the egg count (e.g. 7 viable eggs + 2 slugs). Editable later on the clutch (✏️ slugs). The female\'s fertility counts both. Free.',
+           '🤝 My reptiles → Multi-select → « Reserve »: several animals, one buyer, one deposit. The deposit split is pre-filled by price and you change it as you like. Delivery costs added to your Expenses. On each record: the order, total, balance, « Order receipt » and « Whole order sold ».',
+           '💰 Cancelling a reservation with a deposit: LOCUS asks what happens to it — kept (counted as income in Taxes), refunded, or moved to the rest of the order. Group orders are reserved for the First Clutch and Unlimited tiers after the beta.' ] } },
+  { version:'5.57', date:'2026-11-03',
+    title:{ fr:'🩺 Santé dans le Mode Tournée', en:'🩺 Health in Tour Mode' },
+    changes:{
+      fr:[ '🩺 Nouveau bouton « Santé » dans la barre du Mode Tournée : pour les animaux sélectionnés, note des selles normales, des selles anormales (avec une note, ex. « sang »), une régurgitation ou une note de santé, sans quitter la tournée. Case « Mettre aussi en quarantaine ». Tout va dans le journal et le Parcours de l\'animal, et s\'annule depuis le message.',
+           '🤮 Régurgitation : ce n\'est pas un refus. Le prochain repas n\'est pas proposé avant 14 jours, l\'alerte « jours sans repas » se tait pendant 21 jours, et l\'animal apparaît dans « À surveiller » (« 2 régurgitations en 30 jours » s\'il y en a plusieurs). Gratuit.' ],
+      en:[ '🩺 New « Health » button in the Tour Mode bar: for the selected animals, log normal poop, abnormal poop (with a note, e.g. « blood »), a regurgitation or a health note, without leaving the tour. « Also put in quarantine » box. Everything goes into the animal\'s log and History, and can be undone from the message.',
+           '🤮 Regurgitation: it\'s not a refusal. The next meal isn\'t suggested before 14 days, the « days without a meal » alert stays quiet for 21 days, and the animal shows in « To watch » (« 2 regurgitations in 30 days » if there are several). Free.' ] } },
   { version:'5.56', date:'2026-11-03',
     title:{ fr:'Hors ligne : LOCUS te dit que c\'est gardé', en:'Offline: LOCUS tells you it\'s saved' },
     changes:{
@@ -7674,6 +7694,8 @@ const I18N = {
     actionSkipped: '⏭ Sauté',
     actionRefused: 'Refus',
     actionWeigh: 'Peser',
+    actionHealth: '🩺 Santé', // v5.57
+    clutchSlugCountPh: 'Slugs', batchReserveBtn: 'Réserver', // v5.58
     deselectBtn: 'Désélectionner',
     maintenanceJournalBtn: "Journal d'entretien",
     showAllSectionsBtn: 'Tout réafficher',
@@ -8267,6 +8289,8 @@ const I18N = {
     actionSkipped: '⏭ Skipped',
     actionRefused: 'Refused',
     actionWeigh: 'Weigh',
+    actionHealth: '🩺 Health', // v5.57
+    clutchSlugCountPh: 'Slugs', batchReserveBtn: 'Reserve', // v5.58
     deselectBtn: 'Deselect',
     maintenanceJournalBtn: 'Maintenance log',
     showAllSectionsBtn: 'Show everything again',
@@ -13387,7 +13411,7 @@ function femaleFertilityStats(s){
   cs.forEach(c=>{
     const b = (c.slugCount||0) + (c.badEggCount||0);
     const hasBad = c.slugCount!=null || c.badEggCount!=null;
-    const tot = c.eggCount!=null ? Number(c.eggCount) : ((c.liveCount||0)+(c.stillbornCount||0)+(c.slugCount||0)); // badEggCount = sous-ensemble des œufs pondus
+    const tot = c.eggCount!=null ? Number(c.eggCount)+(c.slugCount||0) : ((c.liveCount||0)+(c.stillbornCount||0)+(c.slugCount||0)); // badEggCount = sous-ensemble des œufs pondus ; v5.58 — ovipare : slugs notés à la ponte EN PLUS des œufs viables
     if(hasBad && tot>0){ withData++; total += tot; bad += b; }
   });
   return { clutches:cs.length, withData, total, bad };
@@ -14321,6 +14345,7 @@ function openLogbook(id){
       + mrow(isEn?'Deposit received':'Acompte reçu', (s.reservation.depositAmount||0)+' $ — '+(s.reservation.depositDate||'—'))
       + (s.reservation.totalPrice!=null ? mrow(isEn?'Balance due':'Solde dû', Math.max(0,s.reservation.totalPrice-(s.reservation.depositAmount||0))+' $') : '')
       + (s.reservation.note ? mrow(isEn?'Note':'Note', escapeHtml(s.reservation.note)) : '')
+      + orderFicheRowsHtml(s, isEn) // v5.58
       + '<div style="display:flex;gap:8px;margin-top:8px;">'
       + '<button class="sc-btn accent" style="flex:1;" onclick="convertReservationToSale(\''+id+'\')">✓ '+(isEn?'Convert to sale':'Convertir en vente')+'</button>'
       + '<button class="sc-btn danger" style="flex:1;" onclick="cancelReservation(\''+id+'\')">'+(isEn?'Cancel':'Annuler')+'</button>'
@@ -14351,7 +14376,7 @@ function openLogbook(id){
   // identiques se ressemblent en tout point, exactement le cas d'un doublon.
   const eventRowHtml = e=>{
         const idx = s.health.events.indexOf(e);
-        const label = eventLabelFor(e)+(e.type==='weigh'?' ('+fmtWeight(e.value)+')':'')+(e.type==='length'?' ('+fmtLength(e.value)+')':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(currentLang==='en'?'partial':'partiel'):'')+feedPreyTag(e)+(e.partner?' — '+escapeHtml(e.partner):'');
+        const label = eventLabelFor(e)+(e.type==='weigh'?' ('+fmtWeight(e.value)+')':'')+(e.type==='length'?' ('+fmtLength(e.value)+')':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(currentLang==='en'?'partial':'partiel'):'')+feedPreyTag(e)+(e.partner?' — '+escapeHtml(e.partner):'')+((e.type==='regurg'||e.type==='health_note') && e.note ? ' — '+escapeHtml(e.note) : ''); // v5.57
         const swapBtn = (e.type==='shed' || e.type==='inshed') ? '<button class="sc-btn" style="padding:2px 8px;font-size:12px;line-height:1.2;" onclick="toggleShedEventType(\''+id+'\','+idx+')" title="'+(currentLang==='en'?(e.type==='shed'?'Change to « In shed »':'Change to « Shed »'):(e.type==='shed'?'Changer en « En mue »':'Changer en « A mué »'))+'">⇄ '+(e.type==='shed'?(currentLang==='en'?'In shed':'En mue'):(currentLang==='en'?'Shed':'A mué'))+'</button>' : ''; // v3.90
         const editBtn = '<button class="sc-btn" style="padding:2px 8px;font-size:12px;line-height:1.2;" onclick="openEditEventModal(\''+id+'\','+idx+')" aria-label="'+(currentLang==='en'?'Edit':'Modifier')+'">✏️</button>'; // v3.92
         return '<div class="modal-row"><span>'+e.date+'</span><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">'+label+editBtn+swapBtn+'<button class="sc-btn danger" style="padding:2px 8px;font-size:11px;line-height:1;" onclick="deleteHealthEvent(\''+id+'\','+idx+')">×</button></span></div>';
@@ -16150,6 +16175,74 @@ function confirmTourRefusalPrey(){
   tourRefusalPlan = plan;
   try{ applyTourAction('refused'); } finally { tourRefusalPlan = null; }
 }
+// v5.57 — 🩺 Santé dans le Mode Tournée (Gemini « Stéphanie » + choix d'Alex, gratuit) : noter des selles,
+// une régurgitation ou une note de santé sans quitter la tournée ; quarantaine en option.
+var tourHealthUndo = null;
+function openTourHealthModal(){
+  const isEn = currentLang==='en';
+  const n = tourSelection.size;
+  if(!n){ alert(isEn?'Select at least one tub or terrarium.':'Sélectionne au moins un bac ou terrarium.'); return; }
+  const big = 'display:block;width:100%;font-size:16px;padding:13px;margin-bottom:8px;text-align:left;';
+  const inp = 'width:100%;font-size:16px;padding:9px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);margin:2px 0 12px;';
+  showQuickModal('🩺 '+(isEn?'Health':'Santé'),
+    '<p style="font-size:14px;color:var(--ink-dim);margin:0 0 10px;">'+(isEn?'For the '+n+' selected animal(s):':'Pour '+(n>1?'les '+n+' animaux sélectionnés':'l\'animal sélectionné')+' :')+'</p>'+
+    '<label style="font-size:13px;color:var(--ink-dim);">'+(isEn?'Note (optional — required for « Health note »)':'Note (facultative — obligatoire pour « Note de santé »)')+'</label>'+
+    '<input type="text" id="tour-health-note" maxlength="300" placeholder="'+(isEn?'e.g. blood in stool, liquid':'ex. sang dans les selles, liquide')+'" style="'+inp+'"/>'+
+    '<label style="display:flex;align-items:center;gap:8px;font-size:14px;margin:0 0 14px;"><input type="checkbox" id="tour-health-quar" style="width:20px;height:20px;accent-color:var(--gold);"/> 🚩 '+(isEn?'Also put in quarantine':'Mettre aussi en quarantaine')+'</label>'+
+    '<button class="sc-btn" style="'+big+'" onclick="applyTourHealth(\'poop_ok\')">💩 '+(isEn?'Normal poop':'Selles normales')+'</button>'+
+    '<button class="sc-btn" style="'+big+'border-color:var(--gold);" onclick="applyTourHealth(\'poop_bad\')">⚠️ '+(isEn?'Abnormal poop':'Selles anormales')+'</button>'+
+    '<button class="sc-btn" style="'+big+'border-color:var(--rust);" onclick="applyTourHealth(\'regurg\')">🤮 '+(isEn?'Regurgitation (rest '+REGURG_REST_MIN_DAYS+'–'+REGURG_REST_MAX_DAYS+' days before next meal)':'Régurgitation (repos '+REGURG_REST_MIN_DAYS+' à '+REGURG_REST_MAX_DAYS+' jours avant le prochain repas)')+'</button>'+
+    '<button class="sc-btn" style="'+big+'" onclick="applyTourHealth(\'note\')">📝 '+(isEn?'Health note':'Note de santé')+'</button>');
+}
+function applyTourHealth(kind){
+  const isEn = currentLang==='en';
+  const note = ((document.getElementById('tour-health-note')||{}).value||'').trim().slice(0,300);
+  const quar = !!((document.getElementById('tour-health-quar')||{}).checked);
+  if(kind==='note' && !note){ showToast(isEn?'Write the note first.':'Écris d\'abord la note.', 'error'); return; }
+  const today = tourEventDate();
+  const snakes = [...tourSelection].map(snakeFromKey).filter(Boolean);
+  const undo = { events:[], poops:[], quar:[] };
+  snakes.forEach(sn=>{
+    ensureSnakeMeta(sn);
+    if(kind==='poop_ok' || kind==='poop_bad'){
+      if(!sn.health.defecations) sn.health.defecations = [];
+      const dId = 'def_'+Date.now()+'_'+Math.random().toString(36).slice(2,6)+'_'+sn.id;
+      sn.health.defecations.push({ id:dId, date:today, note: kind==='poop_bad' ? '⚠️ '+(note || (isEn?'abnormal':'anormales')) : (note||''), abnormal: kind==='poop_bad' || undefined });
+      undo.poops.push(sn.id+'|'+dId);
+    } else {
+      const ev = { date:today, type: kind==='regurg' ? 'regurg' : 'health_note' };
+      if(note) ev.note = note;
+      pushHealthEvent(sn, ev);
+      undo.events.push({ snakeId:sn.id, event:ev });
+    }
+    if(quar && !(sn.quarantine && sn.quarantine.active)){
+      undo.quar.push({ id:sn.id, prev: JSON.parse(JSON.stringify(sn.quarantine||null)) });
+      sn.quarantine = Object.assign({ durationDays:60 }, sn.quarantine||{}, { active:true, startDate:today });
+    }
+    sn.updatedAt = Date.now();
+  });
+  storage.save(savedSnakes);
+  tourHealthUndo = undo;
+  closeQuickModal();
+  const n = snakes.length;
+  const msg = kind==='poop_ok' ? (isEn?n+' poop(s) logged.':n+' selles notée(s).')
+    : kind==='poop_bad' ? (isEn?n+' abnormal poop(s) logged.':n+' selles anormales notée(s).')
+    : kind==='regurg' ? (isEn?n+' regurgitation(s) logged — next meal not before '+addDays(today, REGURG_REST_MIN_DAYS)+'.':n+' régurgitation(s) notée(s) — prochain repas pas avant le '+addDays(today, REGURG_REST_MIN_DAYS)+'.')
+    : (isEn?n+' health note(s) logged.':n+' note(s) de santé ajoutée(s).');
+  showToast('🩺 '+msg+(undo.quar.length?(isEn?' 🚩 '+undo.quar.length+' in quarantine.':' 🚩 '+undo.quar.length+' en quarantaine.'):''), 'success', 'undoTourHealth()');
+  tourSelection.clear();
+  try{ renderTourGrid(); }catch(e){}
+  try{ renderHealthAlerts(); }catch(e){}
+}
+function undoTourHealth(){
+  const u = tourHealthUndo; if(!u) return;
+  u.events.forEach(({snakeId, event})=>{ const sn = savedSnakes.find(x=>x.id===snakeId); if(!sn) return; const i = sn.health.events.indexOf(event); if(i>-1){ sn.health.events.splice(i,1); addHealthTombstone(sn, healthEventKey(event)); } });
+  u.quar.forEach(q=>{ const sn = savedSnakes.find(x=>x.id===q.id); if(sn) sn.quarantine = q.prev || { active:false, startDate:null, durationDays:60 }; });
+  tourHealthUndo = null;
+  if(u.poops.length) undoDefecations(u.poops); // sauvegarde + message « Annulé »
+  else { storage.save(savedSnakes); try{ renderTourGrid(); }catch(e){} showToast('↩ '+(currentLang==='en'?'Undone.':'Annulé.')); }
+  try{ renderHealthAlerts(); }catch(e){}
+}
 function openTourShedQualityModal(){
   const isEn = currentLang==='en';
   const n = tourSelection.size;
@@ -17102,6 +17195,7 @@ function parcoursEvents(s){
     else if(e.type==='inshed'){ cat = 'mue'; ring = true; }
     else if(e.type==='shed'){ cat = 'mue'; if(e.quality) detail = shedQualityLabel(e.quality); }
     else if(e.type==='lock' || e.type==='pair_in' || e.type==='pair_out'){ cat = 'repro'; if(e.partner) detail = escapeHtml(e.partner); }
+    else if(e.type==='regurg' || e.type==='health_note'){ cat = 'sante'; ring = e.type==='regurg'; if(e.note) detail = escapeHtml(e.note); } // v5.57
     else return;
     add(e.date, cat, ring, eventLabelFor(e), String(detail).replace(/^\s*—\s*/,'').trim(), { fed: e.type==='fed', prey: e.type==='fed' ? (e.preyType==='live'?'🐭':(e.preyType?'❄️':'')) : '' });
   });
@@ -17992,6 +18086,7 @@ function snakeToRow(s){
     shipping_carrier: s.shippingCarrier||null, shipping_tracking: s.shippingTracking||null, shipping_date: s.shippingDate||null, shipping_delivered: !!s.shippingDelivered,
     purchase_price: s.purchasePrice!=null ? s.purchasePrice : null,
     repay_target: s.repayTarget!=null ? s.repayTarget : null, // v5.51 — colonne migrée et vérifiée le 2 nov
+    kept_deposits: Array.isArray(s.keptDeposits) ? s.keptDeposits : [], // v5.58 — colonne migrée et vérifiée le 3 nov
     genetics_history: s.geneticsHistory||[],
     clutch_ref: s.clutchRef||null,
     loans: s.loans||[],
@@ -18017,6 +18112,7 @@ function rowToSnake(r){
     shippingCarrier: r.shipping_carrier || null, shippingTracking: r.shipping_tracking || null, shippingDate: r.shipping_date || null, shippingDelivered: !!r.shipping_delivered,
     purchasePrice: r.purchase_price!=null ? r.purchase_price : null,
     repayTarget: r.repay_target!=null ? Number(r.repay_target) : null, // v5.51
+    keptDeposits: Array.isArray(r.kept_deposits) ? r.kept_deposits : [], // v5.58
     geneticsHistory: r.genetics_history||[], clutchRef: r.clutch_ref||null, loans: r.loans||[], reservation: r.reservation||null, proven: !!r.proven, provenSeasons: Array.isArray(r.proven_seasons) ? r.proven_seasons : [], deceasedDate: r.deceased_date||null, deceasedNote: r.deceased_note||null, showToken: r.show_token||null, showFields: r.show_fields||null, vitrineBreeder: !!r.vitrine_breeder, importedCoi: r.imported_coi||null, updatedAt: r.updated_at ? Date.parse(r.updated_at) : 0
   };
 }
@@ -22847,10 +22943,25 @@ function isPlateFeeder(s){ return !!(s && PLATE_SPECIES.includes(s.species)); }
 
 // Prochaine date de repas prévue = dernier repas/refus + intervalle (personnalisé ou générique).
 // Si jamais nourri, on projette à partir d'aujourd'hui (pas de date passée fictive).
+// v5.57 — après une régurgitation, on attend 14 à 21 jours avant de réessayer (Alex) : le prochain repas
+// n'est pas proposé avant 14 jours, et l'alerte « jours sans repas » se tait pendant 21 jours.
+const REGURG_REST_MIN_DAYS = 14, REGURG_REST_MAX_DAYS = 21;
+function lastRegurgEvent(s){
+  const r = ((s && s.health && s.health.events)||[]).filter(e=>e && e.type==='regurg' && e.date).sort((a,b)=>a.date.localeCompare(b.date));
+  return r.length ? r[r.length-1] : null;
+}
+function regurgRestInfo(s){ // repos en cours : régurgitation sans repas réussi depuis
+  const r = lastRegurgEvent(s); if(!r) return null;
+  const fedAfter = (s.health.events||[]).some(e=>e && e.type==='fed' && e.date>r.date);
+  if(fedAfter) return null;
+  return { date:r.date, from:addDays(r.date, REGURG_REST_MIN_DAYS), to:addDays(r.date, REGURG_REST_MAX_DAYS) };
+}
 function nextFeedingDate(s){
   const relevant = s.health.events.filter(e=>e.type==='fed'||e.type==='refused'||e.type==='skipped').sort((a,b)=>a.date.localeCompare(b.date)); // v3.92 — sauté inclus
   const base = relevant.length ? relevant[relevant.length-1].date : localTodayStr();
-  return addDays(base, feedingIntervalOf(s));
+  const normal = addDays(base, feedingIntervalOf(s));
+  const rest = regurgRestInfo(s); // v5.57
+  return (rest && rest.from > normal) ? rest.from : normal;
 }
 
 /* ==================== Export vers calendrier système (.ics) ==================== */
@@ -28051,7 +28162,11 @@ function lastShedQuality(s){
 function healthRiskAssessment(s){
   const isEn = currentLang==='en';
   const signals = [];
-  if(isFeedingFlagged(s)) { const fd = daysSinceLastFed(s); signals.push({ type:'feeding', label: fd==null ? (isEn?'never fed':'jamais nourri') : (isEn?fd+'d without a meal':fd+'j sans repas') }); } // v4.51 — plus de « nullj »
+  const rgRest = regurgRestInfo(s); // v5.57 — repos après régurgitation : pas d'alerte « sans repas » pendant 21 j
+  const rgRecent = ((s.health.events)||[]).filter(e=>e && e.type==='regurg' && e.date && e.date>=addDays(localTodayStr(), -30));
+  if(rgRecent.length){ const last = rgRecent.map(e=>e.date).sort().pop();
+    signals.push({ type:'regurg', label: rgRecent.length>1 ? (isEn ? rgRecent.length+' regurgitations in 30 days' : rgRecent.length+' régurgitations en 30 jours') : (isEn ? 'regurgitation on '+last+(rgRest?' — rest until '+rgRest.from+' to '+rgRest.to:'') : 'régurgitation le '+last+(rgRest?' — repos jusqu\'au '+rgRest.from+' à '+rgRest.to:'')) }); }
+  if(isFeedingFlagged(s) && !(rgRest && localTodayStr() < rgRest.to)) { const fd = daysSinceLastFed(s); signals.push({ type:'feeding', label: fd==null ? (isEn?'never fed':'jamais nourri') : (isEn?fd+'d without a meal':fd+'j sans repas') }); } // v4.51 — plus de « nullj »
   if(weightDropping(s)){ const wd = weightDropInfo(s); signals.push({ type:'weight', label:isEn?'weight loss −'+wd.pct+'%':'perte de poids −'+String(wd.pct).replace('.',',')+' %' }); } // v4.12
   const shedQ = lastShedQuality(s);
   // v3.52 — chez les lézards (et tortues), muer en morceaux est normal : seule « incomplète »
@@ -29519,6 +29634,17 @@ function breedingPerformanceHtml(s){
 // Ajuste les champs du formulaire de ponte selon le mode de reproduction détecté depuis les
 // parents choisis — durée/libellés/visibilité, pas juste la valeur par défaut comme avant
 // (updateClutchIncubationDefault, renommée, gardait le même nom pour compat mais fait plus large).
+function editClutchSlugs(clutchId){ // v5.58
+  const isEn = currentLang==='en';
+  const c = (clutches||[]).find(x=>x.id===clutchId); if(!c) return;
+  const v = prompt(isEn?'Slugs in this clutch (in addition to the '+c.eggCount+' viable egg(s)):':'Slugs dans cette ponte (en plus des '+c.eggCount+' œuf(s) viable(s)) :', c.slugCount!=null?String(c.slugCount):'');
+  if(v==null) return;
+  const n = parseInt(v,10);
+  c.slugCount = (v.trim()==='' || isNaN(n) || n<0) ? null : n; c.updatedAt = Date.now();
+  saveElevage();
+  try{ renderClutches(); }catch(e){}
+  showToast('🥚 '+(isEn?'Slugs saved.':'Slugs enregistrés.'), 'success');
+}
 function updateClutchReproductionFields(){
   const isEn = currentLang==='en';
   const sireId = document.getElementById('clutch-sire').value;
@@ -29538,6 +29664,7 @@ function updateClutchReproductionFields(){
   // Le nombre d'œufs est connu à l'avance chez l'ovipare, mais inconnu tant que la mise bas n'a
   // pas eu lieu chez l'ovovivipare (nés vivants/mort-nés/slugs saisis plus tard, à ce moment-là).
   eggCountInput.style.display = isOvo ? 'none' : '';
+  const slugInput = document.getElementById('clutch-slugcount'); if(slugInput) slugInput.style.display = isOvo ? 'none' : ''; // v5.58 — slugs vus à la ponte (ovipare)
   try{ updateClutchTsdHint(); }catch(e){}
 }
 // Alias de compatibilité — plusieurs endroits du code appellent encore l'ancien nom.
@@ -29893,7 +30020,7 @@ function addClutch(){
     id:'cl_'+Date.now(), ref, sireId, damId, mode:conf.mode,
     eggCount: isOvo ? null : eggCount, layDate, incubationDays,
     hatchDate, hatched:false, hatchedAt:null,
-    liveCount:null, stillbornCount:null, slugCount:null,
+    liveCount:null, stillbornCount:null, slugCount: (function(){ if(isOvo) return null; const el = document.getElementById('clutch-slugcount'); const n = el ? parseInt(el.value,10) : NaN; return (!isNaN(n) && n>=0) ? n : null; })(), // v5.58 — eggCount = œufs viables ; slugs en plus
     pairingId:pendingPairingIdForClutch, candidateSireIds,
     incubTempC: (function(){ const el = document.getElementById('clutch-incub-temp'); const n = el ? incFromInput(el.value) : NaN; /* v5.39 */ return (!isOvo && TSD_BY_SPECIES[clutchSpeciesFor(sireId, damId)] && !isNaN(n)) ? n : null; })()
   });
@@ -29901,6 +30028,7 @@ function addClutch(){
   saveElevage();
   try{ renderClutchPairingSuggest(); }catch(e){} // v4.95
   document.getElementById('clutch-eggcount').value = '';
+  { const sl = document.getElementById('clutch-slugcount'); if(sl) sl.value = ''; } // v5.58
   renderClutches();
   try{ renderLastYearReference(); }catch(e){}
   showToast(isOvo
@@ -30002,7 +30130,7 @@ function renderClutches(){
 
     // Ligne "œufs"/"compteurs de naissance" — selon le mode et si la mise bas a déjà eu lieu.
     const countRowHtml = !isOvo
-      ? mrow(t('eggsLabel'), c.eggCount)
+      ? mrow(t('eggsLabel'), c.eggCount+(c.slugCount ? ' + '+c.slugCount+' slug(s)' : '')+' <button class="sc-btn" style="padding:2px 8px;font-size:12px;" onclick="editClutchSlugs(\''+c.id+'\')" aria-label="'+(isEn?'Slugs':'Slugs')+'">✏️ '+(isEn?'slugs':'slugs')+'</button>') // v5.58
       : (c.hatched
           ? mrow(isEn?'Live / stillborn / slugs':'Vivants / mort-nés / slugs', (c.liveCount||0)+' / '+(c.stillbornCount||0)+' / '+(c.slugCount||0))
           : mrow(isEn?'Count':'Compte', isEn?'Known at birth':'Connu à la mise bas'));
@@ -32060,6 +32188,128 @@ function confirmReservation(id){
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
   showToast('🤝 '+(isEn?'Reservation confirmed.':'Réservation confirmée.'), 'success');
 }
+// ==================== v5.58 — Commande groupée (scénario « Rémi » de Gemini, choix d'Alex) ====================
+// Plusieurs animaux, un seul acheteur et un seul acompte. Le partage de l'acompte entre les animaux est
+// au choix de l'éleveur (pré-rempli selon le prix, modifiable). Chaque fiche garde sa part
+// (reservation.depositAmount) + orderId / orderDeposit : rien ne change pour la vente d'un animal seul.
+// Palier Première ponte + Illimité.
+function orderSnakes(orderId){ return savedSnakes.filter(x=>x.status==='reserved' && x.reservation && x.reservation.orderId===orderId); }
+function orderFicheRowsHtml(s, isEn){
+  const r = s.reservation; if(!r || !r.orderId) return '';
+  const all = orderSnakes(r.orderId);
+  const tot = all.reduce((a,x)=>a+(Number(x.reservation.totalPrice)||0),0), dep = all.reduce((a,x)=>a+(Number(x.reservation.depositAmount)||0),0);
+  return mrow(isEn?'Order':'Commande', all.length+(isEn?' animal(s) — ':' animal(aux) — ')+all.map(x=>escapeHtml(snakeName(x))).join(', '))+
+    mrow(isEn?'Order total':'Total de la commande', tot+' $ — '+(isEn?'deposit ':'acompte ')+dep+' $ — '+(isEn?'balance ':'solde ')+Math.max(0, Math.round((tot-dep)*100)/100)+' $')+
+    '<div style="display:flex;gap:8px;margin-top:8px;"><button class="sc-btn" style="flex:1;" onclick="generateOrderReceiptPdf(\''+r.orderId+'\')">🧾 '+(isEn?'Order receipt':'Reçu de la commande')+'</button>'+
+    '<button class="sc-btn accent" style="flex:1;" onclick="markOrderSold(\''+r.orderId+'\')">✓ '+(isEn?'Whole order sold':'Commande vendue')+' ('+all.length+')</button></div>';
+}
+function openBatchReservationModal(){
+  const isEn = currentLang==='en';
+  if(!hasAccess('groupReservation')){ showQuickModal('🤝', lockedFeatureHtml()); return; }
+  const list = [...batchSelectedIds].map(id=>savedSnakes.find(x=>x.id===id)).filter(x=>x && isActiveSnake(x) && x.status!=='sold');
+  if(list.length<1){ showToast(isEn?'Select the animals of the order.':'Sélectionne les animaux de la commande.', 'error'); return; }
+  const inp = 'width:100%;font-size:16px;padding:9px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);margin:3px 0 12px;';
+  const lab = t0=>'<label style="font-size:12px;color:var(--ink-dim);">'+t0+'</label>';
+  const rows = list.map(x=>'<div class="brs-row" data-id="'+escapeHtml(String(x.id))+'" style="border-top:1px solid var(--line);padding:8px 0;"><div style="font-size:14px;margin-bottom:4px;"><b>'+escapeHtml(snakeName(x))+'</b> <small style="color:var(--ink-dim);">'+escapeHtml(summarizeGenes(x.genes)||'')+'</small></div>'+
+    '<div style="display:flex;gap:8px;"><label style="flex:1;font-size:11px;color:var(--ink-dim);">'+(isEn?'Price $':'Prix $')+'<input type="number" min="0" class="brs-price" value="'+(x.askingPrice!=null?x.askingPrice:'')+'" oninput="batchResSplit()" style="'+inp+'margin:2px 0 0;"/></label>'+
+    '<label style="flex:1;font-size:11px;color:var(--ink-dim);">'+(isEn?'Deposit share $':'Part d\'acompte $')+'<input type="number" min="0" class="brs-share" oninput="this.dataset.manual=1; batchResCheck()" style="'+inp+'margin:2px 0 0;"/></label></div></div>').join('');
+  showQuickModal('🤝 '+(isEn?'Reserve '+list.length+' animal(s) — one order':'Réserver '+list.length+' animal(aux) — une commande'),
+    lab(isEn?'Buyer name':'Nom de l\'acheteur')+'<input type="text" id="brs-buyer" maxlength="120" style="'+inp+'"/>'+
+    '<div style="display:flex;gap:8px;"><div style="flex:1;">'+lab(isEn?'Total deposit $':'Acompte total $')+'<input type="number" min="0" id="brs-deposit" oninput="batchResSplit()" style="'+inp+'"/></div>'+
+    '<div style="flex:1;">'+lab(isEn?'Deposit date':'Date de l\'acompte')+'<input type="date" id="brs-date" value="'+localTodayStr()+'" style="'+inp+'"/></div></div>'+
+    rows+
+    '<div style="display:flex;gap:8px;align-items:center;margin:6px 0 10px;"><button class="sc-btn" onclick="batchResSplit(true)">⚖️ '+(isEn?'Split by price':'Répartir selon le prix')+'</button><span id="brs-check" style="font-size:12px;"></span></div>'+
+    lab(isEn?'Delivery costs $ (optional — added to your Expenses)':'Frais de livraison $ (optionnel — ajoutés à tes Dépenses)')+'<input type="number" min="0" id="brs-delivery" style="'+inp+'"/>'+
+    lab(isEn?'Note (optional)':'Note (optionnel)')+'<input type="text" id="brs-note" maxlength="200" placeholder="'+(isEn?'e.g. balance at the meetup':'ex. solde à la livraison')+'" style="'+inp+'"/>'+
+    '<button class="save-btn" style="width:100%;" onclick="confirmBatchReservation()">🤝 '+(isEn?'Confirm the order':'Confirmer la commande')+'</button>');
+}
+function batchResSplit(force){
+  const dep = parseFloat((document.getElementById('brs-deposit')||{}).value)||0;
+  const rows = [...document.querySelectorAll('.brs-row')];
+  if(force) rows.forEach(r=>{ const sh = r.querySelector('.brs-share'); if(sh) delete sh.dataset.manual; });
+  if(rows.some(r=>r.querySelector('.brs-share').dataset.manual)){ batchResCheck(); return; } // l'éleveur a choisi lui-même : on ne touche plus
+  const prices = rows.map(r=>parseFloat(r.querySelector('.brs-price').value)||0);
+  const tot = prices.reduce((a,b)=>a+b,0);
+  let left = dep;
+  rows.forEach((r,i)=>{ const part = i===rows.length-1 ? left : Math.round((tot ? dep*prices[i]/tot : dep/rows.length)*100)/100; left = Math.round((left-part)*100)/100; r.querySelector('.brs-share').value = dep ? part : ''; });
+  batchResCheck();
+}
+function batchResCheck(){
+  const isEn = currentLang==='en';
+  const el = document.getElementById('brs-check'); if(!el) return true;
+  const dep = parseFloat((document.getElementById('brs-deposit')||{}).value)||0;
+  const sum = Math.round([...document.querySelectorAll('.brs-share')].reduce((a,x)=>a+(parseFloat(x.value)||0),0)*100)/100;
+  const ok = Math.abs(sum-dep) < 0.01;
+  el.style.color = ok ? 'var(--sage)' : 'var(--rust)';
+  el.textContent = ok ? '✓ '+(isEn?'shares = deposit':'parts = acompte') : '⚠ '+(isEn?'shares '+sum+' $ ≠ deposit '+dep+' $':'parts '+sum+' $ ≠ acompte '+dep+' $');
+  return ok;
+}
+function confirmBatchReservation(){
+  const isEn = currentLang==='en';
+  const buyer = ((document.getElementById('brs-buyer')||{}).value||'').trim().slice(0,120);
+  if(!buyer){ showToast(isEn?'Enter the buyer\'s name.':'Entre le nom de l\'acheteur.', 'error'); return; }
+  if(!batchResCheck()){ showToast(isEn?'The deposit shares must add up to the total deposit.':'La somme des parts doit égaler l\'acompte total.', 'error'); return; }
+  const dep = parseFloat(document.getElementById('brs-deposit').value)||0;
+  const date = document.getElementById('brs-date').value || localTodayStr();
+  const note = (document.getElementById('brs-note').value||'').trim().slice(0,200);
+  const delivery = parseFloat(document.getElementById('brs-delivery').value)||0;
+  const orderId = 'ord_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+  const rows = [...document.querySelectorAll('.brs-row')];
+  rows.forEach(r=>{
+    const x = savedSnakes.find(y=>String(y.id)===r.getAttribute('data-id')); if(!x) return;
+    const price = parseFloat(r.querySelector('.brs-price').value);
+    x.status = 'reserved';
+    x.reservation = { buyerName:buyer, totalPrice: isNaN(price)?null:price, depositAmount: parseFloat(r.querySelector('.brs-share').value)||0, depositDate:date, note, orderId, orderDeposit:dep };
+    x.updatedAt = Date.now();
+  });
+  if(delivery>0){ expenses.push({ id:'exp_'+Date.now(), date, category:'Emballage & expédition', amount:delivery, note:(isEn?'Delivery — order for ':'Livraison — commande de ')+buyer+' ('+rows.length+')', orderId }); saveElevage(); }
+  storage.save(savedSnakes);
+  closeQuickModal();
+  try{ batchSelectedIds.clear(); renderBatchActionBar(); }catch(e){}
+  renderSavedList();
+  showToast('🤝 '+(isEn?'Order confirmed: '+rows.length+' animal(s) reserved for '+buyer+'.':'Commande confirmée : '+rows.length+' animal(aux) réservé(s) pour '+buyer+'.')+(delivery>0?(isEn?' Delivery '+delivery+' $ added to Expenses.':' Livraison '+delivery+' $ ajoutée aux Dépenses.'):''), 'success');
+}
+function markOrderSold(orderId){
+  const isEn = currentLang==='en';
+  const all = orderSnakes(orderId); if(!all.length) return;
+  if(!confirm(isEn?'Mark the '+all.length+' animal(s) of this order as sold today, at their order price?':'Marquer les '+all.length+' animal(aux) de cette commande vendus aujourd\'hui, au prix de la commande ?')) return;
+  all.forEach(x=>{
+    x.status = 'sold'; x.buyer = x.reservation.buyerName||null; x.soldDate = localTodayStr(); x.soldPrice = x.reservation.totalPrice; x.paidViaStripe = false;
+    try{ ensureSnakeMeta(x); if(!snakeIsUnplaced(x)){ const oldTe = x.placement.mode==='terrarium' ? getTerrarium(x.placement.terrariumId) : null; x.placement = { mode:'terrarium', terrariumId:null }; if(oldTe) refreshTerrariumStatus(oldTe); } }catch(e){}
+    x.updatedAt = Date.now();
+  });
+  storage.save(savedSnakes);
+  try{ if(document.getElementById('logbook-overlay').style.display==='flex') closeLogbook(); }catch(e){}
+  renderSavedList();
+  if(document.getElementById('view-ventes') && document.getElementById('view-ventes').style.display!=='none') renderSalesView();
+  showToast('💰 '+(isEn?all.length+' animal(s) sold to ':all.length+' animal(aux) vendu(s) à ')+escapeHtml(all[0].buyer||'?')+' !', 'hatch');
+}
+function generateOrderReceiptPdf(orderId){
+  const isEn = currentLang==='en';
+  const all = orderSnakes(orderId); if(!all.length) return;
+  const r0 = all[0].reservation;
+  const tot = all.reduce((a,x)=>a+(Number(x.reservation.totalPrice)||0),0), dep = all.reduce((a,x)=>a+(Number(x.reservation.depositAmount)||0),0);
+  let sellerName = 'LOCUS Scales'; try{ sellerName = loadProfile().breederName || 'LOCUS Scales'; }catch(e){}
+  const win = window.open('', '_blank'); if(!win) return;
+  win.document.write('<html><head><title>'+(isEn?'Deposit receipt':'Reçu d\'acompte')+'</title><style>body{font-family:Georgia,serif;color:#241d12;padding:36px;max-width:760px;margin:0 auto;}h1{font-size:22px;border-bottom:2px solid #C9973E;padding-bottom:8px;}table{width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:13px;margin-top:16px;}td,th{border-bottom:1px solid #ddd;padding:7px;text-align:left;}.tot td{font-weight:700;border-top:2px solid #241d12;}.small{font-family:Arial,sans-serif;font-size:11px;color:#555;margin-top:16px;}</style></head><body>'+
+    '<h1>'+(isEn?'Deposit receipt — order':'Reçu d\'acompte — commande')+'</h1>'+
+    '<p style="font-family:Arial,sans-serif;font-size:13px;">'+(isEn?'Date: ':'Date : ')+escapeHtml(r0.depositDate||localTodayStr())+'<br/>'+(isEn?'Seller: ':'Vendeur : ')+escapeHtml(sellerName||'—')+'<br/>'+(isEn?'Buyer: ':'Acheteur : ')+escapeHtml(r0.buyerName||'—')+'</p>'+
+    '<table><tr><th>'+(isEn?'Animal':'Animal')+'</th><th>'+(isEn?'Genetics':'Génétique')+'</th><th style="text-align:right;">'+(isEn?'Price':'Prix')+'</th></tr>'+
+    all.map(x=>'<tr><td>'+escapeHtml(snakeName(x))+'</td><td>'+escapeHtml(summarizeGenes(x.genes)||'')+'</td><td style="text-align:right;">'+(Number(x.reservation.totalPrice)||0).toFixed(2)+' $</td></tr>').join('')+
+    '<tr><td colspan="2">'+(isEn?'Total':'Total')+'</td><td style="text-align:right;">'+tot.toFixed(2)+' $</td></tr>'+
+    '<tr><td colspan="2">'+(isEn?'Deposit received':'Acompte reçu')+'</td><td style="text-align:right;">−'+dep.toFixed(2)+' $</td></tr>'+
+    '<tr class="tot"><td colspan="2">'+(isEn?'Balance due':'Solde dû')+'</td><td style="text-align:right;">'+Math.max(0,tot-dep).toFixed(2)+' $</td></tr></table>'+
+    (r0.note?'<p class="small">'+(isEn?'Note: ':'Note : ')+escapeHtml(r0.note)+'</p>':'')+
+    '<p class="small">'+(isEn?'Generated via LOCUS Scales — for record-keeping purposes, not a legally binding contract unless otherwise agreed.':'Généré via LOCUS Scales — à des fins de tenue de registre, pas un contrat légal sauf entente contraire.')+'</p>'+
+    '<script>window.onload=()=>window.print();<\/script></body></html>');
+  win.document.close();
+}
+// Acomptes gardés (réservation annulée, non remboursable) : revenus de l'année dans Fiscal
+function keptDepositsForYear(year){
+  const out = [];
+  savedSnakes.forEach(x=>{ (Array.isArray(x.keptDeposits)?x.keptDeposits:[]).forEach(d=>{ if(d && d.date && String(d.date).slice(0,4)===String(year)) out.push({ s:x, d }); }); });
+  return out;
+}
 // Convertit une réservation en vente — reprend l'acheteur/prix déjà saisis plutôt que ressaisir.
 function convertReservationToSale(id){
   const s = savedSnakes.find(x=>x.id===id);
@@ -32072,11 +32322,31 @@ function convertReservationToSale(id){
     if(priceInp && s.reservation.totalPrice!=null) priceInp.value = s.reservation.totalPrice;
   }, 80);
 }
-function cancelReservation(id){
+function cancelReservation(id, fate){
   const isEn = currentLang==='en';
-  if(!confirm(isEn?'Cancel this reservation? The reptile goes back to "For sale".':'Annuler cette réservation ? Le reptile repasse à « À vendre ».')) return;
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
+  const r = s.reservation || {};
+  const dep = Number(r.depositAmount)||0;
+  // v5.58 — un acompte reçu : on demande ce qu'il devient (gardé = revenu dans Fiscal, remboursé, reporté sur le reste de la commande)
+  if(dep>0 && !fate){
+    const others = r.orderId ? orderSnakes(r.orderId).filter(x=>x.id!==id) : [];
+    const b = (v, label)=>'<button class="sc-btn" style="display:block;width:100%;font-size:15px;padding:12px;margin-bottom:8px;text-align:left;" onclick="closeQuickModal(); cancelReservation(\''+id+'\',\''+v+'\')">'+label+'</button>';
+    showQuickModal((isEn?'Cancel — ':'Annuler — ')+escapeHtml(snakeName(s)),
+      '<p style="font-size:14px;margin:0 0 12px;">'+(isEn?'The reptile goes back to « For sale ». What happens to its deposit of ':'Le reptile repasse à « À vendre ». Que devient son acompte de ')+'<b>'+dep+' $</b> ?</p>'+
+      b('kept', '💰 '+(isEn?'Kept (non-refundable) — counted as income in Taxes':'Gardé (non remboursable) — compté comme revenu dans Fiscal'))+
+      b('refunded', '↩ '+(isEn?'Refunded to the buyer':'Remboursé à l\'acheteur'))+
+      (others.length ? b('moved', '➡️ '+(isEn?'Moved to the '+others.length+' other animal(s) of the order':'Reporté sur les '+others.length+' autre(s) animal(aux) de la commande')) : ''));
+    return;
+  }
+  if(!fate && !confirm(isEn?'Cancel this reservation? The reptile goes back to "For sale".':'Annuler cette réservation ? Le reptile repasse à « À vendre ».')) return;
+  if(fate==='kept'){ if(!Array.isArray(s.keptDeposits)) s.keptDeposits = []; s.keptDeposits.push({ date:localTodayStr(), amount:dep, buyer:r.buyerName||null, orderId:r.orderId||null }); }
+  if(fate==='moved' && r.orderId){
+    const others = orderSnakes(r.orderId).filter(x=>x.id!==id);
+    const tot = others.reduce((a,x)=>a+(Number(x.reservation.totalPrice)||0),0);
+    let left = dep;
+    others.forEach((x,i)=>{ const part = i===others.length-1 ? left : Math.round((tot ? dep*(Number(x.reservation.totalPrice)||0)/tot : dep/others.length)*100)/100; left = Math.round((left-part)*100)/100; x.reservation.depositAmount = Math.round(((Number(x.reservation.depositAmount)||0)+part)*100)/100; x.updatedAt = Date.now(); });
+  }
   s.status = 'forsale';
   s.reservation = null;
   storage.save(savedSnakes);
@@ -34010,7 +34280,8 @@ function exportBudgetExcel(){
   }
   const salesThisYear = savedSnakes.filter(s=>s.status==='sold' && s.soldDate && s.soldDate.slice(0,4)===fiscalYear);
   const expensesThisYear = expenses.filter(e=>e.date && e.date.slice(0,4)===fiscalYear);
-  const income = salesThisYear.reduce((a,s)=>a+(s.soldPrice||0),0);
+  const keptThisYear = keptDepositsForYear(fiscalYear); // v5.58
+  const income = salesThisYear.reduce((a,s)=>a+(s.soldPrice||0),0) + keptThisYear.reduce((a,k)=>a+(Number(k.d.amount)||0),0);
   const outcome = expensesThisYear.reduce((a,e)=>a+e.amount,0);
   // Même formule que renderFiscalView() (affichée à l'écran) — sans ça, le "bénéfice net" exporté
   // pour les impôts était gonflé du montant de la commission LOCUS/Stripe (~1% sur les ventes payées
@@ -34048,7 +34319,7 @@ function exportBudgetExcel(){
 
   const salesRows = (isEn ? [['Name','Sale date','Buyer','Price ($)']] : [['Nom','Date de vente','Acheteur','Prix ($)']]).concat(
     [...salesThisYear].sort((a,b)=>(a.soldDate||'').localeCompare(b.soldDate||'')).map(s=>[s.name, s.soldDate||'', s.buyer||'', s.soldPrice||0])
-  );
+  ).concat(keptThisYear.map(k=>[(isEn?'Deposit kept — ':'Acompte gardé — ')+k.s.name, k.d.date||'', k.d.buyer||'', Number(k.d.amount)||0])); // v5.58
   const wsSales = XLSX.utils.aoa_to_sheet(salesRows);
   wsSales['!cols'] = [{wch:22},{wch:14},{wch:20},{wch:12}];
   XLSX.utils.book_append_sheet(wb, wsSales, isEn?'Sales':'Ventes');
@@ -34093,18 +34364,18 @@ function exportEverythingExcel(){
 
   // 1) Animaux — en-têtes reconnus par l'import
   add(L('Animaux','Animals'),
-    [L('ID','ID'), L('Nom','Name'), L('Sexe','Sex'), L('Espèce','Species'), L('Génétique','Genetics'), L('Nom de combo','Combo name'), L('Date de naissance','Birth date'), L('Date d\'acquisition','Acquisition date'), L('Provenance','Provenance'), L('Statut','Status'), L('Prix d\'achat','Purchase price'), L('Prix demandé','Asking price'), L('Prix de vente','Sold price'), L('Date de vente','Sale date'), L('Acheteur','Buyer'), L('Date du décès','Date of death'), L('Emplacement','Location'), L('Père','Sire'), L('Mère','Dam'), L('Proie habituelle','Usual prey'), L('Intervalle de repas (jours)','Feeding interval (days)'), L('Dernier poids (g)','Last weight (g)'), L('Notes','Notes')],
+    [L('ID','ID'), L('Nom','Name'), L('Sexe','Sex'), L('Espèce','Species'), L('Génétique','Genetics'), L('Nom de combo','Combo name'), L('Date de naissance','Birth date'), L('Date d\'acquisition','Acquisition date'), L('Provenance','Provenance'), L('Statut','Status'), L('Prix d\'achat','Purchase price'), L('Prix demandé','Asking price'), L('Prix de vente','Sold price'), L('Date de vente','Sale date'), L('Acheteur','Buyer'), L('Date du décès','Date of death'), L('Emplacement','Location'), L('Père','Sire'), L('Mère','Dam'), L('Proie habituelle','Usual prey'), L('Intervalle de repas (jours)','Feeding interval (days)'), L('Dernier poids (g)','Last weight (g)'), L('Notes','Notes'), L('Acomptes gardés ($)','Deposits kept ($)')],
     savedSnakes.map(s=>{
       const w = s.health.weights.length ? [...s.health.weights].sort((a,b)=>String(a.date).localeCompare(String(b.date))).slice(-1)[0].value : '';
       return [s.animalId||'', s.name||'', sexL(s), speciesDisplayLabel(s.species, isEn), summarizeGenes(s.genes), speciesComboTitle(s.genes, s.species)||'',
         s.birthDate||'', s.acquisitionDate||'', s.provenance||'', statusL(s), s.purchasePrice!=null?s.purchasePrice:'', s.askingPrice!=null?s.askingPrice:'',
         s.soldPrice!=null?s.soldPrice:'', s.soldDate||'', s.buyer||'', s.deceasedDate||'', placeL(s), s.sireId?who(s.sireId):'', s.damId?who(s.damId):'',
-        preyL(s.preySpecies, s.preySize, s.preyType||'frozen'), s.feedingIntervalDays||'', w, s.notes||''];
-    }), [12,16,8,18,30,18,12,12,16,10,10,10,10,12,16,12,14,12,12,20,10,10,40]);
+        preyL(s.preySpecies, s.preySize, s.preyType||'frozen'), s.feedingIntervalDays||'', w, s.notes||'', (Array.isArray(s.keptDeposits)?s.keptDeposits:[]).reduce((a,d)=>a+(Number(d&&d.amount)||0),0)||'']; // v5.58
+    }), [12,16,8,18,30,18,12,12,16,10,10,10,10,12,16,12,14,12,12,20,10,10,40,12]);
 
   // 2) Journal — même format que l'import d'historique (ID, Nom, Date, Activité, Proie, Quantité, Poids (g), Notes)
   const actL = { fed:L('A mangé','Fed'), refused:L('Refus','Refused'), skipped:L('Repas sauté','Skipped meal'), inshed:L('En mue','In shed'), shed:L('Mue','Shed'),
-    supplement:L('Supplément','Supplement'), lock:'Lock', pair_in:L('Mis ensemble','Put together'), pair_out:L('Séparés','Separated'), water:L('Changement d\'eau','Water change') };
+    supplement:L('Supplément','Supplement'), lock:'Lock', pair_in:L('Mis ensemble','Put together'), pair_out:L('Séparés','Separated'), water:L('Changement d\'eau','Water change'), regurg:L('Régurgitation','Regurgitation'), health_note:L('Note de santé','Health note') }; // v5.57
   const jrows = [];
   savedSnakes.forEach(s=>{
     s.health.events.forEach(e=>{
@@ -34426,7 +34697,8 @@ function renderFiscalView(){
 
   const salesThisYear = savedSnakes.filter(s=>s.status==='sold' && s.soldDate && s.soldDate.slice(0,4)===fiscalYear);
   const expensesThisYear = expenses.filter(e=>e.date && e.date.slice(0,4)===fiscalYear);
-  const income = salesThisYear.reduce((a,s)=>a+(s.soldPrice||0),0);
+  const keptThisYear = keptDepositsForYear(fiscalYear); // v5.58
+  const income = salesThisYear.reduce((a,s)=>a+(s.soldPrice||0),0) + keptThisYear.reduce((a,k)=>a+(Number(k.d.amount)||0),0);
   const outcome = expensesThisYear.reduce((a,e)=>a+e.amount,0);
   // Commission LOCUS (~1%) : uniquement sur les ventes réellement passées par Stripe —
   // une vente déclarée manuellement n'a jamais généré de commission.
@@ -34445,7 +34717,10 @@ function renderFiscalView(){
   renderExpenseBreakdown(expensesThisYear);
 
   const salesWrap = document.getElementById('fiscal-sales-list');
-  salesWrap.innerHTML = salesThisYear.length ? '' : '<div class="empty">'+t('noSaleThisYear')+' '+fiscalYear+'.</div>';
+  salesWrap.innerHTML = (salesThisYear.length || keptThisYear.length) ? '' : '<div class="empty">'+t('noSaleThisYear')+' '+fiscalYear+'.</div>';
+  keptThisYear.forEach(k=>{ const row = document.createElement('div'); row.className = 'sale-row'; // v5.58
+    row.innerHTML = '<div class="sale-name">💰 '+(isEn?'Deposit kept — ':'Acompte gardé — ')+escapeHtml(snakeName(k.s))+'<small>'+escapeHtml(String(k.d.date))+' · '+escapeHtml(k.d.buyer||'?')+(isEn?' (reservation cancelled)':' (réservation annulée)')+'</small></div><div class="sale-price">'+(Number(k.d.amount)||0)+' $</div>';
+    salesWrap.appendChild(row); });
   [...salesThisYear].sort((a,b)=>(b.soldDate||'').localeCompare(a.soldDate||'')).forEach(s=>{
     const row = document.createElement('div');
     row.className = 'sale-row';
@@ -35362,6 +35637,8 @@ function eventLabel(type){
   if(type==='supplement') return '💊 '+(currentLang==='en'?'Supplement':'Supplément'); // v3.53
   if(type==='inshed') return '🔵 '+(currentLang==='en'?'In shed (blue)':'En mue'); // v3.90
   if(type==='skipped') return '⏭ '+(currentLang==='en'?'Meal skipped (on purpose)':'Repas sauté (volontaire)'); // v3.92
+  if(type==='regurg') return '🤮 '+(currentLang==='en'?'Regurgitation':'Régurgitation'); // v5.57
+  if(type==='health_note') return '📝 '+(currentLang==='en'?'Health note':'Note de santé'); // v5.57
   const map = { fed:'eventFed', shed:'eventShed', refused:'eventRefused', weigh:'eventWeigh', length:'eventLength', water:'eventWater', pair_in:'eventPairIn', pair_out:'eventPairOut', lock:'eventLock' };
   return map[type] ? t(map[type]) : type;
 }

@@ -1200,6 +1200,83 @@ def t_scenario_sous_sol(browser, url):
     check('compteur de changements remis à zéro après l\'envoi', a.js("localStorage.getItem('locus_pending_changes_v1')") is None)
     check('pas d\'erreur JS (scénario sous-sol)', not a.real_errors(), a.real_errors()[:3])
     a.close()
+def t_sante_tournee(browser, url):
+    section('🩺 Santé dans le Mode Tournée + régurgitation (v5.57)')
+    d = lambda n: iso(TODAY - datetime.timedelta(days=n))
+    a1 = make_snake(160); a2 = make_snake(161); a3 = make_snake(162)
+    a3['health']['events'] = [{"id": "f1", "date": d(25), "type": "fed"}]; a3['feedingIntervalDays'] = 7
+    a = App(browser, url, snakes=[a1, a2, a3]); a.open(wait=2500)
+    a.js("showTab('elevage'); showSubtab('tour')"); a.page.wait_for_timeout(300)
+    check('bouton « 🩺 Santé » dans la barre du Mode Tournée', a.page.locator("button[onclick=\"openTourHealthModal()\"]").count() == 1)
+    a.js("(ids)=>{ tourSelection = new Set(ids.map(id=>'terra:'+id)); openTourHealthModal(); document.getElementById('tour-health-note').value='sang'; document.getElementById('tour-health-quar').checked=true; applyTourHealth('poop_bad'); }", [a1['id'], a2['id']])
+    r = a.js("(ids)=>ids.map(id=>{ const s=savedSnakes.find(x=>x.id===id); return [ (s.health.defecations||[]).map(x=>x.note).join('|'), !!(s.quarantine&&s.quarantine.active) ]; })", [a1['id'], a2['id']])
+    check('selles anormales « sang » + quarantaine pour les 2 animaux sélectionnés', all('sang' in x[0] and x[1] for x in r), r)
+    a.js("undoTourHealth()")
+    r = a.js("(ids)=>ids.map(id=>{ const s=savedSnakes.find(x=>x.id===id); return [ (s.health.defecations||[]).length, !!(s.quarantine&&s.quarantine.active) ]; })", [a1['id'], a2['id']])
+    check('Annuler : selles retirées et quarantaine remise comme avant', all(x == [0, False] for x in r), r)
+    a.js("(id)=>{ tourSelection = new Set(['terra:'+id]); openTourHealthModal(); document.getElementById('tour-health-note').value='2 h après le repas'; applyTourHealth('regurg'); }", a3['id'])
+    nf = a.js("(id)=>nextFeedingDate(savedSnakes.find(x=>x.id===id))", a3['id'])
+    check('régurgitation : prochain repas pas avant 14 jours', nf == iso(TODAY + datetime.timedelta(days=14)), nf)
+    risk = a.js("(id)=>healthRiskAssessment(savedSnakes.find(x=>x.id===id))", a3['id'])
+    types = [x['type'] for x in risk['signals']]
+    check('« À surveiller » : régurgitation, et PAS « 25 j sans repas » pendant le repos', 'regurg' in types and 'feeding' not in types, risk)
+    rf = a.js("(id)=>savedSnakes.find(x=>x.id===id).health.consecutiveRefusals||0", a3['id'])
+    check('une régurgitation n\'est pas comptée comme un refus', rf == 0, rf)
+    a.js("(id)=>openLogbook(id)", a3['id']); a.page.wait_for_timeout(300)
+    check('journal : « 🤮 Régurgitation — 2 h après le repas »', '🤮 Régurgitation — 2 h après le repas' in a.js("document.body.innerText"))
+    pe = a.js("(id)=>parcoursEvents(savedSnakes.find(x=>x.id===id)).filter(e=>e.cat==='sante').length", a3['id'])
+    check('Parcours : la régurgitation est dans la rangée Santé', pe >= 1, pe)
+    a.js("(id)=>{ closeLogbook && closeLogbook(); tourSelection = new Set(['terra:'+id]); openTourHealthModal(); applyTourHealth('note'); }", a1['id'])
+    check('note de santé vide : refusée (rien d\'ajouté)', a.js("(id)=>savedSnakes.find(x=>x.id===id).health.events.filter(e=>e.type==='health_note').length", a1['id']) == 0)
+    check('pas d\'erreur JS (santé en tournée)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+def t_slugs_commande(browser, url):
+    section('Slugs à la ponte + commande groupée (v5.58)')
+    m = make_snake(170); m['sex'] = 'male'; m['status'] = 'forsale'; m['askingPrice'] = 400; m['name'] = 'Male PC'
+    f = make_snake(171); f['sex'] = 'female'; f['status'] = 'forsale'; f['askingPrice'] = 200; f['name'] = 'Femelle SH'
+    dam = make_snake(172); dam['sex'] = 'female'; sire = make_snake(173); sire['sex'] = 'male'
+    a = App(browser, url, snakes=[m, f, dam, sire]); a.open(wait=2500)
+    # --- slugs
+    a.js("""(ids)=>{ showTab('incubation'); const ss=document.getElementById('clutch-sire'), ds=document.getElementById('clutch-dam');
+      ss.innerHTML='<option value="'+ids[0]+'">s</option>'; ds.innerHTML='<option value="'+ids[1]+'">d</option>'; ss.value=ids[0]; ds.value=ids[1]; updateClutchReproductionFields();
+      document.getElementById('clutch-eggcount').value='7'; document.getElementById('clutch-slugcount').value='2'; document.getElementById('clutch-laydate').value=localTodayStr(); pendingPairingIdForClutch='__none__'; }""", [sire['id'], dam['id']])
+    a.js("pendingPairingIdForClutch=null; window.confirm=()=>true; addClutch()"); a.page.wait_for_timeout(300)
+    c = a.js("(id)=>{ const c=clutches.filter(x=>x.damId===id).pop(); return c ? [c.eggCount, c.slugCount] : null; }", dam['id'])
+    check('ponte : 7 œufs viables + 2 slugs enregistrés', c == [7, 2], c)
+    fs = a.js("(id)=>femaleFertilityStats(savedSnakes.find(x=>x.id===id))", dam['id'])
+    check('fertilité de la femelle : 2 non viables sur 9', fs['bad'] == 2 and fs['total'] == 9, fs)
+    check('champ Slugs vide après l\'enregistrement', a.js("document.getElementById('clutch-slugcount').value") == '')
+    # --- commande groupée
+    a.js("(ids)=>{ batchSelectedIds = new Set(ids); openBatchReservationModal(); document.getElementById('brs-buyer').value='Rémi'; document.getElementById('brs-deposit').value='150'; batchResSplit(); }", [m['id'], f['id']])
+    sh = a.js("[...document.querySelectorAll('.brs-share')].map(x=>parseFloat(x.value))")
+    check('acompte 150 $ pré-réparti selon le prix : 100 / 50', sh == [100, 50], sh)
+    a.js("const x=document.querySelectorAll('.brs-share'); x[0].value='90'; x[0].dataset.manual=1; batchResCheck()")
+    check('parts qui ne font pas 150 $ : refusé', a.js("batchResCheck()") is False)
+    a.js("const x=document.querySelectorAll('.brs-share'); x[1].value='60'; x[1].dataset.manual=1; document.getElementById('brs-delivery').value='40'; confirmBatchReservation()")
+    a.page.wait_for_timeout(300)
+    r = a.js("(ids)=>ids.map(id=>{ const r=savedSnakes.find(x=>x.id===id).reservation||{}; return [r.orderId||null, r.depositAmount, r.totalPrice, r.buyerName]; })", [m['id'], f['id']])
+    check('2 réservations, même commande, parts choisies 90 / 60, prix 400 / 200', r[0][0] and r[0][0] == r[1][0] and [r[0][1], r[1][1], r[0][2], r[1][2]] == [90, 60, 400, 200] and r[0][3] == 'Rémi', r)
+    ex = a.js("expenses.filter(e=>e.category==='Emballage & expédition').map(e=>e.amount)")
+    check('frais de livraison 40 $ ajoutés aux Dépenses', ex == [40], ex)
+    a.js("(id)=>openLogbook(id)", m['id']); a.page.wait_for_timeout(300)
+    t = a.js("document.body.innerText")
+    check('fiche : commande de 2 animaux, total 600 $ — acompte 150 $ — solde 450 $', '600 $ — acompte 150 $ — solde 450 $' in t and 'Reçu de la commande' in t, [l for l in t.split('\n') if 'commande' in l.lower()][:4])
+    a.js("closeLogbook()")
+    a.js("(id)=>cancelReservation(id)", f['id']); a.page.wait_for_timeout(200)
+    t = a.js("document.body.innerText")
+    check('annuler la femelle : on demande ce que devient son acompte de 60 $ (gardé / remboursé / reporté)', '60 $' in t and 'Gardé' in t and 'Remboursé' in t and 'Reporté' in t, t[:300])
+    a.js("(id)=>{ closeQuickModal(); cancelReservation(id, 'kept'); }", f['id']); a.page.wait_for_timeout(200)
+    k = a.js("(id)=>{ const s=savedSnakes.find(x=>x.id===id); return [s.status, (s.keptDeposits||[]).map(d=>d.amount), snakeToRow(s).kept_deposits.length]; }", f['id'])
+    check('acompte gardé : femelle à vendre, 60 $ gardés, envoyés au serveur (kept_deposits)', k == ['forsale', [60], 1], k)
+    a.js("showTab('fiscal'); fiscalYear = String(new Date().getFullYear()); renderFiscalView()"); a.page.wait_for_timeout(300)
+    inc = a.js("document.getElementById('fiscal-income').textContent"); sl = a.js("document.getElementById('fiscal-sales-list').innerText")
+    check('Fiscal : l\'acompte gardé compte dans les revenus (60 $) et apparaît dans la liste', inc.startswith('60') and 'Acompte gardé' in sl, (inc, sl[:120]))
+    oid = r[0][0]
+    a.js("(o)=>{ window.confirm=()=>true; markOrderSold(o); }", oid); a.page.wait_for_timeout(300)
+    s1 = a.js("(id)=>{ const s=savedSnakes.find(x=>x.id===id); return [s.status, s.soldPrice, s.buyer]; }", m['id'])
+    check('« Commande vendue » : le mâle est vendu 400 $ à Rémi', s1 == ['sold', 400, 'Rémi'], s1)
+    check('pas d\'erreur JS (slugs + commande)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
 def t_keltic_dragons(browser, url):
     section('BCI : Keltic, Smoke, Red/Sun Dragon (v5.45)')
     m = make_snake(71, species='boa_bci', genes={'bci_keltic': 'single'}); m['sex'] = 'male'
@@ -1349,7 +1426,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()
