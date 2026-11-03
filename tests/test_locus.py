@@ -1135,6 +1135,71 @@ def t_gecko_poudre(browser, url):
     check('réaffiché à la main dans le Mode personnalisé : reste affiché', vis3 == '' and a.js("personalizationPrefs.rongeursForced") is True, vis3)
     check('pas d\'erreur JS (geckos)', not a.real_errors(), a.real_errors()[:3])
     a.close()
+def t_scenario_sous_sol(browser, url):
+    section('Scénario sous-sol : 70+ actions hors ligne, app tuée, retour du Wi-Fi')
+    snakes = [make_snake(200 + i) for i in range(45)]
+    m = snakes[0]; m['sex'] = 'male'; f = snakes[1]; f['sex'] = 'female'
+    ids = [x['id'] for x in snakes]
+    a = App(browser, url, snakes=snakes); a.open(wait=3000)
+    a.js("(ids)=>{ pairings.push({id:'pr_ss', maleId:ids[0], femaleId:ids[1], pairedDate:localTodayStr(), lockDates:[]}); saveElevage(); pushAllUserData(true); }", ids)
+    a.page.wait_for_timeout(2500)
+    # coupure (sous-sol)
+    a.ctx.set_offline(True); a.js("localStorage.setItem('__fake_offline','1'); window.__fakeSb.offline=true; window.dispatchEvent(new Event('offline'))")
+    # 25 pesées
+    a.js("(ids)=>{ ids.slice(0,25).forEach((id,i)=>{ const s=savedSnakes.find(x=>x.id===id); ensureSnakeMeta(s); s.health.weights.push({date:localTodayStr(), value:300+i}); s.updatedAt=Date.now(); }); storage.save(savedSnakes); }", ids)
+    # 40 repas en Mode Tournée
+    a.js("(ids)=>{ tourSelection = new Set(ids.slice(5,45).map(id=>'terra:'+id)); tourFedPreyChecked = true; try{ applyTourAction('fed_frozen'); } finally { tourFedPreyChecked = false; } }", ids)
+    # 3 refus (proie gaspillée) et 2 mues
+    a.js("(ids)=>{ const plan={}; ids.slice(2,5).forEach(id=>plan[id]={fate:'lost', toId:null, preyType:'frozen'}); tourRefusalPlan=plan; tourSelection=new Set(ids.slice(2,5).map(id=>'terra:'+id)); try{ applyTourAction('refused'); } finally { tourRefusalPlan=null; } }", ids)
+    a.js("(ids)=>{ tourShedQualityPending='complete'; tourSelection=new Set(ids.slice(0,2).map(id=>'terra:'+id)); try{ applyTourAction('shed'); } finally { tourShedQualityPending=null; } }", ids)
+    # 1 lock
+    a.js("quickAddLockToday('pr_ss')")
+    a.page.wait_for_timeout(1500)
+    counts = a.js("(ids)=>{ const t=localStorage.getItem('locus_snakes_v1'); const arr=JSON.parse(t); const g=(id)=>arr.find(x=>x.id===id); const today=localTodayStr();"
+                  " return { w: ids.slice(0,25).filter(id=>g(id).health.weights.some(w=>w.date===today && w.value>=300)).length,"
+                  " fed: ids.slice(5,45).filter(id=>g(id).health.events.some(e=>e.type==='fed' && e.date===today)).length,"
+                  " ref: ids.slice(2,5).filter(id=>g(id).health.events.some(e=>e.type==='refused' && e.date===today)).length,"
+                  " shed: ids.slice(0,2).filter(id=>g(id).health.events.some(e=>e.type==='shed' && e.date===today)).length,"
+                  " lock: (JSON.parse(localStorage.getItem('locus_elevage_v1')).pairings.find(p=>p.id==='pr_ss').lockDates||[]).length }; }", ids)
+    check('hors ligne : tout est écrit sur le téléphone (25 pesées, 40 repas, 3 refus, 2 mues, 1 lock)', counts == {'w': 25, 'fed': 40, 'ref': 3, 'shed': 2, 'lock': 1}, counts)
+    pill = a.js("(document.getElementById('sync-pill')||{}).textContent||''")
+    import re as _re
+    nch = int((_re.search(r'(\d+) changements gardés', pill) or [0, 0])[1])
+    check('pastille (v5.56) : « N changements gardés sur ce téléphone — tu peux fermer l\'app », N compte les gestes (≥ 70)', 'gardés sur ce téléphone' in pill and 'fermer' in pill and nch >= 70, pill)
+    a.js("document.getElementById('sync-pill').click()"); a.page.wait_for_timeout(200)
+    check('toucher la pastille hors ligne : explication « rien n\'est perdu »', 'rien n\'est perdu' in a.js("document.body.innerText"))
+    a.js("closeQuickModal()")
+    # rappel 24 h + message d'installation (iPhone, onglet Safari)
+    a.js("(()=>{ const p=pendingChangesInfo(); p.since=Date.now()-3*86400000; localStorage.setItem('locus_pending_changes_v1', JSON.stringify(p)); localStorage.removeItem('locus_install_nudge_at'); window.isIosDevice=()=>true; window.isStandaloneMode=()=>false; window.isIosWebview=()=>false; _syncStartupDone=false; syncStartupReminders(); })()")
+    a.page.wait_for_timeout(300)
+    bt = a.js("document.body.innerText")
+    check('rappel : « en attente depuis 3 jour(s) » à l\'ouverture sans réseau', 'en attente depuis 3 jour(s)' in bt, [l for l in bt.split('\n') if 'attente' in l][:3])
+    check('iPhone dans Safari sans installation : message « Installe LOCUS pour protéger tes données »', 'Installe LOCUS pour protéger tes données' in bt)
+    a.js("closeQuickModal(); _syncStartupDone=false; syncStartupReminders()"); a.page.wait_for_timeout(200)
+    check('message d\'installation : pas répété la même semaine', a.js("document.getElementById('quick-modal-overlay').style.display") != 'flex')
+    check('serveur : rien reçu pendant la coupure', not server_snake_has(a, ids[10], '"type":"fed"'))
+    # app tuée (appel, fermeture), rouverte toujours hors ligne
+    a.page.goto('about:blank'); a.ctx.set_offline(False)
+    a.page.goto(a.url); a.page.wait_for_timeout(300); a.ctx.set_offline(True)
+    a.page.wait_for_timeout(1500)
+    re_ = a.js("(ids)=>ids.slice(5,45).filter(id=>savedSnakes.find(x=>x.id===id).health.events.some(e=>e.type==='fed' && e.date===localTodayStr())).length", ids)
+    check('app tuée puis rouverte hors ligne : les 40 repas sont là', re_ == 40, re_)
+    # retour du Wi-Fi
+    a.ctx.set_offline(False); a.js("localStorage.removeItem('__fake_offline'); window.__fakeSb.offline=false; window.dispatchEvent(new Event('online'))")
+    a.page.wait_for_timeout(6000)
+    db = a.js("window.__fakeSb.db()")
+    srv = {r['id']: json.dumps(r) for r in db.get('snakes', [])}
+    today = a.js("localTodayStr()")
+    fed_ok = sum(1 for id in ids[5:45] if '"type": "fed"' in srv.get(id, '').replace('"type":"fed"', '"type": "fed"') and today in srv.get(id, ''))
+    w_ok = sum(1 for i, id in enumerate(ids[:25]) if str(300 + i) in srv.get(id, ''))
+    ref_ok = sum(1 for id in ids[2:5] if 'refused' in srv.get(id, ''))
+    lock_ok = any(today in json.dumps(p) and p.get('id') == 'pr_ss' for p in db.get('pairings', []))
+    check('Wi-Fi revenu : tout arrive au serveur (40 repas, 25 pesées, 3 refus, le lock)', (fed_ok, w_ok, ref_ok, lock_ok) == (40, 25, 3, True), (fed_ok, w_ok, ref_ok, lock_ok))
+    left = a.js("countPendingSync()")
+    check('plus rien en attente, pastille partie', left == 0 and not a.js("!!document.getElementById('sync-pill')"), left)
+    check('compteur de changements remis à zéro après l\'envoi', a.js("localStorage.getItem('locus_pending_changes_v1')") is None)
+    check('pas d\'erreur JS (scénario sous-sol)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
 def t_keltic_dragons(browser, url):
     section('BCI : Keltic, Smoke, Red/Sun Dragon (v5.45)')
     m = make_snake(71, species='boa_bci', genes={'bci_keltic': 'single'}); m['sex'] = 'male'
@@ -1284,7 +1349,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()

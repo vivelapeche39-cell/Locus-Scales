@@ -2364,7 +2364,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.55';
+const APP_VERSION = '2026.09.01.5.56';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4803,7 +4803,7 @@ function sigStringify(v, top){ // comme stableStringify, mais ignore à tous les
 function trackLocalChanges(kind, arr){
   const snap = lastSyncSnapshot[kind];
   const currentIds = new Set();
-  let changed = false;
+  let changed = false, nChanged = 0; // v5.56 — nombre de changements (une fiche touchée = 1) pour la pastille
   (arr||[]).forEach(item=>{
     if(!item || item.id==null) return;
     currentIds.add(item.id);
@@ -4812,7 +4812,7 @@ function trackLocalChanges(kind, arr){
       item.updatedAt = Date.now();
       dirtySyncIds[kind].add(item.id);
       snap[item.id] = sig;
-      changed = true;
+      changed = true; nChanged++;
     }
   });
   Object.keys(snap).forEach(id=>{
@@ -4820,10 +4820,10 @@ function trackLocalChanges(kind, arr){
       dirtyDeletedIds[kind].add(id);
       dirtySyncIds[kind].delete(id);
       delete snap[id];
-      changed = true;
+      changed = true; nChanged++;
     }
   });
-  if(changed) saveDirtySyncState();
+  if(changed){ saveDirtySyncState(); notePendingChanges(nChanged); }
 }
 // Marque le contenu actuel comme "connu" sans le pousser — utilisé au chargement initial et juste
 // après un tirage cloud, pour qu'un simple rechargement de page ne déclenche pas un envoi inutile.
@@ -5583,6 +5583,15 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.56', date:'2026-11-03',
+    title:{ fr:'Hors ligne : LOCUS te dit que c\'est gardé', en:'Offline: LOCUS tells you it\'s saved' },
+    changes:{
+      fr:[ '📴 Hors ligne, la pastille dit maintenant « 71 changements gardés sur ce téléphone — tu peux fermer l\'app ». Elle compte tes gestes (40 repas = 40 changements), plus seulement les fiches. Touche-la pour l\'explication : rien n\'est perdu, l\'envoi se fait à la prochaine ouverture avec du réseau.',
+           '⏰ Si des changements attendent depuis plus de 24 h et que tu ouvres LOCUS sans réseau, un rappel te le dit.',
+           '📲 Sur iPhone, si tu utilises LOCUS dans un onglet Safari sans l\'avoir installé, un message (au plus une fois par semaine) explique que Safari peut effacer les données d\'un site non visité depuis 7 jours, et comment l\'installer. Gratuit.' ],
+      en:[ '📴 Offline, the pill now says « 71 changes saved on this phone — you can close the app ». It counts your actions (40 meals = 40 changes), not just records. Tap it for the explanation: nothing is lost, sending happens the next time you open the app with a connection.',
+           '⏰ If changes have been waiting for more than 24 h and you open LOCUS without a connection, a reminder tells you.',
+           '📲 On iPhone, if you use LOCUS in a Safari tab without installing it, a message (at most once a week) explains that Safari can erase the data of a site not visited for 7 days, and how to install it. Free.' ] } },
   { version:'5.55', date:'2026-11-03',
     title:{ fr:'Geckos à la poudre et insectes : le bon vocabulaire', en:'Powder-fed geckos and insects: the right words' },
     changes:{
@@ -18037,6 +18046,30 @@ function getLastSyncOkAt(){
 function markSyncOk(){
   try{ localStorage.setItem(LAST_SYNC_OK_KEY, String(Date.now())); }catch(e){}
 }
+// v5.56 — compteur de changements en attente (persisté) : la pastille parlait de « fiches », pas des gestes
+// (40 repas en Mode Tournée = 40 changements). Remis à zéro quand plus rien n'attend.
+const PENDING_CHANGES_KEY = 'locus_pending_changes_v1';
+function pendingChangesInfo(){ try{ return JSON.parse(localStorage.getItem(PENDING_CHANGES_KEY)||'null') || { n:0, since:0 }; }catch(e){ return { n:0, since:0 }; } }
+function notePendingChanges(k){
+  if(!k) return;
+  try{ const p = pendingChangesInfo(); p.n = (p.n||0) + k; if(!p.since) p.since = Date.now(); localStorage.setItem(PENDING_CHANGES_KEY, JSON.stringify(p)); }catch(e){}
+}
+function clearPendingChangesIfSynced(){
+  try{ if(countPendingSync()===0 && localStorage.getItem(PENDING_CHANGES_KEY)) localStorage.removeItem(PENDING_CHANGES_KEY); }catch(e){}
+}
+function pendingChangesLabel(isEn){
+  const n = countPendingSync(); if(!n) return '';
+  const a = Math.max(pendingChangesInfo().n||0, n);
+  return a + ' ' + (isEn ? (a>1?'changes':'change') : (a>1?'changements':'changement'));
+}
+function openOfflineSavedInfo(){
+  const isEn = currentLang==='en';
+  const lbl = pendingChangesLabel(isEn);
+  showQuickModal('📴 '+(isEn?'Offline':'Hors ligne'),
+    '<p style="font-size:15px;line-height:1.55;margin:0 0 10px;">✅ '+(lbl ? (isEn?'Your '+lbl+' are saved on this phone.':'Tes '+lbl+' sont gardés sur ce téléphone.') : (isEn?'Everything you do is saved on this phone right away.':'Tout ce que tu fais est gardé sur ce téléphone tout de suite.'))+'</p>'+
+    '<p style="font-size:14px;line-height:1.55;margin:0 0 10px;">'+(isEn?'You can close the app: nothing is lost. They will be sent the next time you open LOCUS with a connection.':'Tu peux fermer l\'app : rien n\'est perdu. Ils seront envoyés la prochaine fois que tu ouvres LOCUS avec du réseau.')+'</p>'+
+    '<p style="font-size:12.5px;line-height:1.5;color:var(--ink-dim);margin:0;">'+(isEn?'On iPhone, a web app can\'t send anything while it is closed. Until then, your other devices won\'t see these changes.':'Sur iPhone, une app web ne peut rien envoyer quand elle est fermée. D\'ici là, tes autres appareils ne voient pas ces changements.')+'</p>');
+}
 function countPendingSync(){
   var n = 0;
   Object.keys(dirtySyncIds).forEach(function(k){ n += dirtySyncIds[k].size; });
@@ -18059,6 +18092,7 @@ function formatSyncTime(ts){
 // Discrète s'il n'y a rien en attente ; plus visible (bordure or + compteur) s'il y a des changements en attente.
 function updateSyncPill(){
   try{
+    clearPendingChangesIfSynced(); // v5.56
     var el = document.getElementById('sync-pill');
     var show = !!currentUser && (isDeviceOffline() || syncPushFailed || offlineIdentity);
     if(!show){ if(el) el.remove(); return; }
@@ -18069,13 +18103,15 @@ function updateSyncPill(){
     var txt = offline ? (isEn ? '📴 Offline — sync paused' : '📴 Hors ligne — sync en pause')
             : offlineIdentity ? (isEn ? '🔐 Session to renew — sync paused' : '🔐 Session à renouveler — sync en pause')
                       : (isEn ? '⚠️ Sync paused — retrying' : '⚠️ Sync en pause — nouvel essai auto');
-    if(n > 0) txt += ' · ' + n + ' ' + (isEn ? (n > 1 ? 'changes waiting' : 'change waiting') : (n > 1 ? 'changements en attente' : 'changement en attente'));
+    if(n > 0) txt += offline
+      ? ' · ' + pendingChangesLabel(isEn) + (isEn ? ' saved on this phone — you can close the app' : ' gardés sur ce téléphone — tu peux fermer l\'app') // v5.56
+      : ' · ' + pendingChangesLabel(isEn) + (isEn ? ' waiting' : ' en attente');
     if(last) txt += ' · ' + (isEn ? 'last sync ' : 'dernière synchro ') + formatSyncTime(last);
     if(!el){
       el = document.createElement('div');
       el.id = 'sync-pill';
       el.setAttribute('role', 'status');
-      el.onclick = function(){ try{ retrySyncNow(); }catch(e){} };
+      el.onclick = function(){ try{ if(isDeviceOffline()) openOfflineSavedInfo(); else retrySyncNow(); }catch(e){} }; // v5.56
       document.body.appendChild(el);
     }
     var bannerUp = !!document.getElementById('install-banner');
@@ -18083,9 +18119,36 @@ function updateSyncPill(){
       'background:#1c1612;color:var(--ink);border-radius:999px;padding:6px 12px;font-size:12px;line-height:1.35;box-shadow:0 4px 16px rgba(0,0,0,.5);cursor:pointer;' +
       'border:1px solid ' + (n > 0 ? 'var(--gold)' : 'var(--line)') + ';';
     el.textContent = txt;
-    el.title = isEn ? 'Tap to retry now' : 'Touche pour réessayer maintenant';
+    el.title = isDeviceOffline() ? (isEn ? 'Tap for details' : 'Touche pour les détails') : (isEn ? 'Tap to retry now' : 'Touche pour réessayer maintenant');
   }catch(e){ /* l'affichage ne doit jamais casser la synchro */ }
 }
+// v5.56 — rappels à l'ouverture : (1) changements en attente depuis plus de 24 h et pas de réseau ;
+// (2) LOCUS utilisé dans Safari sans être installé, avec des données à risque (Safari peut effacer le
+// stockage d'un site non visité depuis 7 jours) — au plus une fois par semaine.
+var _syncStartupDone = false;
+function syncStartupReminders(){
+  if(_syncStartupDone) return; _syncStartupDone = true;
+  const isEn = currentLang==='en';
+  try{
+    const p = pendingChangesInfo(), n = countPendingSync();
+    if(n>0 && p.since && Date.now()-p.since > 24*3600*1000 && isDeviceOffline()){
+      const days = Math.max(1, Math.floor((Date.now()-p.since)/86400000));
+      showToast('📴 '+(isEn ? pendingChangesLabel(true)+' waiting for '+days+' day(s). Open LOCUS with a connection to send them.' : pendingChangesLabel(false)+' en attente depuis '+days+' jour(s). Ouvre LOCUS avec du réseau pour les envoyer.'), 'info');
+    }
+    const atRisk = n>0 || (!currentUser && Array.isArray(savedSnakes) && savedSnakes.length>0);
+    if(atRisk && isIosDevice() && !isStandaloneMode() && !isIosWebview()){
+      let last = 0; try{ last = parseInt(localStorage.getItem('locus_install_nudge_at')||'0',10)||0; }catch(e){}
+      if(Date.now()-last > 7*86400000){
+        try{ localStorage.setItem('locus_install_nudge_at', String(Date.now())); }catch(e){}
+        showQuickModal('📲 '+(isEn?'Install LOCUS to keep your data safe':'Installe LOCUS pour protéger tes données'),
+          '<p style="font-size:14.5px;line-height:1.55;margin:0 0 10px;">'+(isEn?'You are using LOCUS in a Safari tab. Safari can erase the data of a website you haven\'t visited for 7 days — including changes not sent yet.':'Tu utilises LOCUS dans un onglet Safari. Safari peut effacer les données d\'un site que tu n\'as pas visité depuis 7 jours — y compris des changements pas encore envoyés.')+'</p>'+
+          '<p style="font-size:14.5px;line-height:1.55;margin:0 0 12px;">'+(isEn?'Installed on your home screen, LOCUS keeps its data. Tap Share ⬆︎ (square with an arrow), then « Add to Home Screen ».':'Installé sur l\'écran d\'accueil, LOCUS garde ses données. Touche Partager ⬆︎ (le carré avec une flèche), puis « Sur l\'écran d\'accueil ».')+'</p>'+
+          '<button class="save-btn" style="width:100%;" onclick="closeQuickModal()">'+(isEn?'Got it':'Compris')+'</button>');
+      }
+    }
+  }catch(e){}
+}
+setTimeout(function(){ try{ syncStartupReminders(); }catch(e){} }, 5000);
 function retrySyncNow(){
   if(!sb || !currentUser || isDeviceOffline()) { updateSyncPill(); return; }
   if(offlineIdentity){ tryRecoverSession(); return; }
