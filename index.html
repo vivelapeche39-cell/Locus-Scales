@@ -2364,7 +2364,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.52';
+const APP_VERSION = '2026.09.01.5.55';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5213,16 +5213,27 @@ var personalizationPrefs = loadPersonalization();
 function savePersonalization(){
   try{ localStorage.setItem(PERSONALIZATION_KEY, JSON.stringify(personalizationPrefs)); }catch(e){}
 }
+// v5.55 — l'onglet Rongeurs se cache tout seul quand le compte a des animaux mais qu'aucun ne mange
+// de rongeurs et qu'il n'y a aucun bac de rongeurs. Le Mode personnalisé garde le dernier mot :
+// le réafficher (case, « Tout activer », « Tout réafficher ») pose rongeursForced.
+const RODENT_PREY_KEYS = ['mouse','rat','asf','gerbil','guineapig','rabbit'];
+function rodentsAutoHidden(){
+  if(personalizationPrefs.rongeursForced) return false;
+  if(!Array.isArray(savedSnakes) || !savedSnakes.length) return false;
+  if(typeof rodentBins!=='undefined' && (rodentBins||[]).length) return false;
+  return !savedSnakes.some(s=>{ try{ return preyTypesForSpecies(s.species).some(k=>RODENT_PREY_KEYS.includes(k)) || RODENT_PREY_KEYS.includes(s.preySpecies); }catch(e){ return true; } });
+}
+function featureVisible(key){ return !!personalizationPrefs[key] && !(key==='rongeurs' && rodentsAutoHidden()); }
 function applyPersonalizationUI(){
   PERSONALIZATION_FEATURES.forEach(f=>{
-    if(f.sub){ const btn = document.querySelector('.subtab-btn[data-sub="'+f.sub+'"]'); if(btn) btn.style.display = personalizationPrefs[f.key] ? '' : 'none'; }
-    if(f.rsub){ const btn = document.querySelector('.subtab-btn[data-rsub="'+f.rsub+'"]'); if(btn) btn.style.display = personalizationPrefs[f.key] ? '' : 'none'; }
-    if(f.vsub){ const btn = document.querySelector('.subtab-btn[data-vsub="'+f.vsub+'"]'); if(btn) btn.style.display = personalizationPrefs[f.key] ? '' : 'none'; }
+    if(f.sub){ const btn = document.querySelector('.subtab-btn[data-sub="'+f.sub+'"]'); if(btn) btn.style.display = featureVisible(f.key) ? '' : 'none'; }
+    if(f.rsub){ const btn = document.querySelector('.subtab-btn[data-rsub="'+f.rsub+'"]'); if(btn) btn.style.display = featureVisible(f.key) ? '' : 'none'; }
+    if(f.vsub){ const btn = document.querySelector('.subtab-btn[data-vsub="'+f.vsub+'"]'); if(btn) btn.style.display = featureVisible(f.key) ? '' : 'none'; }
     if(f.legal){ const btn = document.querySelector('.legal-tab-btn[data-legal="'+f.legal+'"]'); if(btn) btn.style.display = personalizationPrefs[f.key] ? '' : 'none'; }
     if(f.maintab){ const btn = document.querySelector('.tab-btn[data-tab="'+f.maintab+'"]'); if(btn) btn.style.display = personalizationPrefs[f.key] ? '' : 'none'; }
   });
   // Les onglets principaux Élevage/Ventes ne se cachent que si TOUTES leurs sous-sections le sont.
-  const elevageOn = ['racks','tour','nourriture','rongeurs'].some(k=>personalizationPrefs[k]);
+  const elevageOn = ['racks','tour','nourriture','rongeurs'].some(k=>featureVisible(k));
   const ventesOn = ['listings','clients','waitlist'].some(k=>personalizationPrefs[k]);
   const elevageBtn = document.querySelector('.tab-btn[data-tab="elevage"]');
   const ventesBtn = document.querySelector('.tab-btn[data-tab="ventes"]');
@@ -5238,8 +5249,8 @@ function applyPersonalizationUI(){
     if((activeTabName==='elevage' && !elevageOn) || (activeTabName==='ventes' && !ventesOn) || (activeTabName==='incubation' && !personalizationPrefs.incubation) || (activeTabName==='calc' && !personalizationPrefs.calc) || (activeTabName==='utilitaire' && !personalizationPrefs.communaute)) showTab('dash');
   }
   const activeSub = document.querySelector('#view-elevage .subtab-btn.active');
-  if(activeSub && activeSub.dataset.sub && personalizationPrefs[activeSub.dataset.sub]===false && elevageOn){
-    const firstVisible = PERSONALIZATION_FEATURES.find(f=>f.sub && personalizationPrefs[f.key]);
+  if(activeSub && activeSub.dataset.sub && (personalizationPrefs[activeSub.dataset.sub]===false || (activeSub.dataset.sub==='rongeurs' && rodentsAutoHidden())) && elevageOn){
+    const firstVisible = PERSONALIZATION_FEATURES.find(f=>f.sub && featureVisible(f.key));
     if(firstVisible) showSubtab(firstVisible.sub);
   }
   const activeRsub = document.querySelector('#view-incubation .subtab-btn.active');
@@ -5259,7 +5270,8 @@ function applyPersonalizationUI(){
   }
 }
 function togglePersonalizationFeature(key){
-  personalizationPrefs[key] = !personalizationPrefs[key];
+  if(key==='rongeurs'){ const on = !featureVisible('rongeurs'); personalizationPrefs.rongeurs = on; personalizationPrefs.rongeursForced = on; } // v5.55
+  else personalizationPrefs[key] = !personalizationPrefs[key];
   savePersonalization();
   applyPersonalizationUI();
   renderPersonalizationSettings();
@@ -5282,8 +5294,8 @@ function renderPersonalizationSettings(){
       '</div>'+
       items.map(f=>
         '<label style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;">'+
-          '<input type="checkbox" '+(personalizationPrefs[f.key]?'checked':'')+' onchange="togglePersonalizationFeature(\''+f.key+'\')" style="width:18px;height:18px;flex-shrink:0;accent-color:var(--gold);"/>'+
-          '<span style="font-size:12px;">'+f.icon+' '+(isEn?f.en:f.fr)+'</span>'+
+          '<input type="checkbox" '+(featureVisible(f.key)?'checked':'')+' onchange="togglePersonalizationFeature(\''+f.key+'\')" style="width:18px;height:18px;flex-shrink:0;accent-color:var(--gold);"/>'+
+          '<span style="font-size:12px;">'+f.icon+' '+(isEn?f.en:f.fr)+(f.key==='rongeurs' && personalizationPrefs.rongeurs && rodentsAutoHidden() ? '<br/><small style="color:var(--ink-dim);">'+(isEn?'Hidden automatically: none of your animals eats rodents. Check to show it.':'Caché tout seul : aucun de tes animaux ne mange de rongeurs. Coche pour l\'afficher.')+'</small>' : '')+'</span>'+
         '</label>'
       ).join('')+
     '</div>';
@@ -5291,6 +5303,7 @@ function renderPersonalizationSettings(){
 }
 function resetAllPersonalization(){
   PERSONALIZATION_FEATURES.forEach(f=> personalizationPrefs[f.key] = true);
+  personalizationPrefs.rongeursForced = true; // v5.55
   savePersonalization();
   applyPersonalizationUI();
   renderPersonalizationSettings();
@@ -5298,6 +5311,7 @@ function resetAllPersonalization(){
 }
 function setGroupPersonalization(groupId, value){
   PERSONALIZATION_FEATURES.filter(f=>f.group===groupId).forEach(f=> personalizationPrefs[f.key] = value);
+  if(groupId==='elevage') personalizationPrefs.rongeursForced = !!value; // v5.55
   savePersonalization();
   applyPersonalizationUI();
   renderPersonalizationSettings();
@@ -5569,6 +5583,27 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.55', date:'2026-11-03',
+    title:{ fr:'Geckos à la poudre et insectes : le bon vocabulaire', en:'Powder-fed geckos and insects: the right words' },
+    changes:{
+      fr:[ '🥣 Mode Tournée → Refus : pour un animal à la poudre (Repashy, Pangea…) ou aux végétaux, le refus est noté « gaspillée (jetée) » directement, sans ❄️/🐭 ni « retournée au bac ». Pour les insectes : « gaspillés » ou « donnés à un autre » seulement.',
+           '🍽 Fenêtre Repas : « Nourriture donnée » au lieu de « Proie donnée » pour la poudre, les insectes et les végétaux, et plus de ❄️/🐭.',
+           '🐭 L\'onglet Rongeurs se cache tout seul si aucun de tes animaux ne mange de rongeurs et que tu n\'as aucun bac de rongeurs. Tu peux le réafficher dans le Mode personnalisé : ton choix est gardé.' ],
+      en:[ '🥣 Tour Mode → Refused: for an animal on powder (Repashy, Pangea…) or greens, the refusal is logged as « wasted (thrown out) » right away, without ❄️/🐭 or « back in the bin ». For insects: « wasted » or « given to another » only.',
+           '🍽 Meal window: « Food given » instead of « Prey given » for powder, insects and greens, and no more ❄️/🐭.',
+           '🐭 The Rodents tab hides itself if none of your animals eats rodents and you have no rodent bin. You can show it again in Custom mode: your choice is kept.' ] } },
+  { version:'5.54', date:'2026-11-03',
+    title:{ fr:'Lignées de rongeurs : droit à l\'erreur', en:'Rodent lineages: room for mistakes' },
+    changes:{
+      fr:[ '↩️ Rongeurs → historique d\'une lignée (🕒) : nouveau bouton « Annuler le dernier changement ». Tu as fait une nouvelle génération (3.2) au lieu d\'une nouvelle lettre (3.1a) ? Un toucher et le bac revient à 3.1, avec le mâle d\'avant.',
+           '✏️ Chaque changement de l\'historique se modifie (date, mêmes femelles ou non, origine du mâle, raison) ou se supprime, comme les repas du journal. Les codes qui suivent sont recalculés tout seuls, et l\'avertissement de consanguinité suit. Réservé au palier Illimité après la bêta, comme le module Rongeurs.' ],
+      en:[ '↩️ Rodents → lineage history (🕒): new « Undo the last change » button. Made a new generation (3.2) instead of a new letter (3.1a)? One tap and the bin is back to 3.1, with the previous male.',
+           '✏️ Each change in the history can be edited (date, same females or not, male origin, reason) or deleted, like meals in the log. The codes that follow are recalculated automatically, and the inbreeding warning follows. Reserved for the Unlimited tier after the beta, like the Rodents module.' ] } },
+  { version:'5.53', date:'2026-11-03',
+    title:{ fr:'Congeler un lot : la bonne taille', en:'Freeze a batch: the right size' },
+    changes:{
+      fr:[ '🧊 Rongeurs → Congeler un lot : la taille sous laquelle les rongeurs entrent au stock de proies suit maintenant le stade choisi (Small → Small, Weanling → Weanling…). Avant, elle restait à « Pinky » si tu oubliais de la changer, et ton stock était faux. Tu peux toujours la modifier. Si le stade n\'existe pas pour l\'espèce, LOCUS prend la taille la plus proche (ex. rat Hopper → Weanling, souris Small → Adult).' ],
+      en:[ '🧊 Rodents → Freeze a batch: the size rodents enter your feeder stock as now follows the chosen stage (Small → Small, Weanling → Weanling…). Before, it stayed on « Pinky » if you forgot to change it, and your stock was wrong. You can still change it. If the stage doesn\'t exist for that species, LOCUS picks the closest size (e.g. rat Hopper → Weanling, mouse Small → Adult).' ] } },
   { version:'5.52', date:'2026-11-02',
     title:{ fr:'La santé notée revient au moment d\'accoupler', en:'Noted health issues show up when you pair' },
     changes:{
@@ -11591,6 +11626,7 @@ function mineGalleryTile(s, isEn){
   return tile;
 }
 function renderSavedList(){
+  try{ applyPersonalizationUI(); }catch(e){} // v5.55 — l'onglet Rongeurs suit les animaux du compte
   const isEn = currentLang==='en';
   savedSnakes.forEach(ensureSnakeMeta);
   storage.save(savedSnakes);
@@ -15116,6 +15152,16 @@ function logAction(id, type){
    Dès ce premier repas différent, LOCUS demande (case cochée par défaut) si ça devient la proie habituelle.
    Chaque repas garde maintenant la proie vraiment donnée (preySpecies/preySize sur l'événement) et le stock
    retire celle-là. Gratuit. */
+// v5.55 — sorte de nourriture : « whole » = proie entière (rongeur, poisson : ❄️/🐭 comptent),
+// « portion » = poudre (MRP) ou végétaux (posé, jeté s'il n'est pas mangé), « insect » = insectes et invertébrés.
+const PORTION_FOOD_KEYS = ['mrp','leafy','legume','fruit'];
+const INSECT_FOOD_KEYS = ['cricket','dubia','mealworm','superworm','phoenixworm','snail','earthworm'];
+function foodKindOf(sp){ return PORTION_FOOD_KEYS.includes(sp) ? 'portion' : INSECT_FOOD_KEYS.includes(sp) ? 'insect' : 'whole'; }
+function foodKindForSnake(s, sp){
+  let k = sp || (s && s.preySpecies) || '';
+  if(!k){ try{ k = (preyTypesForSpecies(s && s.species) || [])[0] || ''; }catch(e){ k = ''; } }
+  return foodKindOf(k);
+}
 function fedPreyBoxHtml(s){
   const isEn = currentLang==='en';
   const sp = (s.preySpecies && PREY_TYPES[s.preySpecies]) ? s.preySpecies : '';
@@ -15129,11 +15175,12 @@ function fedPreyInnerHtml(s, sp, sz, type){
   const chip = (on, label, onclick, aria)=>'<button type="button" class="sc-btn'+(on?' accent':'')+'" aria-pressed="'+on+'" style="flex:none;font-size:15px;padding:8px 12px;'+(on?'background:var(--gold);color:#1a1409;':'')+'" onclick="'+onclick+'"'+(aria?' aria-label="'+aria+'"':'')+'>'+label+'</button>';
   const sizes = sp ? PREY_TYPES[sp].sizes : [];
   const isNew = !!(sp && sz) && (sp!==(s.preySpecies||'') || sz!==(s.preySize||'') || type!==((s.preyType||'frozen')==='live'?'live':'frozen'));
-  return '<div style="font-size:12px;color:var(--ink-dim);margin-bottom:6px;">'+(isEn?'Prey given:':'Proie donnée :')+'</div>'+
+  const fk = foodKindForSnake(s, sp); // v5.55
+  return '<div style="font-size:12px;color:var(--ink-dim);margin-bottom:6px;">'+(fk==='whole' ? (isEn?'Prey given:':'Proie donnée :') : (isEn?'Food given:':'Nourriture donnée :'))+'</div>'+
     '<div style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;margin-bottom:6px;">'+
       '<select aria-label="'+(isEn?'Prey species':'Espèce de proie')+'" style="flex:1 1 auto;min-width:0;font-size:15px;padding:7px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);" onchange="fedPickSpecies(this.value)">'+preySpeciesOptionsHtml(allowed, sp)+'</select>'+
-      chip(type==='frozen', '❄️', "fedPickType('frozen')", isEn?'Frozen-thawed':'Décongelée')+
-      chip(type==='live', '🐭', "fedPickType('live')", isEn?'Live':'Vivante')+
+      (fk==='whole' ? chip(type==='frozen', '❄️', "fedPickType('frozen')", isEn?'Frozen-thawed':'Décongelée')+
+      chip(type==='live', '🐭', "fedPickType('live')", isEn?'Live':'Vivante') : '')+
     '</div>'+
     (sizes.length ? '<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;">'+sizes.map(z=>chip(z===sz, escapeHtml(z), "fedPickSize('"+escapeHtml(z).replace(/'/g,"\\'")+"')")).join('')+'</div>' : '')+
     (isNew ? '<label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:15px;cursor:pointer;background:rgba(201,151,62,.10);border:1px solid var(--gold);border-radius:10px;padding:9px 10px;">'+
@@ -16019,22 +16066,30 @@ function openTourRefusalPreyModal(){
   const others = savedSnakes.filter(x=>!refIds.has(x.id) && x.status!=='sold' && x.status!=='deceased').sort((a,b)=>snakeName(a).localeCompare(snakeName(b)));
   const recipientOpts = '<option value="">'+(isEn?'— who ate it? —':'— qui l\'a mangée ? —')+'</option>'+others.map(x=>'<option value="'+escapeHtml(String(x.id))+'">'+escapeHtml(snakeName(x))+(x.preySpecies&&x.preySize?' ('+escapeHtml(x.preySpecies+' '+x.preySize)+')':'')+'</option>').join('');
   const sel = 'width:100%;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);';
+  const kinds = {}; // v5.55
   const rows = refusers.map(x=>{
     ensureSnakeMeta(x);
     const ptype = (x.preyType||'frozen')==='live' ? 'live' : 'frozen'; // v5.47 — modifiable ici
     const def = ptype==='frozen' ? 'lost' : 'returned';
-    const prey = (x.preySpecies && x.preySize) ? escapeHtml(x.preySpecies+' '+x.preySize) : (isEn?'prey not set':'proie non renseignée');
+    const prey = (x.preySpecies && x.preySize) ? escapeHtml((function(){ try{ return preyLabelShort(x.preySpecies, x.preySize); }catch(e){ return x.preySpecies+' '+x.preySize; } })()) : (isEn?'prey not set':'proie non renseignée'); // v5.55 — vrai nom (avant : code interne « cricket »)
+    const fk = foodKindForSnake(x); kinds[fk] = true; // v5.55 — poudre : gaspillée d'office ; insectes : gaspillés ou donnés à un autre ; pas de ❄️/🐭
+    if(fk==='portion'){
+      return '<div class="trp-row" data-id="'+escapeHtml(String(x.id))+'" data-type="'+ptype+'" data-kind="portion" style="border-bottom:1px solid var(--line);padding:9px 0;">'+
+        '<div style="font-size:14px;"><b>'+escapeHtml(snakeName(x))+'</b> — 🗑 '+(isEn?'wasted (thrown out)':'gaspillée (jetée)')+'</div>'+
+        '<select class="trp-fate" style="display:none;"><option value="lost" selected>lost</option></select></div>';
+    }
     return '<div class="trp-row" data-id="'+escapeHtml(String(x.id))+'" data-type="'+ptype+'" style="border-bottom:1px solid var(--line);padding:9px 0;">'+
       '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;margin-bottom:6px;"><span style="flex:1;min-width:120px;"><b>'+escapeHtml(snakeName(x))+'</b> <small style="color:var(--ink-dim);">— '+prey+'</small></span>'+
-        trpTypeButtonsHtml(ptype)+'</div>'+
-      '<select class="trp-fate" style="'+sel+'" onchange="this.parentNode.querySelector(\'.trp-to\').style.display=this.value===\'passed\'?\'block\':\'none\'">'+tourRefusalFateOptions(def)+'</select>'+
+        (fk==='whole' ? trpTypeButtonsHtml(ptype) : '')+'</div>'+
+      '<select class="trp-fate" style="'+sel+'" onchange="this.parentNode.querySelector(\'.trp-to\').style.display=this.value===\'passed\'?\'block\':\'none\'">'+(fk==='whole' ? tourRefusalFateOptions(def) : tourRefusalFateOptions('lost').replace(/<option value="returned"[^<]*<\/option>/, ''))+'</select>'+
       '<select class="trp-to" style="'+sel+'margin-top:6px;display:none;">'+recipientOpts+'</select>'+
     '</div>';
   }).join('');
   const allBtn = (v,l)=>'<button class="sc-btn" style="font-size:13px;" onclick="tourRefusalSetAll(\''+v+'\')">'+l+'</button>';
-  showQuickModal('⚠ '+(isEn?'Refusal — the prey?':'Refus — et la proie ?'),
-    (refusers.length>1 ? '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;font-size:12px;">'+(isEn?'All:':'Tous :')+' '+allBtn('lost','🗑')+allBtn('passed','🔁')+allBtn('returned','↩')+
-      ' <button class="sc-btn" style="font-size:13px;" onclick="tourRefusalSetAllType(\'frozen\')">❄️</button><button class="sc-btn" style="font-size:13px;" onclick="tourRefusalSetAllType(\'live\')">🐭</button></div>' : '')+
+  const onlyFood = !kinds.whole;
+  showQuickModal('⚠ '+(onlyFood ? (isEn?'Refusal — the food?':'Refus — et la nourriture ?') : (isEn?'Refusal — the prey?':'Refus — et la proie ?')),
+    (refusers.length>1 ? '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;font-size:12px;">'+(isEn?'All:':'Tous :')+' '+allBtn('lost','🗑')+allBtn('passed','🔁')+(kinds.whole ? allBtn('returned','↩')+
+      ' <button class="sc-btn" style="font-size:13px;" onclick="tourRefusalSetAllType(\'frozen\')">❄️</button><button class="sc-btn" style="font-size:13px;" onclick="tourRefusalSetAllType(\'live\')">🐭</button>' : '')+'</div>' : '')+
     '<div style="max-height:52vh;overflow-y:auto;">'+rows+'</div>'+
     '<div style="font-size:11.5px;color:var(--ink-dim);margin-top:8px;">'+(isEn?'Given to another: the meal is logged for the one who ate it, and only one prey leaves the stock.':'Passée à un autre : le repas est noté pour celui qui l\'a mangée, et une seule proie sort du stock.')+'</div>'+
     '<button class="save-btn" style="margin-top:14px;width:100%;" onclick="confirmTourRefusalPrey()">'+(isEn?'Save refusal(s)':'Enregistrer le(s) refus')+'</button>'
@@ -16059,10 +16114,11 @@ function trpSetType(row, ptype){
   const f = row.querySelector('.trp-fate');
   if(f && old!==ptype && f.value!=='passed') f.value = ptype==='frozen' ? 'lost' : 'returned';
 }
-function tourRefusalSetAllType(ptype){ document.querySelectorAll('.trp-row').forEach(r=>trpSetType(r, ptype)); }
+function tourRefusalSetAllType(ptype){ document.querySelectorAll('.trp-row').forEach(r=>{ if(!r.getAttribute('data-kind') && r.querySelector('.trp-type-btn')) trpSetType(r, ptype); }); } // v5.55 — pas pour la poudre ni les insectes
 function tourRefusalSetAll(v){
   document.querySelectorAll('.trp-row').forEach(r=>{
-    const f = r.querySelector('.trp-fate'); if(f) f.value = v;
+    if(r.getAttribute('data-kind')==='portion') return; // v5.55 — la poudre reste gaspillée
+    const f = r.querySelector('.trp-fate'); if(f){ if(![...f.options].some(o=>o.value===v)) return; f.value = v; }
     const to = r.querySelector('.trp-to'); if(to) to.style.display = v==='passed' ? 'block' : 'none';
   });
 }
@@ -23652,7 +23708,7 @@ function confirmRodentMoveAnimal(sourceBinId){
     ensureRodentLineageHistory(destBin);
     const newLetter = nextRodentLetter(destBin.lineageLetter);
     if(newLetter){
-      destBin.lineageHistory.push({ generation:destBin.lineageGeneration||1, letter:newLetter, date:localTodayStr(), reason:(isEn?'Male from ':'Mâle depuis ')+rodentLineageCode(sourceBin), linkedToPrevious:true });
+      destBin.lineageHistory.push({ generation:destBin.lineageGeneration||1, letter:newLetter, date:localTodayStr(), reason:(isEn?'Male from ':'Mâle depuis ')+rodentLineageCode(sourceBin), linkedToPrevious:true, maleOrigin: sourceBin.lineageNumber, prevMaleOrigin: destBin.maleOrigin!=null ? destBin.maleOrigin : null }); // v5.54
       destBin.lineageLetter = newLetter;
     }
     destBin.maleOrigin = sourceBin.lineageNumber;
@@ -24023,7 +24079,7 @@ function confirmRodentLineageLetterIncrement(binId){
     bin.lineageGeneration = (bin.lineageGeneration||1) + 1;
     bin.lineageLetter = null;
   }
-  bin.lineageHistory.push({ generation:bin.lineageGeneration||1, letter:bin.lineageLetter, date:localTodayStr(), reason: reason||null, linkedToPrevious: sameFemales });
+  bin.lineageHistory.push({ generation:bin.lineageGeneration||1, letter:bin.lineageLetter, date:localTodayStr(), reason: reason||null, linkedToPrevious: sameFemales, maleOrigin: maleOrigin, prevMaleOrigin: bin.maleOrigin!=null ? bin.maleOrigin : null }); // v5.54 — mâle gardé pour pouvoir annuler
   bin.maleOrigin = maleOrigin;
   saveElevage();
   closeQuickModal();
@@ -24043,10 +24099,108 @@ function openRodentLineageHistoryModal(binId){
       : (h.linkedToPrevious
         ? '<span style="color:var(--sage);">🔗 '+(isEn?'same females (male swap)':'mêmes femelles (mâle changé)')+'</span>'
         : '<span style="color:var(--rust);">✂️ '+(isEn?'full reset (new generation)':'reset complet (nouvelle génération)')+'</span>');
-    return '<div class="modal-row"><span style="font-family:\'Courier New\',monospace;">'+base+'.'+(h.generation||1)+(h.letter||'')+'</span>'+
-      '<span style="text-align:right;">'+linkBadge+(h.date?'<br/><small style="color:var(--ink-dim);">'+h.date+'</small>':'')+(h.reason?'<br/><small style="color:var(--ink-dim);">'+escapeHtml(h.reason)+'</small>':'')+'</span></div>';
+    const btns = '<br/><span style="display:inline-flex;gap:4px;margin-top:4px;"><button class="sc-btn" style="padding:3px 8px;" onclick="openRodentLineageEntryEdit(\''+binId+'\','+i+')">✏️</button>'+(i>0?'<button class="sc-btn danger" style="padding:3px 8px;" onclick="deleteRodentLineageEntry(\''+binId+'\','+i+')">🗑</button>':'')+'</span>'; // v5.54
+    return '<div class="modal-row"><span style="font-family:\'Courier New\',monospace;">'+escapeHtml(base)+'.'+(h.generation||1)+(h.letter||'')+'</span>'+
+      '<span style="text-align:right;">'+linkBadge+(h.date?'<br/><small style="color:var(--ink-dim);">'+escapeHtml(String(h.date))+'</small>':'')+(h.reason?'<br/><small style="color:var(--ink-dim);">'+escapeHtml(h.reason)+'</small>':'')+btns+'</span></div>';
   }).join('');
-  showQuickModal('🕒 '+(isEn?'History — lineage '+rodentLineageCode(bin):'Historique — lignée '+rodentLineageCode(bin)), rowsHtml);
+  const undoHtml = history.length>1 ? '<button class="sc-btn accent" style="width:100%;margin:0 0 10px;" onclick="undoRodentLineageLast(\''+binId+'\')">↩️ '+(isEn?'Undo the last change':'Annuler le dernier changement')+'</button>' : ''; // v5.54
+  showQuickModal('🕒 '+(isEn?'History — lineage ':'Historique — lignée ')+escapeHtml(rodentLineageCode(bin)), undoHtml+rowsHtml+
+    '<p style="font-size:10.5px;color:var(--ink-dim);margin:10px 0 0;">'+(isEn?'Editing or deleting a change recalculates the codes that follow (e.g. 3.2 → 3.1a).':'Modifier ou supprimer un changement recalcule les codes qui suivent (ex. 3.2 → 3.1a).')+'</p>');
+}
+// v5.54 — Droit à l'erreur sur les lignées (demande d'Alex : annuler + historique modifiable comme le journal des repas).
+// Les codes ne sont jamais tapés à la main : on REJOUE l'historique depuis l'origine (mêmes femelles = lettre suivante ;
+// femelles différentes = génération +1, lettre à zéro), donc modifier/supprimer une ligne au milieu garde des codes cohérents.
+function rodentReplayLineage(bin, hist){
+  const h = hist || bin.lineageHistory || [];
+  if(!h.length) return true;
+  let gen = h[0].generation || 1, letter = h[0].letter || null;
+  for(let i=1;i<h.length;i++){
+    if(h[i].linkedToPrevious){ const nl = nextRodentLetter(letter); if(!nl) return false; letter = nl; }
+    else { gen++; letter = null; }
+    h[i].generation = gen; h[i].letter = letter;
+  }
+  if(!hist){ bin.lineageGeneration = gen; bin.lineageLetter = letter; }
+  return true;
+}
+function rodentLineageMaleFromHistory(bin, fallback){
+  const h = bin.lineageHistory || [];
+  for(let i=h.length-1;i>=1;i--){ if(Object.prototype.hasOwnProperty.call(h[i], 'maleOrigin')) return { known:true, value:h[i].maleOrigin }; }
+  return fallback;
+}
+function rodentLineageAfterChange(bin, binId, msg){
+  saveElevage();
+  try{ renderRodentBins(); }catch(e){}
+  try{ renderRodentRackGrid(); }catch(e){}
+  openRodentLineageHistoryModal(binId);
+  showToast(msg, 'success');
+}
+function undoRodentLineageLast(binId){
+  const isEn = currentLang==='en';
+  const bin = rodentBins.find(b=>b.id===binId); if(!bin) return;
+  const h = ensureRodentLineageHistory(bin);
+  if(h.length<=1) return;
+  const last = h[h.length-1];
+  const before = rodentLineageCode(bin);
+  if(!confirm(isEn ? 'Undo the last change ('+before+')?' : 'Annuler le dernier changement ('+before+') ?')) return;
+  h.pop();
+  rodentReplayLineage(bin);
+  const fb = Object.prototype.hasOwnProperty.call(last, 'prevMaleOrigin') ? { known:true, value:last.prevMaleOrigin } : { known:false };
+  const m = rodentLineageMaleFromHistory(bin, fb);
+  if(m.known) bin.maleOrigin = m.value;
+  rodentLineageAfterChange(bin, binId, '↩️ '+(isEn?'Back to ':'Retour à ')+rodentLineageCode(bin)+(m.known?'':(isEn?' — the male\'s origin was not saved for this older change: check it.':' — l\'origine du mâle n\'était pas gardée pour ce vieux changement : vérifie-la.')));
+}
+function deleteRodentLineageEntry(binId, idx){
+  const isEn = currentLang==='en';
+  const bin = rodentBins.find(b=>b.id===binId); if(!bin) return;
+  const h = ensureRodentLineageHistory(bin);
+  if(idx<=0 || idx>=h.length) return;
+  if(idx===h.length-1) return undoRodentLineageLast(binId);
+  const test = JSON.parse(JSON.stringify(h)); test.splice(idx,1);
+  if(!rodentReplayLineage(bin, test)){ showToast(isEn?'Not possible: more than 26 letters in a generation.':'Impossible : plus de 26 lettres dans une génération.', 'error'); return; }
+  if(!confirm(isEn?'Delete this change? The codes that follow will be recalculated.':'Supprimer ce changement ? Les codes qui suivent seront recalculés.')) return;
+  h.splice(idx,1);
+  rodentReplayLineage(bin);
+  rodentLineageAfterChange(bin, binId, '🗑 '+(isEn?'Change deleted — lineage now ':'Changement supprimé — lignée maintenant ')+rodentLineageCode(bin)+'.');
+}
+function openRodentLineageEntryEdit(binId, idx){
+  const isEn = currentLang==='en';
+  const bin = rodentBins.find(b=>b.id===binId); if(!bin) return;
+  const h = ensureRodentLineageHistory(bin)[idx]; if(!h) return;
+  const st = 'width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);';
+  const lab = (t0, inner)=>'<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+t0+'</span>'+inner+'</label>';
+  let body = lab(isEn?'Date':'Date', '<input type="date" id="rle-date" value="'+escapeHtml(String(h.date||''))+'" style="'+st+'"/>');
+  if(idx>0){
+    const hasMale = Object.prototype.hasOwnProperty.call(h, 'maleOrigin');
+    const cur = hasMale ? h.maleOrigin : (idx===bin.lineageHistory.length-1 ? bin.maleOrigin : undefined);
+    const opts = rodentBins.filter(b=>b.binType==='reproduction' && b.lineageNumber!=null && b.id!==binId)
+      .map(b=>'<option value="'+b.lineageNumber+'"'+(cur===b.lineageNumber?' selected':'')+'>🧬 '+escapeHtml(rodentLineageCode(b))+'</option>').join('');
+    body += lab(isEn?'Were the females the same as before?':'Les femelles étaient-elles les mêmes qu\'avant ?',
+      '<select id="rle-linked" style="'+st+'"><option value="oui"'+(h.linkedToPrevious?' selected':'')+'>'+(isEn?'Yes — male swap, the letter advances':'Oui — mâle changé, la lettre avance')+'</option><option value="non"'+(!h.linkedToPrevious?' selected':'')+'>'+(isEn?'No — new generation':'Non — nouvelle génération')+'</option></select>');
+    body += lab(isEn?'Male — where did he come from?':'Mâle — d\'où venait-il ?',
+      '<select id="rle-male" style="'+st+'">'+(cur===undefined?'<option value="__keep" selected>'+(isEn?'(not saved — keep as is)':'(pas gardé — laisser tel quel)')+'</option>':'')+'<option value=""'+(cur===null?' selected':'')+'>'+(isEn?'External (no known link)':'Externe (aucun lien connu)')+'</option>'+opts+'</select>');
+  }
+  body += lab(isEn?'Reason (optional)':'Raison (optionnel)', '<input type="text" id="rle-reason" maxlength="200" value="'+escapeHtml(h.reason||'')+'" style="'+st+'"/>');
+  body += '<button class="save-btn" style="width:100%;" onclick="saveRodentLineageEntryEdit(\''+binId+'\','+idx+')">💾 '+(isEn?'Save':'Enregistrer')+'</button>';
+  showQuickModal('✏️ '+(isEn?'Edit change':'Modifier le changement'), body);
+}
+function saveRodentLineageEntryEdit(binId, idx){
+  const isEn = currentLang==='en';
+  const bin = rodentBins.find(b=>b.id===binId); if(!bin) return;
+  const hist = ensureRodentLineageHistory(bin); const h = hist[idx]; if(!h) return;
+  const linkedEl = document.getElementById('rle-linked'), maleEl = document.getElementById('rle-male');
+  if(linkedEl){
+    const test = JSON.parse(JSON.stringify(hist)); test[idx].linkedToPrevious = linkedEl.value==='oui';
+    if(!rodentReplayLineage(bin, test)){ showToast(isEn?'Not possible: more than 26 letters in a generation.':'Impossible : plus de 26 lettres dans une génération.', 'error'); return; }
+    h.linkedToPrevious = linkedEl.value==='oui';
+  }
+  if(maleEl && maleEl.value!=='__keep'){
+    h.maleOrigin = maleEl.value ? parseInt(maleEl.value,10) : null;
+    if(idx===hist.length-1) bin.maleOrigin = h.maleOrigin;
+  }
+  h.date = document.getElementById('rle-date').value || h.date || null;
+  h.reason = (document.getElementById('rle-reason').value||'').trim().slice(0,200) || null;
+  rodentReplayLineage(bin);
+  rodentLineageAfterChange(bin, binId, '✏️ '+(isEn?'Saved — lineage ':'Enregistré — lignée ')+rodentLineageCode(bin)+'.');
 }
 
 // Même esprit visuel que les racks de serpents (mêmes classes CSS : rack-unit/rack-grid/rack-row/
@@ -24888,6 +25042,18 @@ function confirmRodentStockLink(binId, litterId){
 // Congeler un lot (9 sept) — geste général (pas lié à un bac précis dans le HTML) : décompte le
 // bac Stock choisi (le bac prioritaire de l'espèce est présélectionné, mais changeable — "précis à
 // côté du paresseux" plutôt que 2 flux séparés) et ajoute la quantité au stock de proies congelé.
+// v5.53 — la taille d'entrée au stock suit le stade choisi (avant : toujours « Pinky » par défaut,
+// donc 10 rats Small oubliés = 10 Pinky au stock). Reste modifiable. Stade absent des tailles de
+// l'espèce → taille la plus proche (rat Hopper → Weanling ; souris/ASF Small-Medium-Large → Adult).
+function rodentFreezeSizeForStage(species, stageKey){
+  const sizes = (PREY_TYPES[species] && PREY_TYPES[species].sizes) || [];
+  const tries = { pinky:['Pinky'], fuzzy:['Fuzzy'], hopper:['Hopper','Weanling'], weanling:['Weanling'], small:['Small','Adult'], medium:['Medium','Adult'], large:['Large','Adult'] }[stageKey] || [];
+  return tries.find(x=>sizes.includes(x)) || sizes[0] || '';
+}
+function rodentFreezeSyncSize(species){
+  const st = document.getElementById('rf-stage'), sz = document.getElementById('rf-size');
+  if(st && sz){ const v = rodentFreezeSizeForStage(species, st.value); if(v) sz.value = v; }
+}
 function openRodentFreezeModal(){
   renderRodentFreezeModalBody('mouse');
 }
@@ -24918,7 +25084,7 @@ function renderRodentFreezeModalBody(species, keepBinId){
     '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Bin (priority bin pre-selected)':'Bac (bac prioritaire présélectionné)')+'</span>'+
       '<select id="rf-bin" onchange="renderRodentFreezeModalBody(document.getElementById(\'rf-species\').value, this.value)" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+binOptionsHtml+'</select></label>'+
     '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Stage':'Stade')+'</span>'+
-      '<select id="rf-stage" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+stageOptionsHtml+'</select></label>'+
+      '<select id="rf-stage" onchange="rodentFreezeSyncSize(\''+species+'\')" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+stageOptionsHtml+'</select></label>'+
     '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Quantity':'Quantité')+'</span>'+
       '<input type="number" id="rf-qty" min="1" value="1" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
     '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Enters feeder stock as size':'Entre au stock de proies sous la taille')+'</span>'+
@@ -24927,6 +25093,7 @@ function renderRodentFreezeModalBody(species, keepBinId){
       '</select></label>'+
     '<button class="save-btn" style="width:100%;" onclick="confirmRodentFreeze(\''+species+'\')">🧊 '+(isEn?'Freeze':'Congeler')+'</button>';
   showQuickModal('🧊 '+(isEn?'Freeze a batch':'Congeler un lot'), body);
+  rodentFreezeSyncSize(species); // v5.53
 }
 function confirmRodentFreeze(species){
   const isEn = currentLang==='en';
