@@ -1277,6 +1277,122 @@ def t_slugs_commande(browser, url):
     check('« Commande vendue » : le mâle est vendu 400 $ à Rémi', s1 == ['sold', 400, 'Rémi'], s1)
     check('pas d\'erreur JS (slugs + commande)', not a.real_errors(), a.real_errors()[:3])
     a.close()
+def t_icones_origines(browser, url):
+    section('Icônes sur les bacs + origine externe des rongeurs + dernier refus (v5.59)')
+    d = lambda n: iso(TODAY - datetime.timedelta(days=n))
+    r1 = make_snake(180); r1['health']['events'] = [{"id": "e%d" % i, "date": d(30 - i * 7), "type": "refused"} for i in range(4)]
+    g = make_snake(181); g['sex'] = 'female'
+    a = App(browser, url, snakes=[r1, g]); a.open(wait=2500)
+    a.js("(ids)=>{ const rk=racks[0]; savedSnakes.find(x=>x.id===ids[0]).placement={mode:'rack', rackId:rk.id, row:1, tub:1}; savedSnakes.find(x=>x.id===ids[1]).placement={mode:'rack', rackId:rk.id, row:1, tub:2};"
+         " pairings.push({id:'pr_ov', maleId:'x', femaleId:ids[1], pairedDate:addDays(localTodayStr(),-40), lockDates:[], ovulationConfirmed:true, ovulationDate:addDays(localTodayStr(),-10)}); storage.save(savedSnakes); saveElevage(); showTab('elevage'); showSubtab('racks'); renderRackGrid(); }", [r1['id'], g['id']])
+    a.page.wait_for_timeout(300)
+    rk = a.js("document.getElementById('racks-container').innerText")
+    check('Racks : ⛔4 (refus de suite) et 🥚 (ovulation) sur les cases, légende affichée', '⛔4' in rk and '🥚' in rk and 'refus de suite' in rk, rk[:300])
+    a.js("showSubtab('tour'); renderTourGrid()"); a.page.wait_for_timeout(300)
+    tg = a.js("(document.getElementById('tour-grid')||document.body).innerText"); lg = a.js("document.getElementById('tour-legend').innerText")
+    check('Mode Tournée : ⛔4 et 🥚 aussi, avec la légende', '⛔4' in tg and '🥚' in tg and 'ovulation' in lg, (tg[:200], lg[:80]))
+    a.js("(id)=>{ clutches.push({id:'cl_x', ref:'X', damId:id, sireId:'x', layDate:localTodayStr(), eggCount:5, hatchDate:addDays(localTodayStr(),60), hatched:false}); }", g['id'])
+    check('après la ponte : plus de 🥚', a.js("(id)=>femaleGravidInfo(savedSnakes.find(x=>x.id===id))", g['id']) is None)
+    # origine externe
+    a.js("""(()=>{ const b1 = buildRodentLineageBin({species:'rat', ratio:'2:1', rackId:null, row:null, col:null, femaleOriginNumbers:[], maleOrigin:null, note:'', extFemales:'Élevage Tremblay', extMale:''}); rodentBins.push(b1);
+      const b2 = buildRodentLineageBin({species:'rat', ratio:'2:1', rackId:null, row:null, col:null, femaleOriginNumbers:[b1.lineageNumber], maleOrigin:null, note:'', extFemales:'', extMale:'Autre gars'}); rodentBins.push(b2); window.__b=[b1.id,b2.id,b1.lineageNumber]; saveElevage(); })()""")
+    ex2 = a.js("rodentExtSetOfBin(rodentBins.find(b=>b.id===window.__b[1])).size")
+    check('nouveau bac fait avec des femelles du bac « Tremblay » : l\'origine suit (+ son mâle)', ex2 == 2, ex2)
+    c = a.js("rodentExtConflict('elevage TREMBLAY', null, ['Élevage Tremblay'], [])")
+    check('mâle acheté plus tard chez « elevage tremblay » (écrit autrement) : avertissement', c == ['Élevage Tremblay'], c)
+    c2 = a.js("rodentExtConflict('', window.__b[2], [], [])")
+    check('mâle venant d\'un bac sans origine commune : pas d\'avertissement', c2 == [], c2)
+    a.js("(()=>{ openRodentLineageLetterModal(window.__b[0]); document.getElementById('rodent-letter-samefemales').value='oui'; document.getElementById('rodent-letter-ext-male').value='Élevage Tremblay'; rodentExtPreview(); })()")
+    pv = a.js("document.getElementById('rodent-letter-ext-preview').innerText")
+    check('fenêtre « Nouvelle lettre » : l\'aperçu montre l\'origine commune', 'Tremblay' in pv, pv)
+    a.js("window.confirm=()=>true; confirmRodentLineageLetterIncrement(window.__b[0])")
+    check('mâle enregistré avec son origine', a.js("rodentBins.find(b=>b.id===window.__b[0]).extMaleOrigin") == 'Élevage Tremblay')
+    # dernier choix de refus
+    a.js("localStorage.setItem('locus_last_refusal_fate','returned')")
+    a.js("(id)=>{ tourSelection = new Set(['terra:'+id]); openTourRefusalPreyModal(); }", r1['id']); a.page.wait_for_timeout(200)
+    fv = a.js("document.querySelector('.trp-row .trp-fate').value")
+    check('Refus : le dernier choix (retournée au bac) est proposé par défaut', fv == 'returned', fv)
+    a.js("closeQuickModal()")
+    check('pas d\'erreur JS (icônes + origines)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+def t_traits_synchro(browser, url):
+    section('Observations de santé et visites véto : synchro entre 2 appareils (v5.60)')
+    sn = make_snake(190)
+    a = App(browser, url, snakes=[sn]); a.open(wait=2000)
+    r = a.js("""(id)=>{
+      const base = JSON.parse(JSON.stringify(savedSnakes.find(x=>x.id===id))); ensureSnakeMeta(base);
+      const pc = JSON.parse(JSON.stringify(base)), cell = JSON.parse(JSON.stringify(base));
+      pc.health.traitObs = [{ id:'to_pc', kind:'wobble', level:2, date:'2026-11-01' }];
+      pc.health.vetVisits = [{ id:'vet_pc', date:'2026-11-01', reason:'Bilan', findings:'' }];
+      cell.health.events.push({ id:'ev_cell', date:'2026-11-02', type:'fed' }); cell.updatedAt = Date.now()+1000;
+      const m = mergeSnakeRecords(cell, pc);
+      return { obs:(m.health.traitObs||[]).map(o=>o.id), vet:(m.health.vetVisits||[]).map(v=>v.id), fed:m.health.events.some(e=>e.id==='ev_cell') };
+    }""", sn['id'])
+    check('PC : observation de wobble + visite véto ; cell : un repas → la fusion garde les trois', r == {'obs': ['to_pc'], 'vet': ['vet_pc'], 'fed': True}, r)
+    r2 = a.js("""(id)=>{
+      const s = savedSnakes.find(x=>x.id===id); ensureSnakeMeta(s);
+      addTraitObs(s, { kind:'wobble', level:1, date:'2026-10-01' }); storage.save(savedSnakes);
+      const old = JSON.parse(JSON.stringify(s)); const oid = s.health.traitObs[0].id;
+      window.confirm = ()=>true; deleteTraitObs(id, oid);
+      const now = savedSnakes.find(x=>x.id===id);
+      const m = mergeSnakeRecords(now, old);
+      return (m.health.traitObs||[]).length;
+    }""", sn['id'])
+    check('observation supprimée sur un appareil : ne revient pas avec la copie de l\'autre', r2 == 0, r2)
+    a.js("(id)=>{ const s=savedSnakes.find(x=>x.id===id); addTraitObs(s, {kind:'wobble', level:1, date:'2026-09-01'}); addTraitObs(s, {kind:'wobble', level:2, date:'2026-10-15', note:'au repas'}); storage.save(savedSnakes); openLogbook(id); }", sn['id'])
+    a.page.wait_for_timeout(300)
+    jt = a.js("document.body.innerText")
+    check('Journal : « 🌀 Wobble — niveau 2 — au repas »', '🌀 Wobble — niveau 2 — au repas' in jt)
+    pe = a.js("(id)=>parcoursEvents(savedSnakes.find(x=>x.id===id)).filter(e=>e.cat==='sante' && /Wobble/.test(e.label)).map(e=>e.d+':'+e.val)", sn['id'])
+    check('Parcours : les 2 niveaux de wobble dans le temps (rangée Santé)', sorted(pe) == ['2026-09-01:1', '2026-10-15:2'], pe)
+    a.js("closeLogbook()")
+    a.js(XLSX_STUB); a.js("exportEverythingExcel()"); a.page.wait_for_timeout(200)
+    hs = a.js("(window.__xlsxOut.sheets.find(x=>x.n==='Santé')||{rows:[]}).rows.filter(r=>r[4]==='Observation').map(r=>r[6])")
+    check('export Excel, onglet Santé : les observations avec leur niveau', 'niveau 2 — au repas' in hs and 'niveau 1' in hs, hs)
+    # bouton Normal du calculateur
+    a.js("showTab('calc'); state.male={pastel:'single'}; state.female={}; renderTags('male'); renderTags('female')")
+    nf = a.js("document.getElementById('tags-female').innerText"); nb = a.js("[...document.querySelectorAll('#tags-male button')].map(b=>b.textContent).join('|')")
+    check('calculateur : parent vide affiché « Normal (aucun gène) », bouton « ↺ ♂ Normal » sur l\'autre', 'Normal (aucun gène)' in nf and '♂ Normal' in nb, (nf, nb))
+    a.js("[...document.querySelectorAll('#tags-male button')].find(b=>/Normal/.test(b.textContent)).click()")
+    check('« ↺ Normal » vide le parent', a.js("Object.keys(state.male).length") == 0)
+    check('pas d\'erreur JS (synchro des observations)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+def t_mue_copro(browser, url):
+    section('Mue depuis Racks & Terrariums + copropriété (v5.61)')
+    a1 = make_snake(210); a2 = make_snake(211); a2['status'] = 'sold'; a2['soldPrice'] = 400; a2['soldDate'] = iso(TODAY); a2['buyer'] = 'Luc'; a2['purchasePrice'] = 1000
+    a = App(browser, url, snakes=[a1, a2]); a.open(wait=2500)
+    a.js("(id)=>{ const rk=racks[0]; savedSnakes.find(x=>x.id===id).placement={mode:'rack', rackId:rk.id, row:1, tub:1}; storage.save(savedSnakes); showTab('elevage'); showSubtab('racks'); renderRackGrid(); }", a1['id'])
+    a.page.wait_for_timeout(300)
+    btn = a.page.locator("#racks-container .tub .tub-remove[title='Mue']")
+    check('bac : bouton 🔵 Mue', btn.count() == 1)
+    btn.first.click(); a.page.wait_for_timeout(200)
+    a.page.locator("button[onclick*=\"quickShedApply\"][onclick*=\"inshed\"]").click(); a.page.wait_for_timeout(200)
+    check('« En mue » depuis le bac : l\'animal est en mue', a.js("(id)=>isInShed(savedSnakes.find(x=>x.id===id))", a1['id']) is True)
+    a.page.locator("#racks-container .tub .tub-remove[title='Mue']").first.click(); a.page.wait_for_timeout(200)
+    a.page.locator("button[onclick*=\"quickShedApply\"][onclick*=\"'shed'\"]").click(); a.page.wait_for_timeout(200)
+    a.js("(id)=>confirmShed(id)", a1['id']); a.page.wait_for_timeout(200)
+    sh = a.js("(id)=>savedSnakes.find(x=>x.id===id).health.events.filter(e=>e.type==='shed').length", a1['id'])
+    check('« A mué » depuis le bac : mue notée, plus en mue', sh == 1 and a.js("(id)=>isInShed(savedSnakes.find(x=>x.id===id))", a1['id']) is False, sh)
+    a.js("(id)=>{ const te={id:'te_t', name:'Terra 1', size:null, status:'libre'}; terrariums.push(te); const s=savedSnakes.find(x=>x.id===id); s.placement={mode:'terrarium', terrariumId:'te_t'}; storage.save(savedSnakes); saveElevage(); showSubtab('terrariums'); renderTerrariumList(); }", a1['id'])
+    a.page.wait_for_timeout(300)
+    check('terrarium : bouton 🔵 Mue sur l\'occupant', a.js("document.querySelectorAll('.terra-occupant button[onclick*=\"openQuickShedMenu\"]').length") >= 1)
+    # copropriété
+    a.js("(id)=>{ openCoOwnershipModal(id); const r=document.querySelector('.coo-row'); r.querySelector('.coo-name').value='Marc'; r.querySelector('.coo-pct').value='30'; cooAddRow(); const rs=document.querySelectorAll('.coo-row'); rs[1].querySelector('.coo-name').value='Julie'; rs[1].querySelector('.coo-pct').value='20'; cooCheck(); }", a2['id'])
+    mine = a.js("document.getElementById('coo-mine').textContent")
+    check('fenêtre : « Ta part : 50 % » (Marc 30 + Julie 20)', '50 %' in mine, mine)
+    a.js("(id)=>{ document.getElementById('coo-note').value='bébés partagés'; saveCoOwnership(id); }", a2['id']); a.page.wait_for_timeout(300)
+    co = a.js("(id)=>{ const s=savedSnakes.find(x=>x.id===id); return [myShareOf(s), myRevenueOf(s), repayTargetOf(s), (snakeToRow(s).co_ownership||{}).partners.length]; }", a2['id'])
+    check('ta part 50 % : vente 200 $ sur 400 $, prix d\'achat à rembourser 500 $, envoyé au serveur', co == [0.5, 200, 500, 2], co)
+    t = a.js("document.body.innerText")
+    check('fiche : « Ta part 50 % · Marc 30 % · Julie 20 % » et « Ta part de la vente 200 $ sur 400 $ »', 'Ta part 50 % · Marc 30 % · Julie 20 %' in t and '200 $ sur 400 $' in t, [l for l in t.split('\n') if 'part' in l.lower()][:4])
+    a.js("closeLogbook(); showTab('fiscal'); fiscalYear = String(new Date().getFullYear()); renderFiscalView()"); a.page.wait_for_timeout(300)
+    inc = a.js("document.getElementById('fiscal-income').textContent")
+    check('Fiscal : revenus = ta part (200 $)', inc.startswith('200'), inc)
+    a.js(XLSX_STUB); a.js("exportEverythingExcel()"); a.page.wait_for_timeout(200)
+    col = a.js("(()=>{ const an=window.__xlsxOut.sheets.find(x=>x.n==='Animaux').rows; const i=an[0].indexOf('Copropriété'); return an.slice(1).map(r=>r[i]).filter(Boolean); })()")
+    check('export Excel : colonne Copropriété', len(col) == 1 and 'Marc 30 %' in col[0], col)
+    check('pas d\'erreur JS (mue + copropriété)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
 def t_keltic_dragons(browser, url):
     section('BCI : Keltic, Smoke, Red/Sun Dragon (v5.45)')
     m = make_snake(71, species='boa_bci', genes={'bci_keltic': 'single'}); m['sex'] = 'male'
@@ -1426,7 +1542,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()

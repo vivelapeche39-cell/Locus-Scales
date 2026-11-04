@@ -713,6 +713,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 .tub.multi-selected{background:rgba(201,151,62,.22) !important;border-color:var(--gold) !important;color:var(--ink) !important;font-style:normal;}
 .tub .tub-name{font-weight:600;color:var(--ink);line-height:1.25;}
 .tub .tub-tag{font-family:'Courier New',monospace;font-size:8.5px;color:var(--ink-dim);margin-top:3px;}
+.tub.has-tools{padding-top:24px;} /* v5.61 — 4 petits boutons (🔵 💧 🧹 ✕) au-dessus du nom */
+.tub .tub-status{font-family:system-ui,-apple-system,sans-serif;font-size:12px;letter-spacing:1px;color:var(--ink);} /* v5.59 */
 .tub .tub-alert{position:absolute;top:5px;right:6px;font-size:10px;}
 .tub-prey{position:absolute;bottom:5px;right:6px;font-size:11px;line-height:1;padding:2px;border-radius:5px;cursor:pointer;}
 .tub-prey:hover{background:var(--bg-panel-2);}
@@ -1587,6 +1589,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <button class="tour-action-btn" onclick="selectByPreyType('live')" data-i18n="selectLiveBtn">🐭 Tout le vivant</button>
       </div>
       <div id="health-alerts"></div>
+      <div id="tour-legend"></div>
       <div id="tour-room-filter-wrap" style="display:none;margin-bottom:14px;">
         <span style="font-size:11px;color:var(--ink-dim);">📍 <span data-i18n="roomFilterLabel">Pièce</span> :</span>
         <select id="tour-room-filter" class="egg-select" onchange="setTourRoomFilter(this.value)"></select>
@@ -2367,7 +2370,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.58';
+const APP_VERSION = '2026.09.01.5.61';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2779,6 +2782,7 @@ const BREEDING_TIER_FEATURES = [
   'dreamSimulator',
   'lockMode', // v3.44 — Mode Verrou (choix d'Alex : Première ponte + Illimité, cohérent avec la reproduction)
   'seasonPlan', // v3.40 — Plan de saison (choix d'Alex : Première ponte + Illimité)
+  'coOwnership', // v5.61 — copropriété (choix d'Alex : Première ponte + Illimité)
   'groupReservation', // v5.58 — commande groupée (réservation de plusieurs animaux, un acompte) : Première ponte + Illimité (choix d'Alex : pour vendre il faut reproduire)
   'comboPriceMemory', // v5.49 — prix retenus par résultat dans le calculateur (choix d'Alex : Première ponte + Illimité)
   'seasonChances' // v3.35 — « Mes chances cette saison » (choix d'Alex : Première ponte + Illimité)
@@ -5587,6 +5591,31 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.61', date:'2026-11-04',
+    title:{ fr:'Mue pendant l\'entretien et copropriété', en:'Shed during upkeep and co-ownership' },
+    changes:{
+      fr:[ '🔵 Racks & Terrariums : nouveau bouton 🔵 sur chaque bac et chaque occupant de terrarium. Tu vois une mue en nettoyant ? Un toucher : « En mue » ou « A mué » (avec la qualité), sans passer par le Mode Tournée. Gratuit.',
+           '🤝 Copropriété : sur la fiche, « En copropriété ? » — le nom de chaque copropriétaire et sa part en %, plus l\'entente (ex. qui garde les bébés). Les prix de la fiche restent ceux de l\'animal entier ; Fiscal, ROI, remboursement des parents, statistiques et tableau de bord comptent seulement ta part. Dans l\'export Excel aussi. Réservé aux paliers Première ponte et Illimité après la bêta.' ],
+      en:[ '🔵 Racks & Enclosures: new 🔵 button on each tub and each enclosure occupant. Notice a shed while cleaning? One tap: « In shed » or « Has shed » (with the quality), without going through Tour Mode. Free.',
+           '🤝 Co-ownership: on the record, « Co-owned with someone? » — each co-owner\'s name and share in %, plus the agreement (e.g. who keeps the babies). Prices on the record stay those of the whole animal; Taxes, ROI, paying back the parents, statistics and the dashboard count only your share. In the Excel export too. Reserved for the First Clutch and Unlimited tiers after the beta.' ] } },
+  { version:'5.60', date:'2026-11-04',
+    title:{ fr:'Suivi du wobble dans le temps, et rien ne se perd entre deux appareils', en:'Wobble tracked over time, and nothing lost between two devices' },
+    changes:{
+      fr:[ '🔧 Corrigé : une observation de santé (wobble, petits yeux, kinking…) ou une visite véto notée sur un appareil pouvait disparaître si un autre appareil modifiait la même fiche avant la synchro. Elles sont maintenant fusionnées comme les repas, et une observation supprimée ne revient plus.',
+           '📈 Les observations de santé apparaissent maintenant dans le Journal de l\'animal, dans le Parcours (rangée Santé, pour voir l\'évolution du niveau 0-3 dans le temps) et dans l\'export Excel (onglet Santé).',
+           '🧬 Calculateur : un parent sans gène s\'affiche « Normal (aucun gène) », et un bouton « ↺ Normal » vide un parent d\'un toucher pour calculer une morph × un normal. Gratuit.' ],
+      en:[ '🔧 Fixed: a health observation (wobble, small eyes, kinking…) or a vet visit logged on one device could disappear if another device changed the same record before syncing. They are now merged like meals, and a deleted observation no longer comes back.',
+           '📈 Health observations now show in the animal\'s Log, in History (Health row, to see the 0-3 level change over time) and in the Excel export (Health sheet).',
+           '🧬 Calculator: a parent with no gene shows « Normal (no gene) », and a « ↺ Normal » button clears a parent in one tap to calculate a morph × a normal. Free.' ] } },
+  { version:'5.59', date:'2026-11-03',
+    title:{ fr:'Qui a besoin d\'attention, d\'un coup d\'œil', en:'Who needs attention, at a glance' },
+    changes:{
+      fr:[ '🏠 Racks & Terrariums et Mode Tournée : icônes directement sur la case du bac — ⚠ trop longtemps sans repas, 📉 perte de poids, ⛔3 refus de suite (hors mue), 🔵 en mue, 🥚 femelle en ovulation (pas encore pondu), 🤮 repos après régurgitation, 🚩 quarantaine. Une légende s\'affiche en haut. Gratuit.',
+           '🐭 Rongeurs : nouvelle « origine externe » quand tu crées une lignée ou changes un mâle (« Femelles achetées ? Chez qui » / « Mâle acheté ? Chez qui »). Si un mâle et des femelles viennent de la même personne, même achetés à des moments différents, LOCUS t\'avertit qu\'ils pourraient être apparentés. L\'origine suit les femelles déplacées et leurs descendants. Réservé au palier Illimité après la bêta, comme le module Rongeurs.',
+           '⚠ Mode Tournée → Refus : ton dernier choix (gaspillée ou retournée au bac) devient le choix par défaut de la fois suivante.' ],
+      en:[ '🏠 Racks & Enclosures and Tour Mode: icons right on the tub — ⚠ too long without a meal, 📉 weight loss, ⛔3 refusals in a row (outside shed), 🔵 in shed, 🥚 female with ovulation (not laid yet), 🤮 resting after regurgitation, 🚩 quarantine. A legend shows at the top. Free.',
+           '🐭 Rodents: new « outside origin » when you create a lineage or change a male (« Bought females? From whom » / « Bought male? From whom »). If a male and females come from the same person, even bought at different times, LOCUS warns you they may be related. The origin follows moved females and their offspring. Reserved for the Unlimited tier after the beta, like the Rodents module.',
+           '⚠ Tour Mode → Refused: your last choice (wasted or back in the bin) becomes the default next time.' ] } },
   { version:'5.58', date:'2026-11-03',
     title:{ fr:'Slugs à la ponte et commande groupée', en:'Slugs at laying and group orders' },
     changes:{
@@ -8987,6 +9016,17 @@ function renderTags(sex){
   wrap.querySelectorAll('.rm').forEach(rm=>{
     rm.addEventListener('click', ()=>{ delete state[sex][rm.dataset.g]; renderTags(sex); });
   });
+  // v5.60 — « Normal » : un parent sans gène = normal (wild type). Le dire, et pouvoir y revenir d'un toucher.
+  if(!Object.keys(state[sex]).length){
+    const np = document.createElement('div'); np.className = 'tag-pill'; np.setAttribute('data-normal','1');
+    np.innerHTML = '<span>'+(isEn?'Normal (no gene)':'Normal (aucun gène)')+'</span>'; wrap.appendChild(np);
+  } else {
+    const nb = document.createElement('button'); nb.type = 'button'; nb.className = 'sc-btn'; nb.style.cssText = 'font-size:12px;padding:4px 10px;margin:4px 0 0;';
+    nb.textContent = '↺ '+(isEn?(sex==='male'?'♂ Normal':'♀ Normal'):(sex==='male'?'♂ Normal':'♀ Normal'));
+    nb.title = isEn?'Clear this parent: a normal (no gene)':'Vider ce parent : un normal (aucun gène)';
+    nb.addEventListener('click', ()=>{ state[sex] = {}; try{ calcLoaded[sex] = null; }catch(e){} renderTags(sex); try{ if(lastCalcResultCount) runCross(); }catch(e){} });
+    wrap.appendChild(nb);
+  }
 
   if(sex==='male'){
     const makerGene = activeMakerGene('male');
@@ -13498,6 +13538,7 @@ function deleteTraitObs(snakeId, obsId){
   const s = savedSnakes.find(x=>x.id===snakeId); if(!s) return;
   ensureSnakeMeta(s);
   s.health.traitObs = (s.health.traitObs||[]).filter(o=>o.id!==obsId);
+  addHealthTombstone(s, 'to|'+obsId); // v5.60 — ne revient pas avec la copie d'un autre appareil
   s.updatedAt = Date.now();
   storage.save(savedSnakes);
   try{ openLogbook(snakeId); }catch(e){}
@@ -13717,6 +13758,7 @@ function deleteVetVisit(id, visitId){
   if(!s) return;
   ensureSnakeMeta(s);
   s.health.vetVisits = s.health.vetVisits.filter(v=>v.id!==visitId);
+  addHealthTombstone(s, 'v|'+visitId); // v5.60
   storage.save(savedSnakes);
   const listEl = document.getElementById('vet-visits-list-'+id);
   if(listEl) listEl.innerHTML = renderVetVisitsHtml(s);
@@ -14322,7 +14364,7 @@ function openLogbook(id){
   const purchasePriceRow = '<div class="modal-row"><span>'+t('purchasePriceLabel')+'</span><span><input type="number" class="price-input" style="width:90px;" value="'+(s.purchasePrice!=null?s.purchasePrice:'')+'" placeholder="0" onchange="setPurchasePrice(\''+id+'\', this.value)"/> $</span></div>';
   const realizedMarginRow = (s.status==='sold' && s.soldPrice!=null && s.purchasePrice!=null)
     ? (function(){
-        const margin = s.soldPrice - s.purchasePrice;
+        const margin = Math.round((s.soldPrice - s.purchasePrice)*myShareOf(s)*100)/100; // v5.61 — ta part
         return '<div class="modal-row"><span>'+(isEn?'Realized margin':'Marge réalisée')+'</span><span style="font-weight:700;color:'+(margin>=0?'var(--sage)':'var(--rust)')+';">'+(margin>=0?'+':'')+margin.toFixed(2)+' $</span></div>';
       })()
     : '';
@@ -14369,12 +14411,15 @@ function openLogbook(id){
       }).join('')
     : '<div class="modal-row"><span>'+t('noLengthRecorded')+'</span></div>';
 
-  const eventsSorted = [...s.health.events].sort((a,b)=>b.date.localeCompare(a.date));
+  const eventsSorted = [...s.health.events].concat(((s.health.traitObs)||[]).filter(o=>o && o.date && o.level!=null).map(o=>({ date:o.date, type:'trait_obs', _obs:o }))).sort((a,b)=>String(b.date).localeCompare(String(a.date))); // v5.60 — observations de traits dans le journal
   // Bouton de suppression par ligne (2 septembre) — pour retirer un doublon accidentel directement
   // sur la fiche, sans devoir attendre la fenêtre de 7s du bouton "Annuler" du toast. indexOf() sur
   // la référence exacte de l'objet (pas une recherche par date/type) — fiable même si 2 événements
   // identiques se ressemblent en tout point, exactement le cas d'un doublon.
   const eventRowHtml = e=>{
+        if(e && e.type==='trait_obs'){ const o = e._obs; const isEnJ = currentLang==='en'; // v5.60
+          return '<div class="modal-row"><span>'+escapeHtml(String(o.date))+'</span><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">'+traitKindLabel(o.kind, isEnJ)+' — '+(isEnJ?'level ':'niveau ')+o.level+(o.note?' — '+escapeHtml(o.note):'')+
+            '<button class="sc-btn danger" style="padding:2px 8px;font-size:12px;line-height:1.2;" onclick="deleteTraitObs(\''+id+'\',\''+o.id+'\')" aria-label="'+(isEnJ?'Delete':'Supprimer')+'">×</button></span></div>'; }
         const idx = s.health.events.indexOf(e);
         const label = eventLabelFor(e)+(e.type==='weigh'?' ('+fmtWeight(e.value)+')':'')+(e.type==='length'?' ('+fmtLength(e.value)+')':'')+(e.type==='shed'&&e.quality?' — '+shedQualityLabel(e.quality):'')+(e.type==='fed'&&e.quantity==='partial'?' — '+(currentLang==='en'?'partial':'partiel'):'')+feedPreyTag(e)+(e.partner?' — '+escapeHtml(e.partner):'')+((e.type==='regurg'||e.type==='health_note') && e.note ? ' — '+escapeHtml(e.note) : ''); // v5.57
         const swapBtn = (e.type==='shed' || e.type==='inshed') ? '<button class="sc-btn" style="padding:2px 8px;font-size:12px;line-height:1.2;" onclick="toggleShedEventType(\''+id+'\','+idx+')" title="'+(currentLang==='en'?(e.type==='shed'?'Change to « In shed »':'Change to « Shed »'):(e.type==='shed'?'Changer en « En mue »':'Changer en « A mué »'))+'">⇄ '+(e.type==='shed'?(currentLang==='en'?'In shed':'En mue'):(currentLang==='en'?'Shed':'A mué'))+'</button>' : ''; // v3.90
@@ -14675,6 +14720,7 @@ function openLogbook(id){
       '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">'+statusButtonsHtml+'</div>'+
       purchasePriceRow+
       repayFicheRows(s, isEn)+ // v5.51
+      coOwnershipRowsHtml(s, isEn)+ // v5.61
       statusDetailHtml+
       realizedMarginRow+
     '</div>'+
@@ -15591,6 +15637,24 @@ function shedQualityLabel(q){
   };
   return map[q] || q;
 }
+// v5.61 — mue constatée pendant l'entretien (Racks & Terrariums) : un bouton 🔵 → En mue / A mué
+function openQuickShedMenu(id){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id); if(!s) return;
+  const big = 'display:block;width:100%;font-size:17px;padding:14px;margin-bottom:10px;text-align:left;';
+  showQuickModal('🔵 '+escapeHtml(snakeName(s)),
+    (isInShed(s) ? '<p style="font-size:13px;color:var(--ink-dim);margin:0 0 10px;">'+(isEn?'In shed since ':'En mue depuis le ')+escapeHtml(inShedSince(s))+'</p>' : '')+
+    '<button class="sc-btn" style="'+big+'" onclick="quickShedApply(\''+id+'\',\'inshed\')">🔵 '+(isEn?'In shed (blue eyes, dull skin)':'En mue (yeux bleus, peau terne)')+'</button>'+
+    '<button class="save-btn" style="'+big+'" onclick="quickShedApply(\''+id+'\',\'shed\')">✨ '+(isEn?'Has shed — choose the quality':'A mué — choisir la qualité')+'</button>');
+}
+function quickShedApply(id, kind){
+  closeQuickModal();
+  if(kind==='shed'){ openShedModal(id); return; }
+  const s = savedSnakes.find(x=>x.id===id); if(!s) return;
+  if(isInShed(s)){ showToast('🔵 '+(currentLang==='en'?'Already in shed.':'Déjà en mue.')); return; }
+  logInShed(id);
+  try{ renderRackGrid(); }catch(e){} try{ renderTerrariumList(); }catch(e){}
+}
 function openShedModal(id){
   const isEn = currentLang==='en';
   const s = savedSnakes.find(x=>x.id===id);
@@ -15625,6 +15689,7 @@ function confirmShed(id){
   showToast('✨ '+escapeHtml(snakeName(s))+(isEn?' shed — ':' a mué — ')+shedQualityLabel(quality)+(shedHint?'<br/><small>'+shedHint+'</small>':''), quality==='complete'?'success':undefined, 'undoLastLoggedEvent()');
   renderFirstSnakeTip();
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
+  try{ renderRackGrid(); }catch(e){} try{ renderTerrariumList(); }catch(e){} // v5.61 — l'icône 🔵 du bac disparaît
 }
 
 // ==================== En mue (v3.90) ====================
@@ -16104,7 +16169,8 @@ function openTourRefusalPreyModal(){
   const rows = refusers.map(x=>{
     ensureSnakeMeta(x);
     const ptype = (x.preyType||'frozen')==='live' ? 'live' : 'frozen'; // v5.47 — modifiable ici
-    const def = ptype==='frozen' ? 'lost' : 'returned';
+    const lastF = (function(){ try{ return localStorage.getItem('locus_last_refusal_fate')||''; }catch(e){ return ''; } })(); // v5.59 — dernier choix retenu
+    const def = (foodKindForSnake(x)==='whole' && (lastF==='lost' || lastF==='returned')) ? lastF : (ptype==='frozen' ? 'lost' : 'returned');
     const prey = (x.preySpecies && x.preySize) ? escapeHtml((function(){ try{ return preyLabelShort(x.preySpecies, x.preySize); }catch(e){ return x.preySpecies+' '+x.preySize; } })()) : (isEn?'prey not set':'proie non renseignée'); // v5.55 — vrai nom (avant : code interne « cricket »)
     const fk = foodKindForSnake(x); kinds[fk] = true; // v5.55 — poudre : gaspillée d'office ; insectes : gaspillés ou donnés à un autre ; pas de ❄️/🐭
     if(fk==='portion'){
@@ -16171,6 +16237,7 @@ function confirmTourRefusalPrey(){
     plan[sn.id] = { fate, toId: to ? to.id : null, preyType: r.getAttribute('data-type')==='live' ? 'live' : 'frozen' }; // v5.47
   });
   if(missing){ showToast(isEn?'Pick who ate the prey (or choose Wasted).':'Choisis qui a mangé la proie (ou « Gaspillée »).', 'error'); return; }
+  try{ const fates = [...document.querySelectorAll('.trp-row:not([data-kind])')].map(r=>(r.querySelector('.trp-fate')||{}).value).filter(v=>v==='lost'||v==='returned'); if(fates.length) localStorage.setItem('locus_last_refusal_fate', fates[fates.length-1]); }catch(e){} // v5.59
   closeQuickModal();
   tourRefusalPlan = plan;
   try{ applyTourAction('refused'); } finally { tourRefusalPlan = null; }
@@ -17213,6 +17280,7 @@ function parcoursEvents(s){
   });
   (h.vetVisits||[]).forEach(v=>{ if(v) add(v.date, 'sante', false, '🩺 '+(isEn?'Vet':'Véto'), v.reason ? escapeHtml(v.reason) : ''); });
   (h.defecations||[]).forEach(dd=>{ if(dd) add(dd.date, 'sante', false, '💩 '+(isEn?'Poop':'Selles'), dd.note ? escapeHtml(dd.note) : ''); });
+  (h.traitObs||[]).forEach(o=>{ if(o && o.level!=null) add(o.date, 'sante', o.level>=2, traitKindLabel(o.kind, isEn), (isEn?'level ':'niveau ')+o.level+(o.note?' — '+escapeHtml(o.note):''), { val:String(o.level) }); }); // v5.60 — suivi du wobble & cie dans le temps
   if(s.birthDate){
     const bp = birthPrecision(s.birthDate);
     if(bp==='full' || bp==='month') add(bp==='full' ? s.birthDate : s.birthDate+'-01', 'vie', false, '🥚 '+(isEn?'Born':'Naissance'), bp==='month' ? (isEn?'month only':'mois seulement') : '');
@@ -17935,10 +18003,16 @@ function mergeSnakeRecords(winner, other){
     weights: mergeCountedLists(wh.weights, oh.weights, m=>measureKey('w', m), removed),
     lengths: mergeCountedLists(wh.lengths, oh.lengths, m=>measureKey('l', m), removed),
     defecations: mergeCountedLists(wh.defecations, oh.defecations, d=>'d|'+(d&&d.id), removed), // v3.77
+    // v5.60 — observations de traits (wobble…), visites véto et nettoyages : avant, seule la copie « gagnante »
+    // était gardée → une observation notée sur un appareil pouvait disparaître (même famille que le bug 5.48)
+    traitObs: mergeCountedLists(wh.traitObs, oh.traitObs, o=>'to|'+(o&&o.id), removed),
+    vetVisits: mergeCountedLists(wh.vetVisits, oh.vetVisits, v=>'v|'+(v&&v.id), removed),
+    cleanings: mergeCountedLists(wh.cleanings, oh.cleanings, c=>'c|'+(c&&c.id), removed),
     removed: [...removed].slice(-300)
   });
   if(!wh.lengths && !oh.lengths) delete merged.health.lengths;
   if(!wh.defecations && !oh.defecations) delete merged.health.defecations;
+  ['traitObs','vetVisits','cleanings'].forEach(k=>{ if(!wh[k] && !oh[k]) delete merged.health[k]; }); // v5.60
   const photos = new Map();
   (winner.photos||[]).concat(other.photos||[]).forEach(ph=>{ if(ph && ph.id && !removed.has('p|'+ph.id) && !photos.has(ph.id)) photos.set(ph.id, ph); });
   merged.photos = [...photos.values()];
@@ -18087,6 +18161,7 @@ function snakeToRow(s){
     purchase_price: s.purchasePrice!=null ? s.purchasePrice : null,
     repay_target: s.repayTarget!=null ? s.repayTarget : null, // v5.51 — colonne migrée et vérifiée le 2 nov
     kept_deposits: Array.isArray(s.keptDeposits) ? s.keptDeposits : [], // v5.58 — colonne migrée et vérifiée le 3 nov
+    co_ownership: s.coOwnership || null, // v5.61 — colonne migrée et vérifiée le 4 nov
     genetics_history: s.geneticsHistory||[],
     clutch_ref: s.clutchRef||null,
     loans: s.loans||[],
@@ -18113,6 +18188,7 @@ function rowToSnake(r){
     purchasePrice: r.purchase_price!=null ? r.purchase_price : null,
     repayTarget: r.repay_target!=null ? Number(r.repay_target) : null, // v5.51
     keptDeposits: Array.isArray(r.kept_deposits) ? r.kept_deposits : [], // v5.58
+    coOwnership: r.co_ownership || null, // v5.61
     geneticsHistory: r.genetics_history||[], clutchRef: r.clutch_ref||null, loans: r.loans||[], reservation: r.reservation||null, proven: !!r.proven, provenSeasons: Array.isArray(r.proven_seasons) ? r.proven_seasons : [], deceasedDate: r.deceased_date||null, deceasedNote: r.deceased_note||null, showToken: r.show_token||null, showFields: r.show_fields||null, vitrineBreeder: !!r.vitrine_breeder, importedCoi: r.imported_coi||null, updatedAt: r.updated_at ? Date.parse(r.updated_at) : 0
   };
 }
@@ -23445,6 +23521,7 @@ function rodentReproBinCardHtml(bin, isEn){
         mrow(isEn?'Species':'Espèce', rodentSpeciesIconLabel(bin.species, isEn))+
         mrow(isEn?'Ratio':'Ratio', bin.ratio ? escapeHtml(bin.ratio) : (bin.ratioBadFromImport ? '<span style="color:var(--rust);">'+(isEn?'to fix (unreadable in the import)':'à corriger (illisible à l\'import)')+'</span>' : '—'))+
         (bin.cumulativeFootprint && bin.cumulativeFootprint.length ? mrow((isEn?'Related lineages':'Lignées apparentées')+rodentHelpQ('footprint', isEn), bin.cumulativeFootprint.map(e=>e.number+'.'+e.generation).join(', ')) : '')+
+        (function(){ const ex = rodentExtSetOfBin(bin); return ex.size ? '<div class="modal-row"><span>🏷 '+(isEn?'Outside origin':'Origine externe')+'</span><span>'+escapeHtml([...ex.values()].join(', '))+'</span></div>' : ''; })()+ // v5.59
         (function(){ const n = rodentBinNoteParts(bin); return (n.warn ? '<div class="modal-row"><span style="color:var(--rust);">⚠️ '+(isEn?'Not independent: ':'Pas indépendante : ')+escapeHtml(n.warn)+'</span></div>' : '')+(n.info ? '<div class="modal-row"><span style="color:var(--ink-dim);">📝 '+escapeHtml(n.info)+'</span></div>' : ''); })()+
         (bin.room ? mrow(isEn?'Room':'Pièce', escapeHtml(bin.room)) : '')+
         mrow(isEn?'Male':'Mâle', bin.maleRemovedDate
@@ -23894,6 +23971,9 @@ function confirmRodentMoveAnimal(sourceBinId){
     const newEntries = sourceFootprint.filter(e=>!existingKeys.has(e.number+'|'+e.generation));
     if(!destBin.cumulativeFootprint) destBin.cumulativeFootprint = [];
     destBin.cumulativeFootprint.push(...newEntries);
+    { const m = new Map(); (Array.isArray(destBin.extOrigins)?destBin.extOrigins:[]).forEach(n=>{ const k = rodentExtKey(n); if(k) m.set(k,n); }); rodentExtSetOfBin(sourceBin).forEach((v,k)=>m.set(k,v)); destBin.extOrigins = [...m.values()]; // v5.59
+      const ex = destBin.extMaleOrigin ? rodentExtConflict(destBin.extMaleOrigin, null, destBin.extOrigins, []) : [];
+      if(ex.length) showToast((isEn?'⚠️ Same outside origin as the current male: ':'⚠️ Même origine externe que le mâle actuel : ')+ex.join(', '), 'error'); }
     const checkFootprint = rodentBinFootprint(destBin);
     if(rodentFootprintConflict(checkFootprint, destBin.maleOrigin)){
       showToast(isEn?'⚠️ This female may be related to the current male — check the lineage.':'⚠️ Cette femelle pourrait être apparentée au mâle actuel — vérifie la lignée.', 'error');
@@ -24201,10 +24281,12 @@ function openRodentLineageLetterModal(binId){
         '<option value="non">'+(isEn?'No':'Non')+'</option>'+
       '</select></label>'+
     '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'New male — where does he come from?':'Nouveau mâle — d\'où vient-il?')+'</span>'+
-      '<select id="rodent-letter-male-origin" onchange="updateRodentLetterConflictPreview(\''+binId+'\')" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+      '<select id="rodent-letter-male-origin" onchange="updateRodentLetterConflictPreview(\''+binId+'\'); rodentExtPreview()" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
         '<option value="">'+(isEn?'External (no known link)':'Externe (aucun lien connu)')+'</option>'+maleOriginOptionsHtml+
       '</select></label>'+
     '<div id="rodent-letter-conflict-preview"></div>'+
+    '<label style="display:block;margin-bottom:10px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Bought male? From whom (optional)':'Mâle acheté ? Chez qui (optionnel)')+'</span>'+'<input type="text" id="rodent-letter-ext-male" list="rodent-ext-origins" maxlength="80" oninput="rodentExtPreview()" placeholder="'+(isEn?'e.g. Smith Rattery':'ex. Élevage Tremblay')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+rodentExtDatalistHtml()+
+    '<div id="rodent-letter-ext-preview" data-bin="'+binId+'"></div>'+ // v5.59
     '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Reason (optional)':'Raison (optionnel)')+'</span>'+
       '<input type="text" id="rodent-letter-reason" placeholder="'+(isEn?'e.g. male passed away, aging, sold':'ex. mâle décédé, vieillissement, vendu')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
     '<button class="save-btn" style="width:100%;" onclick="confirmRodentLineageLetterIncrement(\''+binId+'\')">🔄 '+(isEn?'Advance letter':'Avancer la lettre')+'</button>';
@@ -24229,6 +24311,9 @@ function confirmRodentLineageLetterIncrement(binId){
   const reason = document.getElementById('rodent-letter-reason').value.trim();
   const maleOriginRaw = document.getElementById('rodent-letter-male-origin').value;
   const maleOrigin = maleOriginRaw ? parseInt(maleOriginRaw,10) : null;
+  const extMaleL = ((document.getElementById('rodent-letter-ext-male')||{}).value||'').trim(); // v5.59
+  { const ex = rodentExtConflict(extMaleL, maleOrigin, Array.isArray(bin.extOrigins)?bin.extOrigins:[], []);
+    if(ex.length && !confirm(isEn ? '⚠️ Same outside origin as this bin\'s females ('+ex.join(', ')+'): they may be related. Introduce him anyway?' : '⚠️ Même origine externe que les femelles de ce bac ('+ex.join(', ')+') : ils pourraient être apparentés. L\'introduire quand même?')) return; }
   const checkFootprint = rodentBinFootprint(bin);
   if(rodentFootprintConflict(checkFootprint, maleOrigin)){
     const maleBin = rodentBins.find(b=>b.binType==='reproduction' && b.lineageNumber===maleOrigin);
@@ -24255,6 +24340,7 @@ function confirmRodentLineageLetterIncrement(binId){
   }
   bin.lineageHistory.push({ generation:bin.lineageGeneration||1, letter:bin.lineageLetter, date:localTodayStr(), reason: reason||null, linkedToPrevious: sameFemales, maleOrigin: maleOrigin, prevMaleOrigin: bin.maleOrigin!=null ? bin.maleOrigin : null }); // v5.54 — mâle gardé pour pouvoir annuler
   bin.maleOrigin = maleOrigin;
+  bin.extMaleOrigin = (extMaleL && rodentExtKey(extMaleL)) ? extMaleL.slice(0,80) : null; // v5.59
   saveElevage();
   closeQuickModal();
   renderRodentBins();
@@ -24616,10 +24702,13 @@ function openAssignRodentSlotModal(rackId, row, col){
         '</select></label>'+
       (existingLineages.length ? '<p style="font-size:10.5px;color:var(--ink-dim);margin:12px 0 6px;">'+(isEn?'Where do the females come from? (check all that apply — leave blank for a fresh/origin lineage)':'D\'où viennent les femelles? (coche tout ce qui s\'applique — laisse vide si lignée d\'origine)')+'</p>'+femaleOriginsHtml : '')+
       '<label style="display:block;margin-bottom:6px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Male — where does he come from?':'Mâle — d\'où vient-il?')+'</span>'+
-        '<select id="rodent-slot-male-origin" onchange="updateRodentSlotConflictPreview()" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
+        '<select id="rodent-slot-male-origin" onchange="updateRodentSlotConflictPreview(); rodentExtPreview()" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
           '<option value="">'+(isEn?'External (no known link)':'Externe (aucun lien connu)')+'</option>'+maleOriginOptionsHtml+
         '</select></label>'+
       '<div id="rodent-slot-conflict-preview"></div>'+
+      '<label style="display:block;margin-bottom:10px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Bought females? From whom (optional)':'Femelles achetées ? Chez qui (optionnel)')+'</span>'+'<input type="text" id="rodent-slot-ext-females" list="rodent-ext-origins" maxlength="80" oninput="rodentExtPreview()" placeholder="'+(isEn?'e.g. Smith Rattery':'ex. Élevage Tremblay')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+rodentExtDatalistHtml()+
+      '<label style="display:block;margin-bottom:10px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Bought male? From whom (optional)':'Mâle acheté ? Chez qui (optionnel)')+'</span>'+'<input type="text" id="rodent-slot-ext-male" list="rodent-ext-origins" maxlength="80" oninput="rodentExtPreview()" placeholder="'+(isEn?'e.g. Smith Rattery':'ex. Élevage Tremblay')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+rodentExtDatalistHtml()+
+      '<div id="rodent-slot-ext-preview"></div>'+ // v5.59
       '<label style="display:block;margin-bottom:10px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Not actually independent? Note why (optional)':'Pas vraiment indépendante? Note pourquoi (optionnel)')+'</span>'+
         '<input type="text" id="rodent-slot-note" placeholder="'+(isEn?'e.g. bought from the same breeder as lineage 4':'ex. achetée du même éleveur que la lignée 4')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
       '<button class="save-btn" style="width:100%;" onclick="confirmAssignNewRodentLineage(\''+rackId+'\','+row+','+col+')">➕ '+(isEn?'Create new lineage':'Créer une nouvelle lignée')+'</button>'+
@@ -24663,6 +24752,47 @@ function confirmAssignNewRodentStockBin(rackId, row, col){
 function rodentBinFootprint(bin){
   return [{ number:bin.lineageNumber, generation:bin.lineageGeneration||1 }, ...(bin.cumulativeFootprint||[])];
 }
+// v5.59 — Origine externe nommée (scénario Gemini, choix d'Alex) : deux animaux achetés à des moments
+// différents chez la même personne (« Élevage Tremblay ») peuvent être apparentés. Chaque bac garde les
+// origines externes de ses femelles (extOrigins, héritées par les femelles déplacées et les nouveaux bacs)
+// et celle de son mâle (extMaleOrigin). Un mâle et des femelles de la même origine = ⚠ (jamais un blocage).
+function rodentExtKey(name){ try{ return normalizeHeaderKey(String(name||'')).replace(/\s+/g,' ').trim(); }catch(e){ return String(name||'').toLowerCase().trim(); } }
+function rodentExtSetOfBin(bin){ // toutes les origines externes des animaux nés dans ce bac
+  const out = new Map();
+  (bin && Array.isArray(bin.extOrigins) ? bin.extOrigins : []).forEach(n=>{ const k = rodentExtKey(n); if(k) out.set(k, n); });
+  if(bin && bin.extMaleOrigin){ const k = rodentExtKey(bin.extMaleOrigin); if(k) out.set(k, bin.extMaleOrigin); }
+  return out;
+}
+function rodentExtAllNames(){ const m = new Map(); rodentBins.forEach(b=>rodentExtSetOfBin(b).forEach((v,k)=>m.set(k,v))); return [...m.values()].sort((a,b)=>String(a).localeCompare(String(b))); }
+function rodentExtDatalistHtml(){ return '<datalist id="rodent-ext-origins">'+rodentExtAllNames().map(n=>'<option value="'+escapeHtml(n)+'"></option>').join('')+'</datalist>'; }
+// noms communs entre le mâle (nom tapé, ou origines de son bac d'origine) et les femelles (noms tapés + origines des bacs d'où elles viennent)
+function rodentExtConflict(maleExtName, maleOriginNumber, femaleExtNames, femaleOriginNumbers){
+  const male = new Map(), fem = new Map();
+  if(maleExtName){ const k = rodentExtKey(maleExtName); if(k) male.set(k, maleExtName); }
+  if(maleOriginNumber!=null){ const mb = rodentBins.find(b=>b.binType==='reproduction' && b.lineageNumber===maleOriginNumber); if(mb) rodentExtSetOfBin(mb).forEach((v,k)=>male.set(k,v)); }
+  (femaleExtNames||[]).forEach(n=>{ const k = rodentExtKey(n); if(k) fem.set(k, n); });
+  (femaleOriginNumbers||[]).forEach(num=>{ const fb = rodentBins.find(b=>b.binType==='reproduction' && b.lineageNumber===num); if(fb) (Array.isArray(fb.extOrigins)?fb.extOrigins:[]).concat(fb.extMaleOrigin?[fb.extMaleOrigin]:[]).forEach(n=>{ const k = rodentExtKey(n); if(k) fem.set(k, n); }); });
+  return [...male.keys()].filter(k=>fem.has(k)).map(k=>fem.get(k));
+}
+function rodentExtConflictHtml(names, isEn){
+  if(!names.length) return '';
+  return '<p style="background:rgba(163,77,44,.15);border:1px solid var(--rust);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--rust);margin:0 0 10px;">⚠️ '+(isEn?'Same outside origin for the male and the females: ':'Même origine externe pour le mâle et les femelles : ')+escapeHtml(names.join(', '))+(isEn?' — they may be related.':' — ils pourraient être apparentés.')+'</p>';
+}
+function rodentExtPreview(){
+  const isEn = currentLang==='en';
+  const slot = document.getElementById('rodent-slot-ext-preview');
+  if(slot){
+    const mo = (document.getElementById('rodent-slot-male-origin')||{}).value;
+    const fo = Array.from(document.querySelectorAll('.rodent-slot-female-origin:checked')).map(cb=>parseInt(cb.value,10));
+    slot.innerHTML = rodentExtConflictHtml(rodentExtConflict((document.getElementById('rodent-slot-ext-male')||{}).value, mo?parseInt(mo,10):null, [(document.getElementById('rodent-slot-ext-females')||{}).value], fo), isEn);
+  }
+  const let_ = document.getElementById('rodent-letter-ext-preview');
+  if(let_){
+    const binId = let_.getAttribute('data-bin'); const bin = rodentBins.find(b=>b.id===binId);
+    const mo = (document.getElementById('rodent-letter-male-origin')||{}).value;
+    let_.innerHTML = bin ? rodentExtConflictHtml(rodentExtConflict((document.getElementById('rodent-letter-ext-male')||{}).value, mo?parseInt(mo,10):null, Array.isArray(bin.extOrigins)?bin.extOrigins:[], []), isEn) : '';
+  }
+}
 function rodentFootprintConflict(footprint, candidateNumber){
   if(candidateNumber==null) return false;
   const candidateBin = rodentBins.find(b=>b.binType==='reproduction' && b.lineageNumber===candidateNumber);
@@ -24694,7 +24824,7 @@ function updateRodentSlotConflictPreview(){
 }// Construit un bac de lignée SANS le pousser dans rodentBins — permet au code appelant de gérer
 // l'avertissement de consanguinité avant de vraiment créer le bac (10 sept, extrait pour être
 // réutilisé par la sélection multiple sans dupliquer toute cette logique).
-function buildRodentLineageBin({species, ratio, rackId, row, col, femaleOriginNumbers, maleOrigin, note}){
+function buildRodentLineageBin({species, ratio, rackId, row, col, femaleOriginNumbers, maleOrigin, note, extFemales, extMale}){
   const isEn = currentLang==='en';
   const num = nextAvailableLineageNumber();
   if(num==null) return null;
@@ -24711,7 +24841,9 @@ function buildRodentLineageBin({species, ratio, rackId, row, col, femaleOriginNu
   return { id:'rb_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), label:(isEn?'Lineage ':'Lignée ')+num+'.1', binType:'reproduction', species, ratio, room:null, litters:[],
     lineageNumber:num, lineageGeneration:1, lineageLetter:null, lineageCustomName:null, rackId, row, col,
     lineageHistory:[{ generation:1, letter:null, date:localTodayStr(), reason:null, linkedToPrevious:null }],
-    cumulativeFootprint, notIndependentNote: note||null, maleOrigin };
+    cumulativeFootprint, notIndependentNote: note||null, maleOrigin,
+    extOrigins: (function(){ const m = new Map(); (femaleOriginNumbers||[]).forEach(n=>{ const sb = rodentBins.find(b=>b.binType==='reproduction' && b.lineageNumber===n); if(sb) rodentExtSetOfBin(sb).forEach((v,k)=>m.set(k,v)); }); if(extFemales){ const k = rodentExtKey(extFemales); if(k) m.set(k, String(extFemales).trim().slice(0,80)); } return [...m.values()]; })(), // v5.59
+    extMaleOrigin: (extMale && rodentExtKey(extMale)) ? String(extMale).trim().slice(0,80) : null };
 }
 function confirmAssignNewRodentLineage(rackId, row, col){
   const isEn = currentLang==='en';
@@ -24721,7 +24853,8 @@ function confirmAssignNewRodentLineage(rackId, row, col){
   const maleOriginRaw = document.getElementById('rodent-slot-male-origin').value;
   const maleOrigin = maleOriginRaw ? parseInt(maleOriginRaw,10) : null;
   const femaleOriginNumbers = Array.from(document.querySelectorAll('.rodent-slot-female-origin:checked')).map(cb=>parseInt(cb.value,10));
-  const bin = buildRodentLineageBin({species, ratio, rackId, row, col, femaleOriginNumbers, maleOrigin, note});
+  const extFemales = ((document.getElementById('rodent-slot-ext-females')||{}).value||'').trim(), extMale = ((document.getElementById('rodent-slot-ext-male')||{}).value||'').trim(); // v5.59
+  const bin = buildRodentLineageBin({species, ratio, rackId, row, col, femaleOriginNumbers, maleOrigin, note, extFemales, extMale});
   if(!bin){
     showToast(isEn
       ? 'You\'ve reached 100 lineages — email support@locusscales.com, we\'ll help sort this out.'
@@ -24735,6 +24868,8 @@ function confirmAssignNewRodentLineage(rackId, row, col){
       ? '⚠️ Inbreeding risk: this male shares lineage '+maleOrigin+' with the females you selected ('+(maleBin?rodentLineageCode(maleBin):maleOrigin)+'). Create this lineage anyway?'
       : '⚠️ Risque de consanguinité : ce mâle partage la lignée '+maleOrigin+' avec les femelles choisies ('+(maleBin?rodentLineageCode(maleBin):maleOrigin)+'). Créer cette lignée quand même?')) return;
   }
+  { const ex = rodentExtConflict(extMale, maleOrigin, [extFemales], femaleOriginNumbers); // v5.59
+    if(ex.length && !confirm(isEn ? '⚠️ Same outside origin for the male and the females ('+ex.join(', ')+'): they may be related. Create this lineage anyway?' : '⚠️ Même origine externe pour le mâle et les femelles ('+ex.join(', ')+') : ils pourraient être apparentés. Créer cette lignée quand même?')) return; }
   rodentBins.push(bin);
   saveElevage();
   closeQuickModal();
@@ -25548,6 +25683,117 @@ function renderElevageViewBar(){
   bar.innerHTML = b('compact', '☰ '+(isEn?'Compact':'Compacte'))+b('photos', '🖼 '+(isEn?'Photos':'Photos'));
 }
 function cssPhotoUrl(src){ return 'url("'+String(src).replace(/["\\\n\r]/g, encodeURIComponent)+'")'; }
+// v5.59 — icônes d'état sur les bacs (Racks & Terrariums ET Mode Tournée), gratuit : voir d'un coup
+// d'œil qui a besoin d'attention sans ouvrir chaque fiche. Légende sous la barre.
+// v5.61 — Copropriété : les prix de la fiche restent ceux de l'animal entier ; LOCUS compte TA part
+// (100 % − parts des copropriétaires) dans Fiscal, ROI, remboursement des parents, statistiques.
+function myShareOf(s){
+  const p = s && s.coOwnership && Array.isArray(s.coOwnership.partners) ? s.coOwnership.partners : [];
+  if(!p.length) return 1;
+  const others = p.reduce((a,x)=>a+(Number(x.pct)||0),0);
+  return Math.max(0, Math.min(100, 100-others))/100;
+}
+function myRevenueOf(s){ return Math.round((Number(s && s.soldPrice)||0)*myShareOf(s)*100)/100; }
+function coOwnershipLabel(s, isEn){
+  const p = s && s.coOwnership && Array.isArray(s.coOwnership.partners) ? s.coOwnership.partners : [];
+  if(!p.length) return '';
+  return (isEn?'Your share ':'Ta part ')+Math.round(myShareOf(s)*100)+' % · '+p.map(x=>escapeHtml(x.name||'?')+' '+(Number(x.pct)||0)+' %').join(' · ');
+}
+function coOwnershipRowsHtml(s, isEn){
+  const has = s.coOwnership && Array.isArray(s.coOwnership.partners) && s.coOwnership.partners.length;
+  if(!has && !hasAccess('coOwnership')) return '';
+  if(!has) return '<button class="sc-btn" style="width:100%;margin-top:8px;" onclick="openCoOwnershipModal(\''+s.id+'\')">🤝 '+(isEn?'Co-owned with someone?':'En copropriété ?')+'</button>';
+  const share = myShareOf(s);
+  const money = s.status==='sold' && s.soldPrice!=null ? mrow(isEn?'Your share of the sale':'Ta part de la vente', myRevenueOf(s)+' $ '+(isEn?'of ':'sur ')+s.soldPrice+' $') : '';
+  return mrow('🤝 '+(isEn?'Co-ownership':'Copropriété'), coOwnershipLabel(s, isEn))+money+
+    (s.coOwnership.note ? mrow(isEn?'Agreement':'Entente', escapeHtml(s.coOwnership.note)) : '')+
+    (hasAccess('coOwnership') ? '<button class="sc-btn" style="width:100%;margin-top:6px;" onclick="openCoOwnershipModal(\''+s.id+'\')">✏️ '+(isEn?'Edit co-ownership':'Modifier la copropriété')+'</button>' : '')+
+    '<div style="font-size:10.5px;color:var(--ink-dim);margin-top:2px;">'+(isEn?'Prices on this record are for the whole animal. Taxes, ROI and statistics count your '+Math.round(share*100)+' %.':'Les prix de la fiche sont ceux de l\'animal entier. Fiscal, ROI et statistiques comptent ta part de '+Math.round(share*100)+' %.')+'</div>';
+}
+function cooRowHtml(x){
+  const isEn = currentLang==='en';
+  const inp = 'font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);';
+  return '<div class="coo-row" style="display:flex;gap:6px;margin-bottom:8px;"><input type="text" class="coo-name" maxlength="80" value="'+escapeHtml(x.name||'')+'" placeholder="'+(isEn?'Co-owner name':'Nom du copropriétaire')+'" style="flex:1;min-width:0;'+inp+'"/><input type="number" class="coo-pct" min="0" max="100" value="'+(Number(x.pct)||0)+'" oninput="cooCheck()" style="width:72px;'+inp+'"/><span style="align-self:center;">%</span></div>';
+}
+function cooAddRow(){ const w = document.getElementById('coo-rows'); if(w){ w.insertAdjacentHTML('beforeend', cooRowHtml({ name:'', pct:0 })); cooCheck(); } }
+function openCoOwnershipModal(id){
+  const isEn = currentLang==='en';
+  if(!hasAccess('coOwnership')){ showQuickModal('🤝', lockedFeatureHtml()); return; }
+  const s = savedSnakes.find(x=>x.id===id); if(!s) return;
+  const p = (s.coOwnership && Array.isArray(s.coOwnership.partners) && s.coOwnership.partners.length) ? s.coOwnership.partners : [{ name:'', pct:50 }];
+  const inp = 'font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);';
+  const row = cooRowHtml;
+  showQuickModal('🤝 '+(isEn?'Co-ownership — ':'Copropriété — ')+escapeHtml(snakeName(s)),
+    '<p style="font-size:12.5px;color:var(--ink-dim);margin:0 0 10px;">'+(isEn?'Enter each co-owner and their share. Your share is the rest.':'Entre chaque copropriétaire et sa part. Ta part, c\'est le reste.')+'</p>'+
+    '<div id="coo-rows">'+p.map(row).join('')+'</div>'+
+    '<button class="sc-btn" style="margin-bottom:10px;" onclick="cooAddRow()">➕ '+(isEn?'Another co-owner':'Un autre copropriétaire')+'</button>'+
+    '<div id="coo-mine" style="font-size:15px;margin:4px 0 12px;"></div>'+
+    '<label style="font-size:12px;color:var(--ink-dim);">'+(isEn?'Agreement (optional — e.g. who keeps the babies)':'Entente (facultatif — ex. qui garde les bébés)')+'</label>'+
+    '<input type="text" id="coo-note" maxlength="200" value="'+escapeHtml((s.coOwnership&&s.coOwnership.note)||'')+'" style="width:100%;margin:3px 0 12px;'+inp+'"/>'+
+    '<button class="save-btn" style="width:100%;" onclick="saveCoOwnership(\''+id+'\')">💾 '+(isEn?'Save':'Enregistrer')+'</button>'+
+    (s.coOwnership ? '<button class="sc-btn danger" style="width:100%;margin-top:8px;" onclick="saveCoOwnership(\''+id+'\', true)">'+(isEn?'Not co-owned anymore':'Plus en copropriété')+'</button>' : ''));
+  cooCheck();
+}
+function cooCheck(){
+  const isEn = currentLang==='en';
+  const el = document.getElementById('coo-mine'); if(!el) return true;
+  const sum = [...document.querySelectorAll('.coo-pct')].reduce((a,x)=>a+(parseFloat(x.value)||0),0);
+  const mine = Math.round((100-sum)*100)/100;
+  const ok = sum>0 && mine>=0;
+  el.style.color = ok ? 'var(--ink)' : 'var(--rust)';
+  el.textContent = ok ? (isEn?'Your share: ':'Ta part : ')+mine+' %' : (isEn?'⚠ The co-owners\' shares must add up to more than 0 and at most 100 %.':'⚠ Les parts des copropriétaires doivent faire plus de 0 et au plus 100 %.');
+  return ok;
+}
+function saveCoOwnership(id, remove){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id); if(!s) return;
+  if(remove){ s.coOwnership = null; }
+  else {
+    const partners = [...document.querySelectorAll('.coo-row')].map(r=>({ name:(r.querySelector('.coo-name').value||'').trim().slice(0,80), pct:Math.round((parseFloat(r.querySelector('.coo-pct').value)||0)*100)/100 })).filter(x=>x.name && x.pct>0);
+    if(!partners.length){ showToast(isEn?'Enter at least one co-owner with a share.':'Entre au moins un copropriétaire avec sa part.', 'error'); return; }
+    if(!cooCheck()) return;
+    s.coOwnership = { partners, note: ((document.getElementById('coo-note')||{}).value||'').trim().slice(0,200) || null };
+  }
+  s.updatedAt = Date.now();
+  storage.save(savedSnakes);
+  closeQuickModal();
+  try{ openLogbook(id); }catch(e){}
+  showToast('🤝 '+(remove ? (isEn?'Co-ownership removed.':'Copropriété retirée.') : (isEn?'Co-ownership saved — your share: ':'Copropriété enregistrée — ta part : ')+Math.round(myShareOf(s)*100)+' %'), 'success');
+}
+function femaleGravidInfo(s){
+  if(!s || s.sex!=='female') return null;
+  const ps = (pairings||[]).filter(p=>p && p.femaleId===s.id && p.ovulationConfirmed && p.ovulationDate && p.ovulationDate>=addDays(localTodayStr(), -90));
+  if(!ps.length) return null;
+  const ov = ps.map(p=>p.ovulationDate).sort().pop();
+  const laid = (clutches||[]).some(c=>c && c.damId===s.id && c.layDate && c.layDate>=ov);
+  return laid ? null : { ovulationDate:ov };
+}
+function tubStatusIcons(s, opts){
+  opts = opts || {};
+  const isEn = currentLang==='en';
+  const out = [];
+  try{
+    ensureSnakeMeta(s);
+    if(opts.feeding!==false){ if(isFeedingFlagged(s)) out.push(['⚠', isEn?'too long without a meal':'trop longtemps sans repas']); else if(weightDropping(s)) out.push(['📉', isEn?'weight loss':'perte de poids']); }
+    const rf = consecutiveRefusalsOutsideShed(s);
+    if(rf>=3) out.push(['⛔'+rf, isEn?rf+' refusals in a row':rf+' refus de suite']);
+    if(opts.shed!==false && isInShed(s)) out.push(['🔵', isEn?'in shed':'en mue']);
+    const g = femaleGravidInfo(s); if(g) out.push(['🥚', (isEn?'ovulation on ':'ovulation le ')+g.ovulationDate]);
+    if(regurgRestInfo(s)) out.push(['🤮', isEn?'resting after regurgitation':'repos après régurgitation']);
+    if(s.quarantine && s.quarantine.active) out.push(['🚩', isEn?'quarantine':'quarantaine']);
+  }catch(e){}
+  return out;
+}
+function tubStatusIconsHtml(s, opts){
+  const ic = tubStatusIcons(s, opts);
+  return ic.length ? '<span class="tub-status" title="'+escapeHtml(ic.map(x=>x[1]).join(' · '))+'">'+ic.map(x=>x[0]).join(' ')+'</span>' : '';
+}
+function tubStatusLegendHtml(){
+  const isEn = currentLang==='en';
+  return '<div class="tub-legend" style="font-size:11px;color:var(--ink-dim);margin:2px 0 10px;line-height:1.6;">'+
+    (isEn ? '⚠ too long without a meal · 📉 weight loss · ⛔3 refusals in a row · 🔵 in shed · 🥚 ovulation · 🤮 resting after regurgitation · 🚩 quarantine'
+          : '⚠ trop longtemps sans repas · 📉 perte de poids · ⛔3 refus de suite · 🔵 en mue · 🥚 ovulation · 🤮 repos après régurgitation · 🚩 quarantaine')+'</div>';
+}
 function renderRackGrid(){
   const isEn = currentLang==='en';
   try{ renderElevageViewBar(); }catch(e){} // v5.19
@@ -25555,7 +25801,7 @@ function renderRackGrid(){
   try{ renderMaintBar(); }catch(e){} // v3.75
   renderRoomSuggestions();
   const container = document.getElementById('racks-container');
-  container.innerHTML = '';
+  container.innerHTML = savedSnakes.some(x=>tubStatusIcons(x).length) ? tubStatusLegendHtml() : ''; // v5.59
   const orderedRacks = racksOrdered(); // v4.51
   orderedRacks.forEach((rack, rackPos)=>{
     const unit = document.createElement('div');
@@ -25614,19 +25860,21 @@ function renderRackGrid(){
         let searchCls = '';
         if(snake && elevageSearchTerm) searchCls = matchesSearch(snake, elevageSearchTerm) ? ' match' : ' dimmed';
         const feedCls = snake ? ' feed-'+feedingStatus(snake) : '';
-        cell.className = 'tub' + (snake?'':' empty') + feedCls + searchCls;
+        cell.className = 'tub' + (snake?' has-tools':' empty') + feedCls + searchCls; // v5.61 — has-tools : le nom passe sous les boutons
         if(snake){
           cell.setAttribute('data-tooltip', snakeTooltip(snake));
           cell.innerHTML = '<button class="tub-remove" title="'+t('removeFromTubTitle')+'" aria-label="'+t('removeFromTubAria')+escapeHtml(snakeName(snake))+t('fromTubSuffix')+'">✕</button>'+
             '<button class="tub-remove" style="right:22px;" title="'+(isEn?'Cleaning':'Nettoyage')+'">🧹</button>'+
             '<button class="tub-remove" style="right:44px;" title="'+(isEn?'Water change':'Changement d\'eau')+'">💧</button>'+
-            '<div class="tub-name">'+escapeHtml(snakeName(snake))+'</div><div class="tub-tag">'+(snake.sex==='male'?'♂':snake.sex==='female'?'♀':'?')+'</div>'+(outside?overflowTubCellHtml(isEn):'');
+            '<button class="tub-remove" style="right:66px;" title="'+(isEn?'Shed':'Mue')+'">🔵</button>'+ // v5.61
+            '<div class="tub-name">'+escapeHtml(snakeName(snake))+'</div><div class="tub-tag">'+(snake.sex==='male'?'♂':snake.sex==='female'?'♀':'?')+' '+tubStatusIconsHtml(snake)+'</div>'+(outside?overflowTubCellHtml(isEn):'');
           if(elevPhotos){ const ps = snakeLatestPhotoSrc(snake); if(ps){ cell.classList.add('has-photo'); cell.style.backgroundImage = cssPhotoUrl(ps); } } // v5.19
           if(outside){ cell.style.border = '2px dashed #e08a63'; cell.title = (isEn?'Tub ':'Bac ')+t2+(isEn?' no longer exists in this rack — move this animal':' n\'existe plus dans ce rack — déplace cet animal'); }
           cell.addEventListener('click', ()=>openLogbook(snake.id));
           cell.querySelector('.tub-remove').addEventListener('click', (e)=>{ e.stopPropagation(); unassignTub(rack.id,row,t2); });
           cell.querySelectorAll('.tub-remove')[1].addEventListener('click', (e)=>{ e.stopPropagation(); openSingleTubCleaningModal(rack.id, row, t2); });
           cell.querySelectorAll('.tub-remove')[2].addEventListener('click', (e)=>{ e.stopPropagation(); logRackTubWaterChange(rack.id, row, t2); });
+          cell.querySelectorAll('.tub-remove')[3].addEventListener('click', (e)=>{ e.stopPropagation(); openQuickShedMenu(snake.id); }); // v5.61
           makeKeyboardClickable(cell, t('openSheetOf')+snake.name);
         } else {
           cell.textContent = t('tubEmptyLabel')+' '+t2+' '+t('emptySuffix');
@@ -27585,6 +27833,7 @@ function renderTerrariumList(){
           row.setAttribute('data-tooltip', snakeTooltip(s));
           row.innerHTML = '<span class="terra-occupant-name" data-open="'+s.id+'">'+escapeHtml(snakeName(s))+' ('+(s.sex==='male'?'♂':'♀')+')</span>'+
             '<span class="terra-occupant-actions">'+
+              '<button class="sc-btn" title="'+(isEn?'Shed':'Mue')+'" onclick="event.stopPropagation(); openQuickShedMenu(\''+s.id+'\')">🔵</button>'+ // v5.61
               '<button class="sc-btn" data-move="'+s.id+'">↔</button>'+
               '<button class="sc-btn danger" data-unassign="'+s.id+'">✕</button>'+
             '</span>';
@@ -27713,6 +27962,7 @@ function renderTourGrid(){
   renderTourDateBar();
   try{ renderBatchWeighResume(); }catch(e){} // v5.03
   try{ renderTourLockBar(); }catch(e){} // v5.08
+  try{ const lg = document.getElementById('tour-legend'); if(lg) lg.innerHTML = savedSnakes.some(x=>tubStatusIcons(x).length) ? tubStatusLegendHtml() : ''; }catch(e){} // v5.59
   // v3.52 — bouton « Assiette » seulement si la collection compte une espèce nourrie à l'assiette.
   const plateBtn = document.getElementById('tour-plate-btn');
   if(plateBtn){
@@ -27787,6 +28037,7 @@ function renderTourGrid(){
             if(hlT>0) tag = (tag ? tag+' · ' : '')+'🤚'+hlT+'h';
             if(isInShed(snake)) tag = (tag ? tag+' · ' : '')+'🔵'; // v3.90 — en mue
             if(tourTogetherIds().has(snake.id)) tag = (tag ? tag+' · ' : '')+'🤝'; // v5.08 — couple ensemble
+            { const extra = tubStatusIconsHtml(snake, { feeding:false, shed:false }); if(extra) tag = (tag ? tag+' · ' : '')+extra; } // v5.59 — ⛔ refus de suite, 🥚, 🤮, 🚩
             cell.setAttribute('data-tooltip', snakeTooltip(snake));
           }
           if(tubIdx>tubCount){ cell.style.border = '2px dashed #e08a63'; tag = (tag ? tag+' · ' : '')+'⚠ '+(isEn?'to move':'à déplacer'); } // v4.51
@@ -29784,8 +30035,8 @@ function computeMaleFertility(maleId){
 // LOCUS ne fournit jamais de prix automatique, cohérent avec le reste de l'app (Fiscal, Valeur).
 function computePairingROI(p){
   const offspring = savedSnakes.filter(s=>s.sireId===p.maleId && s.damId===p.femaleId);
-  const realizedRevenue = offspring.filter(s=>s.status==='sold').reduce((a,s)=>a+(s.soldPrice||0),0);
-  const potentialRevenue = offspring.filter(isActiveSnake).reduce((a,s)=>a+(s.askingPrice||0),0);
+  const realizedRevenue = offspring.filter(s=>s.status==='sold').reduce((a,s)=>a+myRevenueOf(s),0); // v5.61 — ta part
+  const potentialRevenue = offspring.filter(isActiveSnake).reduce((a,s)=>a+(Number(s.askingPrice)||0)*myShareOf(s),0);
   const cost = p.estimatedCost || 0;
   return { offspringCount: offspring.length, realizedRevenue, potentialRevenue, totalRevenue: realizedRevenue+potentialRevenue, cost, roi: realizedRevenue+potentialRevenue-cost };
 }
@@ -29805,7 +30056,7 @@ function repaySirePct(maleId, femaleId){
 }
 function repayTargetOf(s){
   if(!s) return 0;
-  const v = s.repayTarget!=null ? Number(s.repayTarget) : (s.purchasePrice!=null ? Number(s.purchasePrice) : 0);
+  const v = s.repayTarget!=null ? Number(s.repayTarget) : (s.purchasePrice!=null ? Math.round(Number(s.purchasePrice)*myShareOf(s)*100)/100 : 0); // v5.61 — ta part du prix d'achat
   return v>0 ? v : 0;
 }
 function computeRepaymentCouples(){
@@ -29819,7 +30070,7 @@ function computeRepaymentCouples(){
   Object.values(couples).forEach(c=>{
     const sold = savedSnakes.filter(s=>s.sireId===c.maleId && s.damId===c.femaleId && s.status==='sold');
     c.soldCount = sold.length;
-    c.revenue = sold.reduce((a,s)=>a+(Number(s.soldPrice)||0),0);
+    c.revenue = sold.reduce((a,s)=>a+myRevenueOf(s),0); // v5.61
     c.profit = Math.max(0, c.revenue - c.cost);
     c.sirePct = repaySirePct(c.maleId, c.femaleId);
     c.sireShare = Math.round(c.profit*c.sirePct)/100;
@@ -29949,7 +30200,7 @@ function computeSeasonStats(){
     const clutchesThisYear = clutches.filter(c=>c.layDate && c.layDate.slice(0,4)===year);
     const totalClutches = clutchesThisYear.length;
     const totalEggs = clutchesThisYear.reduce((a,c)=>a+(c.eggCount||0),0);
-    const revenue = savedSnakes.filter(s=>s.status==='sold' && s.soldDate && s.soldDate.slice(0,4)===year).reduce((a,s)=>a+(s.soldPrice||0),0);
+    const revenue = savedSnakes.filter(s=>s.status==='sold' && s.soldDate && s.soldDate.slice(0,4)===year).reduce((a,s)=>a+myRevenueOf(s),0); // v5.61
     const bornThisYear = savedSnakes.filter(s=>s.birthDate && s.birthDate.slice(0,4)===year);
     const morphCounts = {};
     bornThisYear.forEach(s=>{
@@ -31045,7 +31296,7 @@ function statsTrends(){
     refusal: { cur: rate(inCur), prev: rate(inPrev) },
     cost: { cur: cost(inCur), prev: cost(inPrev) },
     eggs: { cur: ry(y).eggs, prev: ry(py).eggs, clutches: ry(y).clutches, prevClutches: ry(py).clutches },
-    sales: { cur: sales(y).reduce((a,s)=>a+(Number(s.soldPrice)||0),0), prev: sales(py).reduce((a,s)=>a+(Number(s.soldPrice)||0),0), n: sales(y).length },
+    sales: { cur: sales(y).reduce((a,s)=>a+myRevenueOf(s),0), prev: sales(py).reduce((a,s)=>a+myRevenueOf(s),0), n: sales(y).length }, // v5.61
     year: y, prevYear: py
   };
   if(hasAccess('lockMode')){
@@ -31676,7 +31927,7 @@ function renderStatsView(){
     const cost30 = statsCostByPrey(since30).reduce((a,x)=>a+x.cost,0);
     const repro = statsReproByYear();
     const reproTot = repro.reduce((a,r)=>({ clutches:a.clutches+r.clutches, eggs:a.eggs+r.eggs, live:a.live+r.live }), { clutches:0, eggs:0, live:0 });
-    const salesTotal = sold.reduce((a,s)=>a+(Number(s.soldPrice)||0),0);
+    const salesTotal = sold.reduce((a,s)=>a+myRevenueOf(s),0); // v5.61
     const refusalPct = (fedAll.length+refAll.length) ? Math.round(refAll.length/(fedAll.length+refAll.length)*100) : null;
     const st = collectionStreakRecord();
     html += h2(isEn?'Key numbers':'Chiffres clés')+
@@ -31831,7 +32082,7 @@ function renderStatsView(){
       ? statsBarChart({ id:'repro', title: isEn?'Reproduction per year':'Reproduction par année', categories: repro.map(r=>({ label:r.year })),
           series:[ { name: isEn?'Clutches':'Pontes', color: STATS_COLORS.blue, values: repro.map(r=>r.clutches) }, { name: isEn?'Eggs':'Œufs', color: STATS_COLORS.orange, values: repro.map(r=>r.eggs) }, { name: isEn?'Hatched':'Éclos', color: STATS_COLORS.aqua, values: repro.map(r=>r.live) } ] })
       : statsChartFrame({ id:'repro', title: isEn?'Reproduction per year':'Reproduction par année' }, '<div style="font-size:15px;color:var(--ink-dim);padding:10px 0;">'+(isEn?'Appears once a clutch is recorded in Incubation.':'Apparaît dès qu\'une ponte est notée dans Incubation.')+'</div>', [], []) });
-    const salesM = monthsSale.map(m=>sold.filter(s=>s.soldDate && s.soldDate.slice(0,7)===m).reduce((a,s)=>a+(Number(s.soldPrice)||0),0));
+    const salesM = monthsSale.map(m=>sold.filter(s=>s.soldDate && s.soldDate.slice(0,7)===m).reduce((a,s)=>a+myRevenueOf(s),0)); // v5.61
     charts.push({ id:'sales', title: isEn?'Sales per month':'Ventes par mois', html: statsBarChart({ id:'sales', title: isEn?'Sales per month':'Ventes par mois', subtitle: statsMonthsSubtitle(monthsSale, 12, isEn), categories: monthsSale.map(m=>({ label: statsMonthLabel(m, isEn) })),
       series:[ { name: isEn?'Sales':'Ventes', color: STATS_COLORS.blue, values: salesM } ], fmt:(v, axis)=> axis ? Math.round(v)+' $' : statsFmtMoney(v) }) });
     const prefs = loadStatsChartPrefs();
@@ -34281,7 +34532,7 @@ function exportBudgetExcel(){
   const salesThisYear = savedSnakes.filter(s=>s.status==='sold' && s.soldDate && s.soldDate.slice(0,4)===fiscalYear);
   const expensesThisYear = expenses.filter(e=>e.date && e.date.slice(0,4)===fiscalYear);
   const keptThisYear = keptDepositsForYear(fiscalYear); // v5.58
-  const income = salesThisYear.reduce((a,s)=>a+(s.soldPrice||0),0) + keptThisYear.reduce((a,k)=>a+(Number(k.d.amount)||0),0);
+  const income = salesThisYear.reduce((a,s)=>a+myRevenueOf(s),0) + keptThisYear.reduce((a,k)=>a+(Number(k.d.amount)||0)*myShareOf(k.s),0); // v5.61 — ta part
   const outcome = expensesThisYear.reduce((a,e)=>a+e.amount,0);
   // Même formule que renderFiscalView() (affichée à l'écran) — sans ça, le "bénéfice net" exporté
   // pour les impôts était gonflé du montant de la commission LOCUS/Stripe (~1% sur les ventes payées
@@ -34318,8 +34569,8 @@ function exportBudgetExcel(){
   XLSX.utils.book_append_sheet(wb, wsSummary, isEn?'Summary':'Résumé');
 
   const salesRows = (isEn ? [['Name','Sale date','Buyer','Price ($)']] : [['Nom','Date de vente','Acheteur','Prix ($)']]).concat(
-    [...salesThisYear].sort((a,b)=>(a.soldDate||'').localeCompare(b.soldDate||'')).map(s=>[s.name, s.soldDate||'', s.buyer||'', s.soldPrice||0])
-  ).concat(keptThisYear.map(k=>[(isEn?'Deposit kept — ':'Acompte gardé — ')+k.s.name, k.d.date||'', k.d.buyer||'', Number(k.d.amount)||0])); // v5.58
+    [...salesThisYear].sort((a,b)=>(a.soldDate||'').localeCompare(b.soldDate||'')).map(s=>[s.name+(myShareOf(s)<1?(isEn?' (your share ':' (ta part ')+Math.round(myShareOf(s)*100)+' % '+(isEn?'of ':'de ')+(s.soldPrice||0)+' $)':''), s.soldDate||'', s.buyer||'', myRevenueOf(s)]) // v5.61
+  ).concat(keptThisYear.map(k=>[(isEn?'Deposit kept — ':'Acompte gardé — ')+k.s.name, k.d.date||'', k.d.buyer||'', Math.round((Number(k.d.amount)||0)*myShareOf(k.s)*100)/100])); // v5.58
   const wsSales = XLSX.utils.aoa_to_sheet(salesRows);
   wsSales['!cols'] = [{wch:22},{wch:14},{wch:20},{wch:12}];
   XLSX.utils.book_append_sheet(wb, wsSales, isEn?'Sales':'Ventes');
@@ -34364,14 +34615,14 @@ function exportEverythingExcel(){
 
   // 1) Animaux — en-têtes reconnus par l'import
   add(L('Animaux','Animals'),
-    [L('ID','ID'), L('Nom','Name'), L('Sexe','Sex'), L('Espèce','Species'), L('Génétique','Genetics'), L('Nom de combo','Combo name'), L('Date de naissance','Birth date'), L('Date d\'acquisition','Acquisition date'), L('Provenance','Provenance'), L('Statut','Status'), L('Prix d\'achat','Purchase price'), L('Prix demandé','Asking price'), L('Prix de vente','Sold price'), L('Date de vente','Sale date'), L('Acheteur','Buyer'), L('Date du décès','Date of death'), L('Emplacement','Location'), L('Père','Sire'), L('Mère','Dam'), L('Proie habituelle','Usual prey'), L('Intervalle de repas (jours)','Feeding interval (days)'), L('Dernier poids (g)','Last weight (g)'), L('Notes','Notes'), L('Acomptes gardés ($)','Deposits kept ($)')],
+    [L('ID','ID'), L('Nom','Name'), L('Sexe','Sex'), L('Espèce','Species'), L('Génétique','Genetics'), L('Nom de combo','Combo name'), L('Date de naissance','Birth date'), L('Date d\'acquisition','Acquisition date'), L('Provenance','Provenance'), L('Statut','Status'), L('Prix d\'achat','Purchase price'), L('Prix demandé','Asking price'), L('Prix de vente','Sold price'), L('Date de vente','Sale date'), L('Acheteur','Buyer'), L('Date du décès','Date of death'), L('Emplacement','Location'), L('Père','Sire'), L('Mère','Dam'), L('Proie habituelle','Usual prey'), L('Intervalle de repas (jours)','Feeding interval (days)'), L('Dernier poids (g)','Last weight (g)'), L('Notes','Notes'), L('Acomptes gardés ($)','Deposits kept ($)'), L('Copropriété','Co-ownership')],
     savedSnakes.map(s=>{
       const w = s.health.weights.length ? [...s.health.weights].sort((a,b)=>String(a.date).localeCompare(String(b.date))).slice(-1)[0].value : '';
       return [s.animalId||'', s.name||'', sexL(s), speciesDisplayLabel(s.species, isEn), summarizeGenes(s.genes), speciesComboTitle(s.genes, s.species)||'',
         s.birthDate||'', s.acquisitionDate||'', s.provenance||'', statusL(s), s.purchasePrice!=null?s.purchasePrice:'', s.askingPrice!=null?s.askingPrice:'',
         s.soldPrice!=null?s.soldPrice:'', s.soldDate||'', s.buyer||'', s.deceasedDate||'', placeL(s), s.sireId?who(s.sireId):'', s.damId?who(s.damId):'',
-        preyL(s.preySpecies, s.preySize, s.preyType||'frozen'), s.feedingIntervalDays||'', w, s.notes||'', (Array.isArray(s.keptDeposits)?s.keptDeposits:[]).reduce((a,d)=>a+(Number(d&&d.amount)||0),0)||'']; // v5.58
-    }), [12,16,8,18,30,18,12,12,16,10,10,10,10,12,16,12,14,12,12,20,10,10,40,12]);
+        preyL(s.preySpecies, s.preySize, s.preyType||'frozen'), s.feedingIntervalDays||'', w, s.notes||'', (Array.isArray(s.keptDeposits)?s.keptDeposits:[]).reduce((a,d)=>a+(Number(d&&d.amount)||0),0)||'', (s.coOwnership && (s.coOwnership.partners||[]).length) ? (L('Ta part ','Your share ')+Math.round(myShareOf(s)*100)+' % · '+s.coOwnership.partners.map(x=>(x.name||'?')+' '+x.pct+' %').join(' · ')+(s.coOwnership.note?' — '+s.coOwnership.note:'')) : '']; // v5.58 + v5.61
+    }), [12,16,8,18,30,18,12,12,16,10,10,10,10,12,16,12,14,12,12,20,10,10,40,12,30]);
 
   // 2) Journal — même format que l'import d'historique (ID, Nom, Date, Activité, Proie, Quantité, Poids (g), Notes)
   const actL = { fed:L('A mangé','Fed'), refused:L('Refus','Refused'), skipped:L('Repas sauté','Skipped meal'), inshed:L('En mue','In shed'), shed:L('Mue','Shed'),
@@ -34405,6 +34656,7 @@ function exportEverythingExcel(){
   savedSnakes.forEach(s=>{
     (s.health.vetVisits||[]).forEach(v=>{ if(v) hrows.push([s.animalId||'', s.name||'', genL(s), v.date||'', L('Véto','Vet'), v.reason||'', v.findings||'']); });
     (s.health.defecations||[]).forEach(d=>{ if(d) hrows.push([s.animalId||'', s.name||'', genL(s), d.date||'', L('Selles','Poop'), '', d.note||'']); });
+    (s.health.traitObs||[]).forEach(o=>{ if(o) hrows.push([s.animalId||'', s.name||'', genL(s), o.date||'', L('Observation','Observation'), (TRAIT_KINDS[o.kind]||TRAIT_KINDS.other)[isEn?'en':'fr'], (o.level!=null?(L('niveau ','level ')+o.level):L('pas encore sûr','not sure yet'))+(o.note?' — '+o.note:'')]); }); // v5.60
   });
   add(L('Santé','Health'), ['ID', L('Nom','Name'), L('Génétique','Genetics'), 'Date', 'Type', L('Motif','Reason'), L('Observations','Findings')], hrows, [12,16,30,12,10,24,40]);
 
@@ -34552,7 +34804,7 @@ function showKpiDashboard(){
   const feedingCompliance = activeSnakes.length ? Math.round((onTrackCount/activeSnakes.length)*100) : null;
 
   const thisYear = new Date().getFullYear().toString();
-  const revenueThisYear = savedSnakes.filter(s=>s.status==='sold' && s.soldDate && s.soldDate.startsWith(thisYear) && s.soldPrice!=null).reduce((a,s)=>a+s.soldPrice,0);
+  const revenueThisYear = savedSnakes.filter(s=>s.status==='sold' && s.soldDate && s.soldDate.startsWith(thisYear) && s.soldPrice!=null).reduce((a,s)=>a+myRevenueOf(s),0); // v5.61
   const expensesThisYear = expenses.filter(e=>e.date && e.date.startsWith(thisYear)).reduce((a,e)=>a+e.amount,0);
   const netProfit = revenueThisYear - expensesThisYear;
 
@@ -34598,7 +34850,7 @@ function exportKpiPdf(){
   const onTrackCount = activeSnakes.filter(s=>feedingStatus(s)==='green').length;
   const feedingCompliance = activeSnakes.length ? Math.round((onTrackCount/activeSnakes.length)*100) : null;
   const thisYear = new Date().getFullYear().toString();
-  const revenueThisYear = savedSnakes.filter(s=>s.status==='sold' && s.soldDate && s.soldDate.startsWith(thisYear) && s.soldPrice!=null).reduce((a,s)=>a+s.soldPrice,0);
+  const revenueThisYear = savedSnakes.filter(s=>s.status==='sold' && s.soldDate && s.soldDate.startsWith(thisYear) && s.soldPrice!=null).reduce((a,s)=>a+myRevenueOf(s),0); // v5.61
   const expensesThisYear = expenses.filter(e=>e.date && e.date.startsWith(thisYear)).reduce((a,e)=>a+e.amount,0);
   const netProfit = revenueThisYear - expensesThisYear;
   const rodentStats = rodentBudgetStats();
@@ -34698,7 +34950,7 @@ function renderFiscalView(){
   const salesThisYear = savedSnakes.filter(s=>s.status==='sold' && s.soldDate && s.soldDate.slice(0,4)===fiscalYear);
   const expensesThisYear = expenses.filter(e=>e.date && e.date.slice(0,4)===fiscalYear);
   const keptThisYear = keptDepositsForYear(fiscalYear); // v5.58
-  const income = salesThisYear.reduce((a,s)=>a+(s.soldPrice||0),0) + keptThisYear.reduce((a,k)=>a+(Number(k.d.amount)||0),0);
+  const income = salesThisYear.reduce((a,s)=>a+myRevenueOf(s),0) + keptThisYear.reduce((a,k)=>a+(Number(k.d.amount)||0)*myShareOf(k.s),0); // v5.61 — ta part
   const outcome = expensesThisYear.reduce((a,e)=>a+e.amount,0);
   // Commission LOCUS (~1%) : uniquement sur les ventes réellement passées par Stripe —
   // une vente déclarée manuellement n'a jamais généré de commission.
@@ -34719,14 +34971,14 @@ function renderFiscalView(){
   const salesWrap = document.getElementById('fiscal-sales-list');
   salesWrap.innerHTML = (salesThisYear.length || keptThisYear.length) ? '' : '<div class="empty">'+t('noSaleThisYear')+' '+fiscalYear+'.</div>';
   keptThisYear.forEach(k=>{ const row = document.createElement('div'); row.className = 'sale-row'; // v5.58
-    row.innerHTML = '<div class="sale-name">💰 '+(isEn?'Deposit kept — ':'Acompte gardé — ')+escapeHtml(snakeName(k.s))+'<small>'+escapeHtml(String(k.d.date))+' · '+escapeHtml(k.d.buyer||'?')+(isEn?' (reservation cancelled)':' (réservation annulée)')+'</small></div><div class="sale-price">'+(Number(k.d.amount)||0)+' $</div>';
+    row.innerHTML = '<div class="sale-name">💰 '+(isEn?'Deposit kept — ':'Acompte gardé — ')+escapeHtml(snakeName(k.s))+'<small>'+escapeHtml(String(k.d.date))+' · '+escapeHtml(k.d.buyer||'?')+(isEn?' (reservation cancelled)':' (réservation annulée)')+'</small></div><div class="sale-price">'+Math.round((Number(k.d.amount)||0)*myShareOf(k.s)*100)/100+' $</div>';
     salesWrap.appendChild(row); });
   [...salesThisYear].sort((a,b)=>(b.soldDate||'').localeCompare(a.soldDate||'')).forEach(s=>{
     const row = document.createElement('div');
     row.className = 'sale-row';
     row.innerHTML =
-      '<div class="sale-name">'+escapeHtml(snakeName(s))+'<small>'+s.soldDate+' '+t('soldToShort')+' '+escapeHtml(s.buyer||'?')+'</small></div>'+
-      '<div class="sale-price">'+(s.soldPrice||0)+' $</div>';
+      '<div class="sale-name">'+escapeHtml(snakeName(s))+'<small>'+s.soldDate+' '+t('soldToShort')+' '+escapeHtml(s.buyer||'?')+(myShareOf(s)<1?' · '+(isEn?'your share ':'ta part ')+Math.round(myShareOf(s)*100)+' % '+(isEn?'of ':'de ')+(s.soldPrice||0)+' $':'')+'</small></div>'+
+      '<div class="sale-price">'+myRevenueOf(s)+' $</div>';
     salesWrap.appendChild(row);
   });
 
