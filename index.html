@@ -1844,6 +1844,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
             <input type="text" id="custom-event-title" data-i18n-placeholder="customEventPlaceholder" placeholder="Ex. Vermifuge annuel" style="flex:1;min-width:140px;font-size:16px;padding:8px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:'Courier New',monospace;"/>
             <button class="save-btn" onclick="addCustomEvent()" data-i18n="addBtn">+ Ajouter</button>
           </div>
+          <button class="sc-btn" style="margin:-4px 0 12px;" onclick="openReminderModal()">↻ <span data-i18n="reminderRepeatBtn">Rappel qui se répète ou lié à un terrarium…</span></button>
           <div id="custom-events-list"></div>
           <button class="sc-btn" style="margin-top:12px;" onclick="exportICS()">📅 <span data-i18n="icsExportBtn">Exporter le calendrier (.ics)</span></button>
         </div>
@@ -2370,7 +2371,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.61';
+const APP_VERSION = '2026.09.01.5.62';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5140,6 +5141,7 @@ const DASH_CARDS = [
   { key:'today_season', fr:'— Plan de saison (pairings prévus)', en:'— Season plan (planned pairings)' },
   { key:'today_lowstock', fr:'— Stock de proies bas', en:'— Low prey stock' },
   { key:'today_supplement', fr:'— Suppléments à donner', en:'— Supplements due' },
+  { key:'today_reminders', fr:'— Rappels (aujourd\'hui et en retard)', en:'— Reminders (today and overdue)' }, // v5.62
   { key:'birthdays', fr:'Anniversaires du mois', en:'Birthdays this month' },
   { key:'todos', fr:'Tâches', en:'Tasks' },
   { key:'feeding', fr:'Calendrier de nourrissage', en:'Feeding calendar' },
@@ -5187,7 +5189,7 @@ function applyDashCardVisibility(){
   // "Aujourd'hui" (2 septembre) — plus un seul interrupteur : le titre/widget ne s'affiche que
   // si AU MOINS un des 7 sous-items est activé ; renderDashboard() filtre ensuite chaque groupe
   // individuellement selon dashCardPrefs.today_xxx au moment de construire le contenu.
-  const todaySubKeys = ['today_shed','today_weigh','today_clutch','today_cleaning','today_uvb','today_pairing','today_season','today_lowstock','today_supplement'];
+  const todaySubKeys = ['today_shed','today_weigh','today_clutch','today_cleaning','today_uvb','today_pairing','today_season','today_lowstock','today_supplement','today_reminders'];
   const anyTodayOn = todaySubKeys.some(k=>dashCardPrefs[k]);
   const todayTitle = document.getElementById('dash-today-title');
   const todayWidget = document.getElementById('dash-today-widget');
@@ -5591,6 +5593,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.62', date:'2026-11-04',
+    title:{ fr:'Rappels qui se répètent', en:'Repeating reminders' },
+    changes:{
+      fr:[ '📌 Rappels personnalisés : ils peuvent maintenant se répéter — aux X jours, semaines ou mois (ex. « Nettoyer le brumisateur » aux 2 semaines, « Tailler les plantes » au mois). Pour chaque rappel, tu choisis si le prochain se compte depuis le jour où c\'est fait (entretien) ou à date fixe (calendrier).',
+           '✓ Boutons « Fait » et « ⏭ Sauter ». Un rappel pas fait reste affiché « en retard » dans l\'Agenda (nouveau groupe 📌 Rappels) jusqu\'à ce que tu le fasses. Lien facultatif vers un terrarium, un rack ou un animal (un toucher l\'ouvre). L\'export .ics garde la répétition des rappels à date fixe. Bouton « Nouveau rappel » dans l\'Agenda. Gratuit.' ],
+      en:[ '📌 Custom reminders can now repeat — every X days, weeks or months (e.g. « Clean the mister » every 2 weeks, « Trim the plants » every month). For each reminder, you choose whether the next one is counted from the day it\'s done (upkeep) or on a fixed date (calendar).',
+           '✓ « Done » and « ⏭ Skip » buttons. A reminder not done stays shown as « overdue » in the Agenda (new 📌 Reminders group) until you do it. Optional link to an enclosure, a rack or an animal (one tap opens it). The .ics export keeps the repeat for fixed-date reminders. « New reminder » button in the Agenda. Free.' ] } },
   { version:'5.61', date:'2026-11-04',
     title:{ fr:'Mue pendant l\'entretien et copropriété', en:'Shed during upkeep and co-ownership' },
     changes:{
@@ -7725,6 +7734,7 @@ const I18N = {
     actionWeigh: 'Peser',
     actionHealth: '🩺 Santé', // v5.57
     clutchSlugCountPh: 'Slugs', batchReserveBtn: 'Réserver', // v5.58
+    reminderRepeatBtn: 'Rappel qui se répète ou lié à un terrarium…', // v5.62
     deselectBtn: 'Désélectionner',
     maintenanceJournalBtn: "Journal d'entretien",
     showAllSectionsBtn: 'Tout réafficher',
@@ -8320,6 +8330,7 @@ const I18N = {
     actionWeigh: 'Weigh',
     actionHealth: '🩺 Health', // v5.57
     clutchSlugCountPh: 'Slugs', batchReserveBtn: 'Reserve', // v5.58
+    reminderRepeatBtn: 'Repeating reminder or linked to an enclosure…', // v5.62
     deselectBtn: 'Deselect',
     maintenanceJournalBtn: 'Maintenance log',
     showAllSectionsBtn: 'Show everything again',
@@ -23080,10 +23091,12 @@ function exportICS(){
   });
 
   (customEvents||[]).forEach(e=>{
+    if(!e || e.done || !e.date) return; // v5.62
     lines.push('BEGIN:VEVENT');
     lines.push('UID:locus-custom-'+e.id+'@locusscales.com');
     lines.push('DTSTAMP:'+dtstamp);
     lines.push('DTSTART;VALUE=DATE:'+toICSDate(e.date));
+    if(e.recur && e.recur.mode==='fixed' && e.recur.every>0){ const f = { day:'DAILY', week:'WEEKLY', month:'MONTHLY' }[e.recur.unit]; if(f) lines.push('RRULE:FREQ='+f+';INTERVAL='+e.recur.every); } // v5.62 — date fixe = répétition dans le calendrier
     lines.push('SUMMARY:'+escapeICSText('📌 '+e.title));
     lines.push('END:VEVENT');
   });
@@ -33986,16 +33999,20 @@ function renderDashboard(){
   const seasonRemindersF = dashCardPrefs.today_season ? seasonPlanReminders() : [];
   const maleStatusF = dashCardPrefs.today_season ? breedingMaleStatus() : [];
   const supplementDueF = dashCardPrefs.today_supplement ? dashSnakes.map(s=>({s, due:supplementDue(s)})).filter(x=>x.due) : []; // v3.53
+  const remindersDueF = dashCardPrefs.today_reminders!==false ? remindersDue() : []; // v5.62
 
   const todayWrap = document.getElementById('dash-today-widget');
-  if(!supplementDueF.length && !maleStatusF.length && !seasonRemindersF.length && !shedSoonF.length && !weighDueF.length && !clutchesToCheckF.length && !terraCleanOverdueF.length && !uvbOverdueF.length && !pairingLongF.length && !rackTubsOverdueF.length && !lowStockEntriesF.length){
-    todayWrap.innerHTML = '<div class="empty">🎉 '+(isEn?'Nothing needs special attention right now.':'Rien de particulier à surveiller pour l\'instant.')+'</div>';
+  if(!remindersDueF.length && !supplementDueF.length && !maleStatusF.length && !seasonRemindersF.length && !shedSoonF.length && !weighDueF.length && !clutchesToCheckF.length && !terraCleanOverdueF.length && !uvbOverdueF.length && !pairingLongF.length && !rackTubsOverdueF.length && !lowStockEntriesF.length){
+    todayWrap.innerHTML = '<div class="empty">🎉 '+(isEn?'Nothing needs special attention right now.':'Rien de particulier à surveiller pour l\'instant.')+'</div>'+
+      '<button class="sc-btn" style="margin-top:8px;" onclick="openReminderModal()">📌 '+(isEn?'New reminder':'Nouveau rappel')+'</button>'; // v5.62
   } else {
     const todayS = spToday();
     // v4.50 — chaque groupe se masque/s'affiche et se pagine (20/40/60/80/100/tout)
     const viewBtn = (icon, onclick)=>'<button class="sc-btn accent" onclick="'+onclick+'">'+icon+' '+(isEn?'View':'Voir')+'</button>';
     const cleanItems = terraCleanOverdueF.map(te=>({ te })).concat(rackTubsOverdueF.map(x=>({ x })));
     todayWrap.innerHTML =
+      agendaGroupHtml('remind', '📌 '+(isEn?'Reminders':'Rappels'), remindersDueF, 'sale-list', e=>reminderRowHtml(e, true))+ // v5.62
+      '<div style="margin:-2px 0 8px;"><button class="sc-btn" onclick="openReminderModal()">📌 '+(isEn?'New reminder':'Nouveau rappel')+'</button></div>'+
       agendaGroupHtml('male', '♂ '+(isEn?'Breeding males':'Mâles en reproduction'), maleStatusF, 'sale-list', m=>{
           let txt;
           if(m.together.length) txt = '🤝 '+m.together.map(x=>(isEn?'with ':'avec ')+escapeHtml(spSnakeName(x.p.femaleId))+' '+(isEn?'for ':'depuis ')+spDaysBetween(x.since,todayS)+(isEn?' d':' j')).join(', ');
@@ -34287,8 +34304,8 @@ function checkDailyNotifDigest(){
   else if(hatchingSoon!=null && hatchingSoon>=0 && hatchingSoon<=2) parts.push(isEn ? '🥚 Hatching in '+hatchingSoon+'d ('+upcoming.ref+')' : '🥚 Éclosion dans '+hatchingSoon+'j ('+upcoming.ref+')');
   if(feedingOverdue) parts.push('🍽 '+feedingOverdue+(isEn?' meal(s) overdue':' repas en retard'));
   if(feedingDueToday) parts.push('📅 '+feedingDueToday+(isEn?' meal(s) due today':' repas prévu(s) aujourd\'hui'));
-  const todaysCustomEvents = (customEvents||[]).filter(e=>e.date===today);
-  todaysCustomEvents.forEach(e=> parts.push('📌 '+e.title));
+  const todaysCustomEvents = (customEvents||[]).filter(e=>e && !e.done && e.date && e.date<=today); // v5.62 — en retard compris
+  todaysCustomEvents.forEach(e=> parts.push('📌 '+e.title+(e.date<today?(isEn?' (overdue)':' (en retard)'):'')));
 
   if(parts.length===0) return; // rien d'assez important pour déranger
 
@@ -35591,7 +35608,7 @@ function addCustomEvent(){
   const date = dateEl.value;
   const title = titleEl.value.trim();
   if(!date || !title){ alert(isEn?'Pick a date and enter a title.':'Choisis une date et entre un titre.'); return; }
-  customEvents.push({ id:'ce_'+Date.now(), date, title });
+  customEvents.push({ id:'ce_'+Date.now(), date, title, updatedAt:Date.now() });
   saveElevage();
   dateEl.value = '';
   titleEl.value = '';
@@ -35609,15 +35626,119 @@ function renderCustomEvents(){
   const wrap = document.getElementById('custom-events-list');
   if(!wrap) return;
   if(customEvents.length===0){ wrap.innerHTML = '<div class="empty">'+(isEn?'No custom reminders yet.':'Aucun rappel personnalisé pour l\'instant.')+'</div>'; return; }
+  const sorted = [...customEvents].sort((a,b)=>(a.done?1:0)-(b.done?1:0) || String(a.date).localeCompare(String(b.date)));
+  wrap.innerHTML = '<div class="sale-list">'+sorted.map(e=>reminderRowHtml(e, false)).join('')+'</div>'; // v5.62
+}
+// ==================== v5.62 — Rappels qui se répètent (idée d'Alex, choix : récurrence au choix, en retard reste affiché, lien facultatif, gratuit) ====================
+// e = { id, date (prochaine échéance), title, recur:{ every, unit:'day'|'week'|'month', mode:'fromDone'|'fixed' }|null, link:{ kind:'terrarium'|'rack'|'snake', id }|null, lastDone, history:[dates], done, updatedAt }
+function addInterval(date, n, unit, anchorDay){
+  if(unit==='day') return addDays(date, n);
+  if(unit==='week') return addDays(date, 7*n);
+  const d = new Date(date+'T00:00:00'); const day = anchorDay || d.getDate(); // v5.62 — date fixe le 31 : reste le 31 quand le mois le permet
+  d.setDate(1); d.setMonth(d.getMonth()+n);
+  const last = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate(); d.setDate(Math.min(day, last));
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function remindersDue(){ const today = localTodayStr(); return (customEvents||[]).filter(e=>e && !e.done && e.date && e.date<=today).sort((a,b)=>String(a.date).localeCompare(String(b.date))); }
+function reminderRecurLabel(r, isEn){
+  if(!r || !(r.every>0)) return '';
+  const u = { day:isEn?['day','days']:['jour','jours'], week:isEn?['week','weeks']:['semaine','semaines'], month:isEn?['month','months']:['mois','mois'] }[r.unit] || ['',''];
+  return '↻ '+(isEn?'every ':'aux ')+(r.every>1?r.every+' ':'')+(r.every>1?u[1]:u[0])+' ('+(r.mode==='fixed' ? (isEn?'fixed date':'date fixe') : (isEn?'from when done':'depuis le jour où c\'est fait'))+')';
+}
+function reminderLinkInfo(l){
+  if(!l || !l.id) return null;
+  if(l.kind==='terrarium'){ const te = (terrariums||[]).find(x=>x.id===l.id); return te ? { label:'🏠 '+te.name, open:"showTab('elevage'); showSubtab('racks');" } : null; }
+  if(l.kind==='rack'){ const rk = (racks||[]).find(x=>x.id===l.id); return rk ? { label:'🗄 '+rk.name, open:"showTab('elevage'); showSubtab('racks');" } : null; }
+  if(l.kind==='snake'){ const sn = savedSnakes.find(x=>x.id===l.id); return sn ? { label:'🐍 '+snakeName(sn), open:"openLogbook('"+sn.id+"')" } : null; }
+  return null;
+}
+function reminderRowHtml(e, compact){
+  const isEn = currentLang==='en';
   const today = localTodayStr();
-  const sorted = [...customEvents].sort((a,b)=>a.date.localeCompare(b.date));
-  wrap.innerHTML = sorted.map(e=>{
-    const isPast = e.date < today;
-    return '<div class="modal-row"'+(isPast?' style="opacity:.5;"':'')+'>'+
-      '<span>📌 '+escapeHtml(e.title)+'</span>'+
-      '<span>'+e.date+' <button class="sc-btn danger" onclick="deleteCustomEvent(\''+e.id+'\')">×</button></span>'+
-    '</div>';
-  }).join('');
+  const late = !e.done && e.date && e.date<today;
+  const days = e.date ? spDaysBetween(e.date, today) : 0;
+  const when = e.done ? '✓ '+(isEn?'done ':'fait ')+escapeHtml(e.doneDate||'') : late ? '⚠ '+(isEn?'overdue by '+days+' d':'en retard de '+days+' j')+' ('+escapeHtml(e.date)+')' : e.date===today ? (isEn?'today':'aujourd\'hui') : escapeHtml(e.date||'');
+  const li = reminderLinkInfo(e.link);
+  const sub = [when, reminderRecurLabel(e.recur, isEn), e.lastDone ? (isEn?'last done ':'dernière fois ')+escapeHtml(e.lastDone) : ''].filter(Boolean).join(' · ');
+  return '<div class="sale-row"'+(e.done?' style="opacity:.55;"':'')+'><div class="sale-name">📌 '+escapeHtml(e.title||'')+
+    (li ? ' <button class="sc-btn" style="padding:2px 8px;font-size:12px;" onclick="'+li.open+'">'+escapeHtml(li.label)+'</button>' : '')+
+    '<small style="'+(late?'color:#e08a63;':'')+'">'+sub+'</small></div>'+
+    '<span style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">'+
+      (!e.done ? '<button class="save-btn" style="padding:6px 10px;" onclick="reminderMarkDone(\''+e.id+'\')">✓ '+(isEn?'Done':'Fait')+'</button>' : '')+
+      (!e.done && e.recur ? '<button class="sc-btn" title="'+(isEn?'Skip this time':'Sauter cette fois')+'" onclick="reminderSkip(\''+e.id+'\')">⏭</button>' : '')+
+      (!compact ? '<button class="sc-btn" onclick="openReminderModal(\''+e.id+'\')">✏️</button><button class="sc-btn danger" onclick="deleteCustomEvent(\''+e.id+'\')">×</button>' : '')+
+    '</span></div>';
+}
+function reminderAfterChange(){
+  saveElevage();
+  try{ renderCustomEvents(); }catch(err){}
+  try{ renderDashboard(); }catch(err){}
+}
+function reminderMarkDone(id){
+  const isEn = currentLang==='en';
+  const e = (customEvents||[]).find(x=>x.id===id); if(!e) return;
+  const today = localTodayStr();
+  e.lastDone = today;
+  e.history = (Array.isArray(e.history)?e.history:[]).concat([today]).slice(-30);
+  if(e.recur && e.recur.every>0){
+    if(e.recur.mode==='fixed'){ let d = e.date || today; let guard = 0; do { d = addInterval(d, e.recur.every, e.recur.unit, e.recur.anchorDay); } while(d<=today && ++guard<1000); e.date = d; }
+    else e.date = addInterval(today, e.recur.every, e.recur.unit);
+  } else { e.done = true; e.doneDate = today; }
+  e.updatedAt = Date.now();
+  reminderAfterChange();
+  showToast('✓ '+escapeHtml(e.title)+(e.recur ? (isEn?' — next: ':' — prochain : ')+e.date : ''), 'success');
+}
+function reminderSkip(id){
+  const isEn = currentLang==='en';
+  const e = (customEvents||[]).find(x=>x.id===id); if(!e || !e.recur) return;
+  const today = localTodayStr();
+  let d = e.date || today; let guard = 0; do { d = addInterval(d, e.recur.every, e.recur.unit, e.recur.anchorDay); } while(d<=today && ++guard<1000);
+  e.date = d; e.updatedAt = Date.now();
+  reminderAfterChange();
+  showToast('⏭ '+escapeHtml(e.title)+(isEn?' — next: ':' — prochain : ')+d);
+}
+function openReminderModal(id){
+  const isEn = currentLang==='en';
+  const e = id ? (customEvents||[]).find(x=>x.id===id) : null;
+  const r = (e && e.recur) || { every:2, unit:'week', mode:'fromDone' };
+  const st = 'width:100%;font-size:16px;padding:9px 10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);margin:3px 0 12px;';
+  const lab = t0=>'<label style="font-size:12px;color:var(--ink-dim);">'+t0+'</label>';
+  const opt = (v, l, cur)=>'<option value="'+v+'"'+(v===cur?' selected':'')+'>'+l+'</option>';
+  const lk = e && e.link ? e.link.kind+'|'+e.link.id : '';
+  const linkOpts = '<option value="">'+(isEn?'— None —':'— Aucun —')+'</option>'+
+    (terrariums||[]).map(te=>opt('terrarium|'+te.id, '🏠 '+escapeHtml(te.name), lk)).join('')+
+    (racks||[]).map(rk=>opt('rack|'+rk.id, '🗄 '+escapeHtml(rk.name), lk)).join('')+
+    savedSnakes.filter(isActiveSnake).sort((a,b)=>snakeName(a).localeCompare(snakeName(b))).map(sn=>opt('snake|'+sn.id, '🐍 '+escapeHtml(snakeName(sn)), lk)).join('');
+  showQuickModal('📌 '+(e?(isEn?'Edit reminder':'Modifier le rappel'):(isEn?'New reminder':'Nouveau rappel')),
+    lab(isEn?'What':'Quoi')+'<input type="text" id="rm-title" maxlength="120" value="'+escapeHtml((e&&e.title)||'')+'" placeholder="'+(isEn?'e.g. Clean the mister':'ex. Nettoyer le brumisateur')+'" style="'+st+'"/>'+
+    lab(isEn?'Next date':'Prochaine date')+'<input type="date" id="rm-date" value="'+escapeHtml((e&&e.date)||localTodayStr())+'" style="'+st+'"/>'+
+    lab(isEn?'Repeat':'Répéter')+'<div style="display:flex;gap:6px;align-items:center;margin:3px 0 12px;">'+
+      '<select id="rm-repeat" onchange="document.getElementById(\'rm-recur-box\').style.display=this.value===\'yes\'?\'block\':\'none\'" style="'+st+'margin:0;flex:1;">'+opt('no', isEn?'No, just once':'Non, une seule fois', e&&e.recur?'yes':(e?'no':'yes'))+opt('yes', isEn?'Yes':'Oui', e&&e.recur?'yes':(e?'no':'yes'))+'</select></div>'+
+    '<div id="rm-recur-box" style="display:'+((e&&!e.recur)?'none':'block')+';">'+
+      '<div style="display:flex;gap:6px;align-items:center;margin:0 0 12px;"><span>'+(isEn?'Every':'Aux')+'</span><input type="number" id="rm-every" min="1" max="365" value="'+(r.every||1)+'" style="'+st+'margin:0;width:76px;flex:none;"/>'+
+      '<select id="rm-unit" style="'+st+'margin:0;flex:1;width:auto;min-width:0;">'+opt('day', isEn?'day(s)':'jour(s)', r.unit)+opt('week', isEn?'week(s)':'semaine(s)', r.unit)+opt('month', isEn?'month(s)':'mois', r.unit)+'</select></div>'+
+      lab(isEn?'The next one is counted…':'Le prochain se compte…')+'<select id="rm-mode" style="'+st+'">'+opt('fromDone', isEn?'from the day it\'s done (upkeep)':'depuis le jour où c\'est fait (entretien)', r.mode)+opt('fixed', isEn?'on a fixed date (calendar)':'à date fixe (calendrier)', r.mode)+'</select>'+
+    '</div>'+
+    lab(isEn?'Linked to (optional)':'Lié à (facultatif)')+'<select id="rm-link" style="'+st+'">'+linkOpts+'</select>'+
+    '<button class="save-btn" style="width:100%;" onclick="saveReminder('+(e?'\''+e.id+'\'':'null')+')">💾 '+(isEn?'Save':'Enregistrer')+'</button>');
+}
+function saveReminder(id){
+  const isEn = currentLang==='en';
+  const title = ((document.getElementById('rm-title')||{}).value||'').trim().slice(0,120);
+  const date = (document.getElementById('rm-date')||{}).value;
+  if(!title || !date){ showToast(isEn?'Enter what and a date.':'Entre quoi et une date.', 'error'); return; }
+  const rep_ = document.getElementById('rm-repeat').value==='yes';
+  const every = Math.max(1, Math.min(365, parseInt(document.getElementById('rm-every').value,10)||1));
+  const recur = rep_ ? { every, unit:document.getElementById('rm-unit').value, mode:document.getElementById('rm-mode').value } : null;
+  if(recur && recur.unit==='month' && recur.mode==='fixed') recur.anchorDay = parseInt(String(date).slice(8,10),10) || null; // v5.62
+  const lv = document.getElementById('rm-link').value;
+  const link = lv ? { kind:lv.split('|')[0], id:lv.split('|').slice(1).join('|') } : null;
+  let e = id ? (customEvents||[]).find(x=>x.id===id) : null;
+  if(!e){ e = { id:'ce_'+Date.now()+'_'+Math.random().toString(36).slice(2,5) }; customEvents.push(e); }
+  Object.assign(e, { title, date, recur, link, done:false, doneDate:null, updatedAt:Date.now() });
+  closeQuickModal();
+  reminderAfterChange();
+  showToast('📌 '+(isEn?'Reminder saved':'Rappel enregistré')+(recur?' — '+reminderRecurLabel(recur, isEn):''), 'success');
 }
 
 // Référence rapide : accouplements, cooling, pontes et éclosions de l'année précédente,

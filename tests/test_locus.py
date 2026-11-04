@@ -1393,6 +1393,39 @@ def t_mue_copro(browser, url):
     check('export Excel : colonne Copropriété', len(col) == 1 and 'Marc 30 %' in col[0], col)
     check('pas d\'erreur JS (mue + copropriété)', not a.real_errors(), a.real_errors()[:3])
     a.close()
+def t_rappels_repetes(browser, url):
+    section('Rappels qui se répètent (v5.62)')
+    a = App(browser, url, snakes=[make_snake(220)]); a.open(wait=2500)
+    d = lambda n: iso(TODAY + datetime.timedelta(days=n))
+    a.js("(()=>{ terrariums.push({id:'te_b', name:'Terra bio', size:null, status:'libre'}); saveElevage(); })()")
+    a.js("""(dt)=>{ openReminderModal(); document.getElementById('rm-title').value='Nettoyer le brumisateur'; document.getElementById('rm-date').value=dt;
+      document.getElementById('rm-repeat').value='yes'; document.getElementById('rm-every').value='2'; document.getElementById('rm-unit').value='week'; document.getElementById('rm-mode').value='fromDone';
+      document.getElementById('rm-link').value='terrarium|te_b'; saveReminder(null); }""", d(-3))
+    e = a.js("customEvents.find(x=>x.title==='Nettoyer le brumisateur')")
+    check('rappel créé : aux 2 semaines, depuis le jour où c\'est fait, lié au terrarium', e and e['recur'] == {'every': 2, 'unit': 'week', 'mode': 'fromDone'} and e['link'] == {'kind': 'terrarium', 'id': 'te_b'}, e)
+    a.js("showTab('dash'); renderDashboard()"); a.page.wait_for_timeout(300)
+    t = a.js("document.getElementById('dash-today-widget').innerText")
+    check('Agenda : groupe 📌 Rappels, « en retard de 3 j », lien 🏠 Terra bio', 'Rappels' in t and 'en retard de 3 j' in t and 'Terra bio' in t, t[:300])
+    a.js("(id)=>reminderMarkDone(id)", e['id'])
+    e2 = a.js("(id)=>customEvents.find(x=>x.id===id)", e['id'])
+    check('« Fait » en retard → prochain = 2 semaines après aujourd\'hui, dernière fois = aujourd\'hui', e2['date'] == d(14) and e2['lastDone'] == d(0), (e2['date'], e2['lastDone']))
+    a.js("""(dt)=>{ openReminderModal(); document.getElementById('rm-title').value='Changer UVB'; document.getElementById('rm-date').value=dt;
+      document.getElementById('rm-repeat').value='yes'; document.getElementById('rm-every').value='6'; document.getElementById('rm-unit').value='month'; document.getElementById('rm-mode').value='fixed'; saveReminder(null); }""", '2026-05-31')
+    u = a.js("customEvents.find(x=>x.title==='Changer UVB')")
+    a.js("(id)=>reminderMarkDone(id)", u['id'])
+    u2 = a.js("(id)=>customEvents.find(x=>x.id===id).date", u['id'])
+    check('date fixe aux 6 mois, prévu le 31 mai, fait en retard → 30 nov (fin de mois respectée), pas compté depuis aujourd\'hui', u2 == '2026-11-30', u2)
+    a.js("(id)=>reminderSkip(id)", u['id'])
+    check('⏭ Sauter → 31 mai suivant', a.js("(id)=>customEvents.find(x=>x.id===id).date", u['id']) == '2027-05-31')
+    a.js("""(dt)=>{ openReminderModal(); document.getElementById('rm-title').value='Vermifuge'; document.getElementById('rm-date').value=dt; document.getElementById('rm-repeat').value='no'; saveReminder(null); }""", d(0))
+    v = a.js("customEvents.find(x=>x.title==='Vermifuge')")
+    a.js("(id)=>reminderMarkDone(id)", v['id'])
+    check('rappel unique « Fait » : marqué fait, sort de l\'Agenda', a.js("(id)=>{ const x=customEvents.find(y=>y.id===id); return x.done && !remindersDue().some(y=>y.id===id); }", v['id']) is True)
+    a.js("""(()=>{ window.__ics=''; const oc=URL.createObjectURL.bind(URL); URL.createObjectURL=(b)=>{ b.text().then(t=>window.__ics=t); return oc(b); }; HTMLAnchorElement.prototype.click=function(){}; exportICS(); })()"""); a.page.wait_for_timeout(300)
+    ics = a.js("window.__ics")
+    check('export .ics : RRULE mensuelle aux 6 mois pour le rappel à date fixe', 'RRULE:FREQ=MONTHLY;INTERVAL=6' in ics, ics[-300:])
+    check('pas d\'erreur JS (rappels)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
 def t_keltic_dragons(browser, url):
     section('BCI : Keltic, Smoke, Red/Sun Dragon (v5.45)')
     m = make_snake(71, species='boa_bci', genes={'bci_keltic': 'single'}); m['sex'] = 'male'
@@ -1542,7 +1575,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()
