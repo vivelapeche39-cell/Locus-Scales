@@ -713,7 +713,8 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 .tub.multi-selected{background:rgba(201,151,62,.22) !important;border-color:var(--gold) !important;color:var(--ink) !important;font-style:normal;}
 .tub .tub-name{font-weight:600;color:var(--ink);line-height:1.25;}
 .tub .tub-tag{font-family:'Courier New',monospace;font-size:8.5px;color:var(--ink-dim);margin-top:3px;}
-.tub.has-tools{padding-top:24px;} /* v5.61 — 4 petits boutons (🔵 💧 🧹 ✕) au-dessus du nom */
+.tub.has-tools{padding-top:26px;} /* v5.61/5.63 — bouton ⋯ au-dessus du nom */
+.tub .tub-actions-btn{position:absolute;top:3px;right:4px;min-width:40px;height:24px;border-radius:12px;border:1px solid var(--gold);background:var(--bg-panel-2);color:var(--gold);font-size:18px;line-height:18px;font-weight:700;cursor:pointer;padding:0 8px;z-index:2;}
 .tub .tub-status{font-family:system-ui,-apple-system,sans-serif;font-size:12px;letter-spacing:1px;color:var(--ink);} /* v5.59 */
 .tub .tub-alert{position:absolute;top:5px;right:6px;font-size:10px;}
 .tub-prey{position:absolute;bottom:5px;right:6px;font-size:11px;line-height:1;padding:2px;border-radius:5px;cursor:pointer;}
@@ -2371,7 +2372,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.62';
+const APP_VERSION = '2026.09.01.5.63';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5593,6 +5594,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.63', date:'2026-11-05',
+    title:{ fr:'Racks & Terrariums : un vrai menu d\'actions', en:'Racks & Enclosures: a real action menu' },
+    changes:{
+      fr:[ '⋯ Chaque bac et chaque occupant de terrarium a maintenant un bouton « ⋯ » bien visible (au lieu des petits 🔵 💧 🧹 ✕) : changement d\'eau, nettoyage Complet ou Partiel en un toucher, selles normales ou anormales, mue (En mue / A mué), déplacer, ouvrir la fiche, historique du nettoyage, retirer. Chaque action s\'annule depuis le message.',
+           '🧹 Nettoyage en retard : un nettoyage partiel remet l\'alerte à zéro seulement pour un terrarium bioactif. Pour un bac ou un terrarium ordinaire, il faut un nettoyage complet. Gratuit.' ],
+      en:[ '⋯ Each tub and each enclosure occupant now has a clearly visible « ⋯ » button (instead of the small 🔵 💧 🧹 ✕): water change, Complete or Partial cleaning in one tap, normal or abnormal poop, shed (In shed / Has shed), move, open the record, cleaning history, remove. Each action can be undone from the message.',
+           '🧹 Cleaning overdue: a partial cleaning only resets the alert for a bioactive enclosure. For a tub or a regular enclosure, a complete cleaning is needed. Free.' ] } },
   { version:'5.62', date:'2026-11-04',
     title:{ fr:'Rappels qui se répètent', en:'Repeating reminders' },
     changes:{
@@ -15647,6 +15655,73 @@ function shedQualityLabel(q){
     pieces: isEn?'In pieces':'En morceaux'
   };
   return map[q] || q;
+}
+// v5.63 — Menu ⋯ d'un bac / d'un occupant de terrarium (demande d'Alex : les petits boutons étaient trop subtils).
+// where = { rackId, row, tub } ou { terrariumId }. Nettoyage : Complet / Partiel ; Mue : En mue / A mué.
+function openEnclosureActions(where, snakeId){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===snakeId); if(!s) return;
+  const w = escapeHtml(JSON.stringify(where));
+  const big = 'display:block;width:100%;font-size:16px;padding:12px;margin-bottom:8px;text-align:left;';
+  const half = 'flex:1;font-size:15px;padding:12px 8px;';
+  const pair = (label, a, b)=>'<div style="margin-bottom:8px;"><div style="font-size:12px;color:var(--ink-dim);margin:0 0 4px;">'+label+'</div><div style="display:flex;gap:8px;">'+a+b+'</div></div>';
+  const btn = (txt, act, st, cls)=>'<button class="'+(cls||'sc-btn')+'" style="'+st+'" onclick="enclosureAction('+w+',\''+snakeId+'\',\''+act+'\')">'+txt+'</button>';
+  showQuickModal('⋯ '+escapeHtml(snakeName(s)),
+    btn('💧 '+(isEn?'Water change':'Changement d\'eau'), 'water', big)+
+    pair('🧹 '+(isEn?'Cleaning':'Nettoyage'), btn(isEn?'Complete':'Complet', 'clean_complete', half, 'save-btn'), btn(isEn?'Partial':'Partiel', 'clean_partial', half))+
+    pair('💩 '+(isEn?'Poop':'Selles'), btn(isEn?'Normal':'Normales', 'poop_ok', half), btn(isEn?'Abnormal…':'Anormales…', 'poop_bad', half))+
+    pair('🔵 '+(isEn?'Shed':'Mue')+(isInShed(s)?' <small>('+(isEn?'in shed since ':'en mue depuis le ')+escapeHtml(inShedSince(s))+')</small>':''), btn(isEn?'In shed':'En mue', 'inshed', half), btn(isEn?'Has shed…':'A mué…', 'shed', half, 'save-btn'))+
+    btn('↔ '+(isEn?'Move':'Déplacer'), 'move', big)+
+    btn('📋 '+(isEn?'Open the record':'Ouvrir la fiche'), 'sheet', big)+
+    btn('🧹 '+(isEn?'Cleaning history / date / note…':'Historique, date ou note de nettoyage…'), 'clean_more', big)+
+    btn('✕ '+(isEn?'Remove from this spot':'Retirer de cet emplacement'), 'remove', big, 'sc-btn danger'));
+}
+function enclosureAction(where, snakeId, act){
+  const isEn = currentLang==='en';
+  const today = localTodayStr();
+  const s = savedSnakes.find(x=>x.id===snakeId);
+  closeQuickModal();
+  const refresh = ()=>{ try{ renderRackGrid(); }catch(e){} try{ renderTerrariumList(); }catch(e){} try{ renderDashboard(); }catch(e){} };
+  const rack = where.rackId ? getRack(where.rackId) : null, te = where.terrariumId ? getTerrarium(where.terrariumId) : null;
+  if(act==='water'){ if(rack) logRackTubWaterChange(where.rackId, where.row, where.tub); else if(te) logTerrariumWaterChange(te.id); return; }
+  if(act==='clean_complete' || act==='clean_partial'){
+    const type = act==='clean_complete' ? 'complete' : 'partial';
+    let list, entry;
+    if(rack){ if(!rack.tubCleanings) rack.tubCleanings = {}; const key = where.row+'|'+where.tub; list = rack.tubCleanings[key] = rack.tubCleanings[key]||[]; entry = { id:'clean_'+Date.now()+'_'+key, date:today, type, note:'' }; }
+    else if(te){ list = te.cleanings = te.cleanings||[]; entry = { id:'clean_'+Date.now(), date:today, type, note:'' }; }
+    if(!list) return;
+    list.push(entry); saveElevage(); refresh();
+    window.__lastQuickClean = { list, id:entry.id };
+    showToast('🧹 '+(type==='complete'?(isEn?'Complete cleaning logged.':'Nettoyage complet noté.'):(isEn?'Partial cleaning logged.':'Nettoyage partiel noté.')), 'success', 'undoQuickClean()');
+    return;
+  }
+  if(act==='clean_more'){ if(rack) openSingleTubCleaningModal(where.rackId, where.row, where.tub); else if(te) openTerrariumCleaningModal(te.id); return; }
+  if(!s) return;
+  if(act==='poop_ok' || act==='poop_bad'){
+    let note = '';
+    if(act==='poop_bad'){ const v = prompt(isEn?'What did you see? (optional — e.g. blood, liquid)':'Qu\'as-tu vu ? (facultatif — ex. sang, liquide)', ''); if(v===null) return; note = '⚠️ '+(v.trim().slice(0,200) || (isEn?'abnormal':'anormales')); }
+    ensureSnakeMeta(s); if(!s.health.defecations) s.health.defecations = [];
+    const dId = 'def_'+Date.now()+'_'+s.id;
+    s.health.defecations.push({ id:dId, date:today, note, abnormal: act==='poop_bad' || undefined });
+    s.updatedAt = Date.now(); storage.save(savedSnakes); refresh();
+    showToast('💩 '+(act==='poop_bad'?(isEn?'Abnormal poop logged.':'Selles anormales notées.'):(isEn?'Poop logged.':'Selles notées.')), 'success', "undoDefecations("+JSON.stringify([s.id+'|'+dId]).replace(/"/g,"'")+")");
+    return;
+  }
+  if(act==='inshed'){ quickShedApply(snakeId, 'inshed'); return; }
+  if(act==='shed'){ openShedModal(snakeId); return; }
+  if(act==='move'){ if(rack) openPlaceChoice(snakeId); else openMoveTerrariumModal(snakeId); return; }
+  if(act==='sheet'){ openLogbook(snakeId); return; }
+  if(act==='remove'){
+    if(!confirm(isEn?'Remove '+snakeName(s)+' from this spot? It goes to « Unassigned ».':'Retirer '+snakeName(s)+' de cet emplacement ? Il va dans « Non assignés ».')) return;
+    if(rack) unassignTub(where.rackId, where.row, where.tub); else unassignFromTerrarium(snakeId);
+  }
+}
+function undoQuickClean(){
+  const u = window.__lastQuickClean; if(!u) return;
+  const i = u.list.findIndex(c=>c.id===u.id); if(i>-1) u.list.splice(i,1);
+  window.__lastQuickClean = null; saveElevage();
+  try{ renderRackGrid(); }catch(e){} try{ renderTerrariumList(); }catch(e){}
+  showToast('↩ '+(currentLang==='en'?'Undone.':'Annulé.'));
 }
 // v5.61 — mue constatée pendant l'entretien (Racks & Terrariums) : un bouton 🔵 → En mue / A mué
 function openQuickShedMenu(id){
@@ -25876,18 +25951,12 @@ function renderRackGrid(){
         cell.className = 'tub' + (snake?' has-tools':' empty') + feedCls + searchCls; // v5.61 — has-tools : le nom passe sous les boutons
         if(snake){
           cell.setAttribute('data-tooltip', snakeTooltip(snake));
-          cell.innerHTML = '<button class="tub-remove" title="'+t('removeFromTubTitle')+'" aria-label="'+t('removeFromTubAria')+escapeHtml(snakeName(snake))+t('fromTubSuffix')+'">✕</button>'+
-            '<button class="tub-remove" style="right:22px;" title="'+(isEn?'Cleaning':'Nettoyage')+'">🧹</button>'+
-            '<button class="tub-remove" style="right:44px;" title="'+(isEn?'Water change':'Changement d\'eau')+'">💧</button>'+
-            '<button class="tub-remove" style="right:66px;" title="'+(isEn?'Shed':'Mue')+'">🔵</button>'+ // v5.61
+          cell.innerHTML = '<button class="tub-actions-btn" title="'+(isEn?'Actions':'Actions')+'" aria-label="'+(isEn?'Actions for ':'Actions pour ')+escapeHtml(snakeName(snake))+'">⋯</button>'+ // v5.63 — un seul bouton : eau, nettoyage, selles, mue, déplacer
             '<div class="tub-name">'+escapeHtml(snakeName(snake))+'</div><div class="tub-tag">'+(snake.sex==='male'?'♂':snake.sex==='female'?'♀':'?')+' '+tubStatusIconsHtml(snake)+'</div>'+(outside?overflowTubCellHtml(isEn):'');
           if(elevPhotos){ const ps = snakeLatestPhotoSrc(snake); if(ps){ cell.classList.add('has-photo'); cell.style.backgroundImage = cssPhotoUrl(ps); } } // v5.19
           if(outside){ cell.style.border = '2px dashed #e08a63'; cell.title = (isEn?'Tub ':'Bac ')+t2+(isEn?' no longer exists in this rack — move this animal':' n\'existe plus dans ce rack — déplace cet animal'); }
           cell.addEventListener('click', ()=>openLogbook(snake.id));
-          cell.querySelector('.tub-remove').addEventListener('click', (e)=>{ e.stopPropagation(); unassignTub(rack.id,row,t2); });
-          cell.querySelectorAll('.tub-remove')[1].addEventListener('click', (e)=>{ e.stopPropagation(); openSingleTubCleaningModal(rack.id, row, t2); });
-          cell.querySelectorAll('.tub-remove')[2].addEventListener('click', (e)=>{ e.stopPropagation(); logRackTubWaterChange(rack.id, row, t2); });
-          cell.querySelectorAll('.tub-remove')[3].addEventListener('click', (e)=>{ e.stopPropagation(); openQuickShedMenu(snake.id); }); // v5.61
+          cell.querySelector('.tub-actions-btn').addEventListener('click', (e)=>{ e.stopPropagation(); openEnclosureActions({ rackId:rack.id, row, tub:t2 }, snake.id); }); // v5.63
           makeKeyboardClickable(cell, t('openSheetOf')+snake.name);
         } else {
           cell.textContent = t('tubEmptyLabel')+' '+t2+' '+t('emptySuffix');
@@ -25967,6 +26036,12 @@ function lastCleaningEntry(list){
   if(!list || !list.length) return null;
   return [...list].sort((a,b)=>b.date.localeCompare(a.date))[0];
 }
+// v5.63 — règle d'Alex : un nettoyage PARTIEL ne remet l'alerte « nettoyage en retard » à zéro que pour un
+// terrarium bioactif ; sinon il faut un nettoyage COMPLET (anciennes entrées sans type = complet).
+function lastCleaningForAlert(list, bioactive){
+  if(bioactive) return lastCleaningEntry(list);
+  return lastCleaningEntry((list||[]).filter(c=>c && c.type!=='partial'));
+}
 function daysSinceDate(dateStr){
   return Math.floor((Date.now() - new Date(dateStr+'T00:00:00').getTime()) / 86400000);
 }
@@ -25978,7 +26053,7 @@ function countOverdueTubCleanings(rack){
   let count = 0;
   rack.rows.forEach((tubCount, rowIdx)=>{
     for(let tub=1; tub<=tubCount; tub++){
-      const last = lastCleaningEntry(rack.tubCleanings[rowIdx+1+'|'+tub]);
+      const last = lastCleaningForAlert(rack.tubCleanings[rowIdx+1+'|'+tub], false); // v5.63
       if(last && daysSinceDate(last.date)>=30) count++;
     }
   });
@@ -26003,7 +26078,7 @@ function openRackCleaningModal(rackId){
       '<div class="tub-select-grid" id="rc-row-'+row+'">';
     for(let tub=1; tub<=tubCount; tub++){
       const key = row+'|'+tub;
-      const last = lastCleaningEntry(rack.tubCleanings[key]);
+      const last = lastCleaningForAlert(rack.tubCleanings[key], false); // v5.63
       // Même seuil/style que le badge de nettoyage terrarium (30j) — pas d'urgence tant que jamais
       // nettoyé (pas de date de référence), juste l'informatif "jamais".
       let infoStyle = 'color:var(--ink-dim);';
@@ -27766,7 +27841,7 @@ function renderTerrariumList(){
       // Badge nettoyage — pas d'alerte si bioactif (un setup bioactif n'a pratiquement jamais de
       // nettoyage complet, l'écosystème s'en occupe ; l'informatif reste affiché, juste sans rouge).
       if(!te.cleanings) te.cleanings = [];
-      const lastClean = lastCleaningEntry(te.cleanings);
+      const lastClean = lastCleaningForAlert(te.cleanings, te.bioactive); // v5.63
       if(lastClean){
         const daysSince = daysSinceDate(lastClean.date);
         const overdue = !te.bioactive && daysSince>=30;
@@ -27846,9 +27921,7 @@ function renderTerrariumList(){
           row.setAttribute('data-tooltip', snakeTooltip(s));
           row.innerHTML = '<span class="terra-occupant-name" data-open="'+s.id+'">'+escapeHtml(snakeName(s))+' ('+(s.sex==='male'?'♂':'♀')+')</span>'+
             '<span class="terra-occupant-actions">'+
-              '<button class="sc-btn" title="'+(isEn?'Shed':'Mue')+'" onclick="event.stopPropagation(); openQuickShedMenu(\''+s.id+'\')">🔵</button>'+ // v5.61
-              '<button class="sc-btn" data-move="'+s.id+'">↔</button>'+
-              '<button class="sc-btn danger" data-unassign="'+s.id+'">✕</button>'+
+              '<button class="sc-btn" style="font-size:18px;font-weight:700;padding:2px 12px;border-color:var(--gold);color:var(--gold);" title="'+(isEn?'Actions':'Actions')+'" onclick="event.stopPropagation(); openEnclosureActions({ terrariumId:\''+te.id+'\' }, \''+s.id+'\')">⋯</button>'+ // v5.63
             '</span>';
           card.appendChild(row);
         });
@@ -33972,7 +34045,7 @@ function renderDashboard(){
   // terrariums/racks ne sont pas rattachés à une espèce précise).
   const terraCleanOverdue = terrariums.filter(te=>{
     if(te.bioactive) return false; // jamais d'alerte nettoyage pour un setup bioactif
-    const last = lastCleaningEntry(te.cleanings);
+    const last = lastCleaningForAlert(te.cleanings, te.bioactive); // v5.63
     return last ? daysSinceDate(last.date)>=30 : true;
   });
   const uvbOverdue = terrariums.filter(te=> te.uvbReplaceDate && new Date(te.uvbReplaceDate+'T00:00:00').getTime() < Date.now());
@@ -33981,7 +34054,7 @@ function renderDashboard(){
   racks.forEach(r=>{
     if(!r.tubCleanings) return;
     Object.keys(r.tubCleanings).forEach(key=>{
-      const last = lastCleaningEntry(r.tubCleanings[key]);
+      const last = lastCleaningForAlert(r.tubCleanings[key], false); // v5.63
       if(last && daysSinceDate(last.date)>=30) rackTubsOverdue.push({rack:r, key});
     });
   });
