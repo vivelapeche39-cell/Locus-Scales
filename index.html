@@ -2372,7 +2372,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.63';
+const APP_VERSION = '2026.09.01.5.64';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4251,7 +4251,7 @@ const GENES = [
   {id:'russo', name:'Russo', type:'incdom', locus:'lesserComplex', cat:'Codominant / Incomplet dominant'},
   {id:'bamboo', name:'Bamboo', type:'incdom', locus:'lesserComplex', cat:'Codominant / Incomplet dominant'},
   {id:'special', name:'Special', type:'incdom', locus:'lesserComplex', cat:'Codominant / Incomplet dominant'},
-  {id:'daddy', name:'Daddy Gene', type:'incdom', locus:'lesserComplex', cat:'Codominant / Incomplet dominant'},
+  {id:'daddy', name:'Daddy Gene', type:'incdom', locus:'lesserComplex', cat:'Codominant / Incomplet dominant', aliases:['Het Daddy']},
   {id:'mocha', name:'Mocha', type:'incdom', locus:'lesserComplex', cat:'Codominant / Incomplet dominant'},
   // Fire Complex — locus partagé, vérifié via ReptiDex, reconfirmé sur Morphpedia le 9 oct (« Complex: Black Eyed Leucistic (BlkEL) ») : toute paire d'allèles (y compris homozygote
   // du même gène) produit un Black-Eyed Leucistic (BlkEL) — à ne pas confondre avec le BEL (Blue-Eyed). superLabel couvre le cas homozygote simple ;
@@ -4262,12 +4262,14 @@ const GENES = [
   {id:'sulfur', name:'Sulfur', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant'},
   {id:'disco', name:'Disco', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant'},
   {id:'lemonback', name:'Lemonback', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant'},
-  {id:'enchi', name:'Enchi', type:'incdom', locus:'enchi', cat:'Codominant / Incomplet dominant'},
+  // v5.64 — Enchi et Het Red Axanthic sont dans le complexe 8 Ball (Morphpedia, fiche de chaque gène ; aussi dans la liste
+  // « Allelic Morphs aka Complexes » de la communauté MorphMarket). World of Ball Pythons ne documente pas les complexes.
+  {id:'enchi', name:'Enchi', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant'},
   // Cinnamon / Black Pastel Complex — locus partagé (allélisme prouvé ; reconfirmé sur Morphpedia le 9 oct : complexe « 8 Ball »).
   // Les deux formes homozygotes ET le composé hétérozygote Cinnamon×Black Pastel ("8-Ball", voir
   // COMPOUND_NAMES) partagent le même risque santé accru — texte d'avertissement volontairement identique.
   {id:'champagne', name:'Champagne', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant', warning:"Wobble (trouble neurologique de la tête/du regard) présent chez la quasi-totalité des porteurs, même à l'état simple — souvent plus léger que celui du Spider (de type Woma, selon les témoignages d'éleveurs). Forme homozygote (Super Champagne) létale in ovo — jamais viable. Combinaison avec Spider (même locus) également létale.", warningEn:"Wobble (neurological head/eye-tracking disorder) present in nearly all carriers, even in single (het) form — often milder than Spider's (Woma-like, according to breeder reports). Homozygous form (Super Champagne) is lethal in ovo — never viable. Combination with Spider (same locus) is also lethal."},
-  {id:'cinnamon', name:'Cinnamon', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant', superLabel:'Super Cinnamon', warning:"Forme homozygote (Super Cinnamon — même allure que le combo 8 Ball Cinnamon × Black Pastel) associée à un risque accru de kinking (déformations vertébrales), microphtalmie (« bug eyes »), malformation de la mâchoire (duckbill) et retard de croissance. Tous les individus supers ne sont pas affectés, mais l'incidence est jugée significative par de nombreux éleveurs expérimentés.", warningEn:"Homozygous form (Super Cinnamon — looks like the 8 Ball combo, Cinnamon × Black Pastel) is associated with an increased risk of kinking (spinal deformities), microphthalmia (\"bug eyes\"), jaw malformation (duckbill), and stunted growth. Not every super individual is affected, but the incidence is considered significant by many experienced breeders."},
+  {id:'cinnamon', name:'Cinnamon', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant', superLabel:'Super Cinnamon', aliases:['Cinny','Cinnamon Pastel'], warning:"Forme homozygote (Super Cinnamon — même allure que le combo 8 Ball Cinnamon × Black Pastel) associée à un risque accru de kinking (déformations vertébrales), microphtalmie (« bug eyes »), malformation de la mâchoire (duckbill) et retard de croissance. Tous les individus supers ne sont pas affectés, mais l'incidence est jugée significative par de nombreux éleveurs expérimentés.", warningEn:"Homozygous form (Super Cinnamon — looks like the 8 Ball combo, Cinnamon × Black Pastel) is associated with an increased risk of kinking (spinal deformities), microphthalmia (\"bug eyes\"), jaw malformation (duckbill), and stunted growth. Not every super individual is affected, but the incidence is considered significant by many experienced breeders."},
   {id:'blackpastel', name:'Black Pastel', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant', superLabel:'Super Black Pastel', warning:"Forme homozygote (Super Black Pastel — même allure que le combo 8 Ball) associée au même risque accru que Super Cinnamon : kinking, microphtalmie, malformation de la mâchoire, retard de croissance.", warningEn:"Homozygous form (Super Black Pastel — looks like the 8 Ball combo) carries the same increased risk as Super Cinnamon: kinking, microphthalmia, jaw malformation, stunted growth."},
   {id:'huffman', name:'Huffman', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant'},
   {id:'jolt', name:'Jolt', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant'},
@@ -4283,16 +4285,17 @@ const GENES = [
   {id:'spark', name:'Spark', type:'incdom', locus:'yellowbellyComplex', cat:'Codominant / Incomplet dominant'},
   {id:'mahogany', name:'Mahogany', type:'incdom', locus:'mahoganyComplex', cat:'Codominant / Incomplet dominant'},
   {id:'cinder', name:'Cinder', type:'incdom', locus:'mahoganyComplex', cat:'Codominant / Incomplet dominant'},
-  {id:'acid', name:'Acid', type:'incdom', locus:'acid', cat:'Codominant / Incomplet dominant'},
+  // v5.64 — complexe Acid (Morphpedia) : Acid, Confusion, Static.
+  {id:'acid', name:'Acid', type:'incdom', locus:'acidComplex', cat:'Codominant / Incomplet dominant'},
   {id:'calico', name:'Calico', type:'incdom', locus:'calico', cat:'Codominant / Incomplet dominant'},
   {id:'ghi', name:'GHI (Gotta Have It)', type:'incdom', locus:'ghi', cat:'Codominant / Incomplet dominant'},
   {id:'orangedream', name:'Orange Dream', type:'incdom', locus:'orangedream', cat:'Codominant / Incomplet dominant'},
   {id:'scrambler', name:'Scrambler', type:'incdom', locus:'scrambler', cat:'Codominant / Incomplet dominant'},
-  {id:'hetredaxanthic', name:'Het Red Axanthic', type:'incdom', locus:'hetredaxanthic', cat:'Codominant / Incomplet dominant', superLabel:'Red Axanthic'},
+  {id:'hetredaxanthic', name:'Het Red Axanthic', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant', superLabel:'Red Axanthic', aliases:['HRA','Green Pastel','Lori']},
   // v3.48 — Sable fait partie du complexe Spider (Morphpedia, fiche Sable : « Complex: Spider », super Sable = wobble).
   {id:'sable', name:'Sable', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant', warning:"Forme homozygote (Super Sable) associée au wobble (trouble neurologique) selon Morphpedia. Sable fait partie du complexe Spider : un Sable × Spider peut donner des bébés porteurs des 2 allèles.", warningEn:"Homozygous form (Super Sable) is associated with wobble (neurological issue) according to Morphpedia. Sable is part of the Spider complex: a Sable × Spider pairing can produce babies carrying both alleles."},
   {id:'redstripe', name:'Red Stripe', type:'incdom', locus:'redstripe', cat:'Codominant / Incomplet dominant'},
-  {id:'stranger', name:'Stranger', type:'incdom', locus:'stranger', cat:'Codominant / Incomplet dominant', warning:"Statut génétique noté « suspecté » (non encore confirmé à 100 %) par Morphpedia — traité ici comme codominant par défaut, à vérifier avant tout usage commercial engageant.", warningEn:"Genetic status listed as \"suspected\" (not yet 100% confirmed) by Morphpedia — treated here as codominant by default; verify before any binding commercial use."},
+  {id:'stranger', name:'Stranger', type:'incdom', locus:'mahoganyComplex', cat:'Codominant / Incomplet dominant', warning:"Morphpedia le classe codominant et le place dans le complexe Mahogany (même gène que Mahogany et Cinder). World of Ball Pythons le classe plutôt dominant. LOCUS suit Morphpedia.", warningEn:"Morphpedia lists it as incomplete dominant and places it in the Mahogany complex (same gene as Mahogany and Cinder). World of Ball Pythons lists it as dominant instead. LOCUS follows Morphpedia."},
   // Codominant / Incomplet dominant — Spider Complex : locus partagé (allélisme prouvé ; reconfirmé sur Morphpedia le 9 oct, Sable inclus). Spider et Champagne
   // (ci-dessus) sont TOUJOURS létaux à l'état homozygote et létaux ensemble (Spider × Champagne) — géré
   // via CROSS_WARNINGS plus bas. HGW et Woma : wobble léger rapporté chez une partie des individus
@@ -4306,7 +4309,7 @@ const GENES = [
   {id:'chocolate', name:'Chocolate', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant'},
   {id:'wookie', name:'Wookie', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant'},
   {id:'cypress', name:'Cypress', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant'},
-  {id:'confusion', name:'Confusion', type:'dominant', locus:'confusion', cat:'Dominant'},
+  {id:'confusion', name:'Confusion', type:'dominant', locus:'acidComplex', cat:'Dominant'},
   {id:'bongo', name:'Bongo', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant'},
   {id:'eramosa', name:'Eramosa', type:'dominant', locus:'eramosa', cat:'Dominant'},
   {id:'pinstripe', name:'Pinstripe', type:'dominant', locus:'pinstripe', cat:'Dominant'},
@@ -4315,7 +4318,8 @@ const GENES = [
   {id:'granite', name:'Granite', type:'incdom', locus:'granite', cat:'Codominant / Incomplet dominant'},
   // Recessive
   {id:'piebald', name:'Piebald (Pied)', type:'recessive', locus:'piebald', cat:'Récessif'},
-  {id:'clown', name:'Clown', type:'recessive', locus:'clown', cat:'Récessif'},
+  // v5.64 — complexe Clown (Morphpedia + liste MorphMarket) : Clown et Cryptic sont deux versions du même gène.
+  {id:'clown', name:'Clown', type:'recessive', locus:'clownComplex', cat:'Récessif'},
   // T- Albino Complex — Albino et Candy partagent le locus TYR (reconfirmé sur Morphpedia le 9 oct : Toffee = Candy) ; le composé
   // hétérozygote Albino×Candy produit le phénotype Candino (voir COMPOUND_NAMES plus bas — corrigé v3.39,
   // « Ultramel » était faux ; ReptiDex n'est plus cité comme source dans l'app depuis v3.47 : c'est un concurrent).
@@ -4334,12 +4338,13 @@ const GENES = [
   // de l'Albino/Candy), alias Ultramelanistic, Crider, Burgundy Albino. Morphpedia SOUPÇONNE que Caramel Albino est un allèle
   // du même gène et que Monarch y est relié — non prouvé, donc loci séparés + avertissement. Trou découvert à l'import réel
   // d'une collection de 144 animaux (Midas, noté « Ultramel » dans le fichier MorphMarket).
-  {id:'ultramel', name:'Ultramel', type:'recessive', locus:'ultramel', cat:'Récessif',
-    warning:"Note : Morphpedia soupçonne que Caramel Albino est une autre version (allèle) du même gène qu'Ultramel, et que Monarch y est relié — ce n'est pas prouvé. LOCUS les calcule comme des gènes séparés : un Ultramel × Caramel Albino pourrait donner un résultat différent de celui affiché. Alias : Crider, Burgundy Albino.",
-    warningEn:"Note: Morphpedia suspects that Caramel Albino is another version (allele) of the same gene as Ultramel, and that Monarch is related — this is not proven. LOCUS calculates them as separate genes: an Ultramel × Caramel Albino pairing could give a different result than shown. Aliases: Crider, Burgundy Albino."},
+  // v5.64 — Morphpedia place maintenant Monarch dans le complexe Ultramel (« Monarch is a line of Ultramel ») : même locus.
+  {id:'ultramel', name:'Ultramel', type:'recessive', locus:'ultramelComplex', cat:'Récessif', aliases:['Ultramelanistic','Crider','Burgundy Albino'],
+    warning:"Note : Caramel Albino reste un gène séparé (Morphpedia ne le met pas dans le complexe Ultramel). Monarch, lui, est une version du même gène qu'Ultramel. Alias : Crider, Burgundy Albino.",
+    warningEn:"Note: Caramel Albino stays a separate gene (Morphpedia does not put it in the Ultramel complex). Monarch, however, is a version of the same gene as Ultramel. Aliases: Crider, Burgundy Albino."},
   {id:'stripe', name:'Genetic Stripe', type:'recessive', locus:'stripe', cat:'Récessif'},
   {id:'sunset', name:'Sunset', type:'recessive', locus:'sunset', cat:'Récessif'},
-  {id:'cryptic', name:'Cryptic', type:'recessive', locus:'cryptic', cat:'Récessif'},
+  {id:'cryptic', name:'Cryptic', type:'recessive', locus:'clownComplex', cat:'Récessif', aliases:['Amur','Gizmo']},
   {id:'desertghost', name:'Desert Ghost', type:'recessive', locus:'desertghost', cat:'Récessif'},
   {id:'monsoon', name:'Monsoon', type:'recessive', locus:'monsoon', cat:'Récessif'},
   // Génétique inconnue — existence du trait confirmée (vu en personne / vendu dans le hobby),
@@ -4349,10 +4354,11 @@ const GENES = [
   {id:'cantaloupe', name:'Cantaloupe', type:'unknown', locus:'cantaloupe', cat:'Génétique inconnue'},
   {id:'swirl', name:'Swirl', type:'unknown', locus:'swirl', cat:'Génétique inconnue'},
   {id:'gorilla', name:'Gorilla', type:'unknown', locus:'gorilla', cat:'Génétique inconnue'},
-  {id:'monarch', name:'Monarch', type:'recessive', locus:'monarch', cat:'Récessif'},
+  {id:'monarch', name:'Monarch', type:'recessive', locus:'ultramelComplex', cat:'Récessif', warning:"Morphpedia décrit Monarch comme une lignée d'Ultramel (même complexe) : un Monarch × Ultramel peut donner des bébés visuels.", warningEn:"Morphpedia describes Monarch as a line of Ultramel (same complex): a Monarch × Ultramel pairing can produce visual babies."},
   {id:'puzzle', name:'Puzzle', type:'recessive', locus:'puzzle', cat:'Récessif'},
-  {id:'sentinel', name:'Sentinel', type:'recessive', locus:'sentinel', cat:'Récessif'},
-  {id:'paint', name:'Paint', type:'recessive', locus:'paint', cat:'Récessif'},
+  // v5.64 — Morphpedia liste Sentinel comme une lignée prouvée du Paint (alias « Sentinel ») : même locus. Id gardé pour les fiches existantes.
+  {id:'sentinel', name:'Sentinel', type:'recessive', locus:'paint', cat:'Récessif', warning:"Morphpedia classe Sentinel comme une lignée du Paint (même gène) : un Sentinel × Paint peut donner des bébés Paint visuels. World of Ball Pythons le liste encore à part.", warningEn:"Morphpedia lists Sentinel as a line of Paint (same gene): a Sentinel × Paint pairing can produce visual Paint babies. World of Ball Pythons still lists it separately."},
+  {id:'paint', name:'Paint', type:'recessive', locus:'paint', cat:'Récessif', aliases:['Sentinel']},
   // Ajoutés le 10 sept — trouvés manquants en comparant les 78 gènes existants à Morphpedia
   // (tranche F à N vérifiée d'abord). Fader (polygénique) volontairement exclu, même logique que
   // les autres traits polygéniques déjà écartés du calculateur.
@@ -4427,7 +4433,8 @@ const GENES = [
   {id:'mckenzie', name:'Mckenzie', type:'incdom', locus:'mckenzie', cat:'Codominant / Incomplet dominant'},
   {id:'melt', name:'Melt', type:'incdom', locus:'melt', cat:'Codominant / Incomplet dominant'},
   {id:'metalflake', name:'Metal Flake', type:'recessive', locus:'metalflake', cat:'Récessif'},
-  {id:'microscale', name:'Microscale', type:'incdom', locus:'microscale', cat:'Codominant / Incomplet dominant'},
+  // v5.64 — complexe Scaleless (Morphpedia) : Microscale, Scaleless Head, Zip Belly.
+  {id:'microscale', name:'Microscale', type:'incdom', locus:'scalelessComplex', cat:'Codominant / Incomplet dominant', aliases:['Micro']},
   {id:'migraine', name:'Migraine', type:'recessive', locus:'migraine', cat:'Récessif'},
   {id:'nyala', name:'Nyala', type:'incdom', locus:'nyala', cat:'Codominant / Incomplet dominant'},
   {id:'odium', name:'Odium', type:'incdom', locus:'odium', cat:'Codominant / Incomplet dominant'},
@@ -4441,7 +4448,7 @@ const GENES = [
   {id:'panther', name:'Panther', type:'incdom', locus:'panther', cat:'Codominant / Incomplet dominant'},
   {id:'phenomenon', name:'Phenomenon', type:'incdom', locus:'phenomenon', cat:'Codominant / Incomplet dominant'},
   {id:'pixel', name:'Pixel', type:'incdom', locus:'pixel', cat:'Codominant / Incomplet dominant'},
-  {id:'scalelesshead', name:'Scaleless Head', type:'incdom', locus:'scalelesshead', cat:'Codominant / Incomplet dominant', superLabel:'Scaleless'},
+  {id:'scalelesshead', name:'Scaleless Head', type:'incdom', locus:'scalelessComplex', cat:'Codominant / Incomplet dominant', superLabel:'Scaleless', aliases:['Het Scaleless'], warning:"Forme homozygote (Scaleless) : peau fragile. Source : Morphpedia.", warningEn:"Homozygous form (Scaleless): fragile skin. Source: Morphpedia."},
   {id:'surge', name:'Surge', type:'incdom', locus:'surge', cat:'Codominant / Incomplet dominant'},
   {id:'taronja', name:'Taronja', type:'incdom', locus:'taronja', cat:'Codominant / Incomplet dominant'},
   // Batch 6/6 — dernier de la vague. Total : 107 → 161 gènes (54 ajoutés le 15 sept).
@@ -4458,6 +4465,69 @@ const GENES = [
   //   Swirl (aucune source trouvée, reste 'unknown'), Goblin (pas de page Morphpedia).
   {id:'carbon', name:'Carbon', type:'incdom', locus:'carbon', cat:'Codominant / Incomplet dominant', superLabel:'Covalent'},
   {id:'fnrvanilla', name:'FNR Vanilla', type:'incdom', locus:'fnrvanilla', cat:'Codominant / Incomplet dominant', superLabel:'Super FNR Vanilla'},
+  // v5.64 (5 nov 2026) — audit complet vs Morphpedia (231 traits) : 59 gènes calculables manquants, type et complexe
+  // tirés de la fiche Morphpedia de chaque gène. Exclus : traits non génétiques ou non calculables (Normal, Hybrid, Dinker,
+  // Paradox, RECO, Ringer, Ringer Mark, Volta, polygéniques). Copper (soupçonné Mahogany) et Patternless (soupçonné Genetic
+  // Stripe) restent sur leur propre locus : Morphpedia ne les met dans aucun complexe.
+  {id:'carnivore', name:'Carnivore', type:'incdom', locus:'carnivore', cat:'Codominant / Incomplet dominant'},
+  {id:'chino', name:'Chino', type:'incdom', locus:'chino', cat:'Codominant / Incomplet dominant'},
+  {id:'circle', name:'Circle', type:'incdom', locus:'circle', cat:'Codominant / Incomplet dominant'},
+  {id:'citron', name:'Citron', type:'incdom', locus:'citron', cat:'Codominant / Incomplet dominant'},
+  {id:'coffee', name:'Coffee', type:'incdom', locus:'coffee', cat:'Codominant / Incomplet dominant'},
+  {id:'copper', name:'Copper', type:'incdom', locus:'copper', cat:'Codominant / Incomplet dominant'},
+  {id:'creed', name:'Creed', type:'incdom', locus:'fireComplex', cat:'Codominant / Incomplet dominant'},
+  {id:'jollifftiger', name:'Jolliff Tiger', type:'incdom', locus:'jollifftiger', cat:'Codominant / Incomplet dominant', aliases:['Tiger']},
+  {id:'joppa', name:'Joppa', type:'incdom', locus:'joppa', cat:'Codominant / Incomplet dominant'},
+  {id:'junglewoma', name:'Jungle Woma', type:'incdom', locus:'junglewoma', cat:'Codominant / Incomplet dominant'},
+  {id:'kosmos', name:'Kosmos', type:'incdom', locus:'kosmos', cat:'Codominant / Incomplet dominant'},
+  {id:'mosaic', name:'Mosaic', type:'incdom', locus:'mosaic', cat:'Codominant / Incomplet dominant'},
+  {id:'peach', name:'Peach', type:'incdom', locus:'peach', cat:'Codominant / Incomplet dominant'},
+  {id:'quake', name:'Quake', type:'incdom', locus:'quake', cat:'Codominant / Incomplet dominant'},
+  {id:'rain', name:'Rain', type:'incdom', locus:'rain', cat:'Codominant / Incomplet dominant', aliases:['Amber']},
+  {id:'rar', name:'RAR', type:'incdom', locus:'rar', cat:'Codominant / Incomplet dominant', aliases:['Rare Amelanistic Recessive']},
+  {id:'raven', name:'Raven', type:'incdom', locus:'raven', cat:'Codominant / Incomplet dominant'},
+  {id:'reaper', name:'Reaper', type:'incdom', locus:'reaper', cat:'Codominant / Incomplet dominant', aliases:['Buchman line Granite']},
+  {id:'redgene', name:'Red Gene', type:'incdom', locus:'redgene', cat:'Codominant / Incomplet dominant'},
+  {id:'rhino', name:'Rhino', type:'incdom', locus:'rhino', cat:'Codominant / Incomplet dominant'},
+  {id:'saar', name:'Saar', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant'},
+  {id:'sandblast', name:'Sandblast', type:'incdom', locus:'sandblast', cat:'Codominant / Incomplet dominant'},
+  {id:'sapphire', name:'Sapphire', type:'incdom', locus:'sapphire', cat:'Codominant / Incomplet dominant'},
+  {id:'satin', name:'Satin', type:'incdom', locus:'satin', cat:'Codominant / Incomplet dominant'},
+  {id:'shadow', name:'Shadow', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant'},
+  {id:'sherg', name:'Sherg', type:'incdom', locus:'sherg', cat:'Codominant / Incomplet dominant'},
+  {id:'shrapnel', name:'Shrapnel', type:'incdom', locus:'shrapnel', cat:'Codominant / Incomplet dominant'},
+  {id:'shredder', name:'Shredder', type:'incdom', locus:'shredder', cat:'Codominant / Incomplet dominant'},
+  {id:'smuggler', name:'Smuggler', type:'incdom', locus:'smuggler', cat:'Codominant / Incomplet dominant'},
+  {id:'splatter', name:'Splatter', type:'incdom', locus:'splatter', cat:'Codominant / Incomplet dominant'},
+  {id:'striker', name:'Striker', type:'incdom', locus:'striker', cat:'Codominant / Incomplet dominant'},
+  {id:'trojan', name:'Trojan', type:'incdom', locus:'trojan', cat:'Codominant / Incomplet dominant'},
+  {id:'twister', name:'Twister', type:'incdom', locus:'twister', cat:'Codominant / Incomplet dominant'},
+  {id:'vudoo', name:'Vudoo', type:'incdom', locus:'vudoo', cat:'Codominant / Incomplet dominant'},
+  {id:'web', name:'Web', type:'incdom', locus:'web', cat:'Codominant / Incomplet dominant'},
+  {id:'wreckingball', name:'Wrecking Ball', type:'incdom', locus:'wreckingball', cat:'Codominant / Incomplet dominant'},
+  {id:'xtremegene', name:'X-treme Gene', type:'incdom', locus:'xtremegene', cat:'Codominant / Incomplet dominant'},
+  {id:'xtremist', name:'X-tremist', type:'incdom', locus:'xtremist', cat:'Codominant / Incomplet dominant'},
+  {id:'zuwadi', name:'Zuwadi', type:'incdom', locus:'zuwadi', cat:'Codominant / Incomplet dominant'},
+  {id:'congo', name:'Congo', type:'dominant', locus:'congo', cat:'Dominant'},
+  {id:'josie', name:'Josie', type:'dominant', locus:'josie', cat:'Dominant'},
+  {id:'mordor', name:'Mordor', type:'dominant', locus:'mordor', cat:'Dominant'},
+  {id:'redhead', name:'Redhead', type:'dominant', locus:'redhead', cat:'Dominant', aliases:['Envy']},
+  {id:'shatter', name:'Shatter', type:'dominant', locus:'shatter', cat:'Dominant'},
+  {id:'splash', name:'Splash', type:'dominant', locus:'splash', cat:'Dominant'},
+  {id:'static', name:'Static', type:'dominant', locus:'acidComplex', cat:'Dominant'},
+  {id:'sunrise', name:'Sunrise', type:'dominant', locus:'sunrise', cat:'Dominant'},
+  {id:'typhoon', name:'Typhoon', type:'dominant', locus:'typhoon', cat:'Dominant', warning:"Morphpedia le classe dominant, mais ce n'est pas encore prouvé (dominant ou codominant) : aucun super confirmé.", warningEn:"Morphpedia lists it as dominant, but this is not proven yet (dominant or incomplete dominant): no confirmed super."},
+  {id:'vesper', name:'Vesper', type:'dominant', locus:'vesper', cat:'Dominant'},
+  {id:'zipbelly', name:'Zip Belly', type:'dominant', locus:'scalelessComplex', cat:'Dominant', aliases:['ZB'], warning:"Complexe Scaleless (même gène que Microscale) selon Morphpedia. Vu seulement chez des Microscale d'une lignée ; aucun super prouvé. Aucun effet négatif rapporté, même à la mue.", warningEn:"Scaleless complex (same gene as Microscale) according to Morphpedia. Only seen in Microscales from one line; no proven super. No negative effect reported, even when shedding."},
+  {id:'ghostvesper', name:'Ghost (Vesper)', type:'recessive', locus:'ghostvesper', cat:'Récessif', aliases:['Vesper Ghost','Hypo (Vesper)']},
+  {id:'moray', name:'Moray', type:'recessive', locus:'moray', cat:'Récessif', warning:"Possiblement le même gène que Monsoon (pas confirmé génétiquement) : LOCUS les garde séparés. Source : Morphpedia.", warningEn:"Possibly the same gene as Monsoon (not genetically confirmed): LOCUS keeps them separate. Source: Morphpedia."},
+  {id:'patternless', name:'Patternless', type:'recessive', locus:'patternless', cat:'Récessif'},
+  {id:'rainbow', name:'Rainbow', type:'recessive', locus:'rainbow', cat:'Récessif', aliases:['Rainbow Albino']},
+  {id:'sahara', name:'Sahara', type:'recessive', locus:'sahara', cat:'Récessif'},
+  {id:'sandstorm', name:'Sandstorm', type:'recessive', locus:'sandstorm', cat:'Récessif'},
+  {id:'tristripe', name:'Tri-stripe', type:'recessive', locus:'tristripe', cat:'Récessif'},
+  {id:'whitewash', name:'Whitewash', type:'recessive', locus:'whitewash', cat:'Récessif', aliases:['WW'], warning:"Trait contesté sur Morphpedia : très peu d'animaux visuels montrés, peut-être pas une vraie mutation récessive.", warningEn:"Disputed trait on Morphpedia: very few visual animals shown, may not be a true recessive mutation."},
+  {id:'zebra', name:'Zebra', type:'recessive', locus:'zebra', cat:'Récessif'},
   // ==================== Gecko léopard (v3.54) — champ species:'leopard_gecko', ids préfixés lg_ ====================
   // Source : MorphMarket Morphpedia (fiche par trait, vérifiée le 9 oct 2026). Les 3 albinos sont des
   // gènes SÉPARÉS (Creatures.com : « genetically separate ») → loci distincts, Tremper × Bell = normaux
@@ -4646,6 +4716,10 @@ const COMPOUND_NAMES = {
   },
   cinnamonComplex: {
     'blackpastel+cinnamon': '8 Ball',
+  },
+  // v5.64 — Sentinel = lignée du Paint (Morphpedia) : le combo des deux a l'air d'un Paint.
+  paint: {
+    'paint+sentinel': 'Paint',
   },
   // v5.11 — corn snake : Amel × Ultra = Ultramel (Morphpedia, complexe Ultramel).
   cs_amel: {
@@ -5594,6 +5668,15 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.64', date:'2026-11-05',
+    title:{ fr:'Génétique : 59 gènes de plus et complexes corrigés', en:'Genetics: 59 more genes and fixed complexes' },
+    changes:{
+      fr:[ '🧬 59 gènes de python royal ajoutés (audit complet contre Morphpedia) : Carnivore, Chino, Congo, Creed, Ghost (Vesper), Josie, Mordor, Moray, Patternless, Rainbow, Redhead, Sahara, Saar, Shadow, Static, Tri-stripe, Typhoon, Vesper, Web, Zebra, Zip Belly et bien d\'autres. Avertissements ajoutés quand Morphpedia signale un doute (Typhoon, Whitewash, Moray) ou un risque (Scaleless : peau fragile).',
+           '🔧 Corrigé : certains gènes sont des versions d\'un même gène (complexe) et le calculateur les traitait comme séparés. Maintenant groupés selon Morphpedia : Clown + Cryptic, Ultramel + Monarch, Acid + Confusion + Static, Microscale + Scaleless Head + Zip Belly, Enchi et Het Red Axanthic avec Cinnamon/Black Pastel (8 Ball), Stranger avec Mahogany, Creed avec Fire, Saar et Shadow avec Spider, Sentinel avec Paint. Les fiches existantes ne changent pas ; seuls les calculs sont plus justes.',
+           '🔎 La recherche de gène trouve aussi les autres noms (ex. « Amur » trouve Cryptic, « HRA » trouve Het Red Axanthic). Si un parent porte plus de 2 copies d\'un même complexe, le calculateur l\'affiche au lieu de calculer en silence.' ],
+      en:[ '🧬 59 ball python genes added (full audit against Morphpedia): Carnivore, Chino, Congo, Creed, Ghost (Vesper), Josie, Mordor, Moray, Patternless, Rainbow, Redhead, Sahara, Saar, Shadow, Static, Tri-stripe, Typhoon, Vesper, Web, Zebra, Zip Belly and many more. Warnings added where Morphpedia flags a doubt (Typhoon, Whitewash, Moray) or a risk (Scaleless: fragile skin).',
+           '🔧 Fixed: some genes are versions of one same gene (complex) and the calculator treated them as separate. Now grouped according to Morphpedia: Clown + Cryptic, Ultramel + Monarch, Acid + Confusion + Static, Microscale + Scaleless Head + Zip Belly, Enchi and Het Red Axanthic with Cinnamon/Black Pastel (8 Ball), Stranger with Mahogany, Creed with Fire, Saar and Shadow with Spider, Sentinel with Paint. Existing records don\'t change; only the calculations are more accurate.',
+           '🔎 Gene search also finds other names (e.g. « Amur » finds Cryptic, « HRA » finds Het Red Axanthic). If a parent carries more than 2 copies of one complex, the calculator shows it instead of calculating silently.' ] } },
   { version:'5.63', date:'2026-11-05',
     title:{ fr:'Racks & Terrariums : un vrai menu d\'actions', en:'Racks & Enclosures: a real action menu' },
     changes:{
@@ -9118,7 +9201,7 @@ function buildCombobox(sex){
       return;
     }
     const pool = SEARCH_INDEX.filter(it=>geneSpecies(it.gene)===sp);
-    const matches = q ? pool.filter(it=>it.name.toLowerCase().includes(q)) : pool;
+    const matches = q ? pool.filter(it=>it.name.toLowerCase().includes(q) || (!it.isSuper && (it.gene.aliases||[]).some(a=>a.toLowerCase().includes(q)))) : pool; // v5.64 — alias Morphpedia
     const catCount = (cat)=>GENES.filter(g=>geneSpecies(g)===sp && g.cat===cat).length;
     if(matches.length===0){
       list.innerHTML = '<div class="combo-empty">'+(isEn?'No results for “':'Aucun résultat pour « ')+escapeHtml(query)+(isEn?'”.':' ».')+'</div>';
@@ -11976,6 +12059,22 @@ function allelesFromSelections(selections){
   return result;
 }
 
+// v5.64 — un locus partagé (complexe) ne porte que 2 copies au total. Si une fiche en déclare plus
+// (ex. Super Enchi + Cinnamon, devenu impossible depuis qu'Enchi est dans le complexe 8 Ball),
+// allelesFromSelections garde seulement les 2 premières : on le signale au lieu de calculer en silence.
+function locusOverflow(selections){
+  const counts = {};
+  GENES.forEach(gene=>{
+    const raw = selections && selections[gene.id];
+    if(!raw || gene.type==='unknown') return;
+    const norm = normalizeGeneEntry(raw);
+    if(norm.possible) return;
+    const c = (norm.status==='homo' || norm.status==='visual') ? 2 : 1;
+    const e = counts[gene.locus] = counts[gene.locus] || {n:0, names:[]};
+    e.n += c; e.names.push(gene.name);
+  });
+  return Object.keys(counts).filter(l=>counts[l].n>2).map(l=>({locus:l, names:counts[l].names}));
+}
 function crossLocus(p1pair, p2pair){
   // returns array of {pair:[a,b] sorted, prob}
   const outcomes = {};
@@ -12891,6 +12990,19 @@ function runCross(){
       '<div class="name">'+u.gene.name+' — '+(u.sex==='male'?(isEn?'male side':'côté mâle'):(isEn?'female side':'côté femelle'))+'</div>'+
       '<div class="warn">⚠ '+(isEn?'Unknown genetics (mode of inheritance not confirmed) — not calculable. The baby inherits a "possible presence" flag, not a numeric probability.':'Génétique inconnue (mode de transmission non confirmé) — non calculable. Le bébé hérite du flag "présence possible", pas d\'une probabilité chiffrée.')+'</div>';
     grid.appendChild(card);
+  });
+
+  // v5.64 — trop de copies déclarées sur un même complexe
+  ['male','female'].forEach(sex=>{
+    locusOverflow(state[sex]).forEach(o=>{
+      const card = document.createElement('div');
+      card.className='card';
+      card.style.borderTopColor = 'var(--rust)';
+      card.innerHTML = '<div class="pct" style="font-size:16px;color:var(--rust);">⚠</div>'+
+        '<div class="name">'+escapeHtml(o.names.join(' + '))+' — '+(sex==='male'?(isEn?'male side':'côté mâle'):(isEn?'female side':'côté femelle'))+'</div>'+
+        '<div class="warn">⚠ '+(isEn?'These are versions of the same gene (same complex): an animal carries only 2 copies in total. Check this parent\'s genetics — the calculation only uses the first 2.':'Ce sont des versions du même gène (même complexe) : un animal n\'en porte que 2 copies au total. Vérifie la génétique de ce parent — le calcul utilise seulement les 2 premières.')+'</div>';
+      grid.appendChild(card);
+    });
   });
 
   lastResults = results;

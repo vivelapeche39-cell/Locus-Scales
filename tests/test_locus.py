@@ -459,6 +459,54 @@ def pick_gene(a, side, query, gene_id, status):
 def results_map(a):
     return a.js("lastDistributions ? (()=>{const m={}; lastDistributions.forEach(d=>{const k=d.traits.map(x=>x.label).sort().join('+')||'Normal'; m[k]=(m[k]||0)+d.prob;}); return m;})() : null")
 
+def t_complexes_genes(browser, url):
+    section('Génétique : 59 gènes ajoutés et complexes corrigés (v5.64)')
+    a = App(browser, url, logged_in=False); a.open(); a.js("showTab('calc')")
+    n = a.js("GENES.filter(g=>!g.species || g.species==='ball_python').length")
+    check('223 gènes de python royal (164 + 59)', n == 223, n)
+    miss = a.js("['carnivore','creed','saar','shadow','static','zipbelly','ghostvesper','typhoon','whitewash','tristripe','xtremegene','wreckingball'].filter(id=>!GENES.find(g=>g.id===id))")
+    check('nouveaux gènes présents', miss == [], miss)
+    loc = a.js("Object.fromEntries(['clown','cryptic','ultramel','monarch','acid','confusion','static','microscale','scalelesshead','zipbelly','enchi','hetredaxanthic','cinnamon','stranger','mahogany','creed','fire','saar','spider','sentinel','paint'].map(id=>[id,GENES.find(g=>g.id===id).locus]))")
+    same = lambda *ids: len({loc[i] for i in ids}) == 1
+    check('Clown + Cryptic même complexe', same('clown','cryptic'), loc)
+    check('Ultramel + Monarch même complexe', same('ultramel','monarch'), loc)
+    check('Acid + Confusion + Static même complexe', same('acid','confusion','static'), loc)
+    check('Microscale + Scaleless Head + Zip Belly même complexe', same('microscale','scalelesshead','zipbelly'), loc)
+    check('Enchi + Het Red Axanthic dans le 8 Ball', same('enchi','hetredaxanthic','cinnamon'), loc)
+    check('Stranger avec Mahogany, Creed avec Fire, Saar avec Spider, Sentinel avec Paint',
+          same('stranger','mahogany') and same('creed','fire') and same('saar','spider') and same('sentinel','paint'), loc)
+    # het Clown × het Cryptic : 25 % visuel « Clown Cryptic », aucun double het possible
+    r = a.js("""computeCrossOutcomes({clown:'het'},{cryptic:'het'}).map(o=>({v:o.visuals.join('+'),h:o.hets.join('+'),p:o.prob}))""")
+    vis = [o for o in r if o['v'] == 'Clown Cryptic']
+    check('het Clown × het Cryptic = 25 % Clown Cryptic visuel', len(vis) == 1 and abs(vis[0]['p'] - 0.25) < 1e-9, r)
+    check('…et jamais un bébé het des deux', not any('Clown' in o['h'] and 'Cryptic' in o['h'] for o in r), r)
+    # Cinnamon × Enchi : 25 % Cinnamon Enchi, jamais rien d'autre que 4 issues
+    r = a.js("computeCrossOutcomes({cinnamon:'single'},{enchi:'single'}).map(o=>o.visuals.join('+')||'Normal').sort()")
+    check('Cinnamon × Enchi = Cinnamon, Cinnamon Enchi, Enchi, Normal', r == ['Cinnamon','Cinnamon Enchi','Enchi','Normal'], r)
+    r = a.js("computeCrossOutcomes({paint:'het'},{sentinel:'het'}).filter(o=>o.visuals.includes('Paint')).reduce((s,o)=>s+o.prob,0)")
+    check('het Paint × het Sentinel = 25 % Paint visuel', abs(r - 0.25) < 1e-9, r)
+    r = a.js("computeCrossOutcomes({static:'single'},{}).map(o=>(o.visuals.join('+')||'Normal')+':'+o.prob).sort()")
+    check('Static (dominant) × Normal = 50 / 50', r == ['Normal:0.5','Static:0.5'], r)
+    w = a.js("geneWarning(GENES.find(g=>g.id==='scalelesshead'))")
+    check('avertissement Scaleless : peau fragile', w and 'fragile' in w, w)
+    # recherche par alias
+    a.page.fill('#input-male', 'amur'); a.page.wait_for_timeout(150)
+    ok = a.page.locator('#list-male .combo-opt[data-id="cryptic"]').count() > 0
+    check('recherche « amur » trouve Cryptic', ok)
+    a.page.fill('#input-male', 'hra'); a.page.wait_for_timeout(150)
+    ok = a.page.locator('#list-male .combo-opt[data-id="hetredaxanthic"]').count() > 0
+    check('recherche « hra » trouve Het Red Axanthic', ok)
+    a.page.fill('#input-male', '')
+    # parent avec 3 copies dans le 8 Ball → carte d'avertissement
+    a.js("state.male={enchi:'homo', cinnamon:'single'}; state.female={}; renderTags('male'); renderTags('female'); runCross()"); a.page.wait_for_timeout(200)
+    txt = a.js("document.getElementById('results').innerText")
+    check('Super Enchi + Cinnamon : carte « même complexe » affichée', 'même complexe' in txt and 'Enchi' in txt, txt[:300])
+    a.js("setLangTop('en')"); a.page.wait_for_timeout(300); a.js("runCross()"); a.page.wait_for_timeout(200)
+    txt = a.js("document.getElementById('results').innerText")
+    check('…et en anglais', 'same complex' in txt, txt[:300])
+    check('pas d\'erreur JS (génétique v5.64)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+
 def t_calculateur(browser, url):
     section('Calculateur génétique (hors ligne)')
     a = App(browser, url, logged_in=False)
@@ -1601,7 +1649,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()
