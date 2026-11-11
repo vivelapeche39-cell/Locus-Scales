@@ -2380,7 +2380,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.68';
+const APP_VERSION = '2026.09.01.5.69';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5685,6 +5685,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.69', date:'2026-11-11',
+    title:{ fr:'Étiquettes de tous les bacs d\'un rack', en:'Labels for every tub in a rack' },
+    changes:{
+      fr:[ '🖨 Nouveau bouton « Étiquettes des bacs » sur chaque rack : une seule page avec l\'étiquette de chaque animal du rack (QR, nom, génétique…), triées par rangée et par bac, prêtes à imprimer et à découper. Les champs suivent tes réglages ⚙️ de l\'étiquette.',
+           '🔧 Un animal non sexé n\'est plus indiqué « Femelle » sur son étiquette.' ],
+      en:[ '🖨 New « Tub labels » button on each rack: one page with the label of every animal in the rack (QR, name, genetics…), sorted by row and tub, ready to print and cut. The fields follow your ⚙️ label settings.',
+           '🔧 An unsexed animal is no longer shown as « Female » on its label.' ] } },
   { version:'5.68', date:'2026-11-11',
     title:{ fr:'Mes reptiles : écran plus dégagé', en:'My reptiles: a cleaner screen' },
     changes:{
@@ -15244,16 +15251,7 @@ function printTubLabel(id){
   const isEn = currentLang==='en';
   const s = savedSnakes.find(x=>x.id===id);
   if(!s) return;
-  const lastWeight = s.health.weights.length ? fmtWeight(s.health.weights[s.health.weights.length-1].value) : null;
-  const speciesLabel = speciesDisplayLabel(s.species); // v3.52 — nom traduit
-  const lines = [];
-  if(s.animalId && s.name) lines.push('ID : '+s.animalId); // v4.16 — sans nom, l'ID est déjà le titre de l'étiquette
-  if(labelFieldsPrefs.species) lines.push(speciesLabel);
-  if(labelFieldsPrefs.sex) lines.push(s.sex==='male'?t('sexMale'):t('sexFemale'));
-  if(labelFieldsPrefs.genetics) lines.push(summarizeGenes(s.genes));
-  if(labelFieldsPrefs.weight && lastWeight) lines.push((isEn?'Weight: ':'Poids : ')+lastWeight);
-  if(labelFieldsPrefs.birthDate && s.birthDate) lines.push((isEn?'Born: ':'Né(e) : ')+s.birthDate);
-  if(labelFieldsPrefs.price && s.askingPrice!=null) lines.push((isEn?'Asking: ':'Demandé : ')+s.askingPrice+' $');
+  const lines = tubLabelLines(s); // v5.69 — partagé avec l'impression de tout un rack
   const imgHtml = labelFieldsPrefs.qr ? '<img src="'+qrImageUrl(buildQrData(s), 200)+'" onload="window.print()"/>' : '';
   const win = window.open('', '_blank', 'width=420,height=520');
   win.document.write(
@@ -15271,6 +15269,62 @@ function printTubLabel(id){
   );
   win.document.close();
   if(!labelFieldsPrefs.qr) win.print(); // pas de <img onload>, donc déclenché manuellement
+}
+
+// v5.69 — lignes d'une étiquette de bac (mêmes choix ⚙️ que l'étiquette seule)
+function tubLabelLines(s){
+  const isEn = currentLang==='en';
+  const lastWeight = s.health.weights.length ? fmtWeight(s.health.weights[s.health.weights.length-1].value) : null;
+  const lines = [];
+  if(s.animalId && s.name) lines.push((isEn?'ID: ':'ID : ')+s.animalId); // v4.16 — sans nom, l'ID est déjà le titre de l'étiquette
+  if(labelFieldsPrefs.species) lines.push(speciesDisplayLabel(s.species));
+  if(labelFieldsPrefs.sex) lines.push(s.sex==='male'?t('sexMale'):s.sex==='female'?t('sexFemale'):(isEn?'Unsexed':'Non sexé'));
+  if(labelFieldsPrefs.genetics) lines.push(summarizeGenes(s.genes));
+  if(labelFieldsPrefs.weight && lastWeight) lines.push((isEn?'Weight: ':'Poids : ')+lastWeight);
+  if(labelFieldsPrefs.birthDate && s.birthDate) lines.push((isEn?'Born: ':'Né(e) : ')+s.birthDate);
+  if(labelFieldsPrefs.price && s.askingPrice!=null) lines.push((isEn?'Asking: ':'Demandé : ')+s.askingPrice+' $');
+  return lines;
+}
+// v5.69 — étiquettes de tous les bacs d'un rack sur une seule page (demande de Balls Deep, gratuit — choix d'Alex)
+function rackTubLabelSnakes(rackId){
+  return savedSnakes.filter(s=>s.placement && s.placement.mode==='rack' && s.placement.rackId===rackId && s.status!=='deceased' && s.status!=='sold')
+    .sort((a,b)=>((a.placement.row||999)-(b.placement.row||999)) || ((a.placement.tub||999)-(b.placement.tub||999)) || snakeName(a).localeCompare(snakeName(b)));
+}
+function printRackTubLabels(rackId){
+  if(!requireAuthOrPrompt()) return;
+  const isEn = currentLang==='en';
+  const rack = getRack(rackId); if(!rack) return;
+  const list = rackTubLabelSnakes(rackId);
+  if(!list.length){ alert(isEn ? 'No animal in this rack yet.' : 'Aucun animal dans ce rack pour l\'instant.'); return; }
+  savedSnakes.forEach(ensureSnakeMeta);
+  const withQr = !!labelFieldsPrefs.qr;
+  const cards = list.map(s=>{
+    const lines = tubLabelLines(s);
+    const slot = (s.placement.row && s.placement.tub) ? (isEn?'Row ':'Rangée ')+s.placement.row+' · '+(isEn?'Tub ':'Bac ')+s.placement.tub : '';
+    return '<div class="lb">'+
+      (withQr ? '<img src="'+qrImageUrl(buildQrData(s), 160)+'" onload="__l()" onerror="__l()"/>' : '')+
+      (labelFieldsPrefs.name ? '<h1>'+escapeHtml(snakeName(s))+'</h1>' : '')+
+      (lines.length ? '<p>'+lines.map(escapeHtml).join(' — ')+'</p>' : '')+
+      (slot ? '<p class="slot">'+escapeHtml(rack.name)+' · '+slot+'</p>' : '')+
+    '</div>';
+  }).join('');
+  const win = window.open('', '_blank');
+  if(!win){ alert(isEn ? 'Allow pop-ups to print the labels.' : 'Autorise les fenêtres pop-up pour imprimer les étiquettes.'); return; }
+  win.document.write(
+    '<html><head><title>'+(isEn?'Tub labels — ':'Étiquettes de bacs — ')+escapeHtml(rack.name)+'</title><style>'+
+    'body{font-family:Arial,sans-serif;margin:12px;}'+
+    '.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}'+
+    '.lb{border:1px dashed #999;border-radius:8px;padding:10px;text-align:center;break-inside:avoid;page-break-inside:avoid;}'+
+    'img{width:110px;height:110px;}'+
+    'h1{font-size:16px;margin:6px 0 2px;}'+
+    'p{font-size:11px;color:#444;margin:2px 0;}'+
+    '.slot{color:#888;font-size:10px;}'+
+    '@media print{ body{margin:0;} }'+
+    '</style><script>var __n='+(withQr?list.length:0)+';function __l(){ if(--__n===0) setTimeout(function(){window.print();},150); }<\/script></head><body><div class="grid">'+
+    cards+'</div></body></html>'
+  );
+  win.document.close();
+  if(!withQr) win.print();
 }
 
 function exportSnakeSheet(id, vetMode){
@@ -26106,6 +26160,7 @@ function renderRackGrid(){
         '<button class="sc-btn" data-act="addrow" data-rack="'+rack.id+'">'+t('addRowBtn')+'</button>'+
         '<button class="sc-btn" data-act="cleanrack" data-rack="'+rack.id+'">🧹 '+(isEn?'Cleaning':'Nettoyage')+(overdueTubs?' <span style="color:#e08a63;font-weight:700;">🚨 '+overdueTubs+'</span>':'')+'</button>'+
         '<button class="sc-btn" onclick="printRackLabel(\''+rack.id+'\')">🏷️ '+(isEn?'Rack QR':'QR du rack')+'</button>'+
+        '<button class="sc-btn" onclick="printRackTubLabels(\''+rack.id+'\')">🖨 '+(isEn?'Tub labels':'Étiquettes des bacs')+'</button>'+ // v5.69
         '<button class="sc-btn" onclick="openRackLogbookModal(\''+rack.id+'\')">🗒️ '+(isEn?'Rack journal':'Journal du rack')+'</button>'+
         (racks.length>1 ? '<button class="sc-btn danger" data-act="delrack" data-rack="'+rack.id+'">'+t('deleteThisRackBtn')+'</button>' : '')+ // v4.51 — un rack vide se supprime aussi
         (maintMode && maintMode!=='uvb' && maintMode!=='wq' && maintMode!=='move' ? '<button class="sc-btn accent" onclick="toggleMaintRack(\''+rack.id+'\')">✅ '+(isEn?'Whole rack':'Tout le rack')+'</button>' : '')+ // v3.75

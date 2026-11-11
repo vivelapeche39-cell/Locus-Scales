@@ -582,6 +582,35 @@ def t_menu_plus_568(browser, url):
     check('pas d\'erreur JS (v5.68)', not a.real_errors(), a.real_errors()[:3])
     a.close()
 
+def t_etiquettes_rack_569(browser, url):
+    section('Étiquettes de tous les bacs d\'un rack (v5.69)')
+    snakes = [make_snake(i, days_history=30) for i in range(500, 506)]
+    a = App(browser, url, snakes=snakes, lang='en'); a.open(wait=1500)
+    ids = [x['id'] for x in snakes]
+    a.js("""(ids)=>{ racks.push({id:'rk_lb', name:'Rack A', rows:[3,3]});
+      ids.forEach((id,i)=>{ const s=savedSnakes.find(x=>x.id===id); s.placement = i<5 ? {mode:'rack', rackId:'rk_lb', row: i<3?2:1, tub:(i%3)+1} : {mode:'terrarium'}; });
+      savedSnakes.find(x=>x.id===ids[4]).name = '<b>X</b>';
+      savedSnakes.find(x=>x.id===ids[0]).status = 'sold';
+      window.__printed = null; window.open = function(){ return { document:{ write(h){ window.__printed = h; }, close(){} }, print(){} }; };
+      showTab('elevage'); renderRackGrid(); }""", ids)
+    a.page.wait_for_timeout(400)
+    btn = a.page.locator('button:has-text("Tub labels")')
+    check('bouton « 🖨 Tub labels » sur le rack', btn.count() >= 1)
+    a.js("printRackTubLabels('rk_lb')")
+    h = a.js("window.__printed") or ''
+    n = h.count('class="lb"')
+    check('une étiquette par animal du rack (vendus exclus, terrarium exclu)', n == 4, n)
+    check('ordre rangée puis bac (Row 1 avant Row 2)', 0 <= h.find('Row 1') < h.find('Row 2'), h[:200])
+    check('nom échappé (pas de HTML injecté)', '<b>X</b>' not in h and '&lt;b&gt;X&lt;/b&gt;' in h)
+    check('QR inclus selon les réglages ⚙️', h.count('qrserver.com') == 4)
+    a.js("labelFieldsPrefs.qr=false; printRackTubLabels('rk_lb')")
+    h2 = a.js("window.__printed") or ''
+    check('sans QR si décoché dans ⚙️', 'qrserver.com' not in h2 and h2.count('class="lb"') == 4)
+    a.js("setLangTop('fr'); renderRackGrid()"); a.page.wait_for_timeout(300)
+    check('bouton en français « Étiquettes des bacs »', a.page.locator('button:has-text("Étiquettes des bacs")').count() >= 1)
+    check('pas d\'erreur JS (v5.69)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+
 def t_avert_sable_scaleless(browser, url):
     section('Alertes Sable et Scaleless seulement quand c\'est justifié (v5.66)')
     a = App(browser, url, logged_in=False); a.open(); a.js("showTab('calc')")
@@ -1752,7 +1781,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()
