@@ -744,6 +744,39 @@ def t_import_photos_573(browser, url):
     check('pas d\'erreur JS (v5.73)', not [e for e in a.real_errors() if not e.startswith('dialog:') and 'fake.invalid' not in e and 'ERR_' not in e], a.real_errors()[:3])
     a.close()
 
+def t_rongeurs_clairs_574(browser, url):
+    section('Rongeurs : noms de lignée en mots + « Par où commencer » (v5.74)')
+    a = App(browser, url, snakes=[make_snake(800)], lang='en'); a.open(wait=1500)
+    a.js("showTab('elevage'); showSubtab('rongeurs')"); a.page.wait_for_timeout(400)
+    g = lambda: a.js("document.getElementById('rodent-start-guide').innerText")
+    txt = g()
+    check('onglet vide : « Where to start » avec 3 étapes', 'Where to start' in txt and 'Log your first litter' in txt and 'Get your feeders ready' in txt, txt[:200])
+    a.js("""(()=>{ rodentBins.push({ id:'rbA', binType:'reproduction', species:'rat', label:'A', lineageNumber:1, lineageGeneration:1, lineageLetter:null, litters:[] },
+                                 { id:'rbB', binType:'reproduction', species:'rat', label:'B', lineageNumber:3, lineageGeneration:2, lineageLetter:'b', litters:[] },
+                                 { id:'rbC', binType:'reproduction', species:'mouse', label:'C', lineageNumber:null, litters:[] }); renderRodentBins(); })()""")
+    a.page.wait_for_timeout(300)
+    lb = a.js("[rodentLineageLabel(rodentBins[0]), rodentLineageLabel(rodentBins[1]), rodentLineageLabel(rodentBins[2]), rodentLineageLabel(rodentBins[1], true)]")
+    check('« 1.1 » → « Line 1 · 1st male »', lb[0] == 'Line 1 · 1st male', lb)
+    check('« 3.2b » → « Line 3 · restart 2 · 3rd male »', lb[1] == 'Line 3 · restart 2 · 3rd male', lb)
+    check('bac sans numéro : « Breeding bin », jamais « null »', lb[2] == 'Breeding bin' and lb[3] == 'Line 3', lb)
+    page = a.js("document.getElementById('rodent-bins-list').innerText")
+    check('cartes des bacs : nom en mots, pas de code « 3.2b » ni « null »', 'Line 3 · restart 2 · 3rd male' in page and '3.2b' not in page and 'null' not in page, page[:300])
+    check('le code reste dans l\'infobulle', a.js("[...document.querySelectorAll('#rodent-bins-list span[title]')].some(e=>e.title.includes('3.2b'))"))
+    txt = g()
+    check('étape 1 cochée toute seule (un bac existe)', '✓' in txt, txt[:200])
+    a.js("rodentBins[0].litters.push({ date:localTodayStr(), born:8 }); feederStock[feederStockKey('rat','pinky')] = 5; renderRodentBins()"); a.page.wait_for_timeout(200)
+    check('3 étapes faites : le guide disparaît', g().strip() == '')
+    a.js("rodentBins[0].litters = []; feederStock = {}; renderRodentBins()"); a.page.wait_for_timeout(200)
+    a.page.click('#rodent-start-guide button[title="Hide"]'); a.page.wait_for_timeout(200)
+    check('✕ masque le guide', g().strip() == '')
+    a.reload(); a.js("showTab('elevage'); showSubtab('rongeurs')"); a.page.wait_for_timeout(300)
+    check('…et il reste masqué', g().strip() == '')
+    a.js("localStorage.removeItem('locus_rodent_start_hidden_v1'); setLangTop('fr'); renderRodentBins()"); a.page.wait_for_timeout(300)
+    check('en français : « Par où commencer »', 'Par où commencer' in g())
+    check('en français : « Lignée 3 · 2e départ · 3e mâle »', a.js("rodentLineageLabel({lineageNumber:3, lineageGeneration:2, lineageLetter:'b'})") == 'Lignée 3 · 2e départ · 3e mâle')
+    check('pas d\'erreur JS (v5.74)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+
 def t_avert_sable_scaleless(browser, url):
     section('Alertes Sable et Scaleless seulement quand c\'est justifié (v5.66)')
     a = App(browser, url, logged_in=False); a.open(); a.js("showTab('calc')")
@@ -1914,7 +1947,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()

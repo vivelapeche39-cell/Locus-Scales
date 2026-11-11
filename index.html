@@ -1671,6 +1671,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <p style="font-size:11px;color:var(--ink-dim);line-height:1.6;margin:0 0 12px;" data-i18n="rodentBinsHint">Suivi de tes bacs reproducteurs de rongeurs nourriciers — séparé de tes reptiles. L'angle qui compte le plus : le volume produit par bac, pour repérer et remplacer les couples peu productifs.</p>
       <div id="rodent-locked-msg" style="display:none;"></div>
       <div id="rodent-unlocked-content">
+      <div id="rodent-start-guide"></div><!-- v5.74 — « Par où commencer » (retour de Dusty) -->
       <button class="sc-btn accent" style="margin-bottom:14px;" onclick="showRodentProductivityReport()" data-i18n="rodentProductivityBtn">📊 Voir la rentabilité par bac</button>
       <button class="sc-btn" style="margin-bottom:14px;margin-left:8px;" onclick="showRodentMonthlyReport()" data-i18n="rodentMonthlyBtn">📅 Rapport mensuel</button>
       <button class="sc-btn" style="margin-bottom:14px;margin-left:8px;" onclick="openRodentStageSettingsModal()" data-i18n="rodentStageSettingsBtn">⚙️ Rythme de croissance</button>
@@ -2386,7 +2387,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.73';
+const APP_VERSION = '2026.09.01.5.74';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5691,6 +5692,15 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.74', date:'2026-11-11',
+    title:{ fr:'Rongeurs plus faciles à comprendre', en:'Rodents easier to understand' },
+    changes:{
+      fr:[ '🐭 Les lignées s\'affichent maintenant en mots : « Lignée 3 · 2e départ · 3e mâle » au lieu du code « 3.2b ». Le code reste dans l\'infobulle et l\'historique du bac.',
+           '🐭 Nouveau « Par où commencer » en haut de l\'onglet Rongeurs : 3 étapes (créer un bac reproducteur, noter une portée, préparer les proies), cochées toutes seules. Il disparaît quand c\'est fait, ou avec ✕.',
+           '🔧 Un bac reproducteur sans numéro de lignée n\'affiche plus « null ».' ],
+      en:[ '🐭 Lineages are now shown in words: « Line 3 · restart 2 · 3rd male » instead of the code « 3.2b ». The code stays in the bin\'s tooltip and history.',
+           '🐭 New « Where to start » at the top of the Rodents tab: 3 steps (create a breeding bin, log a litter, get feeders ready), ticked on their own. It goes away once done, or with ✕.',
+           '🔧 A breeding bin with no lineage number no longer shows « null ».' ] } },
   { version:'5.73', date:'2026-11-11',
     title:{ fr:'Photos importées avec ton fichier', en:'Photos imported with your file' },
     changes:{
@@ -24024,6 +24034,7 @@ function renderRodentBins(){
   }
   if(lockedMsg) lockedMsg.style.display = 'none';
   if(unlockedContent) unlockedContent.style.display = '';
+  renderRodentStartGuide(); // v5.74
   renderRodentRackGrid();
   renderRodentGoalProgress();
   renderRodentRestingList();
@@ -24079,7 +24090,7 @@ function rodentReproBinCardHtml(bin, isEn){
       : '<div class="modal-row"><span>'+(isEn?'No litter logged yet.':'Aucune portée enregistrée.')+'</span></div>';
     return (
       '<div class="clutch-ref">'+escapeHtml(bin.label)+
-        (bin.lineageNumber!=null ? ' <span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--gold);cursor:pointer;" title="'+(isEn?'Click to rename this lineage':'Clique pour renommer cette lignée')+'" onclick="renameRodentLineage(\''+bin.id+'\')">🧬 '+escapeHtml(rodentLineageCode(bin))+' ✎</span>'+rodentHelpQ('code', isEn)+
+        (bin.lineageNumber!=null ? ' <span style="font-family:\'Courier New\',monospace;font-size:11px;color:var(--gold);cursor:pointer;" title="'+escapeHtml((isEn?'Code ':'Code ')+rodentLineageCode(bin)+' — '+(isEn?'tap to rename this lineage':'touche pour renommer cette lignée'))+'" onclick="renameRodentLineage(\''+bin.id+'\')">🧬 '+escapeHtml(rodentLineageLabel(bin))+' ✎</span>'+rodentHelpQ('code', isEn)+
           ' <button class="sc-btn" style="padding:1px 6px;font-size:9.5px;" title="'+(isEn?'Male replaced / bin aging':'Mâle remplacé / vieillissement du bac')+'" onclick="openRodentLineageLetterModal(\''+bin.id+'\')">🔄</button>'+
           ' <button class="sc-btn" style="padding:1px 6px;font-size:9.5px;" title="'+(isEn?'Lineage history':'Historique de la lignée')+'" onclick="openRodentLineageHistoryModal(\''+bin.id+'\')">🕒</button>'+
           ' <button class="sc-btn" style="padding:1px 6px;font-size:9.5px;" title="'+(isEn?'Move male/female to another bin':'Déplacer un mâle/une femelle vers un autre bac')+'" onclick="openRodentMoveAnimalModal(\''+bin.id+'\')">↔️</button>'
@@ -24290,6 +24301,44 @@ function toggleRodentBinTypeFields(){
   if(ratioEl) ratioEl.style.display = (type==='stock') ? 'none' : '';
   if(sexeEl) sexeEl.style.display = (type==='stock') ? '' : 'none';
 }
+// v5.74 — « Par où commencer » en haut de l'onglet Rongeurs (retour de Dusty, 11 nov : la section était difficile à
+// comprendre). 3 étapes cochées toutes seules selon les vraies données ; disparaît quand les 3 sont faites, ou avec ✕.
+function rodentStartSteps(){
+  const breeding = rodentBins.filter(b=>b.binType==='reproduction');
+  return [
+    breeding.length>0,
+    rodentBins.some(b=>Array.isArray(b.litters) && b.litters.length>0),
+    rodentBins.some(b=>b.binType==='stock' && Array.isArray(b.stockBatches) && b.stockBatches.some(x=>(x.quantity||0)>0)) || Object.values(feederStock||{}).some(v=>(+v||0)>0) || Object.values(feederStockLive||{}).some(v=>(+v||0)>0)
+  ];
+}
+function renderRodentStartGuide(){
+  const el = document.getElementById('rodent-start-guide'); if(!el) return;
+  const isEn = currentLang==='en';
+  let hidden = false; try{ hidden = localStorage.getItem('locus_rodent_start_hidden_v1')==='1'; }catch(e){}
+  const done = rodentStartSteps();
+  if(hidden || done.every(Boolean)){ el.innerHTML = ''; return; }
+  const step = (i, title, text, btn)=>'<div style="display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line);">'+
+    '<div style="flex-shrink:0;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;'+(done[i]?'background:var(--sage);color:#141c0c;':'border:1px solid var(--gold);color:var(--gold);')+'">'+(done[i]?'✓':(i+1))+'</div>'+
+    '<div style="flex:1;min-width:0;'+(done[i]?'opacity:.6;':'')+'"><div style="font-size:15px;font-weight:700;color:var(--ink);">'+title+'</div>'+
+    '<div style="font-size:14px;line-height:1.45;color:var(--ink-dim);margin-top:2px;">'+text+'</div>'+(done[i]||!btn?'':'<div style="margin-top:6px;">'+btn+'</div>')+'</div></div>';
+  el.innerHTML = '<div style="border:1px solid var(--gold);border-radius:12px;padding:12px 14px;margin:0 0 16px;background:var(--bg-panel);">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;">'+
+      '<div style="font-size:16px;font-weight:700;color:var(--gold);">🐭 '+(isEn?'Where to start':'Par où commencer')+'</div>'+
+      '<button class="sc-btn" style="padding:4px 10px;" title="'+(isEn?'Hide':'Masquer')+'" onclick="hideRodentStartGuide()">✕</button></div>'+
+    '<div style="font-size:14px;color:var(--ink-dim);margin-bottom:4px;">'+(isEn?'3 steps. You don\'t need anything else to start.':'3 étapes. Tu n\'as besoin de rien d\'autre pour commencer.')+'</div>'+
+    step(0, isEn?'Create a breeding bin':'Crée un bac reproducteur',
+      isEn?'Add a rack, then tap an empty slot: LOCUS creates the lineage on its own (you never type a code).':'Ajoute un rack, puis touche un bac vide : LOCUS crée la lignée tout seul (tu n\'écris jamais de code).',
+      '<button class="sc-btn accent" onclick="'+(rodentRacks && rodentRacks.length ? 'document.getElementById(\'rodent-racks-container\').scrollIntoView({behavior:\'smooth\'})' : 'addRodentRack()')+'">'+(rodentRacks && rodentRacks.length ? (isEn?'Go to my rack':'Aller à mon rack') : (isEn?'➕ Add a rack':'➕ Ajouter un rack'))+'</button>')+
+    step(1, isEn?'Log your first litter':'Note ta première portée',
+      isEn?'On the bin\'s card: the date and how many babies. That one habit makes everything else work.':'Sur la carte du bac : la date et le nombre de bébés. C\'est la seule habitude qui fait tout marcher.',
+      '<button class="sc-btn" onclick="document.getElementById(\'rodent-bins-list\').scrollIntoView({behavior:\'smooth\'})">'+(isEn?'Go to my bins':'Aller à mes bacs')+'</button>')+
+    step(2, isEn?'Get your feeders ready':'Prépare tes proies',
+      isEn?'When babies are weaned, move them to a Stock bin. When you freeze some, use « 🧊 Freeze a batch ».':'Quand les bébés sont sevrés, passe-les dans un bac Stock. Quand tu en congèles, utilise « 🧊 Congeler un lot ».',
+      '<button class="sc-btn" onclick="openRodentFreezeModal()">🧊 '+(isEn?'Freeze a batch':'Congeler un lot')+'</button>')+
+    '<div style="border-top:1px solid var(--line);padding-top:8px;font-size:14px;"><a href="#" onclick="openRodentLineageHelp();return false;" style="color:var(--gold);">❓ '+(isEn?'What do the lineage names mean?':'Que veulent dire les noms de lignée ?')+'</a></div>'+
+  '</div>';
+}
+function hideRodentStartGuide(){ try{ localStorage.setItem('locus_rodent_start_hidden_v1','1'); }catch(e){} renderRodentStartGuide(); }
 function addRodentBin(){
   const isEn = currentLang==='en';
   const labelInput = document.getElementById('rodent-bin-label');
@@ -24457,7 +24506,7 @@ function openRodentLineageDirectoryModal(){
     const footprintStr = (b.cumulativeFootprint && b.cumulativeFootprint.length) ? b.cumulativeFootprint.map(e=>e.number+'.'+e.generation).join(', ') : '—';
     const maleStatus = b.maleRemovedDate ? ('😴 '+(isEn?'removed '+b.maleRemovedDate:'retiré le '+b.maleRemovedDate)) : ('✓ '+(isEn?'present':'présent'));
     return '<div class="modal-row" style="align-items:flex-start;">'+
-      '<span><span style="font-family:\'Courier New\',monospace;color:var(--gold);">🧬 '+escapeHtml(rodentLineageCode(b))+'</span> — '+rodentSpeciesIconLabel(b.species, isEn)+' ('+(b.ratio||'—')+')'+
+      '<span><span style="font-family:\'Courier New\',monospace;color:var(--gold);">🧬 '+escapeHtml(rodentLineageLabel(b))+'</span> — '+rodentSpeciesIconLabel(b.species, isEn)+' ('+(b.ratio||'—')+')'+
         '<br/><small style="color:var(--ink-dim);">'+escapeHtml(position)+'</small>'+
         '<br/><small style="color:var(--ink-dim);">'+(isEn?'Related':'Apparentées')+': '+footprintStr+'</small>'+
       '</span>'+
@@ -24480,7 +24529,7 @@ function openRodentMoveAnimalModal(sourceBinId){
     showToast(isEn?'No other lineage bin to move to yet.':'Aucun autre bac de lignée où déplacer pour l\'instant.', 'error');
     return;
   }
-  const destOptionsHtml = otherBins.map(b=>'<option value="'+b.id+'">🧬 '+escapeHtml(rodentLineageCode(b))+'</option>').join('');
+  const destOptionsHtml = otherBins.map(b=>'<option value="'+b.id+'">🧬 '+escapeHtml(rodentLineageLabel(b))+'</option>').join('');
   const body =
     '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Who are you moving?':'Qui déplaces-tu?')+'</span>'+
       '<select id="rodent-move-who" onchange="updateRodentMoveConflictPreview(\''+sourceBinId+'\')" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
@@ -24491,7 +24540,7 @@ function openRodentMoveAnimalModal(sourceBinId){
       '<select id="rodent-move-dest" onchange="updateRodentMoveConflictPreview(\''+sourceBinId+'\')" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+destOptionsHtml+'</select></label>'+
     '<div id="rodent-move-conflict-preview"></div>'+
     '<button class="save-btn" style="width:100%;" onclick="confirmRodentMoveAnimal(\''+sourceBinId+'\')">↔️ '+(isEn?'Move':'Déplacer')+'</button>';
-  showQuickModal('↔️ '+(isEn?'Move from '+rodentLineageCode(sourceBin):'Déplacer depuis '+rodentLineageCode(sourceBin)), body);
+  showQuickModal('↔️ '+(isEn?'Move from '+rodentLineageLabel(sourceBin):'Déplacer depuis '+rodentLineageLabel(sourceBin)), body);
   updateRodentMoveConflictPreview(sourceBinId);
 }
 function updateRodentMoveConflictPreview(sourceBinId){
@@ -24519,8 +24568,8 @@ function confirmRodentMoveAnimal(sourceBinId){
     const destFootprintBefore = rodentBinFootprint(destBin);
     if(rodentFootprintConflict(destFootprintBefore, sourceBin.lineageNumber)){
       if(!confirm(isEn
-        ? '⚠️ Inbreeding risk: this male shares a lineage with '+rodentLineageCode(destBin)+'\'s females. Move him anyway?'
-        : '⚠️ Risque de consanguinité : ce mâle partage une lignée avec les femelles de '+rodentLineageCode(destBin)+'. Le déplacer quand même?')) return;
+        ? '⚠️ Inbreeding risk: this male shares a lineage with '+rodentLineageLabel(destBin)+'\'s females. Move him anyway?'
+        : '⚠️ Risque de consanguinité : ce mâle partage une lignée avec les femelles de '+rodentLineageLabel(destBin)+'. Le déplacer quand même?')) return;
     }
     sourceBin.maleRemovedDate = localTodayStr();
     sourceBin.maleRemovedNote = (isEn?'Moved to ':'Déplacé vers ')+rodentLineageCode(destBin);
@@ -24771,7 +24820,7 @@ function openRodentLineageHelp(section){
     (ex ? '<div style="font-size:13px;line-height:1.5;color:var(--ink-dim);margin-top:6px;padding-left:8px;border-left:2px solid var(--line);">'+(isEn?'Example: ':'Exemple : ')+ex+'</div>' : '')+'</div>';
   const fr = [
     S('base','1. Un bac = une lignée', 'Chaque bac Reproduction reçoit un numéro de lignée de 1 à 100, donné automatiquement (le premier numéro libre). Les bacs Stock / Croissance n\'ont pas de lignée.', 'tu crées ton premier bac → lignée 1, le suivant → lignée 2.'),
-    S('code','2. Lire le code « 3.2b »', '<b>3</b> = le numéro de la lignée (tu peux le renommer, ex. « Albinos » ; le reste du code reste automatique). <b>.2</b> = la génération. <b>b</b> = la lettre : combien de fois le mâle a été remplacé dans cette génération (aucune lettre = mâle d\'origine).', '3.1 → 3.1a (1er mâle remplacé) → 3.1b (2e mâle remplacé).'),
+    S('code','2. Lire le code « 3.2b »', '<b>3</b> = le numéro de la lignée (tu peux le renommer, ex. « Albinos » ; le reste du code reste automatique). <b>.2</b> = la génération. <b>b</b> = la lettre : combien de fois le mâle a été remplacé dans cette génération (aucune lettre = mâle d\'origine). Dans l\'app, le code s\'affiche en mots : 3.2b = « Lignée 3 · 2e départ · 3e mâle » ; le code lui-même reste dans l\'infobulle et l\'historique du bac.', '3.1 → 3.1a (1er mâle remplacé) → 3.1b (2e mâle remplacé).'),
     S('letter','3. Quand la lettre avance', 'Bouton 🔄 du bac, réponse « Oui, les femelles restent les mêmes ». C\'est un remplacement de mâle seulement : même génération, lettre suivante. Les femelles étant les mêmes, la lignée reste liée à avant.', '2.1 + nouveau mâle, mêmes femelles → 2.1a.'),
     S('generation','4. Quand la génération avance', 'Bouton 🔄 du bac, réponse « Non, les femelles sont différentes » (reset complet, typiquement au vieillissement du bac). La génération monte de 1 et la lettre disparaît. C\'est le SEUL moment où LOCUS considère que le lien de parenté est vraiment coupé. LOCUS ne le fait jamais tout seul : c\'est toi qui le déclares.', '2.1b + mâle ET femelles remplacés → 2.2.'),
     S('footprint','5. Les lignées apparentées (empreinte)', 'Quand tu crées un bac avec des femelles venant d\'autres bacs, ou que tu déplaces un animal avec ↔️, le bac garde la liste des lignées d\'où viennent ses animaux (numéro + génération). C\'est la ligne « Lignées apparentées » du bac. Elle s\'additionne : les femelles apportent aussi les lignées de leur propre bac.', 'femelles du bac 1 (1.1) mises dans un nouveau bac → il devient 4.1 avec « Lignées apparentées : 1.1 ».'),
@@ -24780,7 +24829,7 @@ function openRodentLineageHelp(section){
   ].join('');
   const en = [
     S('base','1. One bin = one lineage', 'Each Breeding bin gets a lineage number from 1 to 100, given automatically (the first free number). Stock / Grow-out bins have no lineage.', 'your first bin → lineage 1, the next one → lineage 2.'),
-    S('code','2. Reading the code « 3.2b »', '<b>3</b> = the lineage number (you can rename it, e.g. « Albino »; the rest of the code stays automatic). <b>.2</b> = the generation. <b>b</b> = the letter: how many times the male was replaced in this generation (no letter = original male).', '3.1 → 3.1a (1st male replaced) → 3.1b (2nd male replaced).'),
+    S('code','2. Reading the code « 3.2b »', '<b>3</b> = the lineage number (you can rename it, e.g. « Albino »; the rest of the code stays automatic). <b>.2</b> = the generation. <b>b</b> = the letter: how many times the male was replaced in this generation (no letter = original male). In the app the code is shown in words: 3.2b = « Line 3 · restart 2 · 3rd male »; the code itself stays in the bin\'s tooltip and history.', '3.1 → 3.1a (1st male replaced) → 3.1b (2nd male replaced).'),
     S('letter','3. When the letter advances', 'The bin\'s 🔄 button, answer « Yes, the females stay the same ». It\'s a male replacement only: same generation, next letter. Since the females are the same, the lineage stays linked to before.', '2.1 + new male, same females → 2.1a.'),
     S('generation','4. When the generation advances', 'The bin\'s 🔄 button, answer « No, the females are different » (full reset, usually when the bin ages out). The generation goes up by 1 and the letter goes away. It\'s the ONLY time LOCUS considers the family link truly broken. LOCUS never does it on its own: you declare it.', '2.1b + male AND females replaced → 2.2.'),
     S('footprint','5. Related lineages (footprint)', 'When you create a bin with females from other bins, or move an animal with ↔️, the bin keeps the list of lineages its animals come from (number + generation). That\'s the bin\'s « Related lineages » line. It adds up: females also bring the lineages of their own bin.', 'females from bin 1 (1.1) put in a new bin → it becomes 4.1 with « Related lineages: 1.1 ».'),
@@ -24789,6 +24838,21 @@ function openRodentLineageHelp(section){
   ].join('');
   showQuickModal('🧬 '+(isEn?'How lineages work':'Comment marchent les lignées'), isEn ? en : fr);
   if(section){ setTimeout(()=>{ const el = document.getElementById('rlh-'+section); if(el && el.scrollIntoView) el.scrollIntoView({block:'start'}); }, 60); }
+}
+// v5.74 — nom lisible d'une lignée (retour de Dusty : le code « 1.1a » et ses lettres étaient difficiles à comprendre).
+// « Lignée 1 · 2e mâle » au lieu de « 1.1a » ; le code reste dans l'infobulle et l'historique. short = juste « Lignée 1 ».
+function rodentLineageLabel(bin, short){
+  const isEn = currentLang==='en';
+  if(!bin) return '';
+  const base = bin.lineageCustomName || (bin.lineageNumber!=null ? (isEn?'Line ':'Lignée ')+bin.lineageNumber : (isEn?'Breeding bin':'Bac reproducteur'));
+  if(short || (bin.lineageNumber==null && !bin.lineageCustomName)) return base;
+  const gen = bin.lineageGeneration || 1;
+  const maleN = bin.lineageLetter ? (String(bin.lineageLetter).toLowerCase().charCodeAt(0)-96)+1 : 1;
+  const ord = n=>isEn ? (n===1?'1st':n===2?'2nd':n===3?'3rd':n+'th') : (n===1?'1er':n+'e');
+  const parts = [base];
+  if(gen>1) parts.push(isEn ? 'restart '+gen : ord(gen)+' départ');
+  parts.push(isEn ? ord(maleN)+' male' : ord(maleN)+' mâle');
+  return parts.join(' · ');
 }
 function rodentLineageCode(bin){
   const base = bin.lineageCustomName || String(bin.lineageNumber);
@@ -24838,7 +24902,7 @@ function openRodentLineageLetterModal(binId){
   const bin = rodentBins.find(b=>b.id===binId);
   if(!bin) return;
   const maleOriginOptionsHtml = rodentBins.filter(b=>b.binType==='reproduction' && b.lineageNumber!=null && b.id!==binId)
-    .map(b=>'<option value="'+b.lineageNumber+'">🧬 '+escapeHtml(rodentLineageCode(b))+'</option>').join('');
+    .map(b=>'<option value="'+b.lineageNumber+'">🧬 '+escapeHtml(rodentLineageLabel(b))+'</option>').join('');
   const body =
     '<p style="font-size:11px;color:var(--ink-dim);margin:0 0 14px;">'+(isEn
       ? 'Use this for a male replacement or bin aging — it advances the lineage letter.'
@@ -24858,7 +24922,7 @@ function openRodentLineageLetterModal(binId){
     '<label style="display:block;margin-bottom:14px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Reason (optional)':'Raison (optionnel)')+'</span>'+
       '<input type="text" id="rodent-letter-reason" placeholder="'+(isEn?'e.g. male passed away, aging, sold':'ex. mâle décédé, vieillissement, vendu')+'" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/></label>'+
     '<button class="save-btn" style="width:100%;" onclick="confirmRodentLineageLetterIncrement(\''+binId+'\')">🔄 '+(isEn?'Advance letter':'Avancer la lettre')+'</button>';
-  showQuickModal('🧬 '+(isEn?'New letter — lineage '+rodentLineageCode(bin):'Nouvelle lettre — lignée '+rodentLineageCode(bin)), body);
+  showQuickModal('🧬 '+(isEn?'New letter — lineage '+rodentLineageLabel(bin):'Nouvelle lettre — lignée '+rodentLineageLabel(bin)), body);
 }
 function updateRodentLetterConflictPreview(binId){
   const el = document.getElementById('rodent-letter-conflict-preview');
@@ -24886,8 +24950,8 @@ function confirmRodentLineageLetterIncrement(binId){
   if(rodentFootprintConflict(checkFootprint, maleOrigin)){
     const maleBin = rodentBins.find(b=>b.binType==='reproduction' && b.lineageNumber===maleOrigin);
     if(!confirm(isEn
-      ? '⚠️ Inbreeding risk: this male shares lineage '+maleOrigin+' with this bin\'s females ('+(maleBin?rodentLineageCode(maleBin):maleOrigin)+'). Introduce him anyway?'
-      : '⚠️ Risque de consanguinité : ce mâle partage la lignée '+maleOrigin+' avec les femelles de ce bac ('+(maleBin?rodentLineageCode(maleBin):maleOrigin)+'). L\'introduire quand même?')) return;
+      ? '⚠️ Inbreeding risk: this male shares lineage '+maleOrigin+' with this bin\'s females ('+(maleBin?rodentLineageLabel(maleBin):maleOrigin)+'). Introduce him anyway?'
+      : '⚠️ Risque de consanguinité : ce mâle partage la lignée '+maleOrigin+' avec les femelles de ce bac ('+(maleBin?rodentLineageLabel(maleBin):maleOrigin)+'). L\'introduire quand même?')) return;
   }
   ensureRodentLineageHistory(bin);
   // Oui (mêmes femelles) = remplacement de mâle seul -> juste la lettre avance, même génération.
@@ -24913,7 +24977,7 @@ function confirmRodentLineageLetterIncrement(binId){
   closeQuickModal();
   renderRodentBins();
   renderRodentRackGrid();
-  showToast('🧬 '+(isEn?'Lineage advanced to '+rodentLineageCode(bin)+'.':'Lignée avancée à '+rodentLineageCode(bin)+'.'), 'success');
+  showToast('🧬 '+(isEn?'Lineage advanced to '+rodentLineageLabel(bin)+'.':'Lignée avancée à '+rodentLineageLabel(bin)+'.'), 'success');
 }
 function openRodentLineageHistoryModal(binId){
   const isEn = currentLang==='en';
@@ -24932,7 +24996,7 @@ function openRodentLineageHistoryModal(binId){
       '<span style="text-align:right;">'+linkBadge+(h.date?'<br/><small style="color:var(--ink-dim);">'+escapeHtml(String(h.date))+'</small>':'')+(h.reason?'<br/><small style="color:var(--ink-dim);">'+escapeHtml(h.reason)+'</small>':'')+btns+'</span></div>';
   }).join('');
   const undoHtml = history.length>1 ? '<button class="sc-btn accent" style="width:100%;margin:0 0 10px;" onclick="undoRodentLineageLast(\''+binId+'\')">↩️ '+(isEn?'Undo the last change':'Annuler le dernier changement')+'</button>' : ''; // v5.54
-  showQuickModal('🕒 '+(isEn?'History — lineage ':'Historique — lignée ')+escapeHtml(rodentLineageCode(bin)), undoHtml+rowsHtml+
+  showQuickModal('🕒 '+(isEn?'History — lineage ':'Historique — lignée ')+escapeHtml(rodentLineageLabel(bin))+' ('+escapeHtml(rodentLineageCode(bin))+')', undoHtml+rowsHtml+
     '<p style="font-size:10.5px;color:var(--ink-dim);margin:10px 0 0;">'+(isEn?'Editing or deleting a change recalculates the codes that follow (e.g. 3.2 → 3.1a).':'Modifier ou supprimer un changement recalcule les codes qui suivent (ex. 3.2 → 3.1a).')+'</p>');
 }
 // v5.54 — Droit à l'erreur sur les lignées (demande d'Alex : annuler + historique modifiable comme le journal des repas).
@@ -24968,14 +25032,14 @@ function undoRodentLineageLast(binId){
   const h = ensureRodentLineageHistory(bin);
   if(h.length<=1) return;
   const last = h[h.length-1];
-  const before = rodentLineageCode(bin);
+  const before = rodentLineageLabel(bin);
   if(!confirm(isEn ? 'Undo the last change ('+before+')?' : 'Annuler le dernier changement ('+before+') ?')) return;
   h.pop();
   rodentReplayLineage(bin);
   const fb = Object.prototype.hasOwnProperty.call(last, 'prevMaleOrigin') ? { known:true, value:last.prevMaleOrigin } : { known:false };
   const m = rodentLineageMaleFromHistory(bin, fb);
   if(m.known) bin.maleOrigin = m.value;
-  rodentLineageAfterChange(bin, binId, '↩️ '+(isEn?'Back to ':'Retour à ')+rodentLineageCode(bin)+(m.known?'':(isEn?' — the male\'s origin was not saved for this older change: check it.':' — l\'origine du mâle n\'était pas gardée pour ce vieux changement : vérifie-la.')));
+  rodentLineageAfterChange(bin, binId, '↩️ '+(isEn?'Back to ':'Retour à ')+rodentLineageLabel(bin)+(m.known?'':(isEn?' — the male\'s origin was not saved for this older change: check it.':' — l\'origine du mâle n\'était pas gardée pour ce vieux changement : vérifie-la.')));
 }
 function deleteRodentLineageEntry(binId, idx){
   const isEn = currentLang==='en';
@@ -24988,7 +25052,7 @@ function deleteRodentLineageEntry(binId, idx){
   if(!confirm(isEn?'Delete this change? The codes that follow will be recalculated.':'Supprimer ce changement ? Les codes qui suivent seront recalculés.')) return;
   h.splice(idx,1);
   rodentReplayLineage(bin);
-  rodentLineageAfterChange(bin, binId, '🗑 '+(isEn?'Change deleted — lineage now ':'Changement supprimé — lignée maintenant ')+rodentLineageCode(bin)+'.');
+  rodentLineageAfterChange(bin, binId, '🗑 '+(isEn?'Change deleted — lineage now ':'Changement supprimé — lignée maintenant ')+rodentLineageLabel(bin)+'.');
 }
 function openRodentLineageEntryEdit(binId, idx){
   const isEn = currentLang==='en';
@@ -25001,7 +25065,7 @@ function openRodentLineageEntryEdit(binId, idx){
     const hasMale = Object.prototype.hasOwnProperty.call(h, 'maleOrigin');
     const cur = hasMale ? h.maleOrigin : (idx===bin.lineageHistory.length-1 ? bin.maleOrigin : undefined);
     const opts = rodentBins.filter(b=>b.binType==='reproduction' && b.lineageNumber!=null && b.id!==binId)
-      .map(b=>'<option value="'+b.lineageNumber+'"'+(cur===b.lineageNumber?' selected':'')+'>🧬 '+escapeHtml(rodentLineageCode(b))+'</option>').join('');
+      .map(b=>'<option value="'+b.lineageNumber+'"'+(cur===b.lineageNumber?' selected':'')+'>🧬 '+escapeHtml(rodentLineageLabel(b))+'</option>').join('');
     body += lab(isEn?'Were the females the same as before?':'Les femelles étaient-elles les mêmes qu\'avant ?',
       '<select id="rle-linked" style="'+st+'"><option value="oui"'+(h.linkedToPrevious?' selected':'')+'>'+(isEn?'Yes — male swap, the letter advances':'Oui — mâle changé, la lettre avance')+'</option><option value="non"'+(!h.linkedToPrevious?' selected':'')+'>'+(isEn?'No — new generation':'Non — nouvelle génération')+'</option></select>');
     body += lab(isEn?'Male — where did he come from?':'Mâle — d\'où venait-il ?',
@@ -25028,7 +25092,7 @@ function saveRodentLineageEntryEdit(binId, idx){
   h.date = document.getElementById('rle-date').value || h.date || null;
   h.reason = (document.getElementById('rle-reason').value||'').trim().slice(0,200) || null;
   rodentReplayLineage(bin);
-  rodentLineageAfterChange(bin, binId, '✏️ '+(isEn?'Saved — lineage ':'Enregistré — lignée ')+rodentLineageCode(bin)+'.');
+  rodentLineageAfterChange(bin, binId, '✏️ '+(isEn?'Saved — lineage ':'Enregistré — lignée ')+rodentLineageLabel(bin)+'.');
 }
 
 // Même esprit visuel que les racks de serpents (mêmes classes CSS : rack-unit/rack-grid/rack-row/
@@ -25110,7 +25174,7 @@ function renderRodentRackGrid(){
           const isStock = bin.binType==='stock';
           cell.setAttribute('data-tooltip', escapeHtml(bin.label)+' — '+rodentSpeciesIconLabel(bin.species, isEn)+' — '+(isStock ? rodentSexeGroupeLabel(bin.sexeGroupe, isEn) : (bin.ratio||'')));
           cell.innerHTML = '<button class="tub-remove" title="'+(isEn?'Remove from this slot':'Retirer de ce bac')+'">✕</button>'+
-            '<div class="tub-name">'+(isStock ? '📦 '+(isEn?'Stock':'Stock') : '🧬 '+escapeHtml(rodentLineageCode(bin)))+'</div>'+
+            '<div class="tub-name">'+(isStock ? '📦 '+(isEn?'Stock':'Stock') : '🧬 '+escapeHtml(rodentLineageLabel(bin, true)))+'</div>'+
             '<div class="tub-tag">'+(RODENT_SPECIES_EMOJI[bin.species]||'🐭')+'</div>';
           cell.addEventListener('click', ()=>{
             const card = document.getElementById('rodent-bin-card-'+bin.id);
@@ -25249,10 +25313,10 @@ function openAssignRodentSlotModal(rackId, row, col){
   const existingLineages = rodentBins.filter(b=>b.binType==='reproduction' && b.lineageNumber!=null);
   const femaleOriginsHtml = existingLineages.length
     ? '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">'+
-        existingLineages.map(b=>'<label style="display:flex;align-items:center;gap:4px;font-size:11px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:14px;padding:4px 10px;"><input type="checkbox" class="rodent-slot-female-origin" value="'+b.lineageNumber+'" style="margin:0;" onchange="updateRodentSlotConflictPreview()"/> 🧬 '+escapeHtml(rodentLineageCode(b))+'</label>').join('')+
+        existingLineages.map(b=>'<label style="display:flex;align-items:center;gap:4px;font-size:11px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:14px;padding:4px 10px;"><input type="checkbox" class="rodent-slot-female-origin" value="'+b.lineageNumber+'" style="margin:0;" onchange="updateRodentSlotConflictPreview()"/> 🧬 '+escapeHtml(rodentLineageLabel(b))+'</label>').join('')+
       '</div>'
     : '';
-  const maleOriginOptionsHtml = existingLineages.map(b=>'<option value="'+b.lineageNumber+'">🧬 '+escapeHtml(rodentLineageCode(b))+'</option>').join('');
+  const maleOriginOptionsHtml = existingLineages.map(b=>'<option value="'+b.lineageNumber+'">🧬 '+escapeHtml(rodentLineageLabel(b))+'</option>').join('');
   const body =
     '<label style="display:block;margin-bottom:10px;"><span style="font-size:10.5px;color:var(--ink-dim);">'+(isEn?'Species':'Espèce')+'</span>'+
       '<select id="rodent-slot-species" style="width:100%;font-size:16px;padding:8px 10px;margin-top:4px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);">'+
@@ -25433,8 +25497,8 @@ function confirmAssignNewRodentLineage(rackId, row, col){
   if(rodentFootprintConflict(checkFootprint, maleOrigin)){
     const maleBin = rodentBins.find(b=>b.binType==='reproduction' && b.lineageNumber===maleOrigin);
     if(!confirm(isEn
-      ? '⚠️ Inbreeding risk: this male shares lineage '+maleOrigin+' with the females you selected ('+(maleBin?rodentLineageCode(maleBin):maleOrigin)+'). Create this lineage anyway?'
-      : '⚠️ Risque de consanguinité : ce mâle partage la lignée '+maleOrigin+' avec les femelles choisies ('+(maleBin?rodentLineageCode(maleBin):maleOrigin)+'). Créer cette lignée quand même?')) return;
+      ? '⚠️ Inbreeding risk: this male shares lineage '+maleOrigin+' with the females you selected ('+(maleBin?rodentLineageLabel(maleBin):maleOrigin)+'). Create this lineage anyway?'
+      : '⚠️ Risque de consanguinité : ce mâle partage la lignée '+maleOrigin+' avec les femelles choisies ('+(maleBin?rodentLineageLabel(maleBin):maleOrigin)+'). Créer cette lignée quand même?')) return;
   }
   { const ex = rodentExtConflict(extMale, maleOrigin, [extFemales], femaleOriginNumbers); // v5.59
     if(ex.length && !confirm(isEn ? '⚠️ Same outside origin for the male and the females ('+ex.join(', ')+'): they may be related. Create this lineage anyway?' : '⚠️ Même origine externe pour le mâle et les femelles ('+ex.join(', ')+') : ils pourraient être apparentés. Créer cette lignée quand même?')) return; }
@@ -25452,10 +25516,10 @@ function openRodentBulkAssignModal(){
   const existingLineages = rodentBins.filter(b=>b.binType==='reproduction' && b.lineageNumber!=null);
   const femaleOriginsHtml = existingLineages.length
     ? '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">'+
-        existingLineages.map(b=>'<label style="display:flex;align-items:center;gap:4px;font-size:11px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:14px;padding:4px 10px;"><input type="checkbox" class="rodent-bulk-female-origin" value="'+b.lineageNumber+'" style="margin:0;"/> 🧬 '+escapeHtml(rodentLineageCode(b))+'</label>').join('')+
+        existingLineages.map(b=>'<label style="display:flex;align-items:center;gap:4px;font-size:11px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:14px;padding:4px 10px;"><input type="checkbox" class="rodent-bulk-female-origin" value="'+b.lineageNumber+'" style="margin:0;"/> 🧬 '+escapeHtml(rodentLineageLabel(b))+'</label>').join('')+
       '</div>'
     : '';
-  const maleOriginOptionsHtml = existingLineages.map(b=>'<option value="'+b.lineageNumber+'">🧬 '+escapeHtml(rodentLineageCode(b))+'</option>').join('');
+  const maleOriginOptionsHtml = existingLineages.map(b=>'<option value="'+b.lineageNumber+'">🧬 '+escapeHtml(rodentLineageLabel(b))+'</option>').join('');
   const body =
     '<p style="font-size:11px;color:var(--ink-dim);margin:0 0 14px;">'+(isEn
       ? 'Applies to all '+rodentMultiSelectedSlots.size+' selected slots — each still becomes its own separate lineage.'
@@ -25610,7 +25674,7 @@ function renderRodentRestingList(){
   if(!resting.length){ el.innerHTML = ''; return; }
   el.innerHTML = '<h3 style="font-size:14px;margin:18px 0 6px;color:var(--ink);">😴 '+(isEn?'Males currently removed':'Mâles actuellement retirés')+'</h3>'+
     resting.map(b=>
-      '<div class="modal-row"><span>🧬 '+escapeHtml(rodentLineageCode(b))+' — '+(isEn?'since':'depuis')+' '+b.maleRemovedDate+(b.maleRemovedNote?'<br/><small style="color:var(--ink-dim);">'+escapeHtml(b.maleRemovedNote)+'</small>':'')+'</span>'+
+      '<div class="modal-row"><span>🧬 '+escapeHtml(rodentLineageLabel(b))+' — '+(isEn?'since':'depuis')+' '+b.maleRemovedDate+(b.maleRemovedNote?'<br/><small style="color:var(--ink-dim);">'+escapeHtml(b.maleRemovedNote)+'</small>':'')+'</span>'+
       '<button class="sc-btn" onclick="toggleRodentMaleRemoval(\''+b.id+'\')">🔙 '+(isEn?'Bring back':'Retour')+'</button></div>'
     ).join('');
 }
