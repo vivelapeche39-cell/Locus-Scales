@@ -1689,6 +1689,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <button class="sc-btn" id="rodent-selectall-btn" style="display:none;margin-bottom:14px;margin-left:8px;" onclick="selectAllEmptyRodentSlots()" data-i18n="rodentSelectAllBtn">☑️ Tout sélectionner</button>
       <button class="sc-btn" style="margin-bottom:14px;margin-left:8px;" onclick="openRodentLineageDirectoryModal()" data-i18n="rodentLineageDirectoryBtn">📋 Toutes les lignées</button>
       <button class="sc-btn" style="margin-bottom:14px;margin-left:8px;" onclick="openRodentLineageHelp()" data-i18n="rodentLineageHelpBtn">❓ Comment marchent les lignées</button>
+      <button class="sc-btn" style="margin-bottom:14px;margin-left:8px;" onclick="openRodentGuide()">📖 <span data-i18n="rodentGuideBtn">Guide des rongeurs</span></button>
       <div id="rodent-multiselect-actionbar" style="display:none;margin-bottom:10px;"></div>
       <div id="rodent-racks-container"></div>
       <h3 style="font-size:14px;margin:18px 0 6px;color:var(--ink);" data-i18n="rodentStockSectionTitle">🐭 Bacs (détail et bacs Stock)</h3>
@@ -1926,6 +1927,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 
 
     <div id="husbandry-faq-container"></div>
+    <div id="rodent-guide-container"></div><!-- v5.75 — guide complet des rongeurs (demande d'Alex après le retour de Dusty) -->
     <div id="myths-container"></div>
     <div id="checklist-container"></div>
     <div id="suppliers-container"></div>
@@ -2387,7 +2389,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.74';
+const APP_VERSION = '2026.09.01.5.75';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5692,6 +5694,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.75', date:'2026-11-11',
+    title:{ fr:'Guide des rongeurs nourriciers', en:'Feeder rodents guide' },
+    changes:{
+      fr:[ '📖 Nouveau « Guide des rongeurs nourriciers » dans Utilitaire › Communauté : 15 réponses courtes, étape par étape (bacs, portées, sevrage, congélation, repas, noms de lignée, remplacer un mâle, consanguinité, repos, objectif, rapports, import). Bouton « 📖 Guide des rongeurs » dans l\'onglet Rongeurs et lien dans « Par où commencer ».' ],
+      en:[ '📖 New « Feeder rodents guide » in Utility › Community: 15 short answers, step by step (bins, litters, weaning, freezing, feeding, lineage names, replacing a male, inbreeding, rest, goal, reports, import). « 📖 Rodents guide » button in the Rodents tab and a link in « Where to start ».' ] } },
   { version:'5.74', date:'2026-11-11',
     title:{ fr:'Rongeurs plus faciles à comprendre', en:'Rodents easier to understand' },
     changes:{
@@ -7897,7 +7904,7 @@ const I18N = {
     rodentRackAddBtn: '➕ Ajouter un rack',
     rodentStockSectionTitle: '🐭 Bacs (détail et bacs Stock)',
     rodentBinFormHint: 'Pour un bac Reproduction, le rack ci-dessus assigne automatiquement une lignée — ce formulaire reste surtout utile pour les bacs Stock/Croissance.',
-    rodentGoalBtn: '🎯 Objectif',
+    rodentGoalBtn: '🎯 Objectif', rodentGuideBtn: 'Guide des rongeurs',
     rodentMultiSelectBtn: '☑️ Sélection multiple',
     rodentSelectAllBtn: '☑️ Tout sélectionner',
     rodentLineageDirectoryBtn: '📋 Toutes les lignées',
@@ -8493,7 +8500,7 @@ const I18N = {
     rodentRackAddBtn: '➕ Add a rack',
     rodentStockSectionTitle: '🐭 Bins (detail and Stock bins)',
     rodentBinFormHint: 'For a Breeding bin, the rack above automatically assigns a lineage — this form is mainly useful for Stock/Grow-out bins.',
-    rodentGoalBtn: '🎯 Goal',
+    rodentGoalBtn: '🎯 Goal', rodentGuideBtn: 'Rodents guide',
     rodentMultiSelectBtn: '☑️ Multi-select',
     rodentSelectAllBtn: '☑️ Select all',
     rodentLineageDirectoryBtn: '📋 All lineages',
@@ -8660,6 +8667,7 @@ function applyTranslations(){
   try{ renderChecklist(); }catch(e){}
   try{ renderSuppliers(); }catch(e){}
   try{ renderGlossary(); }catch(e){}
+  try{ renderRodentGuide(); }catch(e){} // v5.75
   try{ renderSavaisTu(); }catch(e){} // v4.11
   try{ renderHealthGuide(); }catch(e){} // v4.11
   try{ renderLastYearReference(); }catch(e){}
@@ -9508,7 +9516,7 @@ function showTab(tab){
   if(tab==='elevage'){ renderLayoutPrefs(); renderRackGrid(); renderTerrariumList(); renderTourGrid(); renderTourLayoutPrefs(); renderPairingForm(); renderTimeline(); renderHealthLog(); }
   if(tab==='ventes'){ renderSalesView(); }
   if(tab==='incubation'){ renderClutchForm(); renderClutches(); }
-  if(tab==='utilitaire'){ try{ renderPreyChart(); }catch(e){ console.error('renderPreyChart error:', e); } try{ renderHusbandryFaq(); }catch(e){ console.error('renderHusbandryFaq error:', e); } try{ renderMyths(); }catch(e){} try{ renderChecklist(); }catch(e){} try{ renderSuppliers(); }catch(e){} try{ renderGlossary(); }catch(e){} try{ renderPreBuyCalculator(); }catch(e){ console.error('renderPreBuyCalculator error:', e); } try{ renderCommunityFaq(); }catch(e){ console.error('renderCommunityFaq error:', e); } }
+  if(tab==='utilitaire'){ try{ renderPreyChart(); }catch(e){ console.error('renderPreyChart error:', e); } try{ renderHusbandryFaq(); }catch(e){ console.error('renderHusbandryFaq error:', e); } try{ renderMyths(); }catch(e){} try{ renderChecklist(); }catch(e){} try{ renderSuppliers(); }catch(e){} try{ renderGlossary(); try{ renderRodentGuide(); }catch(e2){ console.error('renderRodentGuide error:', e2); } }catch(e){} try{ renderPreBuyCalculator(); }catch(e){ console.error('renderPreBuyCalculator error:', e); } try{ renderCommunityFaq(); }catch(e){ console.error('renderCommunityFaq error:', e); } }
   if(tab==='fiscal'){ renderFiscalView(); }
   if(tab==='valeur'){ renderValeurView(); }
   if(tab==='reglement'){ const el = document.getElementById('reg-check-date'); if(el) el.textContent = currentLang==='en' ? 'August 4, 2026' : '4 août 2026'; }
@@ -24335,7 +24343,7 @@ function renderRodentStartGuide(){
     step(2, isEn?'Get your feeders ready':'Prépare tes proies',
       isEn?'When babies are weaned, move them to a Stock bin. When you freeze some, use « 🧊 Freeze a batch ».':'Quand les bébés sont sevrés, passe-les dans un bac Stock. Quand tu en congèles, utilise « 🧊 Congeler un lot ».',
       '<button class="sc-btn" onclick="openRodentFreezeModal()">🧊 '+(isEn?'Freeze a batch':'Congeler un lot')+'</button>')+
-    '<div style="border-top:1px solid var(--line);padding-top:8px;font-size:14px;"><a href="#" onclick="openRodentLineageHelp();return false;" style="color:var(--gold);">❓ '+(isEn?'What do the lineage names mean?':'Que veulent dire les noms de lignée ?')+'</a></div>'+
+    '<div style="border-top:1px solid var(--line);padding-top:8px;font-size:14px;display:flex;flex-wrap:wrap;gap:6px 16px;"><a href="#" onclick="openRodentGuide();return false;" style="color:var(--gold);">📖 '+(isEn?'Full guide':'Guide complet')+'</a><a href="#" onclick="openRodentLineageHelp();return false;" style="color:var(--gold);">❓ '+(isEn?'What do the lineage names mean?':'Que veulent dire les noms de lignée ?')+'</a></div>'+
   '</div>';
 }
 function hideRodentStartGuide(){ try{ localStorage.setItem('locus_rodent_start_hidden_v1','1'); }catch(e){} renderRodentStartGuide(); }
@@ -30164,6 +30172,50 @@ var GLOSSARY_TERMS = [
   { term:'Sondage / Probing / Popping', termEn:'Probing / Popping', fr:'Méthodes utilisées par un professionnel pour déterminer le sexe d\'un python royal avec certitude.', en:'Methods used by a professional to determine a ball python\'s sex with certainty.' },
   { term:'Brumation', fr:'Une période de température/lumière réduite parfois utilisée pour stimuler la reproduction — débattue et généralement moins nécessaire chez le python royal que chez d\'autres espèces.', en:'A period of reduced temperature/light sometimes used to stimulate breeding — debated and generally less necessary for ball pythons than other species.' },
 ];
+// v5.75 — « Guide des rongeurs nourriciers » (Utilitaire › Communauté), même format que la FAQ et le glossaire.
+// Textes écrits par l'équipe (pas de saisie utilisateur) ; à garder synchro avec l'onglet Rongeurs et openRodentLineageHelp.
+const RODENT_GUIDE_ITEMS = [
+  {qFr:"Les 3 pièces de la section Rongeurs", qEn:"The 3 pieces of the Rodents section", aFr:"Pense à ton vrai rack : les bébés naissent à un endroit, grandissent à un autre, puis deviennent des proies.<br>• <b>Bac reproducteur</b> : des adultes avec un ratio mâle:femelle (type « Reproduction (ratio) »). C'est là que tu notes les portées.<br>• <b>Bac Stock / croissance</b> : pas de ratio ; les bébés sevrés y grandissent (type « Pas de ratio — bac de nourriture/croissance »).<br>• <b>Stock de proies</b> : ce que tu as de prêt à servir, vivant ou congelé, par taille.<br>Pour commencer, seuls les bacs reproducteurs sont nécessaires. La carte « Par où commencer » en haut de l'onglet Rongeurs te guide.", aEn:"Think of your real rack: babies are born in one place, grow in another, then become feeders.<br>• <b>Breeding bin</b>: adults with a male:female ratio (type « Breeding (ratio) »). That's where you log litters.<br>• <b>Stock / grow-out bin</b>: no ratio; weaned babies grow there (type « No ratio — feeder/grow-out stock »).<br>• <b>Feeder stock</b>: what you have ready to feed, live or frozen, by size.<br>To start, you only need breeding bins. The « Where to start » card at the top of the Rodents tab walks you through it."},
+  {qFr:"Créer un rack et un bac reproducteur", qEn:"Create a rack and a breeding bin", aFr:"Élevage › Rongeurs › « ➕ Ajouter un rack ». Touche ensuite un bac vide du rack : tu choisis l'espèce (souris, rats ou ASF) et le ratio, et LOCUS crée la lignée tout seul. Tu n'écris jamais de code. Tu peux aussi créer un bac avec le formulaire « + Ajouter un bac » plus bas (surtout utile pour les bacs Stock).", aEn:"Husbandry › Rodents › « ➕ Add a rack ». Then tap an empty slot on the rack: you pick the species (mice, rats or ASF) and the ratio, and LOCUS creates the lineage on its own. You never type a code. You can also create a bin with the « + Add a bin » form further down (mostly useful for Stock bins)."},
+  {qFr:"Noter une portée", qEn:"Log a litter", aFr:"Sur la carte du bac : la date, le nombre de bébés nés, et au besoin les manquants, transférés ou euthanasiés, puis « + Ajouter une portée ». C'est la seule habitude qui fait tout le reste fonctionner : total produit par bac, rentabilité, repos des mâles.", aEn:"On the bin's card: the date, how many babies were born, and if needed how many are missing, transferred or euthanized, then « + Log litter ». That one habit makes everything else work: total produced per bin, profitability, male rest."},
+  {qFr:"Sevrer : les bacs Stock et les lots", qEn:"Weaning: Stock bins and batches", aFr:"Quand les bébés sont sevrés, passe-les dans un bac Stock avec « Ajouter un lot » (combien, et leur date de naissance ou leur stade). LOCUS garde la vraie date de chaque lot et recalcule son stade (pinky, fuzzy…) tout seul. Le rythme de croissance se règle avec « ⚙️ Rythme de croissance ». Le nombre ne bouge que quand toi tu le changes : on retrie souvent les rongeurs d'un bac à l'autre.", aEn:"When babies are weaned, move them to a Stock bin with « Add a batch » (how many, and their birth date or stage). LOCUS keeps each batch's real date and works out its stage (pinky, fuzzy…) on its own. The growth pace is set with « ⚙️ Growth timing ». The count only changes when you change it: rodents often get re-sorted from one bin to another."},
+  {qFr:"Congeler un lot", qEn:"Freeze a batch", aFr:"« 🧊 Congeler un lot » : choisis le bac Stock, le stade et la quantité. Ils sortent du bac et entrent dans ton stock de proies congelées, à la bonne taille.", aEn:"« 🧊 Freeze a batch »: pick the Stock bin, the stage and how many. They leave the bin and go into your frozen feeder stock, at the right size."},
+  {qFr:"Nourrir tes serpents avec ton stock", qEn:"Feeding your snakes from your stock", aFr:"Quand tu notes un repas, LOCUS retire une proie de ton stock. Si c'était une erreur, annule le repas : la proie revient. Au refus, tu choisis le sort de la proie (gaspillée, passée à un autre animal, ou retournée au bac si vivante). Élevage › Nourriture montre la liste de décongélation (congelé à sortir, vivant à prévoir) avec ton stock réel à côté.", aEn:"When you log a meal, LOCUS takes one feeder out of your stock. If it was a mistake, undo the meal: the feeder comes back. On a refusal, you choose what happened to the feeder (wasted, given to another animal, or back in the bin if live). Husbandry › Feeding shows the defrost list (frozen to take out, live to plan) with your real stock next to it."},
+  {qFr:"Le nom d'une lignée (« Lignée 1 · 2e mâle »)", qEn:"A lineage's name (« Line 1 · 2nd male »)", aFr:"Chaque bac reproducteur a un nom qui dit à quel point il est apparenté à tes autres bacs :<br>• <b>Lignée 1</b> : la famille de bacs (numéro donné tout seul ; tu peux le renommer, ex. « Rats albinos »).<br>• <b>2e départ</b> : apparaît quand le mâle ET les femelles ont été remplacés (bac vieilli).<br>• <b>2e mâle</b> : combien de mâles se sont succédé depuis le dernier départ.<br>Derrière, il y a un code court (ex. « 1.2a ») : il reste dans l'infobulle et l'historique du bac.", aEn:"Each breeding bin has a name that tells you how related it is to your other bins:<br>• <b>Line 1</b>: the bin family (number given automatically; you can rename it, e.g. « Albino rats »).<br>• <b>Restart 2</b>: appears when the male AND the females were replaced (aged-out bin).<br>• <b>2nd male</b>: how many males there have been since the last restart.<br>Behind it there's a short code (e.g. « 1.2a »): it stays in the bin's tooltip and history."},
+  {qFr:"Remplacer un mâle ou repartir à neuf", qEn:"Replace a male or start over", aFr:"Bouton 🔄 du bac (« Mâle remplacé / vieillissement du bac »). Une seule question : les femelles restent-elles les mêmes ?<br>• <b>Oui</b> → seulement le mâle change : « Lignée 1 · 1er mâle » devient « Lignée 1 · 2e mâle ».<br>• <b>Non</b>, nouvelles femelles aussi → nouveau départ : « Lignée 1 · 2e départ · 1er mâle ». C'est le seul moment où LOCUS considère le lien de parenté coupé, et c'est toujours toi qui le décides.<br>Une erreur ? L'historique du bac (🕒) permet d'annuler le dernier changement.", aEn:"The bin's 🔄 button (« Male replaced / bin aging »). One question: are the females staying the same?<br>• <b>Yes</b> → only the male changes: « Line 1 · 1st male » becomes « Line 1 · 2nd male ».<br>• <b>No</b>, new females too → a restart: « Line 1 · restart 2 · 1st male ». It's the only time LOCUS considers the family link broken, and you always decide it.<br>A mistake? The bin's history (🕒) lets you undo the last change."},
+  {qFr:"Déplacer un mâle ou une femelle", qEn:"Move a male or a female", aFr:"Bouton ↔️ du bac. Un mâle déplacé fait avancer le nom du bac qui le reçoit (mâle suivant). Une femelle déplacée ajoute juste sa lignée d'origine au bac qui la reçoit (« Lignées apparentées »), sans changer son nom.", aEn:"The bin's ↔️ button. A moved male moves the receiving bin's name forward (next male). A moved female just adds her original lineage to the receiving bin (« Related lineages »), without changing its name."},
+  {qFr:"L'avertissement de consanguinité ⚠️", qEn:"The inbreeding warning ⚠️", aFr:"LOCUS t'avertit quand tu t'apprêtes à mettre un mâle avec ses propres sœurs. Exemple : des femelles de la Lignée 1 vont dans un nouveau bac, et tu y ajoutes un mâle qui vient aussi de la Lignée 1 → ⚠️. Si la Lignée 1 a fait un nouveau départ depuis, pas d'avertissement. C'est seulement un avertissement : tu peux toujours confirmer. Un mâle acheté ailleurs (« Externe ») ne le déclenche jamais.", aEn:"LOCUS warns you when you're about to put a male with his own sisters. Example: females from Line 1 go into a new bin, and you add a male that also comes from Line 1 → ⚠️. If Line 1 has restarted since, no warning. It's only a warning: you can always confirm. A male bought elsewhere (« External ») never triggers it."},
+  {qFr:"Le repos des mâles", qEn:"Male rest", aFr:"Après 3 portées sans pause, LOCUS te suggère (🔔) de retirer le mâle quelque temps. Ce n'est qu'une suggestion. Les mâles au repos apparaissent dans une liste en haut de l'onglet.", aEn:"After 3 litters without a break, LOCUS suggests (🔔) taking the male out for a while. It's only a suggestion. Resting males show in a list at the top of the tab."},
+  {qFr:"Objectif : grandir ou rester stable", qEn:"Goal: grow or stay steady", aFr:"« 🎯 Objectif » : un nombre de femelles ou de bacs actifs à atteindre. LOCUS suit ta progression avec les bacs reproducteurs que tu as déjà et te prévient quand tu l'atteins (tu passes alors du mode Expansion au « 🛳 Mode Croisière »).", aEn:"« 🎯 Goal »: a number of females or active bins to reach. LOCUS tracks your progress from the breeding bins you already have and tells you when you get there (you then switch from Expansion to « 🛳 Cruise mode »)."},
+  {qFr:"Rapports et budget", qEn:"Reports and budget", aFr:"« 📊 Voir la rentabilité par bac » compare tes bacs entre eux pour repérer ceux qui produisent peu. « 📅 Rapport mensuel » résume le mois (exportable en Excel). « 💰 Budget rongeurs » suit tes dépenses à part de tes reptiles ; la valeur d'une proie, c'est toi qui l'entres.", aEn:"« 📊 View profitability by bin » compares your bins to spot the ones that produce little. « 📅 Monthly report » sums up the month (exportable to Excel). « 💰 Rodent budget » tracks your spending separately from your reptiles; you enter what a feeder is worth."},
+  {qFr:"Importer ta colonie", qEn:"Import your colony", aFr:"« 📥 Importer (Excel, CSV, texte) » lit ton fichier de bacs et de portées tel quel : bacs, ratios, lignées et portées. Un aperçu te montre tout avant d'importer.", aEn:"« 📥 Import (Excel, CSV, text) » reads your bins-and-litters file as it is: bins, ratios, lineages and litters. A preview shows you everything before importing."},
+  {qFr:"Ce que LOCUS ne sait pas", qEn:"What LOCUS doesn't know", aFr:"LOCUS ne connaît que ce que tu lui dis : un mâle « Externe » n'a aucun lien connu, et un bac d'origine supprimé est traité comme apparenté, par prudence. Il ne calcule pas de pourcentage de consanguinité pour les rongeurs (seulement pour les reptiles) et ne lit pas la génétique de couleur des rongeurs.", aEn:"LOCUS only knows what you tell it: an « External » male has no known link, and a deleted source bin is treated as related, to be safe. It doesn't compute an inbreeding percentage for rodents (only for reptiles) and doesn't read rodent color genetics."}
+];
+function renderRodentGuide(){
+  const isEn = currentLang==='en';
+  const container = document.getElementById('rodent-guide-container');
+  if(!container) return;
+  const folderId = 'folder-rodent-guide';
+  const existing = document.getElementById(folderId);
+  const isOpen = existing ? !existing.classList.contains('collapsed') : false;
+  const openState = {};
+  RODENT_GUIDE_ITEMS.forEach((g,i)=>{ const el = document.getElementById('qa-rguide-'+i); if(el) openState[i] = !el.classList.contains('collapsed'); });
+  const itemsHtml = RODENT_GUIDE_ITEMS.map((g,i)=>'<div class="husbandry-qa'+(openState[i]?'':' collapsed')+'" id="qa-rguide-'+i+'">'+
+      '<div class="q" onclick="toggleHusbandryQa(\'qa-rguide-'+i+'\')"><span class="qa-arrow">▾</span>'+(i+1)+'. '+(isEn?g.qEn:g.qFr)+'</div>'+
+      '<div class="a">'+(isEn?g.aEn:g.aFr)+'</div></div>').join('');
+  container.innerHTML = '<div class="community-folder'+(isOpen?'':' collapsed')+'" id="'+folderId+'">'+
+    '<button class="community-folder-header" onclick="toggleCommunityFolder(\''+folderId+'\')">'+
+      '<span class="folder-icon">▾</span><span>🐭 '+(isEn?'Feeder rodents guide':'Guide des rongeurs nourriciers')+'</span>'+
+    '</button>'+
+    '<div class="community-folder-body"><p style="font-size:14px;color:var(--ink-dim);margin:0 0 10px;line-height:1.5;">'+(isEn?'How the Rodents tab works, step by step: bins, litters, stock, feeding and lineages.':'Comment marche l\'onglet Rongeurs, étape par étape : bacs, portées, stock, repas et lignées.')+'</p>'+itemsHtml+'</div>'+
+  '</div>';
+}
+// v5.75 — ouvre le guide depuis l'onglet Rongeurs
+function openRodentGuide(){
+  showTab('utilitaire'); showUtilitaireSubtab('communaute'); renderRodentGuide();
+  const f = document.getElementById('folder-rodent-guide'); if(f) f.classList.remove('collapsed');
+  setTimeout(()=>{ const el = document.getElementById('folder-rodent-guide'); if(el && el.scrollIntoView) el.scrollIntoView({behavior:'smooth', block:'start'}); }, 80);
+}
 function renderGlossary(){
   const isEn = currentLang==='en';
   const container = document.getElementById('glossary-container');

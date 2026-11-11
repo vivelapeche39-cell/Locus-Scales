@@ -777,6 +777,23 @@ def t_rongeurs_clairs_574(browser, url):
     check('pas d\'erreur JS (v5.74)', not a.real_errors(), a.real_errors()[:3])
     a.close()
 
+def t_guide_rongeurs_575(browser, url):
+    section('Guide des rongeurs dans Utilitaire (v5.75)')
+    a = App(browser, url, snakes=[make_snake(810)], lang='en'); a.open(wait=1500)
+    a.js("showTab('elevage'); showSubtab('rongeurs')"); a.page.wait_for_timeout(300)
+    check('bouton « 📖 Rodents guide » dans l\'onglet Rongeurs', a.page.locator('button:has-text("Rodents guide")').count() >= 1)
+    check('lien « Full guide » dans « Where to start »', 'Full guide' in a.js("document.getElementById('rodent-start-guide').innerText"))
+    a.page.click('button:has-text("Rodents guide")'); a.page.wait_for_timeout(500)
+    r = a.js("""(()=>{const f=document.getElementById('folder-rodent-guide'); return {vis: !!(f && f.offsetParent), open: f && !f.classList.contains('collapsed'), n: f ? f.querySelectorAll('.husbandry-qa').length : 0, txt: f ? f.innerText : ''}})()""")
+    check('ouvre Utilitaire › Communauté, guide déplié', r['vis'] and r['open'], r)
+    check('15 sujets', r['n'] == 15, r['n'])
+    check('les noms de boutons du guide existent dans l\'app (Freeze a batch, Log litter, Growth timing)', all(x in a.js("document.body.innerText + RODENT_GUIDE_ITEMS.map(g=>g.aEn).join(' ')") for x in ['Freeze a batch', 'Log litter', 'Growth timing']))
+    a.js("setLangTop('fr')"); a.page.wait_for_timeout(300)
+    check('en français', 'Guide des rongeurs nourriciers' in a.js("document.getElementById('rodent-guide-container').innerText"))
+    check('FR/EN : 15 questions et réponses dans les deux langues', a.js("RODENT_GUIDE_ITEMS.every(g=>g.qFr&&g.qEn&&g.aFr&&g.aEn)"))
+    check('pas d\'erreur JS (v5.75)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+
 def t_avert_sable_scaleless(browser, url):
     section('Alertes Sable et Scaleless seulement quand c\'est justifié (v5.66)')
     a = App(browser, url, logged_in=False); a.open(); a.js("showTab('calc')")
@@ -1947,7 +1964,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()
