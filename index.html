@@ -1034,7 +1034,9 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   .prey-size-table{font-size:11px;}
 
   /* Modale Journal de bord : plein écran quasi-total, confortable au pouce */
-  .modal-overlay{padding:0;align-items:stretch;}
+  /* v5.67 — flex-start : le panneau grandit avec son contenu (avec stretch, il restait à la hauteur de l'écran
+     et le texte débordait par-dessus la liste — signalé par un utilisateur sur Android) */
+  .modal-overlay{padding:0;align-items:flex-start;}
   .modal-panel{max-width:100%;width:100%;min-height:100%;border-radius:0;padding:18px 16px 32px;}
   .modal-head h2{font-size:18px;}
   .modal-row{font-size:12px;flex-wrap:wrap;gap:4px;}
@@ -2062,17 +2064,17 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
      vs "je suis en train de gérer la paperasse" — deux intentions différentes, deux endroits différents. -->
 <div class="legal-sidebar" id="legal-sidebar">
   <div class="legal-sidebar-label" data-i18n="legalSidebarLabel">LÉGAL</div>
-  <button class="legal-tab-btn" data-legal="fiscal" onclick="showTab('fiscal')" title="Rapport fiscal">
-    <span class="legal-tab-icon">💰</span><span class="legal-tab-text">Fiscal</span>
+  <button class="legal-tab-btn" data-legal="fiscal" onclick="showTab('fiscal')" title="Rapport fiscal" data-i18n-title="legalFiscalTitle">
+    <span class="legal-tab-icon">💰</span><span class="legal-tab-text" data-i18n="legalTabFiscal">Fiscal</span>
   </button>
-  <button class="legal-tab-btn" data-legal="valeur" onclick="showTab('valeur')" title="Valeur &amp; assurance">
-    <span class="legal-tab-icon">🛡️</span><span class="legal-tab-text">Valeur</span>
+  <button class="legal-tab-btn" data-legal="valeur" onclick="showTab('valeur')" title="Valeur &amp; assurance" data-i18n-title="legalValueTitle">
+    <span class="legal-tab-icon">🛡️</span><span class="legal-tab-text" data-i18n="legalTabValue">Valeur</span>
   </button>
   <button class="legal-tab-btn" data-legal="reglement" onclick="showTab('reglement')" title="Réglementation par province" data-i18n-title="legalRegTitle">
-    <span class="legal-tab-icon">📜</span><span class="legal-tab-text">Permis</span>
+    <span class="legal-tab-icon">📜</span><span class="legal-tab-text" data-i18n="legalTabPermits">Permis</span>
   </button>
-  <button class="legal-tab-btn" data-legal="export" onclick="showTab('export')" title="Export &amp; sauvegarde">
-    <span class="legal-tab-icon">📤</span><span class="legal-tab-text">Export</span>
+  <button class="legal-tab-btn" data-legal="export" onclick="showTab('export')" title="Export &amp; sauvegarde" data-i18n-title="legalExportTitle">
+    <span class="legal-tab-icon">📤</span><span class="legal-tab-text" data-i18n="legalTabExport">Export</span>
   </button>
 </div>
 
@@ -2372,7 +2374,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.64';
+const APP_VERSION = '2026.09.01.5.67';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4269,8 +4271,8 @@ const GENES = [
   // Les deux formes homozygotes ET le composé hétérozygote Cinnamon×Black Pastel ("8-Ball", voir
   // COMPOUND_NAMES) partagent le même risque santé accru — texte d'avertissement volontairement identique.
   {id:'champagne', name:'Champagne', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant', warning:"Wobble (trouble neurologique de la tête/du regard) présent chez la quasi-totalité des porteurs, même à l'état simple — souvent plus léger que celui du Spider (de type Woma, selon les témoignages d'éleveurs). Forme homozygote (Super Champagne) létale in ovo — jamais viable. Combinaison avec Spider (même locus) également létale.", warningEn:"Wobble (neurological head/eye-tracking disorder) present in nearly all carriers, even in single (het) form — often milder than Spider's (Woma-like, according to breeder reports). Homozygous form (Super Champagne) is lethal in ovo — never viable. Combination with Spider (same locus) is also lethal."},
-  {id:'cinnamon', name:'Cinnamon', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant', superLabel:'Super Cinnamon', aliases:['Cinny','Cinnamon Pastel'], warning:"Forme homozygote (Super Cinnamon — même allure que le combo 8 Ball Cinnamon × Black Pastel) associée à un risque accru de kinking (déformations vertébrales), microphtalmie (« bug eyes »), malformation de la mâchoire (duckbill) et retard de croissance. Tous les individus supers ne sont pas affectés, mais l'incidence est jugée significative par de nombreux éleveurs expérimentés.", warningEn:"Homozygous form (Super Cinnamon — looks like the 8 Ball combo, Cinnamon × Black Pastel) is associated with an increased risk of kinking (spinal deformities), microphthalmia (\"bug eyes\"), jaw malformation (duckbill), and stunted growth. Not every super individual is affected, but the incidence is considered significant by many experienced breeders."},
-  {id:'blackpastel', name:'Black Pastel', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant', superLabel:'Super Black Pastel', warning:"Forme homozygote (Super Black Pastel — même allure que le combo 8 Ball) associée au même risque accru que Super Cinnamon : kinking, microphtalmie, malformation de la mâchoire, retard de croissance.", warningEn:"Homozygous form (Super Black Pastel — looks like the 8 Ball combo) carries the same increased risk as Super Cinnamon: kinking, microphthalmia, jaw malformation, stunted growth."},
+  {id:'cinnamon', name:'Cinnamon', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant', superLabel:'Super Cinnamon', aliases:['Cinny','Cinnamon Pastel'], superOnlyWarning:true, warning:"Forme homozygote (Super Cinnamon — même allure que le combo 8 Ball Cinnamon × Black Pastel) associée à un risque accru de kinking (déformations vertébrales), microphtalmie (« bug eyes »), malformation de la mâchoire (duckbill) et retard de croissance. Tous les individus supers ne sont pas affectés, mais l'incidence est jugée significative par de nombreux éleveurs expérimentés.", warningEn:"Homozygous form (Super Cinnamon — looks like the 8 Ball combo, Cinnamon × Black Pastel) is associated with an increased risk of kinking (spinal deformities), microphthalmia (\"bug eyes\"), jaw malformation (duckbill), and stunted growth. Not every super individual is affected, but the incidence is considered significant by many experienced breeders."},
+  {id:'blackpastel', name:'Black Pastel', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant', superLabel:'Super Black Pastel', superOnlyWarning:true, warning:"Forme homozygote (Super Black Pastel — même allure que le combo 8 Ball) associée au même risque accru que Super Cinnamon : kinking, microphtalmie, malformation de la mâchoire, retard de croissance.", warningEn:"Homozygous form (Super Black Pastel — looks like the 8 Ball combo) carries the same increased risk as Super Cinnamon: kinking, microphthalmia, jaw malformation, stunted growth."},
   {id:'huffman', name:'Huffman', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant'},
   {id:'jolt', name:'Jolt', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant'},
   {id:'razor', name:'Razor', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant'},
@@ -4293,7 +4295,7 @@ const GENES = [
   {id:'scrambler', name:'Scrambler', type:'incdom', locus:'scrambler', cat:'Codominant / Incomplet dominant'},
   {id:'hetredaxanthic', name:'Het Red Axanthic', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant', superLabel:'Red Axanthic', aliases:['HRA','Green Pastel','Lori']},
   // v3.48 — Sable fait partie du complexe Spider (Morphpedia, fiche Sable : « Complex: Spider », super Sable = wobble).
-  {id:'sable', name:'Sable', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant', warning:"Forme homozygote (Super Sable) associée au wobble (trouble neurologique) selon Morphpedia. Sable fait partie du complexe Spider : un Sable × Spider peut donner des bébés porteurs des 2 allèles.", warningEn:"Homozygous form (Super Sable) is associated with wobble (neurological issue) according to Morphpedia. Sable is part of the Spider complex: a Sable × Spider pairing can produce babies carrying both alleles."},
+  {id:'sable', name:'Sable', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant', superOnlyWarning:true, warning:"Forme homozygote (Super Sable) associée au wobble (trouble neurologique) selon Morphpedia. Sable fait partie du complexe Spider : Sable Spider et Sable Champagne sont difficiles à faire éclore et ont un wobble sévère (Morphpedia).", warningEn:"Homozygous form (Super Sable) is associated with wobble (neurological issue) according to Morphpedia. Sable is part of the Spider complex: Sable Spider and Sable Champagne are hard to hatch and show a severe wobble (Morphpedia)."},
   {id:'redstripe', name:'Red Stripe', type:'incdom', locus:'redstripe', cat:'Codominant / Incomplet dominant'},
   {id:'stranger', name:'Stranger', type:'incdom', locus:'mahoganyComplex', cat:'Codominant / Incomplet dominant', warning:"Morphpedia le classe codominant et le place dans le complexe Mahogany (même gène que Mahogany et Cinder). World of Ball Pythons le classe plutôt dominant. LOCUS suit Morphpedia.", warningEn:"Morphpedia lists it as incomplete dominant and places it in the Mahogany complex (same gene as Mahogany and Cinder). World of Ball Pythons lists it as dominant instead. LOCUS follows Morphpedia."},
   // Codominant / Incomplet dominant — Spider Complex : locus partagé (allélisme prouvé ; reconfirmé sur Morphpedia le 9 oct, Sable inclus). Spider et Champagne
@@ -4448,7 +4450,7 @@ const GENES = [
   {id:'panther', name:'Panther', type:'incdom', locus:'panther', cat:'Codominant / Incomplet dominant'},
   {id:'phenomenon', name:'Phenomenon', type:'incdom', locus:'phenomenon', cat:'Codominant / Incomplet dominant'},
   {id:'pixel', name:'Pixel', type:'incdom', locus:'pixel', cat:'Codominant / Incomplet dominant'},
-  {id:'scalelesshead', name:'Scaleless Head', type:'incdom', locus:'scalelessComplex', cat:'Codominant / Incomplet dominant', superLabel:'Scaleless', aliases:['Het Scaleless'], warning:"Forme homozygote (Scaleless) : peau fragile. Source : Morphpedia.", warningEn:"Homozygous form (Scaleless): fragile skin. Source: Morphpedia."},
+  {id:'scalelesshead', name:'Scaleless Head', type:'incdom', locus:'scalelessComplex', cat:'Codominant / Incomplet dominant', superLabel:'Scaleless', aliases:['Het Scaleless','Scaleless Het'], superOnlyWarning:true, warning:"Forme homozygote (Scaleless) : peau fragile. Source : Morphpedia.", warningEn:"Homozygous form (Scaleless): fragile skin. Source: Morphpedia."},
   {id:'surge', name:'Surge', type:'incdom', locus:'surge', cat:'Codominant / Incomplet dominant'},
   {id:'taronja', name:'Taronja', type:'incdom', locus:'taronja', cat:'Codominant / Incomplet dominant'},
   // Batch 6/6 — dernier de la vague. Total : 107 → 161 gènes (54 ajoutés le 15 sept).
@@ -4738,6 +4740,15 @@ const COMPOUND_NAMES = {
   bci_motleycx: {
     'bci_hypo+bci_motley': 'Hypo Motley',
     'bci_keltic+bci_motley': 'Smoke', // v5.45 — Keltic + Motley (r/boas + MorphMarket) : létal, avertissements des deux gènes
+  }
+};
+
+// v5.66 — alertes propres à un combo de 2 allèles d'un même complexe (ajoutées aux alertes des gènes).
+// Clé = ids triés joints par « + », comme COMPOUND_NAMES. Sources : Morphpedia (fiche Sable).
+const COMPOUND_WARNINGS = {
+  spiderComplex: {
+    'sable+spider': { fr:"Sable Spider : difficile à faire éclore, wobble sévère (Morphpedia).", en:"Sable Spider: hard to hatch, severe wobble (Morphpedia)." },
+    'champagne+sable': { fr:"Sable Champagne : difficile à faire éclore, wobble sévère (Morphpedia).", en:"Sable Champagne: hard to hatch, severe wobble (Morphpedia)." }
   }
 };
 
@@ -5668,6 +5679,27 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.67', date:'2026-11-11',
+    title:{ fr:'Correctifs d\'affichage', en:'Display fixes' },
+    changes:{
+      fr:[ '🔧 Sur téléphone, la fiche d\'un animal ne laisse plus voir la liste au travers du texte quand on fait défiler : le fond couvre maintenant tout le contenu.',
+           '🔧 Un animal dans un rack sans rangée ni bac précisés affiche le nom du rack, au lieu de « Rack 1-Rnull-Bnull ».',
+           '🔧 Le menu du bas (Fiscal, Valeur, Permis, Export) est maintenant traduit en anglais.' ],
+      en:[ '🔧 On phones, an animal\'s record no longer lets the list show through the text when scrolling: the background now covers all the content.',
+           '🔧 An animal in a rack with no row or tub set now shows the rack name, instead of « Rack 1-Rnull-Bnull ».',
+           '🔧 The bottom menu (Tax, Value, Permits, Export) is now translated in English.' ] } },
+  { version:'5.66', date:'2026-11-06',
+    title:{ fr:'Génétique : alertes Sable et Scaleless plus justes', en:'Genetics: more accurate Sable and Scaleless alerts' },
+    changes:{
+      fr:[ '🔧 Comme pour le Cinnamon : l\'alerte « peau fragile » s\'affiche seulement pour le Scaleless (2 copies), plus pour un Scaleless Head à 1 copie. Même chose pour le wobble du Super Sable : plus d\'alerte sur un Sable à 1 copie. Source : Morphpedia.',
+           '⚠️ Nouvelle alerte : Sable Spider et Sable Champagne sont difficiles à faire éclore et ont un wobble sévère (Morphpedia). La recherche de gène trouve aussi « Scaleless Het ».' ],
+      en:[ '🔧 Like for Cinnamon: the « fragile skin » alert now shows only for the Scaleless (2 copies), no longer for a single-copy Scaleless Head. Same for the Super Sable wobble: no more alert on a single-copy Sable. Source: Morphpedia.',
+           '⚠️ New alert: Sable Spider and Sable Champagne are hard to hatch and show a severe wobble (Morphpedia). Gene search also finds « Scaleless Het ».' ] } },
+  { version:'5.65', date:'2026-11-06',
+    title:{ fr:'Génétique : moins de fausses alertes Super Cinnamon', en:'Genetics: fewer false Super Cinnamon alerts' },
+    changes:{
+      fr:[ '🔧 Le calculateur n\'affiche plus l\'alerte du Super Cinnamon (kinking, petits yeux…) sur un bébé qui n\'a qu\'une copie de Cinnamon ou de Black Pastel, comme un Cinnamon, un Cinnamon Enchi, un Cinnamon Het Red Axanthic ou un Black Pastel Huffman. L\'alerte reste pour le Super Cinnamon, le Super Black Pastel et le 8 Ball (Cinnamon × Black Pastel).' ],
+      en:[ '🔧 The calculator no longer shows the Super Cinnamon alert (kinking, small eyes…) on a baby with only one copy of Cinnamon or Black Pastel, such as a Cinnamon, a Cinnamon Enchi, a Cinnamon Het Red Axanthic or a Black Pastel Huffman. The alert stays for the Super Cinnamon, the Super Black Pastel and the 8 Ball (Cinnamon × Black Pastel).' ] } },
   { version:'5.64', date:'2026-11-05',
     title:{ fr:'Génétique : 59 gènes de plus et complexes corrigés', en:'Genetics: 59 more genes and fixed complexes' },
     changes:{
@@ -7742,7 +7774,7 @@ const I18N = {
     provenanceHint: '(éleveur d\'origine — laisse vide si né chez toi)',
     purchasePriceLabel: 'Prix d\'achat',
     purchasePriceHint: '(optionnel — laisse vide si né chez toi ; sert au calcul de profit par ponte/animal)',
-    actualTotalInit: 'Total enregistré : 0', waitlistAllHint: 'Toutes les listes d\'attente de tous les accouplements, regroupées en une seule vue pour trier/contacter d\'un coup d\'œil.', clutchEggCountPh: 'Nb d\'œufs', saveClutchBtn: 'Enregistrer la portée', legalSidebarLabel: 'LÉGAL', csvFormatExample: 'nom;sexe(M/F);gene1|gene2|gene3', provenancePh: 'Ex. Python of the North, éleveur particulier, animalerie…', legalRegTitle: 'Réglementation par province', deleteSavedFilterTitle: 'Supprimer le filtre sélectionné',
+    actualTotalInit: 'Total enregistré : 0', waitlistAllHint: 'Toutes les listes d\'attente de tous les accouplements, regroupées en une seule vue pour trier/contacter d\'un coup d\'œil.', clutchEggCountPh: 'Nb d\'œufs', saveClutchBtn: 'Enregistrer la portée', legalSidebarLabel: 'LÉGAL', legalTabFiscal: 'Fiscal', legalTabValue: 'Valeur', legalTabPermits: 'Permis', legalTabExport: 'Export', legalFiscalTitle: 'Rapport fiscal', legalValueTitle: 'Valeur & assurance', legalExportTitle: 'Export & sauvegarde', csvFormatExample: 'nom;sexe(M/F);gene1|gene2|gene3', provenancePh: 'Ex. Python of the North, éleveur particulier, animalerie…', legalRegTitle: 'Réglementation par province', deleteSavedFilterTitle: 'Supprimer le filtre sélectionné',
     birthDateLabel: 'Date de naissance', birthPrecUnknown: 'Inconnue', birthPrecFull: 'Jour/Mois/Année', birthPrecMonth: 'Mois/Année', birthPrecYear: 'Année seule', birthYearPlaceholder: 'AAAA',
     saveNewBtn: 'Enregistrer ce reptile',
     cancelEditBtn: 'Annuler la modification',
@@ -8338,7 +8370,7 @@ const I18N = {
     provenanceHint: '(original breeder — leave blank if born here)',
     purchasePriceLabel: 'Purchase price',
     purchasePriceHint: '(optional — leave blank if born here; used for clutch/animal profit calculations)',
-    actualTotalInit: 'Recorded total: 0', waitlistAllHint: 'Every waitlist from every pairing, grouped in one view to sort and contact at a glance.', clutchEggCountPh: 'No. of eggs', saveClutchBtn: 'Save clutch', legalSidebarLabel: 'LEGAL', csvFormatExample: 'name;sex(M/F);gene1|gene2|gene3', provenancePh: 'E.g. Python of the North, private breeder, pet store…', legalRegTitle: 'Regulations by province', deleteSavedFilterTitle: 'Delete the selected filter',
+    actualTotalInit: 'Recorded total: 0', waitlistAllHint: 'Every waitlist from every pairing, grouped in one view to sort and contact at a glance.', clutchEggCountPh: 'No. of eggs', saveClutchBtn: 'Save clutch', legalSidebarLabel: 'LEGAL', legalTabFiscal: 'Tax', legalTabValue: 'Value', legalTabPermits: 'Permits', legalTabExport: 'Export', legalFiscalTitle: 'Tax report', legalValueTitle: 'Value & insurance', legalExportTitle: 'Export & backup', csvFormatExample: 'name;sex(M/F);gene1|gene2|gene3', provenancePh: 'E.g. Python of the North, private breeder, pet store…', legalRegTitle: 'Regulations by province', deleteSavedFilterTitle: 'Delete the selected filter',
     birthDateLabel: 'Birth date', birthPrecUnknown: 'Unknown', birthPrecFull: 'Day/Month/Year', birthPrecMonth: 'Month/Year', birthPrecYear: 'Year only', birthYearPlaceholder: 'YYYY',
     saveNewBtn: 'Save This Reptile',
     cancelEditBtn: 'Cancel Editing',
@@ -12147,12 +12179,18 @@ function phenotypeForLocusPair(locus, pair){
     const mutId = a==='WT'?b:a;
     const g = genesAtLocus.find(x=>x.id===mutId);
     if(g.type==='recessive') return {label:g.name+(currentLang==='en'?' (carrier)':' (porteur)'), visual:false, geneIds:[g.id]}; // v5.24 — était figé en français
-    return {label:g.name, visual:true, warning:geneWarning(g), geneIds:[g.id]};
+    // v5.65 — superOnlyWarning : le risque ne vient que de 2 copies (Super Cinnamon) — pas d'alerte sur 1 copie
+    return {label:g.name, visual:true, warning:(g.superOnlyWarning?undefined:geneWarning(g)), geneIds:[g.id]};
   }
   const key = [a,b].sort().join('+');
   const compoundName = (COMPOUND_NAMES[locus] && COMPOUND_NAMES[locus][key]);
   const gA = genesAtLocus.find(x=>x.id===a), gB = genesAtLocus.find(x=>x.id===b);
-  const warnings = [geneWarning(gA), geneWarning(gB)].filter(Boolean);
+  // v5.65 — choix d'Alex (option 2) : un Cinnamon Enchi n'a qu'une copie de Cinnamon → pas d'alerte Super Cinnamon.
+  // L'alerte reste quand les DEUX gènes portent ce risque (Cinnamon × Black Pastel = 8 Ball).
+  const bothSuperOnly = !!(gA.superOnlyWarning && gB.superOnlyWarning);
+  const warnings = [gA, gB].map(g=>(g.superOnlyWarning && !bothSuperOnly) ? undefined : geneWarning(g)).filter(Boolean);
+  const cw = COMPOUND_WARNINGS[locus] && COMPOUND_WARNINGS[locus][key]; // v5.66
+  if(cw) warnings.unshift(currentLang==='en' ? cw.en : cw.fr);
   if(compoundName) return {label:compoundName, visual:true, isSuper:true, geneIds:[a,b], warning: warnings.join(' ') || undefined};
   // v3.55 — combo sans nom consacré : les deux noms, en ordre alphabétique (« Lesser Mojave »).
   return {label:[gA.name, gB.name].sort().join(' '), visual:true, isSuper:true, geneIds:[a,b], warning: warnings.join(' ') || undefined};
@@ -26359,7 +26397,7 @@ function snakeIsActiveForPlacement(s){ return !['sold','deceased'].includes(s.st
 function placementCode(s){
   ensureSnakeMeta(s);
   const p = s.placement;
-  if(p.mode==='rack' && p.rackId){ const rack = getRack(p.rackId); return rack ? rack.name+'-R'+p.row+'-B'+p.tub : ''; }
+  if(p.mode==='rack' && p.rackId){ const rack = getRack(p.rackId); if(!rack) return ''; return (p.row && p.tub) ? rack.name+'-R'+p.row+'-B'+p.tub : rack.name; } // v5.67 — plus de « Rack 1-Rnull-Bnull » quand la rangée/le bac manque (import)
   if(p.mode==='terrarium' && p.terrariumId){ const te = getTerrarium(p.terrariumId); return te ? te.name : ''; }
   return '';
 }
@@ -34806,7 +34844,7 @@ function exportEverythingExcel(){
   const sexL = s=> s.sex==='male' ? L('Mâle','Male') : s.sex==='female' ? L('Femelle','Female') : L('Inconnu','Unknown');
   const statusL = s=> s.status==='deceased' ? L('Décédé','Deceased') : s.status==='sold' ? L('Vendu','Sold') : s.status==='reserved' ? L('Réservé','Reserved') : s.status==='forsale' ? L('À vendre','For sale') : L('Gardé','Kept');
   const placeL = s=>{
-    if(s.placement.mode==='rack'){ const rack = getRack(s.placement.rackId); return placementCode(s) || ((rack?rack.name:'?')+'-R'+s.placement.row+'-B'+s.placement.tub); }
+    if(s.placement.mode==='rack'){ const rack = getRack(s.placement.rackId); return placementCode(s) || ((rack?rack.name:'?')+((s.placement.row&&s.placement.tub)?'-R'+s.placement.row+'-B'+s.placement.tub:'')); }
     const te = s.placement.terrariumId ? getTerrarium(s.placement.terrariumId) : null;
     return te ? te.name : '';
   };
@@ -34907,7 +34945,7 @@ function exportInventoryExcel(){
   const locationLabel = s => {
     if(s.placement.mode==='rack'){
       const rack = getRack(s.placement.rackId);
-      return placementCode(s) || ((rack?rack.name:'?')+'-R'+s.placement.row+'-B'+s.placement.tub); // v4.45 — même identifiant que celui relu par l'import
+      return placementCode(s) || ((rack?rack.name:'?')+((s.placement.row&&s.placement.tub)?'-R'+s.placement.row+'-B'+s.placement.tub:'')); // v4.45 — même identifiant que celui relu par l'import
     }
     const te = s.placement.terrariumId ? getTerrarium(s.placement.terrariumId) : null;
     return te ? te.name : (isEn?'Unassigned':'Non classé');
@@ -34940,7 +34978,7 @@ function exportInventoryPdf(){
   const locationLabel = s => {
     if(s.placement.mode==='rack'){
       const rack = getRack(s.placement.rackId);
-      return placementCode(s) || ((rack?rack.name:'?')+'-R'+s.placement.row+'-B'+s.placement.tub); // v4.45 — même identifiant que celui relu par l'import
+      return placementCode(s) || ((rack?rack.name:'?')+((s.placement.row&&s.placement.tub)?'-R'+s.placement.row+'-B'+s.placement.tub:'')); // v4.45 — même identifiant que celui relu par l'import
     }
     const te = s.placement.terrariumId ? getTerrarium(s.placement.terrariumId) : null;
     return te ? te.name : (isEn?'Unassigned':'Non classé');

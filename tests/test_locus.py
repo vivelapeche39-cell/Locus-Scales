@@ -507,6 +507,81 @@ def t_complexes_genes(browser, url):
     check('pas d\'erreur JS (génétique v5.64)', not a.real_errors(), a.real_errors()[:3])
     a.close()
 
+def t_avert_cinnamon(browser, url):
+    section('Avertissement Super Cinnamon seulement à 2 copies (v5.65)')
+    a = App(browser, url, logged_in=False); a.open(); a.js("showTab('calc')")
+    w = lambda pair: a.js("(phenotypeForLocusPair('cinnamonComplex',%s)||{}).warning||''" % pair)
+    check('Cinnamon Enchi : pas d\'alerte Super Cinnamon', w("['cinnamon','enchi']") == '', w("['cinnamon','enchi']"))
+    check('Cinnamon Het Red Axanthic : pas d\'alerte', w("['cinnamon','hetredaxanthic']") == '')
+    check('Black Pastel Huffman : pas d\'alerte', w("['blackpastel','huffman']") == '')
+    check('Cinnamon (1 copie) : pas d\'alerte', w("['WT','cinnamon']") == '')
+    check('Super Cinnamon : alerte gardée', 'kinking' in w("['cinnamon','cinnamon']"))
+    check('Super Black Pastel : alerte gardée', 'kinking' in w("['blackpastel','blackpastel']"))
+    check('8 Ball (Cinnamon × Black Pastel) : alerte gardée', 'kinking' in w("['blackpastel','cinnamon']"))
+    check('autres complexes pas touchés (Super Scaleless)', 'fragile' in a.js("(phenotypeForLocusPair('scalelessComplex',['scalelesshead','scalelesshead'])||{}).warning||''"))
+    a.js("state.male={cinnamon:'single'}; state.female={enchi:'single'}; renderTags('male'); renderTags('female'); runCross()"); a.page.wait_for_timeout(200)
+    txt = a.js("document.getElementById('results').innerText")
+    check('Cinnamon × Enchi : aucun 🚨 ni « kinking » au calculateur', '🚨' not in txt and 'kinking' not in txt, txt[:300])
+    a.js("state.male={cinnamon:'single'}; state.female={blackpastel:'single'}; renderTags('male'); renderTags('female'); runCross()"); a.page.wait_for_timeout(200)
+    txt = a.js("document.getElementById('results').innerText")
+    check('Cinnamon × Black Pastel : alerte du 8 Ball affichée', '8 Ball' in txt and '🚨' in txt and 'Homozygote' in txt.replace('Forme homozygote','Homozygote'), txt[:300])
+    a.js("setLangTop('en')"); a.page.wait_for_timeout(300); a.js("runCross()"); a.page.wait_for_timeout(200)
+    txt = a.js("document.getElementById('results').innerText")
+    check('…et en anglais', '🚨' in txt and 'Homozygous' in txt, txt[:300])
+    check('pas d\'erreur JS (v5.65)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+
+def t_correctifs_567(browser, url):
+    section('Correctifs signalés par Balls Deep (v5.67)')
+    snakes = [make_snake(i, days_history=200) for i in range(300, 312)]
+    a = App(browser, url, snakes=snakes, lang='en'); a.open(wait=2000)
+    # 1. la fiche (journal) ne laisse plus voir la liste au travers : le panneau couvre tout son contenu
+    open_card(a, snakes[0]['id']); a.page.wait_for_timeout(300)
+    r = a.js("""(()=>{const o=document.getElementById('logbook-overlay'); const pn=o.querySelector('.modal-panel');
+      return {ai:getComputedStyle(o).alignItems, h:pn.getBoundingClientRect().height, sh:pn.scrollHeight}})()""")
+    check('journal sur téléphone : le panneau grandit avec son contenu', r['ai'] == 'flex-start' and r['h'] >= r['sh'] - 2, r)
+    a.js("document.getElementById('logbook-overlay').style.display='none'")
+    # 2. « Rack 1-Rnull-Bnull »
+    code = a.js("""(id)=>{ racks.push({id:'rk_t', name:'Rack 1', rows:[4,4]}); const s=savedSnakes.find(x=>x.id===id);
+      s.placement={mode:'rack', rackId:'rk_t', row:null, tub:null}; return placementCode(s); }""", snakes[1]['id'])
+    check('rack sans rangée ni bac : « Rack 1 », pas de « null »', code == 'Rack 1', code)
+    code = a.js("""(id)=>{ const s=savedSnakes.find(x=>x.id===id); s.placement={mode:'rack', rackId:'rk_t', row:2, tub:5}; return placementCode(s); }""", snakes[1]['id'])
+    check('rack complet : « Rack 1-R2-B5 » inchangé', code == 'Rack 1-R2-B5', code)
+    a.js("(id)=>{ const s=savedSnakes.find(x=>x.id===id); s.placement={mode:'rack', rackId:'rk_t', row:null, tub:null}; showTab('mine'); }", snakes[1]['id']); a.page.wait_for_timeout(400)
+    txt = a.js("document.getElementById('view-mine').innerText")
+    check('liste des animaux : aucun « null » affiché', 'null' not in txt, [l for l in txt.split('\n') if 'null' in l][:3])
+    # 3. menu du bas traduit
+    labels = a.js("[...document.querySelectorAll('#legal-sidebar .legal-tab-text')].map(e=>e.textContent)")
+    check('menu du bas en anglais : Tax, Value, Permits, Export', labels == ['Tax', 'Value', 'Permits', 'Export'], labels)
+    a.js("setLangTop('fr')"); a.page.wait_for_timeout(300)
+    labels = a.js("[...document.querySelectorAll('#legal-sidebar .legal-tab-text')].map(e=>e.textContent)")
+    check('…et en français : Fiscal, Valeur, Permis, Export', labels == ['Fiscal', 'Valeur', 'Permis', 'Export'], labels)
+    check('pas d\'erreur JS (v5.67)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+
+def t_avert_sable_scaleless(browser, url):
+    section('Alertes Sable et Scaleless seulement quand c\'est justifié (v5.66)')
+    a = App(browser, url, logged_in=False); a.open(); a.js("showTab('calc')")
+    w = lambda loc, pair: a.js("(phenotypeForLocusPair('%s',%s)||{}).warning||''" % (loc, pair))
+    check('Scaleless Head (1 copie) : pas d\'alerte', w('scalelessComplex', "['WT','scalelesshead']") == '')
+    check('Microscale Scaleless Head : pas d\'alerte', w('scalelessComplex', "['microscale','scalelesshead']") == '')
+    check('Scaleless (2 copies) : peau fragile', 'fragile' in w('scalelessComplex', "['scalelesshead','scalelesshead']"))
+    check('Sable (1 copie) : pas d\'alerte', w('spiderComplex', "['WT','sable']") == '')
+    check('Super Sable : wobble', 'wobble' in w('spiderComplex', "['sable','sable']"))
+    check('Sable Spotnose : pas d\'alerte', w('spiderComplex', "['sable','spotnose']") == '')
+    r = w('spiderComplex', "['sable','spider']")
+    check('Sable Spider : alerte « wobble sévère » + alerte du Spider', 'Sable Spider' in r and 'sévère' in r and 'Super Spider' in r, r[:200])
+    check('Sable Champagne : alerte « wobble sévère »', 'Sable Champagne' in w('spiderComplex', "['champagne','sable']"))
+    check('Spider (1 copie) : alerte gardée', 'Wobble' in w('spiderComplex', "['WT','spider']"))
+    a.page.fill('#input-male', 'scaleless het'); a.page.wait_for_timeout(150)
+    check('recherche « scaleless het » trouve Scaleless Head', a.page.locator('#list-male .combo-opt[data-id="scalelesshead"]').count() > 0)
+    a.page.fill('#input-male', '')
+    a.js("setLangTop('en')"); a.page.wait_for_timeout(300)
+    r = w('spiderComplex', "['sable','spider']")
+    check('…Sable Spider en anglais', 'severe wobble' in r and 'sévère' not in r, r[:200])
+    check('pas d\'erreur JS (v5.66)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+
 def t_calculateur(browser, url):
     section('Calculateur génétique (hors ligne)')
     a = App(browser, url, logged_in=False)
@@ -1649,7 +1724,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()
