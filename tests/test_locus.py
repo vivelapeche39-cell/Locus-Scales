@@ -794,6 +794,30 @@ def t_guide_rongeurs_575(browser, url):
     check('pas d\'erreur JS (v5.75)', not a.real_errors(), a.real_errors()[:3])
     a.close()
 
+def t_admin_tri_577(browser, url):
+    section('Résumé admin : tri par inscription ou dernière connexion (v5.77-5.78)')
+    a = App(browser, url, snakes=[make_snake(820)]); a.open(wait=1200)
+    a.js("""(()=>{ isAdminUser = true; sb.rpc = function(n){ return Promise.resolve({ error:null, data: n!=='admin_overview' ? null : { totals:{ users:3 }, generated_at:'2026-11-11T20:00:00Z', users:[
+      { email:'vieux@test.invalid', created_at:'2026-09-01T10:00:00Z', last_sign_in_at:'2026-11-10T10:00:00Z', last_visit:'2026-11-10T10:00:00Z', confirmed:true, reptiles:2, pairings:0, clutches:0 },
+      { email:'jamais@test.invalid', created_at:'2026-11-05T10:00:00Z', last_sign_in_at:null, confirmed:false, reptiles:0, pairings:0, clutches:0 },
+      { email:'moyen@test.invalid', created_at:'2026-10-01T10:00:00Z', last_sign_in_at:'2026-10-02T10:00:00Z', last_visit:'2026-11-11T19:00:00Z', confirmed:true, reptiles:0, pairings:0, clutches:0 } ] } }); }; openAdminOverview(); })()""")
+    a.page.wait_for_timeout(500)
+    order = lambda: a.js("[...document.querySelectorAll('#admin-users-list > div')].map(d=>d.innerText.split('@')[0].replace(/[^a-z]/g,''))")
+    check('par défaut : inscription la plus récente en premier', order() == ['jamais', 'moyen', 'vieux'], order())
+    a.page.click('[data-admin-sort="signin"]'); a.page.wait_for_timeout(200)
+    check('dernière connexion la plus récente en premier, jamais connecté en bas', order() == ['vieux', 'moyen', 'jamais'], order())
+    check('bouton actif mis en évidence', a.js("document.querySelector('[data-admin-sort=\"signin\"]').classList.contains('accent') && !document.querySelector('[data-admin-sort=\"signup\"]').classList.contains('accent')"))
+    check('case de désabonnement toujours là', a.page.locator('#admin-users-list input[type=checkbox]').count() == 3)
+    a.page.click('[data-admin-sort="visit"]'); a.page.wait_for_timeout(200)
+    check('dernière visite : app rouverte sans mot de passe compte (moyen en premier)', order() == ['moyen', 'vieux', 'jamais'], order())
+    check('« dernière visite » affichée sur chaque membre', a.js("document.getElementById('admin-users-list').innerText").count('dernière visite') == 3)
+    a.page.click('[data-admin-sort="signup"]'); a.page.wait_for_timeout(200)
+    check('retour au tri par inscription', order() == ['jamais', 'moyen', 'vieux'], order())
+    a.js("setLangTop('en'); setAdminSort('signin')"); a.page.wait_for_timeout(200)
+    check('en anglais', 'Last visit' in a.js("document.getElementById('admin-sort-bar').innerText"))
+    check('pas d\'erreur JS (v5.77-5.78)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+
 def t_avert_sable_scaleless(browser, url):
     section('Alertes Sable et Scaleless seulement quand c\'est justifié (v5.66)')
     a = App(browser, url, logged_in=False); a.open(); a.js("showTab('calc')")
@@ -1964,7 +1988,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_admin_tri_577, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()

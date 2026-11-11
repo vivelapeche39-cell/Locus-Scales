@@ -70,13 +70,15 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black"/>
 <meta name="apple-mobile-web-app-title" content="LOCUS"/>
 <meta property="og:title" content="LOCUS Scales"/>
-<meta property="og:description" content="Application de gestion pour reptiles et colonies de rongeurs nourriciers : génétique sourcée et notes de santé par gène pour le python royal, lignées de rongeurs avec avertissement de consanguinité, repas, mues, pesées et reproduction. En français et en anglais."/>
+<!-- v5.76 — aperçu de partage bilingue (image + description) : anglais d'abord, puis français. -->
+<meta property="og:description" content="Reptile &amp; feeder rodent management: feedings, sheds, weights, breeding, sourced genetics. · Gestion de reptiles et de rongeurs nourriciers : repas, mues, pesées, reproduction, génétique sourcée."/>
 <meta property="og:type" content="website"/>
 <meta property="og:url" content="https://app.locusscales.com/"/>
 <meta property="og:locale" content="fr_CA"/>
-<!-- v3.70 — nouvelle image de partage (bannière actuelle) ; ?v= force Facebook à la relire. -->
-<meta property="og:image" content="https://app.locusscales.com/og-image.png?v=3.70"/>
-<meta property="og:image:alt" content="LOCUS Scales — serpent en double hélice d'ADN sur fond de feuillage"/>
+<meta property="og:locale:alternate" content="en_CA"/>
+<!-- v3.70 — nouvelle image de partage (bannière actuelle) ; ?v= force Facebook à la relire. v5.76 : sous-titre bilingue. -->
+<meta property="og:image" content="https://app.locusscales.com/og-image.png?v=5.76"/>
+<meta property="og:image:alt" content="LOCUS Scales — snake in a DNA double helix on foliage · serpent en double hélice d'ADN sur fond de feuillage"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
 <meta name="twitter:card" content="summary_large_image"/>
@@ -2389,7 +2391,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.75';
+const APP_VERSION = '2026.09.01.5.78';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -36933,20 +36935,7 @@ async function openAdminOverview(){
   const tile = (n, label, sub)=>'<div style="flex:1 1 30%;min-width:96px;padding:10px;border:1px solid var(--line);border-radius:12px;text-align:center;">'+
     '<div style="font-size:26px;font-weight:800;color:var(--gold);">'+(n==null?'—':n)+'</div>'+
     '<div style="font-size:12.5px;color:var(--ink);">'+label+'</div>'+(sub?'<div style="font-size:11px;color:var(--ink-dim);">'+sub+'</div>':'')+'</div>';
-  const users = (data.users||[]);
-  const rows = users.map(u=>{
-    const dot = u.reptiles>0 ? '🟢' : (u.last_sign_in_at ? '🟡' : '⚪');
-    return '<div style="padding:10px 0;border-bottom:1px dashed var(--line);">'+
-      '<div style="font-size:15px;font-weight:700;word-break:break-all;color:var(--ink);">'+dot+' '+escapeHtml(u.email||'?')+(u.confirmed?'':' <span style="font-size:12px;color:var(--rust);">('+(isEn?'not confirmed':'non confirmé')+')</span>')+'</div>'+
-      '<div style="font-size:13px;color:var(--ink-dim);margin-top:3px;">'+
-        (isEn?'Signed up ':'Inscrit ')+escapeHtml(String(u.created_at||'').slice(0,10))+' · '+(isEn?'last sign-in ':'dernière connexion ')+adminAgo(u.last_sign_in_at)+'</div>'+
-      '<div style="font-size:13px;margin-top:3px;">🐍 '+u.reptiles+' · 🤝 '+u.pairings+' · 🥚 '+u.clutches+(u.last_data_change?' · '+(isEn?'data changed ':'données modifiées ')+adminAgo(u.last_data_change):'')+'</div>'+
-      // v3.76 — désabonnement des courriels (loi anti-pourriel) : coché = exclu de « Copier les courriels ».
-      '<label style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:13px;color:'+(u.email_opt_out?'var(--rust)':'var(--ink-dim)')+';">'+
-        '<input type="checkbox" '+(u.email_opt_out?'checked':'')+' onchange="adminSetEmailOptOut(\''+encodeURIComponent(u.email||'')+'\', this.checked)" style="width:20px;height:20px;"/>'+
-        (isEn?'Unsubscribed from emails':'Désabonné des courriels')+'</label>'+
-    '</div>';
-  }).join('');
+  const rows = adminUserRowsHtml();
   document.getElementById('quick-modal-body').innerHTML =
     '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">'+
       tile(tt.users, isEn?'accounts':'comptes', (tt.confirmed||0)+(isEn?' confirmed':' confirmés'))+
@@ -36960,11 +36949,53 @@ async function openAdminOverview(){
     '<p style="font-size:12px;color:var(--ink-dim);margin:0 0 12px;">'+(isEn?'Confirmed accounts only, without unsubscribed ones or yours. Paste them in BCC.':'Comptes confirmés seulement, sans les désabonnés ni le tien. Colle-les en Cci.')+'</p>'+
     '<button class="sc-btn accent" style="width:100%;margin-bottom:12px;font-size:15px;" onclick="openAdminBrandImage()">🏷 '+(isEn?'Add the LOCUS logo to a screenshot':'Ajouter le logo LOCUS sur une capture')+'</button>'+ // v5.20
     '<div style="font-size:12px;color:var(--ink-dim);margin-bottom:6px;">🟢 '+(isEn?'has animals':'a des animaux')+' · 🟡 '+(isEn?'signed in, nothing entered':'connecté, rien entré')+' · ⚪ '+(isEn?'never signed in':'jamais connecté')+'</div>'+
-    rows+
+    '<div id="admin-sort-bar">'+adminSortBarHtml()+'</div>'+ // v5.77
+    '<div id="admin-users-list">'+rows+'</div>'+
     '<p class="husbandry-health-note" style="margin-top:12px;">'+(isEn
       ? 'Counts only — no prices, buyers or locations. Page visits are not measured (no analytics tool installed).'
       : 'Compteurs seulement — aucun prix, acheteur ni emplacement. Les visites de pages ne sont pas mesurées (aucun outil d\'analyse installé).')+'</p>'+
     '<p style="font-size:11px;color:var(--ink-dim);text-align:right;">'+(isEn?'Updated ':'Mis à jour ')+escapeHtml(String(data.generated_at||'').slice(0,16).replace('T',' '))+' UTC</p>';
+}
+// v5.77 — tri de la liste des membres du résumé admin : inscription la plus récente ou dernière connexion la plus récente.
+var adminSortMode = 'signup';
+function adminSortedUsers(){
+  const key = adminSortMode==='signin' ? 'last_sign_in_at' : adminSortMode==='visit' ? 'last_visit' : 'created_at';
+  const ts = v=>{ const n = Date.parse(v||''); return isNaN(n) ? -Infinity : n; }; // jamais connecté = en bas
+  return adminUsersCache.slice().sort((a,b)=>ts(b[key])-ts(a[key]));
+}
+function adminSortBarHtml(){
+  const isEn = currentLang==='en';
+  const btn = (mode, label)=>'<button class="sc-btn'+(adminSortMode===mode?' accent':'')+'" data-admin-sort="'+mode+'" style="flex:1;font-size:14px;padding:10px 6px;" onclick="setAdminSort(\''+mode+'\')">'+label+'</button>';
+  return '<div style="font-size:13px;color:var(--ink-dim);margin:6px 0 4px;">'+(isEn?'Sort by (most recent first):':'Trier par (plus récent en premier) :')+'</div>'+
+    '<div style="display:flex;gap:6px;margin-bottom:6px;">'+
+      btn('signup', isEn?'🆕 Sign-up':'🆕 Inscription')+
+      btn('signin', isEn?'🔑 Last sign-in':'🔑 Dernière connexion')+
+      btn('visit', isEn?'👀 Last visit':'👀 Dernière visite')+
+    '</div>';
+}
+function setAdminSort(mode){
+  adminSortMode = (mode==='signin' || mode==='visit') ? mode : 'signup';
+  const bar = document.getElementById('admin-sort-bar'), list = document.getElementById('admin-users-list');
+  if(bar) bar.innerHTML = adminSortBarHtml();
+  if(list) list.innerHTML = adminUserRowsHtml();
+}
+function adminUserRowsHtml(){
+  const isEn = currentLang==='en';
+  return adminSortedUsers().map(u=>{
+    const dot = u.reptiles>0 ? '🟢' : (u.last_sign_in_at ? '🟡' : '⚪');
+    return '<div style="padding:10px 0;border-bottom:1px dashed var(--line);">'+
+      '<div style="font-size:15px;font-weight:700;word-break:break-all;color:var(--ink);">'+dot+' '+escapeHtml(u.email||'?')+(u.confirmed?'':' <span style="font-size:12px;color:var(--rust);">('+(isEn?'not confirmed':'non confirmé')+')</span>')+'</div>'+
+      '<div style="font-size:13px;color:var(--ink-dim);margin-top:3px;">'+
+        (isEn?'Signed up ':'Inscrit ')+escapeHtml(String(u.created_at||'').slice(0,10))+' · '+(isEn?'last sign-in ':'dernière connexion ')+adminAgo(u.last_sign_in_at)+'</div>'+
+      // v5.77 — dernière visite = app rouverte avec la session gardée (rafraîchissement du jeton), pas seulement le mot de passe.
+      '<div style="font-size:13px;color:var(--ink-dim);margin-top:2px;">👀 '+(isEn?'last visit ':'dernière visite ')+adminAgo(u.last_visit||u.last_sign_in_at)+'</div>'+
+      '<div style="font-size:13px;margin-top:3px;">🐍 '+u.reptiles+' · 🤝 '+u.pairings+' · 🥚 '+u.clutches+(u.last_data_change?' · '+(isEn?'data changed ':'données modifiées ')+adminAgo(u.last_data_change):'')+'</div>'+
+      // v3.76 — désabonnement des courriels (loi anti-pourriel) : coché = exclu de « Copier les courriels ».
+      '<label style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:13px;color:'+(u.email_opt_out?'var(--rust)':'var(--ink-dim)')+';">'+
+        '<input type="checkbox" '+(u.email_opt_out?'checked':'')+' onchange="adminSetEmailOptOut(\''+encodeURIComponent(u.email||'')+'\', this.checked)" style="width:20px;height:20px;"/>'+
+        (isEn?'Unsubscribed from emails':'Désabonné des courriels')+'</label>'+
+    '</div>';
+  }).join('');
 }
 // v3.76 — courriels pour un envoi groupé (Cci) : confirmés, non désabonnés, sans le compte admin lui-même.
 var adminUsersCache = [];
