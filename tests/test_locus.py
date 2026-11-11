@@ -611,6 +611,47 @@ def t_etiquettes_rack_569(browser, url):
     check('pas d\'erreur JS (v5.69)', not a.real_errors(), a.real_errors()[:3])
     a.close()
 
+def t_grille_mobile_570(browser, url):
+    section('Mes reptiles : la grille ne dépasse plus l\'écran du téléphone (v5.70)')
+    snakes = [make_snake(i, days_history=10) for i in range(600, 612)]
+    a = App(browser, url, snakes=snakes, lang='fr'); a.open(wait=1500)
+    for view, ncol in (('cards', 2), ('compact', 3), ('photos', 2)):
+        a.js("showTab('mine'); setMineView('%s')" % view); a.page.wait_for_timeout(300)
+        r = a.js("""(()=>{const g=document.getElementById('saved-grid'); return {gw:g.clientWidth, sw:g.scrollWidth, doc:document.documentElement.scrollWidth, vw:window.innerWidth, n:getComputedStyle(g).gridTemplateColumns.split(' ').length}})()""")
+        check('vue %s : rien ne dépasse à droite (page centrée)' % view, r['sw'] <= r['gw'] + 1 and r['doc'] <= r['vw'], r)
+        check('vue %s : %d colonnes' % (view, ncol), r['n'] == ncol, r)
+    check('pas d\'erreur JS (v5.70)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+
+MM_FAKE_CSV = 'Category*,Type,Title*,Animal_Id*,Maturity,Condition,Price,State,Visibility,Enabled,Sex,Dob,Weight,Quantity,Group_Id,Traits,Photo_Urls,Video_Url,Desc,Length,Length_Type,Proven_Breeder,Is_Group,Wholesale_Price,Wholesale_Only,Wholesale_Description,Origin,Diet,Min_Shipping,Max_Shipping,Is_Rep_Photo,Is_Negotiable,Is_For_Trade,Enable \'Buy Now\',Last_Update**,First_Listed**,Last_Renewal**,Impression_Count**,Click_Count**,Inquiries_Count**,Mm_Url**,Sires**,Dams**,Private_Notes\nBall Pythons,Animal,Zephyr,ZZ-001,adult,,0.0,Not For Sale,Public,Active,male,10/25/2023,,1,,clown het desert ghost,https://example.com/a.jpg,,Tested het DG,,,,Sold individually,,No,,Captive Bred,,0.0,0.0,No,Unspecified,Unspecified,No,2026/11/09 09:06:24 -0500,,,0,0,0,https://www.morphmarket.com/us/c/reptiles/pythons/ball-pythons/1,,,\nBall Pythons,Animal,Gaia,ZZ-002,adult,,0.0,Not For Sale,Public,Active,female,5/1/2022,,1,,pastel,https://example.com/b.jpg,,,,,,Sold individually,,No,,Captive Bred,,0.0,0.0,No,Unspecified,Unspecified,No,2026/11/09 09:06:24 -0500,,,0,0,0,https://www.morphmarket.com/us/c/reptiles/pythons/ball-pythons/2,,,\nBall Pythons,Animal,Pastel clown baby,ZZ-003,baby,,175.0,For Sale,Public,Active,female,7/7/2026,,1,ZZ0708,pastel het clown,https://example.com/c.jpg,,"Zephyr x Gaia\nsecond line of desc",,,,Sold individually,,No,,Self Produced,,65.0,65.0,No,Unspecified,Unspecified,No,2026/11/09 10:26:26 -0500,2026/07/28 10:33:50 -0400,,10,1,0,https://www.morphmarket.com/us/c/reptiles/pythons/ball-pythons/3,Zephyr Ball Python (M)(#ZZ-001),Gaia Ball Python (F)(#ZZ-002),\nBall Pythons,Animal,Red stripe DH hypo puzzle,,juvenile,,100.0,For Sale,Public,Active,male,3/2026,,1,,het hypo het puzzle red stripe,https://example.com/d.jpg,,"Upgraded my male\nBought on 6/16/26",,,No,Sold individually,,No,,Captive Bred,,65.0,65.0,No,Unspecified,Unspecified,No,2026/11/09 09:10:11 -0500,,,0,0,0,https://www.morphmarket.com/us/c/reptiles/pythons/ball-pythons/4,,,Purchased for $500 on 06-16-26.\n'  # v5.71 — même format que l'export MorphMarket (données inventées)
+
+def t_import_morphmarket_571(browser, url):
+    section('Import d\'un export MorphMarket réel (format) (v5.71)')
+    a = App(browser, url, snakes=[], lang='en'); a.open(wait=1500)
+    a.page.on('dialog', lambda d: d.accept())
+    path = os.path.join(tempfile.mkdtemp(), 'animals-export.csv'); open(path, 'w', encoding='utf-8').write(MM_FAKE_CSV)
+    a.js("showTab('mine')")
+    a.page.set_input_files('#generic-csv-file-input', path); a.page.wait_for_timeout(1000)
+    a.js("""(()=>{const btns=[...document.querySelectorAll('button')].filter(b=>b.offsetParent && /import/i.test(b.textContent) && !/fichier|file|choisir|choose/i.test(b.textContent)); if(btns.length) btns[btns.length-1].click();})()""")
+    a.page.wait_for_timeout(1200)
+    got = a.js("savedSnakes.map(s=>({n:s.name, id:s.animalId, sire:s.sireId, dam:s.damId, prov:s.provenance, notes:s.notes, ask:s.askingPrice, st:s.status, acq:s.acquisitionDate, pp:s.purchasePrice, url:s.listingUrl, g:summarizeGenes(s.genes)}))")
+    by = {r['n']: r for r in got}
+    check('4 animaux, noms intacts malgré les descriptions sur 2 lignes', sorted(by) == sorted(['Zephyr', 'Gaia', 'Pastel clown baby', 'Red stripe DH hypo puzzle']), list(by))
+    ids = {r['id']: r for r in got if r['id']}
+    bb = by.get('Pastel clown baby', {})
+    zid = a.js("(savedSnakes.find(s=>s.animalId==='ZZ-001')||{}).id"); gid = a.js("(savedSnakes.find(s=>s.animalId==='ZZ-002')||{}).id")
+    check('parents MorphMarket « Sires / Dams » liés par l\'ID après #', bb.get('sire') == zid and bb.get('dam') == gid and zid, bb)
+    check('description sur 2 lignes gardée dans les notes', 'second line of desc' in (bb.get('notes') or ''), bb.get('notes'))
+    check('« Self Produced » = provenance vide', not bb.get('prov'), bb.get('prov'))
+    rs = by.get('Red stripe DH hypo puzzle', {})
+    check('notes privées : prix et date d\'achat lus (500 $, 2026-06-16)', rs.get('pp') == 500 and rs.get('acq') == '2026-06-16', rs)
+    check('lien de l\'annonce MorphMarket gardé', (rs.get('url') or '').startswith('https://www.morphmarket.com/'), rs.get('url'))
+    check('DH = double het, pas des gènes visuels', 'het Puzzle' in rs.get('g', '') and 'het Hypo' in rs.get('g', ''), rs.get('g'))
+    check('prix 0 sur un animal pas à vendre = aucun prix', by.get('Zephyr', {}).get('ask') is None, by.get('Zephyr'))
+    check('animal à vendre : statut et prix', bb.get('st') == 'forsale' and bb.get('ask') == 175, bb)
+    check('pas d\'erreur JS (v5.71)', not [e for e in a.real_errors() if not e.startswith('dialog:')], a.real_errors()[:3])
+    a.close()
+
 def t_avert_sable_scaleless(browser, url):
     section('Alertes Sable et Scaleless seulement quand c\'est justifié (v5.66)')
     a = App(browser, url, logged_in=False); a.open(); a.js("showTab('calc')")
@@ -1781,7 +1822,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()

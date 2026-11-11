@@ -987,8 +987,11 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   /* Mes reptiles */
   .draft-name{width:calc(100% - 28px);margin:12px 14px 0;font-size:16px;}
   .pedigree-row{margin:10px 14px 0;}
-  .saved-grid{grid-template-columns:repeat(3,1fr);gap:7px;margin-top:16px;}
-  .saved-card{padding:8px 7px;border-radius:10px;}
+  /* v5.70 — minmax(0,1fr) : sans ça, le contenu des cartes élargissait les colonnes et la grille dépassait l'écran (page décentrée, signalé par Alex) ; vue Cartes en 2 colonnes */
+  .saved-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:16px;}
+  .saved-grid.cards-view{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;}
+  .saved-card{padding:8px 7px;border-radius:10px;min-width:0;overflow-wrap:break-word;}
+  .saved-card .sc-sex,.saved-card .sc-status{white-space:nowrap;display:inline-block;}
   .saved-card .sc-head{flex-direction:column;align-items:flex-start;gap:3px;margin-bottom:5px;}
   .saved-card .sc-name{font-size:11px;line-height:1.2;}
   .saved-card .sc-name img{width:22px;height:22px;margin-right:4px;}
@@ -2380,7 +2383,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.69';
+const APP_VERSION = '2026.09.01.5.71';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5685,6 +5688,20 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.71', date:'2026-11-11',
+    title:{ fr:'Import MorphMarket réparé', en:'MorphMarket import fixed' },
+    changes:{
+      fr:[ '🔧 Import : un fichier CSV où une case contient un retour de ligne (ex. une description MorphMarket sur 2 lignes) est maintenant lu correctement. Avant, tout le fichier pouvait être mélangé.',
+           '📥 Import MorphMarket : le père et la mère (« Sires / Dams ») sont maintenant liés, la description et les notes privées vont dans les notes, le prix et la date d\'achat écrits par MorphMarket (« Purchased for $500 on… ») sont repris, et le lien de l\'annonce est gardé.',
+           '📥 « Self Produced » ne devient plus une provenance (né chez toi), et un prix de 0 $ sur un animal pas à vendre est ignoré.' ],
+      en:[ '🔧 Import: a CSV file where a cell contains a line break (e.g. a two-line MorphMarket description) is now read correctly. Before, the whole file could get mixed up.',
+           '📥 MorphMarket import: sire and dam (« Sires / Dams ») are now linked, the description and private notes go into the notes, the purchase price and date written by MorphMarket (« Purchased for $500 on… ») are picked up, and the listing link is kept.',
+           '📥 « Self Produced » no longer becomes a provenance (bred by you), and a $0 price on an animal not for sale is ignored.' ] } },
+  { version:'5.70', date:'2026-11-11',
+    title:{ fr:'Mes reptiles bien centré sur téléphone', en:'My reptiles properly centered on phones' },
+    changes:{
+      fr:[ '🔧 Sur téléphone, la liste de Mes reptiles ne dépasse plus l\'écran à droite (la page n\'est plus décentrée). La vue Cartes passe à 2 colonnes pour rester lisible ; la vue Compacte garde 3 colonnes.' ],
+      en:[ '🔧 On phones, the My reptiles list no longer runs off the right edge of the screen (the page is centered again). Cards view now uses 2 columns to stay readable; Compact view keeps 3 columns.' ] } },
   { version:'5.69', date:'2026-11-11',
     title:{ fr:'Étiquettes de tous les bacs d\'un rack', en:'Labels for every tub in a rack' },
     changes:{
@@ -11937,6 +11954,7 @@ function renderSavedList(){
   // v5.18 — bascule Liste / Photos (choix retenu sur l'appareil)
   const mineView = getMineView();
   grid.classList.toggle('gallery', mineView==='photos');
+  grid.classList.toggle('cards-view', mineView==='cards'); // v5.70
   const mvBtn = (v, label)=>'<button type="button" class="'+(mineView===v?'save-btn':'sc-btn')+'" onclick="setMineView(\''+v+'\')">'+label+'</button>';
   grid.insertAdjacentHTML('afterbegin', '<div class="mine-view-bar">'+
     mvBtn('compact', '☰ '+(isEn?'Compact':'Compacte'))+
@@ -19296,7 +19314,9 @@ const CSV_COLUMN_ALIASES = {
   askingPrice: ['prix demande','prix','asking price','price','prix de vente','sale price','list price','for sale price','selling price'],
   animalId: ['animal id','animal_id','animalid','id animal','id/name','name/id','id / name','id/nom','nom/id','id','animal_id','animalid','id animal','id de l\'animal','identifiant','# id','#','tag','tag id','code','animal #','tag #','id #','identifier','animal number','number','no','numero','reference','ref','record id','collection id'], // v4.16
   weight: ['poids','poids (g)','poids animal','poids animal (g)','poids de l\'animal','animal weight','weight','weight (g)','masse','dernier poids','last weight','poids actuel','current weight','current weight (g)','weight (grams)','mass','body weight','latest weight','recent weight','wt'], // v4.12
-  notes: ['notes','note','remarques','remarque','comment','comments','commentaire','commentaires','details','description','remarks','memo','observations'], // v4.21
+  notes: ['notes','note','remarques','remarque','comment','comments','commentaire','commentaires','details','description','desc','remarks','memo','observations'], // v4.21 ; v5.71 « Desc » (MorphMarket)
+  privateNotes: ['private notes','private note','notes privees','note privee','internal notes'], // v5.71 — MorphMarket « Private_Notes » (ajoutées aux notes)
+  listingUrl: ['mm url','morphmarket url','listing url','listing link','lien annonce','lien de l\'annonce','annonce'], // v5.71
   lastFedPrey: ['last feed item','last fed item','last prey','last feeder','derniere proie','last meal item','last food'], // v4.30
   lastShed: ['last shed date','last shed','derniere mue','date derniere mue','last sheded','shed date'], // v4.30
   lastShedQuality: ['last shed status','last shed quality','shed quality','shed status','qualite de la mue','etat de la mue'], // v4.30
@@ -19305,8 +19325,8 @@ const CSV_COLUMN_ALIASES = {
   location: ['emplacement','location','placement','rack/bac','rack / bac','rack-bac','enclosure','enclos','cage','habitat','housing','logement','terrarium','vivarium','position','spot','rack location','enclosure name','where','rack'], // v4.45
   locRow: ['rangee','row','etage','shelf','level','tablette','rang','no rangee','row #'], // v4.45
   locTub: ['bac','tub','bin','slot','tiroir','drawer','case','no bac','tub #','bac #'], // v4.45
-  sire: ['sire','pere','father','male parent','parent male','sire id','id du pere','dad','sire name','nom du pere'], // v4.20
-  dam: ['dam','mere','mother','female parent','parent femelle','dam id','id de la mere','mom','dam name','nom de la mere'], // v4.20
+  sire: ['sire','sires','pere','father','male parent','parent male','sire id','id du pere','dad','sire name','nom du pere'], // v4.20
+  dam: ['dam','dams','mere','mother','female parent','parent femelle','dam id','id de la mere','mom','dam name','nom de la mere'], // v4.20
   lastFed: ['dernier repas','date du dernier repas','last fed','last fed date','last feeding','last meal','date last fed','last feeding date','last feed','last fed on','dernier nourrissage','last feed date','last meal date','date of last feed'], // v4.18
   weightDate: ['date de pesee','date pesee','date du poids','weigh date','weight date','date of weight','derniere pesee','last weigh-in','date weighed','weighed on','last weighed','weigh-in date'], // v4.12
 };
@@ -19659,12 +19679,42 @@ function readImportFileAsRows(file, done0){
       done(wb.SheetNames.map(n=>({ n, rows: XLSX.utils.sheet_to_json(wb.Sheets[n], { header:1, raw:true, defval:'' }) })), { isExcel:true });
     } else {
       const text = importDecodeText(reader.result).replace(/^\uFEFF/,'');
-      const rows = importTextToRows(text);
+      // v5.71 — vrai CSV (guillemets, retours de ligne dans une case — ex. description MorphMarket) : lu case par case
+      const csvRows = importParseDelimitedText(text, file.name);
+      const rows = csvRows || importTextToRows(text);
       if(!rows.length){ done([], null); return; }
       done([{ n:file.name||'CSV', rows }], { isExcel:false });
     }
   };
   reader.readAsArrayBuffer(file); // v4.33 — texte décodé nous-mêmes (Bloc-notes : UTF-8, ANSI ou « Unicode »)
+}
+// v5.71 — CSV/TSV selon les règles (RFC 4180) : une case entre guillemets peut contenir des virgules, des "" et
+// des retours de ligne. Avant, le fichier était coupé ligne par ligne : une description MorphMarket sur 2 lignes
+// faisait tout lire comme du texte libre (noms et génétique mélangés). null = pas un tableau délimité.
+function importParseDelimitedText(text, name){
+  const t = String(text||'');
+  const ext = String(name||'').toLowerCase().split('.').pop();
+  const firstLine = (t.match(/^[^\r\n]*/)||[''])[0];
+  const outside = l=>l.replace(/"[^"]*"/g,'');
+  const cnt = (l,ch)=>outside(l).split(ch).length-1;
+  const cands = [[',',cnt(firstLine,',')],['\t',cnt(firstLine,'\t')],[';',cnt(firstLine,';')]].sort((a,b)=>b[1]-a[1]);
+  const delim = cands[0][0], n = cands[0][1];
+  const quotedBreak = /"[^"]*\r?\n[^"]*"/.test(t);
+  if(!(['csv','tsv'].includes(ext) && n>=1) && !(n>=3 && quotedBreak)) return null;
+  const rows = []; let row = [], cur = '', q = false;
+  for(let i=0;i<t.length;i++){
+    const ch = t[i];
+    if(q){
+      if(ch==='"'){ if(t[i+1]==='"'){ cur+='"'; i++; } else q = false; }
+      else cur += ch;
+    } else if(ch==='"' && cur.trim()===''){ q = true; cur=''; }
+    else if(ch===delim){ row.push(cur.trim()); cur=''; }
+    else if(ch==='\n' || ch==='\r'){ if(ch==='\r' && t[i+1]==='\n') i++; row.push(cur.trim()); cur=''; if(row.some(v=>v!=='')) rows.push(row); row=[]; }
+    else cur += ch;
+  }
+  row.push(cur.trim()); if(row.some(v=>v!=='')) rows.push(row);
+  if(rows.length<2 || rows[0].length<2) return null;
+  return rows;
 }
 // v4.33 — Bloc-notes Windows : UTF-8, UTF-16 (« Unicode ») ou ANSI (Windows-1252, les accents sinon brisés)
 function importDecodeText(buf){
@@ -21241,7 +21291,7 @@ function routeImportSheets(sheets, meta){
 // colonnes n'a jamais compté : tout passe par les titres (ou par le choix fait ici).
 var IMPORT_FIELD_ORDER = ['animalId','name','sex','species','genes','birthDate','status','sire','dam','weight','weightDate','lastFed','lastFedPrey','lastShed','lastShedQuality','acquired','provenance','purchasePrice','askingPrice','location','locRow','locTub','notes'];
 function importFieldLabel(f, isEn){
-  const L = { location:['Emplacement (rack-bac ou terrarium)','Location (rack-tub or terrarium)'], locRow:['Rangée','Row'], locTub:['Bac','Tub'], animalId:['ID','ID'], name:['Nom','Name'], sex:['Sexe','Sex'], species:['Espèce','Species'], genes:['Génétique','Genetics'], birthDate:['Date de naissance','Birth date'], weight:['Poids (g)','Weight (g)'], weightDate:['Date de pesée','Weigh date'], status:['Statut','Status'], sire:['Père (ID ou nom)','Sire (ID or name)'], dam:['Mère (ID ou nom)','Dam (ID or name)'], lastFed:['Dernier repas (date)','Last fed (date)'], lastFedPrey:['Dernier repas (proie)','Last fed (prey)'], lastShed:['Dernière mue (date)','Last shed (date)'], lastShedQuality:['Dernière mue (qualité)','Last shed (quality)'], acquired:['Date d\'acquisition','Acquisition date'], notes:['Notes','Notes'], provenance:['Provenance','Provenance'], purchasePrice:['Prix d\'achat','Purchase price'], askingPrice:['Prix demandé','Asking price'] };
+  const L = { location:['Emplacement (rack-bac ou terrarium)','Location (rack-tub or terrarium)'], locRow:['Rangée','Row'], locTub:['Bac','Tub'], animalId:['ID','ID'], name:['Nom','Name'], sex:['Sexe','Sex'], species:['Espèce','Species'], genes:['Génétique','Genetics'], birthDate:['Date de naissance','Birth date'], weight:['Poids (g)','Weight (g)'], weightDate:['Date de pesée','Weigh date'], status:['Statut','Status'], sire:['Père (ID ou nom)','Sire (ID or name)'], dam:['Mère (ID ou nom)','Dam (ID or name)'], lastFed:['Dernier repas (date)','Last fed (date)'], lastFedPrey:['Dernier repas (proie)','Last fed (prey)'], lastShed:['Dernière mue (date)','Last shed (date)'], lastShedQuality:['Dernière mue (qualité)','Last shed (quality)'], acquired:['Date d\'acquisition','Acquisition date'], notes:['Notes','Notes'], privateNotes:['Notes privées (ajoutées aux notes)','Private notes (added to notes)'], listingUrl:['Lien de l\'annonce','Listing link'], provenance:['Provenance','Provenance'], purchasePrice:['Prix d\'achat','Purchase price'], askingPrice:['Prix demandé','Asking price'] };
   return L[f] ? L[f][isEn?1:0] : f;
 }
 // ==================== v4.45 — emplacement lu à l'import (« Rack A-R2-B5 », « A-2-5 », « Rack 1 #12 », un terrarium…) ====================
@@ -21561,23 +21611,24 @@ function rebuildGenericImportRows(){
     return {
       name: name.slice(0,80), animalId, line: cols.__line, // v4.40 — numéro de ligne pour les messages
       status: st.status, statusKnown: st.known, statusRaw: str(cols,'status'), quarantine: !!st.quarantine,
-      notes: [str(cols,'notes'), ...wordNotes, ...priceNotes, ...packedNotes, (parsed.unknown && parsed.unknown.length && str(cols,'genes') ? (isEn?'Genetics in the file: ':'Génétique dans le fichier : ')+str(cols,'genes') : ''), (!st.known && str(cols,'status') ? (isEn?'Status in the imported file: ':'Statut dans le fichier importé : ')+str(cols,'status') : '')].filter(Boolean).join('\n') || null, // v4.21 (+ date d'acquisition v4.30)
+      notes: [str(cols,'notes'), str(cols,'privateNotes'), ...wordNotes, ...priceNotes, ...packedNotes, (parsed.unknown && parsed.unknown.length && str(cols,'genes') ? (isEn?'Genetics in the file: ':'Génétique dans le fichier : ')+str(cols,'genes') : ''), (!st.known && str(cols,'status') ? (isEn?'Status in the imported file: ':'Statut dans le fichier importé : ')+str(cols,'status') : '')].filter(Boolean).join('\n') || null, // v4.21 (+ date d'acquisition v4.30)
       locRaw: str(cols,'location'), locRowRaw: str(cols,'locRow'), locTubRaw: str(cols,'locTub'), // v4.45
-      sireRef: str(cols,'sire') || null, damRef: str(cols,'dam') || null, // v4.20 — liés après la création (ID ou nom, dans LOCUS ou dans le fichier)
+      sireRef: importParentRef(str(cols,'sire')), damRef: importParentRef(str(cols,'dam')), // v4.20 — liés après la création (ID ou nom, dans LOCUS ou dans le fichier) ; v5.71 — format MorphMarket
+      listingUrl: /^(https?:\/\/)?(www\.)?morphmarket\.com\//i.test(str(cols,'listingUrl')) ? str(cols,'listingUrl') : null, // v5.71
       sex: importSexOf(sexRaw),
       genes: parsed.genes, unknownGenes: parsed.unknown, genesRaw: str(cols,'genes'),
       birthDate: bd.value,
-      provenance: str(cols,'provenance') || null,
-      purchasePrice: priceNum(cols,'purchasePrice'),
+      provenance: /^(self[ -]?produced|home[ -]?bred|ne chez moi|née? chez moi)$/i.test(str(cols,'provenance')) ? null : (str(cols,'provenance') || null), // v5.71 — « Self Produced » (MorphMarket) = né chez toi : provenance vide
+      purchasePrice: priceNum(cols,'purchasePrice')!=null ? priceNum(cols,'purchasePrice') : importMmPurchase(str(cols,'privateNotes')).price, // v5.71
       species: sp.id, speciesKnown: sp.known,
-      askingPrice: priceNum(cols,'askingPrice'),
+      askingPrice: (priceNum(cols,'askingPrice')===0 && st.status!=='forsale') ? null : priceNum(cols,'askingPrice'), // v5.71 — « 0.0 » MorphMarket sur un animal pas à vendre = pas de prix
       weight: weight && weight>0 ? Math.round(weight*10)/10 : null,
       weightDate: wd.value && wd.value.length===10 ? wd.value : null,
       lastFed: lf.value && lf.value.length===10 ? lf.value : null,
       lastFedPrey: str(cols,'lastFedPrey') || null, // v4.30
       lastShed: ls.value && ls.value.length===10 ? ls.value : null,
       lastShedQuality: (function(q){ if(!q) return undefined; const pc = q.match(/(\d+)\s*%/); if(pc) return +pc[1]>=100 ? 'complete' : 'incomplete'; return logShedQuality(q); })(str(cols,'lastShedQuality')),
-      acquired: acq.value || null,
+      acquired: acq.value || importMmPurchase(str(cols,'privateNotes')).date || null, // v5.71 — « Purchased for $500 on 06-16-26. » (MorphMarket)
       dupe, fileDupe
     };
   }).filter(Boolean);
@@ -21748,6 +21799,24 @@ function renderGenericCsvPreview(){
   showQuickModal((isEn?'Import preview':'Aperçu de l\'import'), body);
 }
 // Parent : par ID d'abord, puis par nom — dans la collection, puis dans les lignes du fichier
+// v5.71 — père/mère au format MorphMarket : « PB..Killer Banana Ball Python (M)(#Titan) » → « Titan » (l'ID après #),
+// sinon le nom sans « Ball Python » ni « (M)/(F) ». Une valeur ordinaire (« Rex », « BP-001 ») reste telle quelle.
+function importParentRef(v){
+  const t = String(v||'').trim(); if(!t) return null;
+  const id = t.match(/\(#\s*([^)]+?)\s*\)\s*$/);
+  if(id) return id[1];
+  if(/\((m|f|male|female)\)\s*$/i.test(t)) return t.replace(/\((m|f|male|female)\)\s*$/i,'').replace(/\bball python\b/i,'').replace(/^pb\.\./i,'').trim() || null;
+  return t;
+}
+// v5.71 — MorphMarket écrit l'achat dans les notes privées : « Purchased for $500 on 06-16-26. »
+function importMmPurchase(txt){
+  const m = String(txt||'').match(/purchased\s+for\s+\$?\s*([\d,]+(?:\.\d+)?)\s+on\s+(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})/i);
+  if(!m) return { price:null, date:null };
+  let y = +m[4]; if(y<100) y += 2000;
+  const mo = +m[2], d = +m[3];
+  const date = (mo>=1 && mo<=12 && d>=1 && d<=31) ? y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0') : null;
+  return { price: parseFloat(m[1].replace(/,/g,'')), date };
+}
 function importFindParent(ref, rowsAll){
   const k = String(ref).trim().toUpperCase(), kn = normalizeHeaderKey(ref);
   if(!k) return null;
@@ -21766,7 +21835,7 @@ function confirmGenericCsvImport(){
       name:r.name||'', animalId:r.animalId||null, sex:r.sex, genes:r.genes||{}, genesVerified:false, sireId:null, damId:null,
       birthDate:r.birthDate||null, provenance:r.provenance, acquisitionDate:r.acquired||null,
       purchasePrice:r.purchasePrice, species:r.species||'ball_python',
-      askingPrice:r.askingPrice, notes:r.notes||undefined,
+      askingPrice:r.askingPrice, notes:r.notes||undefined, listingUrl:r.listingUrl||null, // v5.71
       status: r.status || 'kept', createdAt: base+i,
       health:{ events: [].concat(r.lastFed ? [Object.assign({ id:'ev_imp_'+base+'_'+i, type:'fed', date:r.lastFed }, r.lastFedPrey ? parseLogPrey(r.lastFedPrey) : {})] : [], r.lastShed ? [Object.assign({ id:'ev_imps_'+base+'_'+i, type:'shed', date:r.lastShed }, r.lastShedQuality ? { quality:r.lastShedQuality } : {})] : []), weights: r.weight ? [{ date: r.weightDate || today, value: r.weight }] : [], lengths:[] }
     };
