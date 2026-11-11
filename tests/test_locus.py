@@ -652,6 +652,98 @@ def t_import_morphmarket_571(browser, url):
     check('pas d\'erreur JS (v5.71)', not [e for e in a.real_errors() if not e.startswith('dialog:')], a.real_errors()[:3])
     a.close()
 
+def t_import_maj_572(browser, url):
+    section('Réimport : compléter les animaux existants sans rien doubler (v5.72)')
+    a = App(browser, url, snakes=[], lang='en'); a.open(wait=1500)
+    a.page.on('dialog', lambda d: d.accept())
+    # comme Balls Deep : des animaux déjà importés, sans parents, notes ni lien ; un avec ID, les autres par nom
+    a.js("""(()=>{ const mk=(id,name,animalId,extra)=>Object.assign({id, name, animalId, sex:null, genes:{}, species:'ball_python', status:'kept', notes:''}, extra||{});
+      savedSnakes.push(mk('e1','Zephyr','ZZ-001',{sex:'male', notes:'my own note'}), mk('e2','Gaia',null,{birthDate:'2020-01-01'}), mk('e3','Pastel clown baby',null), mk('e4','Red stripe DH hypo puzzle',null), mk('e5','Red stripe DH hypo puzzle',null));
+      savedSnakes.forEach(ensureSnakeMeta); storage.save(savedSnakes); showTab('mine'); })()""")
+    path = os.path.join(tempfile.mkdtemp(), 'animals-export.csv'); open(path, 'w', encoding='utf-8').write(MM_FAKE_CSV)
+    def run_import():
+        a.page.set_input_files('#generic-csv-file-input', path); a.page.wait_for_timeout(1000)
+        upd = a.js("!!(document.getElementById('imp-update-existing')||{}).checked")
+        a.js("""(()=>{const btns=[...document.querySelectorAll('button')].filter(b=>b.offsetParent && /import|complete/i.test(b.textContent) && !/fichier|file|choisir|choose/i.test(b.textContent)); if(btns.length) btns[btns.length-1].click();})()""")
+        a.page.wait_for_timeout(1200)
+        return upd
+    upd = run_import()
+    check('aperçu : « compléter les animaux déjà dans LOCUS » coché par défaut', upd is True)
+    got = a.js("savedSnakes.map(s=>({id:s.id, n:s.name, aid:s.animalId, sex:s.sex, dob:s.birthDate, sire:s.sireId, dam:s.damId, notes:s.notes, url:s.listingUrl, g:Object.keys(s.genes||{}).length}))")
+    by = {r['id']: r for r in got}
+    check('aucun animal créé en double (5 avant, 5 après)', len(got) == 5, [r['n'] for r in got])
+    check('ID ajouté par le nom quand il manquait (Gaia → ZZ-002)', by['e2']['aid'] == 'ZZ-002', by['e2'])
+    check('rien n\'est remplacé (date de naissance de Gaia gardée)', by['e2']['dob'] == '2020-01-01', by['e2'])
+    check('notes : la mienne gardée + la description ajoutée', 'my own note' in by['e1']['notes'] and 'Tested het DG' in by['e1']['notes'], by['e1']['notes'])
+    check('parents liés sur l\'animal existant', by['e3']['sire'] == 'e1' and by['e3']['dam'] == 'e2', by['e3'])
+    check('lien de l\'annonce ajouté', (by['e3']['url'] or '').endswith('/3'), by['e3'])
+    check('deux animaux du même nom sans ID : ni complétés ni doublés', not by['e4']['url'] and not by['e5']['url'], [by['e4'], by['e5']])
+    snap = a.js("JSON.stringify(savedSnakes.map(s=>[s.id,s.notes,s.health.events.length,s.health.weights.length,s.sireId,s.damId,s.listingUrl]))")
+    run_import()
+    check('2e réimport du même fichier : rien ne change, rien ne double', a.js("JSON.stringify(savedSnakes.map(s=>[s.id,s.notes,s.health.events.length,s.health.weights.length,s.sireId,s.damId,s.listingUrl]))") == snap)
+    check('pas d\'erreur JS (v5.72)', not [e for e in a.real_errors() if not e.startswith('dialog:')], a.real_errors()[:3])
+    a.close()
+
+def t_tournee_barres_572(browser, url):
+    section('Mode Tournée : les barres ne se superposent plus en défilant (v5.72)')
+    snakes = [make_snake(i) for i in range(700, 730)]
+    for k, s_ in enumerate(snakes): s_['placement'] = {"mode": "rack", "rackId": "rack_1", "row": 1 + k // 6, "tub": k % 6 + 1}
+    a = App(browser, url, snakes=snakes, lang='fr'); a.open(wait=3000)
+    a.js("showTab('elevage'); showSubtab('tour')"); a.page.wait_for_timeout(400)
+    a.js("window.scrollTo(0, document.getElementById('tour-quickselect').getBoundingClientRect().top + window.scrollY + 600)"); a.page.wait_for_timeout(300)
+    r = a.js("""(()=>{const t=document.querySelector('#sub-tour .tour-toolbar').getBoundingClientRect(), d=document.getElementById('tour-date-bar').getBoundingClientRect(), q=document.getElementById('tour-quickselect').getBoundingClientRect();
+      const over=(a,b)=>!(a.bottom<=b.top || b.bottom<=a.top) && a.height>0 && b.height>0; return {date:over(t,d), quick:over(t,q), top:Math.round(t.top)}})()""")
+    check('barre d\'actions toujours visible en haut', r['top'] <= 2, r)
+    check('la date et la sélection rapide ne recouvrent plus les boutons', not r['date'] and not r['quick'], r)
+    check('pas d\'erreur JS (tournée v5.72)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+
+def _jpeg_bytes(color=(120, 160, 90)):
+    import io
+    try:
+        from PIL import Image
+        b = io.BytesIO(); Image.new('RGB', (1200, 800), color).save(b, 'JPEG'); return b.getvalue()
+    except Exception:
+        import base64
+        return base64.b64decode('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=')
+
+def t_import_photos_573(browser, url):
+    section('Import : photos copiées sur le serveur LOCUS, sans double (v5.73)')
+    a = App(browser, url, snakes=[], lang='en'); a.open(wait=1500)
+    a.page.on('dialog', lambda d: d.accept())
+    hits = {'n': 0}
+    def serve(route):
+        hits['n'] += 1
+        if route.request.url.endswith('/d.jpg'): route.fulfill(status=404, body='gone')
+        else: route.fulfill(status=200, body=_jpeg_bytes(), headers={'Content-Type': 'image/jpeg', 'Access-Control-Allow-Origin': '*'})
+    a.page.route('https://example.com/**', serve)
+    path = os.path.join(tempfile.mkdtemp(), 'animals-export.csv'); open(path, 'w', encoding='utf-8').write(MM_FAKE_CSV)
+    def run_import():
+        a.js("showTab('mine')")
+        a.page.set_input_files('#generic-csv-file-input', path); a.page.wait_for_timeout(1000)
+        prev = a.js("document.getElementById('quick-modal') ? document.getElementById('quick-modal').innerText : document.body.innerText")
+        a.js("""(()=>{const btns=[...document.querySelectorAll('button')].filter(b=>b.offsetParent && /import|complete/i.test(b.textContent) && !/fichier|file|choisir|choose/i.test(b.textContent)); if(btns.length) btns[btns.length-1].click();})()""")
+        a.page.wait_for_timeout(4000)
+        return prev
+    prev = run_import()
+    check('aperçu : annonce que les photos seront copiées', 'photo links' in prev, prev[:200])
+    ph = a.js("savedSnakes.map(s=>({n:s.name, p:(s.photos||[]).map(x=>({d:!!x.dataUrl, u:x.publicUrl||'', s:x.sourceUrl||''}))}))")
+    by = {r['n']: r['p'] for r in ph}
+    check('photo copiée : lien LOCUS (serveur), pas de copie dans le téléphone', len(by.get('Zephyr', [])) == 1 and by['Zephyr'][0]['u'].startswith('https://fake.invalid/') and not by['Zephyr'][0]['d'], by.get('Zephyr'))
+    check('lien d\'origine gardé (pour ne jamais la recopier)', by['Zephyr'][0]['s'] == 'https://example.com/a.jpg', by['Zephyr'])
+    check('photo introuvable (lien expiré) : ignorée sans planter', by.get('Red stripe DH hypo puzzle') == [], by.get('Red stripe DH hypo puzzle'))
+    check('3 photos copiées sur 4', sum(len(v) for v in by.values()) == 3, by)
+    a.js("setMineView('cards')"); a.page.wait_for_timeout(300)
+    srcs = a.js("[...document.querySelectorAll('#saved-grid img')].map(i=>i.getAttribute('src')||'').filter(x=>x.includes('fake.invalid')).length")
+    check('la carte affiche la photo du serveur', srcs >= 3, srcs)
+    run_import()
+    check('réimport : aucune photo en double', sum(len(x['p']) for x in a.js("savedSnakes.map(s=>({p:s.photos||[]}))")) == 3)
+    sid = a.js("savedSnakes.find(s=>s.name==='Zephyr').id")
+    open_card(a, sid); a.page.wait_for_timeout(400)
+    check('fiche : la photo du serveur s\'affiche dans la galerie', a.js("[...document.querySelectorAll('#logbook-overlay img')].some(i=>(i.getAttribute('src')||'').includes('fake.invalid'))"))
+    check('pas d\'erreur JS (v5.73)', not [e for e in a.real_errors() if not e.startswith('dialog:') and 'fake.invalid' not in e and 'ERR_' not in e], a.real_errors()[:3])
+    a.close()
+
 def t_avert_sable_scaleless(browser, url):
     section('Alertes Sable et Scaleless seulement quand c\'est justifié (v5.66)')
     a = App(browser, url, logged_in=False); a.open(); a.js("showTab('calc')")
@@ -1822,7 +1914,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()

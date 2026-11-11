@@ -729,6 +729,9 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 
 /* Mode Tournée */
 .tour-toolbar{position:sticky;top:0;z-index:40;background:var(--bg);padding:10px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:16px;}
+/* v5.72 — seule la barre d'actions reste collée en haut : la date et la sélection rapide (aussi .tour-toolbar)
+   étaient collées au même endroit et se superposaient aux boutons en défilant (signalé par Alex) */
+#tour-date-bar, #tour-quickselect{position:static;z-index:auto;}
 .tour-count{font-family:'Courier New',monospace;font-size:11px;color:var(--ink-dim);margin-right:6px;}
 .tour-action-btn{font-family:'Courier New',monospace;font-size:11px;letter-spacing:.5px;padding:8px 14px;border-radius:22px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;}
 .tour-action-btn:hover{border-color:var(--gold);}
@@ -2383,7 +2386,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.71';
+const APP_VERSION = '2026.09.01.5.73';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -2919,7 +2922,7 @@ function setPageMeta(title, description, noindex){
     const r = data[0];
     const photosHtml = (r.photos && r.photos.length)
       ? '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:16px 0;">'+
-          r.photos.slice(0,6).map(p=>'<img src="'+escapeHtml(p.dataUrl)+'" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--line);" alt="'+escapeHtml(r.name)+'"/>').join('')+
+          r.photos.slice(0,6).map(p=>'<img src="'+escapeHtml(photoSrc(p))+'" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--line);" alt="'+escapeHtml(r.name)+'"/>').join('')+
         '</div>'
       : '';
     const genes = r.genes || {};
@@ -2992,7 +2995,7 @@ function setPageMeta(title, description, noindex){
       const sexIcon = b.sex==='male' ? '♂' : b.sex==='female' ? '♀' : '?';
       const statusLabel = b.status==='sold' ? (isEn?'Sold':'Vendu') : b.status==='reserved' ? (isEn?'Reserved':'Réservé') : b.status==='forsale' ? (isEn?'Available':'Disponible') : (isEn?'Not for sale':'Pas à vendre');
       const statusColor = b.status==='sold' ? 'var(--ink-dim)' : b.status==='forsale' ? 'var(--sage)' : 'var(--gold)';
-      const photo = (b.photos && b.photos.length) ? b.photos[0].dataUrl : null;
+      const photo = (b.photos && b.photos.length) ? (photoSrc(b.photos[0]) || null) : null;
       return '<div style="background:var(--bg-panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;display:flex;gap:12px;align-items:center;">'+
         (photo ? '<img src="'+escapeHtml(photo)+'" style="width:64px;height:64px;object-fit:cover;border-radius:8px;flex-shrink:0;" alt="'+escapeHtml(b.name)+'"/>' : '<div style="width:64px;height:64px;border-radius:8px;background:var(--bg-panel-2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;">🐍</div>')+
         '<div style="flex:1;min-width:0;">'+
@@ -3058,7 +3061,7 @@ function setPageMeta(title, description, noindex){
     }).catch(()=>{}); }catch(e){}
     const photosHtml = (r.photos && r.photos.length)
       ? '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:16px 0;">'+
-          r.photos.slice(0,6).map(p=>'<img src="'+escapeHtml(p.dataUrl)+'" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--line);" alt="'+escapeHtml(r.name)+'"/>').join('')+
+          r.photos.slice(0,6).map(p=>'<img src="'+escapeHtml(photoSrc(p))+'" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--line);" alt="'+escapeHtml(r.name)+'"/>').join('')+
         '</div>'
       : '';
     const genes = r.genes || {};
@@ -3775,7 +3778,7 @@ async function importTransferredSnake(){
     species: r.species || 'ball_python',
     status: 'kept',
     health: health,
-    photos: (Array.isArray(r.photos)?r.photos:[]).map((p,i)=>({ id: (p&&p.id) || ('ph_'+now+'_'+i), date: p&&p.date, dataUrl: p&&p.dataUrl, publicUrl: p&&p.publicUrl })).filter(p=>p.dataUrl||p.publicUrl),
+    photos: (Array.isArray(r.photos)?r.photos:[]).map((p,i)=>({ id: (p&&p.id) || ('ph_'+now+'_'+i), date: p&&p.date, dataUrl: p&&p.dataUrl, publicUrl: p&&p.publicUrl, sourceUrl: p&&p.sourceUrl })).filter(p=>p.dataUrl||p.publicUrl),
     careParams: (r.care_params && typeof r.care_params==='object') ? r.care_params : undefined,
     geneticsHistory: Array.isArray(r.genetics_history) ? r.genetics_history : [],
     preyType: 'frozen',
@@ -5111,7 +5114,7 @@ function renderPhotoCompare(){
   const iA = parseInt(document.getElementById('photo-compare-a').value, 10);
   const iB = parseInt(document.getElementById('photo-compare-b').value, 10);
   const pA = s.photos[iA], pB = s.photos[iB];
-  const cell = (p)=> p ? '<div style="text-align:center;"><img src="'+escapeHtml(p.dataUrl)+'" style="width:100%;border-radius:8px;border:1px solid var(--line);"/><div style="font-size:10.5px;color:var(--ink-dim);margin-top:4px;">'+escapeHtml(p.date)+'</div></div>' : '';
+  const cell = (p)=> p ? '<div style="text-align:center;"><img src="'+escapeHtml(photoSrc(p))+'" style="width:100%;border-radius:8px;border:1px solid var(--line);"/><div style="font-size:10.5px;color:var(--ink-dim);margin-top:4px;">'+escapeHtml(p.date)+'</div></div>' : '';
   document.getElementById('photo-compare-view').innerHTML = cell(pA) + cell(pB);
 }
 
@@ -5688,6 +5691,18 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.73', date:'2026-11-11',
+    title:{ fr:'Photos importées avec ton fichier', en:'Photos imported with your file' },
+    changes:{
+      fr:[ '📷 Import : quand ton fichier contient des liens de photos (ex. la colonne « Photo_Urls » de MorphMarket), les photos sont maintenant copiées dans LOCUS, en arrière-plan après l\'import. Elles restent à toi même si l\'annonce disparaît. Un réimport ne copie jamais la même photo deux fois. Compte requis : ces photos sont gardées sur le serveur LOCUS (pas dans le téléphone, pour ne pas manquer d\'espace avec une grosse collection).' ],
+      en:[ '📷 Import: when your file has photo links (e.g. MorphMarket\'s « Photo_Urls » column), the photos are now copied into LOCUS, in the background after the import. They stay yours even if the listing goes away. A re-import never copies the same photo twice. Account needed: these photos are kept on the LOCUS server (not on the phone, so a big collection doesn\'t run out of space).' ] } },
+  { version:'5.72', date:'2026-11-11',
+    title:{ fr:'Réimporter pour compléter tes animaux + Mode Tournée', en:'Re-import to complete your animals + Tour Mode' },
+    changes:{
+      fr:[ '📥 Réimporter un fichier complète maintenant les animaux déjà dans LOCUS : seulement les infos manquantes (ID, parents, notes, lien d\'annonce, prix et date d\'achat…). Rien n\'est remplacé et rien n\'est créé en double. Les animaux sont reconnus par le lien de l\'annonce MorphMarket, l\'ID, ou le nom quand il est unique ; si plusieurs animaux portent le même nom, la ligne est mise de côté et signalée.',
+           '🔧 Mode Tournée : en faisant défiler, la date et la sélection rapide ne recouvrent plus les boutons « A mangé », « Refus », etc.' ],
+      en:[ '📥 Re-importing a file now completes animals already in LOCUS: only missing info (ID, parents, notes, listing link, purchase price and date…). Nothing is replaced and nothing is created twice. Animals are matched by MorphMarket listing link, ID, or name when it is unique; if several animals share a name, the line is set aside and flagged.',
+           '🔧 Tour Mode: when scrolling, the date and quick select no longer cover the « Ate », « Refused »… buttons.' ] } },
   { version:'5.71', date:'2026-11-11',
     title:{ fr:'Import MorphMarket réparé', en:'MorphMarket import fixed' },
     changes:{
@@ -14140,6 +14155,8 @@ function pickSharePhoto(i){
    Parents hors collection : nom, gènes et photo enregistrés sur la fiche du bébé (s.saleParents, colonne
    snakes.sale_parents), copiables aux frères et sœurs de la même portée. Gratuit (image d'une fiche). */
 function sharePhotoSrc(ph){ return ph ? (ph.dataUrl || ph.publicUrl || null) : null; }
+// v5.73 — une photo peut n'exister que sur le serveur (photos importées : pas de copie dans le téléphone, l'espace local est limité à ~5 Mo)
+function photoSrc(p){ return p ? (p.dataUrl || p.publicUrl || '') : ''; }
 function shareParentInfo(s, role){
   const pid = role==='sire' ? s.sireId : s.damId;
   const par = pid ? savedSnakes.find(x=>x.id===pid) : null;
@@ -14468,7 +14485,7 @@ function openBatchSaleImagesModal(){
   const o = batchSale.opts;
   const rows = pool.length ? pool.map(s=>{
     const ph = s.photos && s.photos.length ? s.photos[s.photos.length-1] : null;
-    const thumb = ph ? '<img src="'+escapeHtml(ph.dataUrl)+'" style="width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid var(--line);" alt=""/>'
+    const thumb = ph ? '<img src="'+escapeHtml(photoSrc(ph))+'" style="width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid var(--line);" alt=""/>'
                      : '<span style="width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;border:1px dashed var(--line);border-radius:8px;font-size:18px;">📷</span>';
     const price = s.askingPrice ? ' — '+escapeHtml(String(s.askingPrice))+' $' : '';
     return '<label class="modal-row" style="align-items:center;gap:10px;'+(ph?'':'opacity:.55;')+'">'+
@@ -14506,7 +14523,7 @@ function generateBatchSaleImages(){
   ensureShareLogo(async ()=>{
     for(const s of list){
       try{
-        const img = await loadImageAsync(s.photos[s.photos.length-1].dataUrl);
+        const img = await loadImageAsync(photoSrc(s.photos[s.photos.length-1]));
         const canvas = document.createElement('canvas');
         renderShareCanvas(canvas, img, s, batchSale.opts);
         const blob = await new Promise(res=>canvas.toBlob(res, 'image/jpeg', 0.9));
@@ -14587,7 +14604,7 @@ function openLogbook(id){
   const hatchTl = birthPrecision(s.birthDate)==='full' ? hatchlingTimeline(s.birthDate) : null;
   const photosHtml = (s.photos && s.photos.length)
     ? '<div class="photo-gallery">'+s.photos.map(p=>
-        '<div class="photo-thumb"><img src="'+p.dataUrl+'" alt="Photo"/><div class="photo-date">'+p.date+'</div>'+
+        '<div class="photo-thumb"><img src="'+escapeHtml(photoSrc(p))+'" alt="Photo"/><div class="photo-date">'+p.date+'</div>'+
         '<button class="sc-btn danger" style="margin-top:3px;padding:2px 6px;font-size:9px;" onclick="deletePhoto(\''+id+'\',\''+p.id+'\')">'+t('removeBtn')+'</button></div>'
       ).join('')+'</div>'
       + (s.photos.length>=2 ? '<button class="sc-btn" style="margin-top:8px;" onclick="openPhotoCompare(\''+id+'\')">📷 '+(isEn?'Compare (before/after)':'Comparer (avant/après)')+'</button>' : '')
@@ -19316,6 +19333,7 @@ const CSV_COLUMN_ALIASES = {
   weight: ['poids','poids (g)','poids animal','poids animal (g)','poids de l\'animal','animal weight','weight','weight (g)','masse','dernier poids','last weight','poids actuel','current weight','current weight (g)','weight (grams)','mass','body weight','latest weight','recent weight','wt'], // v4.12
   notes: ['notes','note','remarques','remarque','comment','comments','commentaire','commentaires','details','description','desc','remarks','memo','observations'], // v4.21 ; v5.71 « Desc » (MorphMarket)
   privateNotes: ['private notes','private note','notes privees','note privee','internal notes'], // v5.71 — MorphMarket « Private_Notes » (ajoutées aux notes)
+  photoUrls: ['photo urls','photo url','photos','photo','image urls','image url','images','image','pictures','picture','photo link','photo links','lien photo','liens photos'], // v5.73 — liens de photos (MorphMarket « Photo_Urls ») : copiées sur le serveur LOCUS
   listingUrl: ['mm url','morphmarket url','listing url','listing link','lien annonce','lien de l\'annonce','annonce'], // v5.71
   lastFedPrey: ['last feed item','last fed item','last prey','last feeder','derniere proie','last meal item','last food'], // v4.30
   lastShed: ['last shed date','last shed','derniere mue','date derniere mue','last sheded','shed date'], // v4.30
@@ -21291,7 +21309,7 @@ function routeImportSheets(sheets, meta){
 // colonnes n'a jamais compté : tout passe par les titres (ou par le choix fait ici).
 var IMPORT_FIELD_ORDER = ['animalId','name','sex','species','genes','birthDate','status','sire','dam','weight','weightDate','lastFed','lastFedPrey','lastShed','lastShedQuality','acquired','provenance','purchasePrice','askingPrice','location','locRow','locTub','notes'];
 function importFieldLabel(f, isEn){
-  const L = { location:['Emplacement (rack-bac ou terrarium)','Location (rack-tub or terrarium)'], locRow:['Rangée','Row'], locTub:['Bac','Tub'], animalId:['ID','ID'], name:['Nom','Name'], sex:['Sexe','Sex'], species:['Espèce','Species'], genes:['Génétique','Genetics'], birthDate:['Date de naissance','Birth date'], weight:['Poids (g)','Weight (g)'], weightDate:['Date de pesée','Weigh date'], status:['Statut','Status'], sire:['Père (ID ou nom)','Sire (ID or name)'], dam:['Mère (ID ou nom)','Dam (ID or name)'], lastFed:['Dernier repas (date)','Last fed (date)'], lastFedPrey:['Dernier repas (proie)','Last fed (prey)'], lastShed:['Dernière mue (date)','Last shed (date)'], lastShedQuality:['Dernière mue (qualité)','Last shed (quality)'], acquired:['Date d\'acquisition','Acquisition date'], notes:['Notes','Notes'], privateNotes:['Notes privées (ajoutées aux notes)','Private notes (added to notes)'], listingUrl:['Lien de l\'annonce','Listing link'], provenance:['Provenance','Provenance'], purchasePrice:['Prix d\'achat','Purchase price'], askingPrice:['Prix demandé','Asking price'] };
+  const L = { location:['Emplacement (rack-bac ou terrarium)','Location (rack-tub or terrarium)'], locRow:['Rangée','Row'], locTub:['Bac','Tub'], animalId:['ID','ID'], name:['Nom','Name'], sex:['Sexe','Sex'], species:['Espèce','Species'], genes:['Génétique','Genetics'], birthDate:['Date de naissance','Birth date'], weight:['Poids (g)','Weight (g)'], weightDate:['Date de pesée','Weigh date'], status:['Statut','Status'], sire:['Père (ID ou nom)','Sire (ID or name)'], dam:['Mère (ID ou nom)','Dam (ID or name)'], lastFed:['Dernier repas (date)','Last fed (date)'], lastFedPrey:['Dernier repas (proie)','Last fed (prey)'], lastShed:['Dernière mue (date)','Last shed (date)'], lastShedQuality:['Dernière mue (qualité)','Last shed (quality)'], acquired:['Date d\'acquisition','Acquisition date'], notes:['Notes','Notes'], privateNotes:['Notes privées (ajoutées aux notes)','Private notes (added to notes)'], listingUrl:['Lien de l\'annonce','Listing link'], photoUrls:['Photos (liens)','Photos (links)'], provenance:['Provenance','Provenance'], purchasePrice:['Prix d\'achat','Purchase price'], askingPrice:['Prix demandé','Asking price'] };
   return L[f] ? L[f][isEn?1:0] : f;
 }
 // ==================== v4.45 — emplacement lu à l'import (« Rack A-R2-B5 », « A-2-5 », « Rack 1 #12 », un terrarium…) ====================
@@ -21615,6 +21633,7 @@ function rebuildGenericImportRows(){
       locRaw: str(cols,'location'), locRowRaw: str(cols,'locRow'), locTubRaw: str(cols,'locTub'), // v4.45
       sireRef: importParentRef(str(cols,'sire')), damRef: importParentRef(str(cols,'dam')), // v4.20 — liés après la création (ID ou nom, dans LOCUS ou dans le fichier) ; v5.71 — format MorphMarket
       listingUrl: /^(https?:\/\/)?(www\.)?morphmarket\.com\//i.test(str(cols,'listingUrl')) ? str(cols,'listingUrl') : null, // v5.71
+      photoUrls: (str(cols,'photoUrls').match(/https?:\/\/[^\s,;|"'<>]+/gi) || []).slice(0,10), // v5.73
       sex: importSexOf(sexRaw),
       genes: parsed.genes, unknownGenes: parsed.unknown, genesRaw: str(cols,'genes'),
       birthDate: bd.value,
@@ -21632,6 +21651,8 @@ function rebuildGenericImportRows(){
       dupe, fileDupe
     };
   }).filter(Boolean);
+  importResolveMatches(pendingGenericCsvRows); // v5.72
+  if(m.updateExisting===undefined) m.updateExisting = pendingGenericCsvRows.some(r=>r.matchId); // v5.72 — coché par défaut : ne fait que compléter
   m.ambiguousDates = ambiguousDates; m.emptyRows = emptyRows; m.invalidDates = invalidDates; m.anomalies = anomalies;
 }
 // Choix fait dans le menu d'une colonne : une colonne = un champ, un champ = une colonne.
@@ -21749,7 +21770,20 @@ function renderGenericCsvPreview(){
     (unmatched.length && hasKey ? p('⚠ '+(isEn?unmatched.length+' column(s) not recognized and ignored: ':unmatched.length+' colonne(s) non reconnue(s), donc ignorée(s) : ')+'<b>'+escapeHtml(unmatched.map(x=>x.h||'?').join(', '))+'</b>'+(isEn?' — choose a field for them below if needed.':' — choisis-leur un champ plus bas si besoin.'), 'var(--gold)') : '')+
     (m.combined ? p('🗓 '+(isEn?'Each line is a meal: '+(m.totalLines||'')+' line(s) for '+rowsAll.length+' animal(s). The animals are created first (from their first line), then every line is added to their history in the next step.':'Chaque ligne est un repas : '+(m.totalLines||'')+' ligne(s) pour '+rowsAll.length+' animal(s). Les animaux sont créés d\'abord (avec leur 1re ligne), puis chaque ligne s\'ajoute à leur historique à l\'étape suivante.'), 'var(--sage)') : '')+
     (fileDupes ? p('↺ '+(isEn?fileDupes+' line(s) repeat an ID already higher in the file — the animal is created only once.':fileDupes+' ligne(s) répètent un ID déjà plus haut dans le fichier — l\'animal n\'est créé qu\'une fois.'), 'var(--ink-dim)') : '')+
-    (dupes ? '<label style="display:flex;gap:8px;align-items:center;font-size:14px;margin:6px 0;"><input type="checkbox" '+(m.importDupes?'checked':'')+' onchange="pendingGenericImportMeta.importDupes=this.checked; renderGenericCsvPreview();" style="width:20px;height:20px;"> '+(isEn?dupes+' animal(s) already in your collection (same ID, or same name when there is no ID) — import them anyway':dupes+' animal(s) déjà dans ta collection (même ID, ou même nom s\'il n\'y a pas d\'ID) — les importer quand même')+'</label>' : '')+
+    (function(){ // v5.73 — photos
+      const nPh = rowsAll.filter(r=>r.photoUrls && r.photoUrls.length).length;
+      if(!nPh) return '';
+      return p('📷 '+(isEn?nPh+' animal(s) have photo links: the photos will be copied to LOCUS after the import (in the background, account needed).':nPh+' animal(s) ont des liens de photos : elles seront copiées dans LOCUS après l\'import (en arrière-plan, compte requis).'), 'var(--ink-dim)');
+    })()+
+    (function(){ // v5.72 — déjà dans LOCUS : compléter (par défaut) ou créer quand même ; les noms ambigus sont signalés
+      const matched = rowsAll.filter(r=>r.matchId && !r.fileDupe && !r.ambiguous).length;
+      const amb = rowsAll.filter(r=>r.ambiguous && !r.fileDupe);
+      let h = '';
+      if(matched) h += '<label style="display:flex;gap:8px;align-items:center;font-size:14.5px;margin:6px 0;line-height:1.4;"><input type="checkbox" id="imp-update-existing" '+(m.updateExisting && !m.importDupes?'checked':'')+' onchange="pendingGenericImportMeta.updateExisting=this.checked; if(this.checked) pendingGenericImportMeta.importDupes=false; renderGenericCsvPreview();" style="width:20px;height:20px;flex-shrink:0;"> '+(isEn?'<b>Complete the '+matched+' animal(s) already in LOCUS</b> — only missing info is added; nothing is replaced or created twice.':'<b>Compléter les '+matched+' animal(s) déjà dans LOCUS</b> — seulement les infos manquantes ; rien n\'est remplacé ni créé en double.')+'</label>';
+      if(amb.length) h += p('⚠ '+(isEn?amb.length+' line(s) have the same name as several animals in LOCUS and no ID — skipped so nothing is doubled: '+escapeHtml(amb.slice(0,6).map(r=>r.name).join(', ')):amb.length+' ligne(s) ont le même nom que plusieurs animaux dans LOCUS et pas d\'ID — ignorée(s) pour ne rien doubler : '+escapeHtml(amb.slice(0,6).map(r=>r.name).join(', '))), 'var(--gold)');
+      if(dupes) h += '<label style="display:flex;gap:8px;align-items:center;font-size:13.5px;margin:6px 0;color:var(--ink-dim);"><input type="checkbox" '+(m.importDupes?'checked':'')+' onchange="pendingGenericImportMeta.importDupes=this.checked; if(this.checked) pendingGenericImportMeta.updateExisting=false; renderGenericCsvPreview();" style="width:20px;height:20px;flex-shrink:0;"> '+(isEn?'Create them as new animals anyway (makes doubles)':'Les créer quand même comme nouveaux animaux (fait des doubles)')+'</label>';
+      return h;
+    })()+
     (withUnknownGenes ? p('⚠ '+(isEn?withUnknownGenes+' animal(s) have words in the genetics that LOCUS doesn\'t recognize — they\'re not used as genes, but the original text is kept in the animal\'s notes; you can fix the genetics on the sheet after.':withUnknownGenes+' animal(s) ont des mots dans la génétique que LOCUS ne reconnaît pas — ils ne deviennent pas des gènes, mais le texte d\'origine est gardé dans les notes de l\'animal; tu pourras corriger la génétique sur la fiche ensuite.')+' <b>'+escapeHtml(unknownGeneRows.slice(0,8).map(r=>(r.line?(isEn?'line ':'ligne ')+r.line+' ':'')+(r.animalId||r.name)+' « '+r.unknownGenes.join(', ')+' »').join(', '))+(unknownGeneRows.length>8?' +'+(unknownGeneRows.length-8):'')+'</b>', 'var(--gold)') : '')+
     (function(){ // v4.20 — parents
       const withPar = rowsAll.filter(r=>r.sireRef || r.damRef);
@@ -21794,11 +21828,65 @@ function renderGenericCsvPreview(){
     (hasKey ? p(isEn?'Genetics are marked "To verify" until you confirm them.':'La génétique est marquée « À vérifier » jusqu\'à ce que tu la confirmes.', 'var(--ink-dim)')+
       (pickHtml || '<div style="margin-top:6px;">'+previewRows+'</div>')+
       (previewList.length>8 && !pickHtml ? '<button class="sc-btn" style="width:100%;margin-top:6px;font-size:14.5px;padding:9px;" onclick="toggleImportShowAll()">'+(m.showAll ? (isEn?'▲ Show less':'▲ Afficher moins') : '▼ +'+(previewList.length-8)+' '+(isEn?'more — show all':'de plus — tout afficher'))+'</button>' : '') : '')+
-    '<button class="save-btn" style="width:100%;margin-top:14px;font-size:16px;padding:12px;" '+(hasKey && toImport.length?'':'disabled')+' onclick="confirmGenericCsvImport()">✅ '+(isEn?'Import '+toImport.length+' reptile(s)':'Importer '+toImport.length+' reptile(s)')+'</button>'+
+    (function(){ // v5.72 — le bouton compte aussi les animaux à compléter (un réimport peut n'ajouter personne)
+      const nUpd = (m.updateExisting && !m.importDupes) ? rowsAll.filter(r=>r.matchId && !r.fileDupe && !r.ambiguous).length : 0;
+      const lbl = toImport.length && nUpd ? (isEn?'Import '+toImport.length+' + complete '+nUpd:'Importer '+toImport.length+' + compléter '+nUpd)
+        : nUpd ? (isEn?'Complete '+nUpd+' reptile(s)':'Compléter '+nUpd+' reptile(s)')
+        : (isEn?'Import '+toImport.length+' reptile(s)':'Importer '+toImport.length+' reptile(s)');
+      return '<button class="save-btn" style="width:100%;margin-top:14px;font-size:16px;padding:12px;" '+(hasKey && (toImport.length || nUpd)?'':'disabled')+' onclick="confirmGenericCsvImport()">✅ '+lbl+'</button>';
+    })()+
     '<button class="sc-btn" style="width:100%;margin-top:6px;font-size:15px;padding:10px;" onclick="pendingGenericCsvRows=[]; pendingGenericImportMeta=null; pendingLogAfterAnimals=null; closeQuickModal();">'+(isEn?'Cancel':'Annuler')+'</button>';
   showQuickModal((isEn?'Import preview':'Aperçu de l\'import'), body);
 }
 // Parent : par ID d'abord, puis par nom — dans la collection, puis dans les lignes du fichier
+// v5.72 — retrouver l'animal déjà dans LOCUS pour chaque ligne, SANS jamais créer de double :
+// 1) même lien d'annonce MorphMarket ; 2) même ID ; 3) même nom, seulement s'il n'y a qu'UN animal de ce nom dans LOCUS
+// (et, si la ligne a un ID, que cet animal n'en ait pas encore). Plusieurs animaux du même nom = ligne « ambiguë » :
+// ni créée ni complétée (signalée dans l'aperçu).
+function importNormUrl(u){ return String(u||'').toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').replace(/[?#].*$/,'').replace(/\/+$/,''); }
+function importResolveMatches(rows){
+  const byUrl = new Map(), byId = new Map(), byName = new Map();
+  savedSnakes.forEach(s=>{
+    if(s.listingUrl) byUrl.set(importNormUrl(s.listingUrl), s);
+    if(s.animalId) byId.set(String(s.animalId).toUpperCase(), s);
+    const k = normalizeHeaderKey(s.name||''); if(k){ if(!byName.has(k)) byName.set(k, []); byName.get(k).push(s); }
+  });
+  const seen = new Set();
+  rows.forEach(r=>{
+    const url = r.listingUrl ? importNormUrl(r.listingUrl) : '', id = r.animalId ? String(r.animalId).toUpperCase() : '', nk = normalizeHeaderKey(r.name||'');
+    const key = url ? 'u:'+url : id ? 'i:'+id : 'n:'+nk;
+    r.fileDupe = seen.has(key) || (id && seen.has('i:'+id)); seen.add(key); if(id) seen.add('i:'+id);
+    let hit = (url && byUrl.get(url)) || (id && byId.get(id)) || null;
+    r.ambiguous = false;
+    if(!hit && nk){
+      const same = byName.get(nk) || [];
+      if(same.length===1 && (!id || !same[0].animalId)) hit = same[0];
+      else if(same.length>1) r.ambiguous = true; // plusieurs animaux de ce nom : on ne devine pas
+    }
+    r.matchId = hit ? hit.id : null;
+    r.dupe = !!hit || r.ambiguous;
+  });
+}
+// v5.72 — compléter un animal existant avec une ligne réimportée : seulement ce qui MANQUE, rien n'est remplacé
+// ni ajouté deux fois (repas/mue : pas de 2e événement à la même date ; pesée : seulement s'il n'y en a aucune).
+function importFillExisting(s, r){
+  ensureSnakeMeta(s);
+  let n = 0;
+  const empty = v=>v===undefined || v===null || v==='';
+  if(empty(s.animalId) && r.animalId && !savedSnakes.some(x=>x!==s && x.animalId && String(x.animalId).toUpperCase()===String(r.animalId).toUpperCase())){ s.animalId = r.animalId; n++; }
+  if(empty(s.sex) && r.sex){ s.sex = r.sex; n++; }
+  if(empty(s.birthDate) && r.birthDate){ s.birthDate = r.birthDate; n++; }
+  if((!s.genes || !Object.keys(s.genes).length) && r.genes && Object.keys(r.genes).length){ s.genes = r.genes; s.genesVerified = false; n++; }
+  [['provenance','provenance'],['acquisitionDate','acquired'],['purchasePrice','purchasePrice'],['askingPrice','askingPrice'],['listingUrl','listingUrl']].forEach(([f,rf])=>{
+    if(empty(s[f]) && !empty(r[rf])){ s[f] = r[rf]; n++; }
+  });
+  if(r.notes){ const cur = s.notes||''; const add = String(r.notes).split('\n').filter(l=>l.trim() && !cur.includes(l.trim())); if(add.length){ s.notes = (cur ? cur+'\n' : '')+add.join('\n'); n++; } }
+  if(r.weight && !s.health.weights.length){ s.health.weights.push({ date: r.weightDate || localTodayStr(), value: r.weight }); n++; }
+  const hasEv = (type, date)=>s.health.events.some(e=>e.type===type && e.date===date);
+  if(r.lastFed && !hasEv('fed', r.lastFed)){ s.health.events.push(Object.assign({ id:'ev_upd_'+Date.now()+'_'+Math.random().toString(36).slice(2,6), type:'fed', date:r.lastFed }, r.lastFedPrey ? parseLogPrey(r.lastFedPrey) : {})); n++; }
+  if(r.lastShed && !hasEv('shed', r.lastShed)){ s.health.events.push(Object.assign({ id:'ev_upds_'+Date.now()+'_'+Math.random().toString(36).slice(2,6), type:'shed', date:r.lastShed }, r.lastShedQuality ? { shedQuality:r.lastShedQuality } : {})); n++; }
+  return n;
+}
 // v5.71 — père/mère au format MorphMarket : « PB..Killer Banana Ball Python (M)(#Titan) » → « Titan » (l'ID après #),
 // sinon le nom sans « Ball Python » ni « (M)/(F) ». Une valeur ordinaire (« Rex », « BP-001 ») reste telle quelle.
 function importParentRef(v){
@@ -21858,6 +21946,27 @@ function confirmGenericCsvImport(){
     if(sid) s.sireId = sid;
     if(did) s.damId = did;
   });
+  // v5.72 — animaux déjà dans LOCUS : compléter seulement ce qui manque (jamais de double)
+  let updatedAnimals = 0, updatedFields = 0;
+  if(m.updateExisting && !m.importDupes){
+    pendingGenericCsvRows.filter(r=>r.matchId && !r.fileDupe && !r.ambiguous).forEach(r=>{
+      const s = savedSnakes.find(x=>x.id===r.matchId); if(!s) return;
+      const k = importFillExisting(s, r);
+      const link = ref=>{ if(!ref) return null; const hit = importFindParent(ref, []); return hit && hit.id!==s.id ? hit.id : null; };
+      let lk = 0;
+      if(!s.sireId){ const sid = link(r.sireRef); if(sid){ s.sireId = sid; lk++; } }
+      if(!s.damId){ const did = link(r.damRef); if(did){ s.damId = did; lk++; } }
+      if(k+lk){ updatedAnimals++; updatedFields += k+lk; s.updatedAt = Date.now(); }
+    });
+  }
+  m.__updated = { animals: updatedAnimals, fields: updatedFields };
+  // v5.73 — photos du fichier (liens) : copiées sur le serveur LOCUS en arrière-plan, nouveaux et animaux complétés
+  const photoJobs = [];
+  pendingGenericCsvRows.forEach(r=>{
+    if(!r.photoUrls || !r.photoUrls.length) return;
+    const sid = r._createdId || (m.updateExisting && !m.importDupes && r.matchId && !r.fileDupe && !r.ambiguous ? r.matchId : null);
+    if(sid) photoJobs.push({ snakeId: sid, urls: r.photoUrls });
+  });
   const placedN = applyImportLocations(imported); // v4.45 — colonne d'emplacement
   const stillUnplaced = imported.filter(r=>{ const s = savedSnakes.find(x=>x.id===r._createdId); return s && snakeIsUnplaced(s) && snakeIsActiveForPlacement(s); }).length;
   pendingGenericCsvRows = [];
@@ -21866,8 +21975,65 @@ function confirmGenericCsvImport(){
   renderSavedList();
   try{ renderRackGrid(); renderTerrariumList(); }catch(e){}
   closeQuickModal();
-  showToast('📋 '+added+' '+(isEn?'reptile(s) imported.':'reptile(s) importé(s).')+(placedN ? ' 📍 '+placedN+(isEn?' placed.':' placé(s).') : '')+(stillUnplaced ? (isEn?' '+stillUnplaced+' to place: Racks & Terrariums → 🧭 Placement help.':' '+stillUnplaced+' à classer : Racks & Terrariums → 📦 Aide au rangement.') : ''), 'success');
+  showToast('📋 '+added+' '+(isEn?'reptile(s) imported.':'reptile(s) importé(s).')+(updatedAnimals ? ' ✏️ '+updatedAnimals+(isEn?' already in LOCUS completed.':' déjà dans LOCUS complété(s).') : '')+(placedN ? ' 📍 '+placedN+(isEn?' placed.':' placé(s).') : '')+(stillUnplaced ? (isEn?' '+stillUnplaced+' to place: Racks & Terrariums → 🧭 Placement help.':' '+stillUnplaced+' à classer : Racks & Terrariums → 📦 Aide au rangement.') : ''), 'success');
   if(pendingLogAfterAnimals){ const lg = pendingLogAfterAnimals; pendingLogAfterAnimals = null; setTimeout(()=>logImportFromRows(lg), 400); } // v4.19 — l'historique du même fichier, maintenant que les animaux existent
+  if(photoJobs.length) setTimeout(()=>importPhotosFromUrls(photoJobs), 600); // v5.73
+}
+// v5.73 — copie des photos d'un fichier importé (ex. MorphMarket « Photo_Urls ») sur le serveur LOCUS (bucket
+// reptile-photos, dossier du compte). Choix d'Alex (11 nov) : copier, pas seulement garder le lien — la photo reste
+// même si l'annonce disparaît. Aucune copie dans le téléphone (l'espace local ~5 Mo ne suffit pas pour une collection) :
+// la photo garde publicUrl + sourceUrl (le lien d'origine, pour ne jamais la copier deux fois à un réimport).
+var importPhotosRunning = false;
+async function importOnePhoto(url){
+  const res = await fetch(url, { mode:'cors' });
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  const blob = await res.blob();
+  if(!/^image\//i.test(blob.type||'image/')) throw new Error('not an image');
+  const objUrl = URL.createObjectURL(blob);
+  try{
+    const img = await loadImageAsync(objUrl);
+    const scale = Math.min(1, 900/(img.naturalWidth||img.width||900));
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round((img.naturalWidth||img.width)*scale)); c.height = Math.max(1, Math.round((img.naturalHeight||img.height)*scale));
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    return await new Promise((ok, ko)=>c.toBlob(b=>b ? ok(b) : ko(new Error('toBlob')), 'image/jpeg', 0.8));
+  } finally { URL.revokeObjectURL(objUrl); }
+}
+async function importPhotosFromUrls(jobs){
+  const isEn = currentLang==='en';
+  if(!currentUser || !sb){ showToast(isEn?'📷 Photos from the file need an account (they are stored on the LOCUS server). Sign in, then re-import the file.':'📷 Les photos du fichier demandent un compte (elles sont gardées sur le serveur LOCUS). Connecte-toi, puis réimporte le fichier.', 'error'); return; }
+  if(importPhotosRunning){ setTimeout(()=>importPhotosFromUrls(jobs), 3000); return; }
+  importPhotosRunning = true;
+  const todo = [];
+  jobs.forEach(j=>{ const sn = savedSnakes.find(x=>x.id===j.snakeId); if(!sn) return; ensureSnakeMeta(sn);
+    j.urls.forEach(u=>{ if(!sn.photos.some(p=>p.sourceUrl===u) && !todo.some(tk=>tk.snakeId===j.snakeId && tk.url===u)) todo.push({ snakeId:j.snakeId, url:u }); }); });
+  if(!todo.length){ importPhotosRunning = false; return; }
+  let done = 0, failed = 0;
+  showToast((isEn?'📷 Copying ':'📷 Copie de ')+todo.length+(isEn?' photo(s) to LOCUS… you can keep using the app.':' photo(s) dans LOCUS… tu peux continuer à utiliser l\'app.'), 'success');
+  const today = localTodayStr();
+  const worker = async ()=>{
+    while(todo.length){
+      const t = todo.shift();
+      try{
+        const jpg = await importOnePhoto(t.url);
+        const id = 'ph_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
+        const path = currentUser.id+'/'+id+'.jpg';
+        const { error } = await sb.storage.from('reptile-photos').upload(path, jpg, { contentType:'image/jpeg', upsert:true });
+        if(error) throw error;
+        const { data } = sb.storage.from('reptile-photos').getPublicUrl(path);
+        const sn = savedSnakes.find(x=>x.id===t.snakeId);
+        if(sn && !sn.photos.some(p=>p.sourceUrl===t.url)){ sn.photos.push({ id, date: today, publicUrl: data.publicUrl, sourceUrl: t.url }); }
+        done++;
+        if(done % 5 === 0){ storage.save(savedSnakes); renderSavedList(); showToast('📷 '+done+(isEn?' photo(s) copied…':' photo(s) copiée(s)…'), 'success'); }
+      }catch(e){ failed++; console.warn('[import photo]', t.url, e); }
+    }
+  };
+  try{ await Promise.all([worker(), worker(), worker()]); }
+  finally{
+    importPhotosRunning = false;
+    storage.save(savedSnakes); renderSavedList();
+    showToast('📷 '+done+(isEn?' photo(s) copied to LOCUS.':' photo(s) copiée(s) dans LOCUS.')+(failed ? (isEn?' '+failed+' could not be downloaded (link expired or blocked) — add them by hand.':' '+failed+' n\'ont pas pu être téléchargée(s) (lien expiré ou bloqué) — ajoute-les à la main.') : ''), failed && !done ? 'error' : 'success');
+  }
 }
 
 /* ==================== Import MorphMarket (Animal Manager export) ==================== */
@@ -33314,7 +33480,7 @@ function showListingPreview(id){
   const photoReminderHtml = photos.length
     ? '<div style="margin-bottom:14px;">'+
         '<div style="font-family:\'Courier New\',monospace;font-size:9.5px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);margin-bottom:6px;">'+(isEn?'Attach these photos on MorphMarket':'Attache ces photos sur MorphMarket')+'</div>'+
-        '<div class="photo-gallery">'+photos.map(p=>'<div class="photo-thumb"><img src="'+escapeHtml(p.dataUrl)+'" alt="Photo"/><div class="photo-date">'+escapeHtml(p.date)+'</div></div>').join('')+'</div>'+
+        '<div class="photo-gallery">'+photos.map(p=>'<div class="photo-thumb"><img src="'+escapeHtml(photoSrc(p))+'" alt="Photo"/><div class="photo-date">'+escapeHtml(p.date)+'</div></div>').join('')+'</div>'+
       '</div>'
     : '<div style="margin-bottom:14px;font-size:11px;color:var(--gold);">📷 '+(isEn?'No photos on this record yet — add some above before listing, MorphMarket ads need them.':'Aucune photo sur cette fiche pour l\'instant — ajoutes-en plus haut avant de publier, une annonce MorphMarket en a besoin.')+'</div>';
   wrap.innerHTML =
