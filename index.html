@@ -927,6 +927,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   .hdr{gap:14px;padding-bottom:14px;margin-bottom:18px;}
   .wordmark{font-size:28px;}
   .tag{font-size:9.5px;letter-spacing:1.5px;}
+  .hdr .tag{display:none;} /* v5.68 — option C : en-tête plus court sur téléphone (le sous-titre prenait 2 lignes) */
   .stamp{width:52px;height:52px;font-size:8px;}
   .backup-bar{gap:6px;width:100%;}
   .backup-bar .sc-btn{flex:1 1 auto;text-align:center;padding:9px 8px;font-size:9.5px;}
@@ -1369,8 +1370,13 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
       <button class="sc-btn accent" id="mine-toggle-draft-btn" style="flex:1;min-width:150px;" onclick="toggleDraftPanel()">➕ <span data-i18n="newReptileTitle">Nouveau reptile</span></button>
-      <button class="sc-btn" id="mine-toggle-filters-btn" style="flex:1;min-width:150px;" onclick="toggleFilterPanel()">🔍 <span data-i18n="filtersSortBtn">Filtres & tri</span></button>
-      <button class="sc-btn" id="batch-mode-toggle-btn" style="flex:1;min-width:150px;" onclick="toggleBatchMode()">☑️ <span data-i18n="batchSelectBtn">Sélection multiple</span></button><!-- v5.37 — sorti du panneau Filtres (demande d'Alex) -->
+      <!-- v5.68 — option C choisie par Alex (retour de Balls Deep : « cluttered ») : Filtres, Sélection multiple et Santé des lignées dans un menu ⋯ -->
+      <button class="sc-btn" id="mine-more-btn" style="flex:0 0 auto;min-width:110px;" onclick="toggleMineMoreMenu()" aria-expanded="false">⋯ <span data-i18n="mineMoreBtn">Plus</span></button>
+    </div>
+    <div id="mine-more-menu" style="display:none;flex-direction:column;gap:8px;margin:-6px 0 16px;padding:10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:12px;">
+      <button class="sc-btn" id="mine-toggle-filters-btn" style="text-align:left;" onclick="toggleFilterPanel();closeMineMoreMenu();">🔍 <span data-i18n="filtersSortBtn">Filtres & tri</span></button>
+      <button class="sc-btn" id="batch-mode-toggle-btn" style="text-align:left;" onclick="toggleBatchMode();closeMineMoreMenu();">☑️ <span data-i18n="batchSelectBtn">Sélection multiple</span></button>
+      <button class="sc-btn" id="lineage-toggle-btn" style="text-align:left;" onclick="toggleLineageVisible();closeMineMoreMenu();">🧬 <span data-i18n="lineageMenuBtn">Santé des lignées</span></button>
     </div>
 
     <!-- v4.81 — demande d'Alex : le panneau Filtres & tri s'ouvre AU-DESSUS des reptiles (plus besoin de défiler toute la liste) -->
@@ -2374,7 +2380,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.67';
+const APP_VERSION = '2026.09.01.5.68';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5679,6 +5685,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.68', date:'2026-11-11',
+    title:{ fr:'Mes reptiles : écran plus dégagé', en:'My reptiles: a cleaner screen' },
+    changes:{
+      fr:[ '🧹 Mes reptiles : « Filtres & tri », « Sélection multiple » et « Santé des lignées » sont maintenant dans le menu « ⋯ Plus », à côté de « Nouveau reptile ». Tes animaux apparaissent plus haut. Le bouton ⋯ s\'allume quand un de ces outils est ouvert, et la Santé des lignées reste affichée si tu l\'as choisie.',
+           '🧹 Sur téléphone, l\'en-tête est plus court (sous-titre retiré).' ],
+      en:[ '🧹 My reptiles: « Filters & sort », « Batch select » and « Lineage health » are now in the « ⋯ More » menu, next to « New reptile ». Your animals show up higher on the screen. The ⋯ button lights up when one of these tools is open, and Lineage health stays shown if you turned it on.',
+           '🧹 On phones, the header is shorter (subtitle removed).' ] } },
   { version:'5.67', date:'2026-11-11',
     title:{ fr:'Correctifs d\'affichage', en:'Display fixes' },
     changes:{
@@ -7459,7 +7472,7 @@ const I18N = {
     valueNote: 'Ajoute un prix estimé (à ta devise) dans chaque ligne ci-dessus. « Valeur attendue » = probabilités × nombre d\'œufs choisi × prix. « Valeur réelle » = ce que tu as coché ci-dessus × prix. LOCUS retient ton dernier prix pour chaque résultat (réservé au palier Première ponte et Illimité après la bêta). Les prix ne sont pas fournis automatiquement — le marché varie trop pour que je les invente, à toi de les entrer.',
     // Phase 2 — Mes reptiles
     newReptileTitle: 'Nouveau reptile',
-    filtersSortBtn: 'Filtres & tri',
+    filtersSortBtn: 'Filtres & tri', mineMoreBtn: 'Plus', lineageMenuBtn: 'Santé des lignées',
     ficheLabel: 'FICHE',
     sexMale: 'Mâle',
     sexFemale: 'Femelle',
@@ -8055,7 +8068,7 @@ const I18N = {
     valueNote: 'Add an estimated price (in your currency) on each row above. "Expected Value" = probability × chosen egg count × price. "Actual Value" = what you checked off above × price. LOCUS remembers your last price for each result (reserved for the First Clutch and Unlimited tiers after the beta). Prices aren\'t provided automatically — the market varies too much for us to guess, you enter them.',
     // Phase 2 — My Reptiles
     newReptileTitle: 'New Reptile',
-    filtersSortBtn: 'Filters & sort',
+    filtersSortBtn: 'Filters & sort', mineMoreBtn: 'More', lineageMenuBtn: 'Lineage health',
     ficheLabel: 'RECORD',
     sexMale: 'Male',
     sexFemale: 'Female',
@@ -11106,6 +11119,32 @@ function toggleFilterPanel(){
   const isHidden = panel.style.display === 'none';
   panel.style.display = isHidden ? '' : 'none';
   btn.classList.toggle('active', isHidden);
+  updateMineMoreBtn();
+}
+// v5.68 — menu ⋯ de Mes reptiles (option C). Le bouton ⋯ s'allume quand un de ses outils est ouvert.
+function toggleMineMoreMenu(){
+  const m = document.getElementById('mine-more-menu'); if(!m) return;
+  const open = m.style.display === 'none';
+  m.style.display = open ? 'flex' : 'none';
+  const b = document.getElementById('mine-more-btn'); if(b) b.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+function closeMineMoreMenu(){
+  const m = document.getElementById('mine-more-menu'); if(m) m.style.display = 'none';
+  const b = document.getElementById('mine-more-btn'); if(b) b.setAttribute('aria-expanded', 'false');
+}
+function lineageVisible(){ try{ return localStorage.getItem('locus_show_lineage_v1') === '1'; }catch(e){ return false; } }
+function toggleLineageVisible(){
+  try{ localStorage.setItem('locus_show_lineage_v1', lineageVisible() ? '0' : '1'); }catch(e){}
+  renderGeneticHealthReport();
+  updateMineMoreBtn();
+}
+function updateMineMoreBtn(){
+  const panel = document.getElementById('mine-filters-panel');
+  const filtersOpen = !!(panel && panel.style.display !== 'none');
+  const lin = lineageVisible();
+  const lb = document.getElementById('lineage-toggle-btn'); if(lb) lb.classList.toggle('active', lin);
+  const b = document.getElementById('mine-more-btn');
+  if(b) b.classList.toggle('active', filtersOpen || (typeof batchSelectMode!=='undefined' && batchSelectMode) || lin);
 }
 
 function updateDraftFormMode(){
@@ -11527,6 +11566,7 @@ function renderGeneticHealthReport(){
   const isEn = currentLang==='en';
   const container = document.getElementById('genetic-health-container');
   if(!container) return;
+  container.style.display = lineageVisible() ? '' : 'none'; // v5.68 — affichée seulement si choisie dans le menu ⋯
   savedSnakes.forEach(ensureSnakeMeta);
   const G = lineageHealthGroups();
   const FM = snakeFamilies(); // v4.87 — toujours visible dès qu'il y a des reptiles (familles + arbre)
@@ -11592,6 +11632,7 @@ function toggleBatchMode(){
   batchSelectedIds.clear();
   const btn = document.getElementById('batch-mode-toggle-btn');
   if(btn) btn.classList.toggle('active', batchSelectMode);
+  updateMineMoreBtn(); // v5.68
   renderBatchActionBar();
   renderSavedList();
 }

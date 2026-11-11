@@ -559,6 +559,29 @@ def t_correctifs_567(browser, url):
     check('pas d\'erreur JS (v5.67)', not a.real_errors(), a.real_errors()[:3])
     a.close()
 
+def t_menu_plus_568(browser, url):
+    section('Mes reptiles : menu ⋯ Plus (v5.68)')
+    snakes = [make_snake(i, days_history=30) for i in range(400, 430)]
+    a = App(browser, url, snakes=snakes, lang='en'); a.open(wait=1500)
+    a.js("showTab('mine')"); a.page.wait_for_timeout(300)
+    vis = a.js("""['mine-more-btn','mine-toggle-filters-btn','batch-mode-toggle-btn'].map(id=>{const e=document.getElementById(id); return !!(e && e.offsetParent)})""")
+    check('écran principal : seulement « New Reptile » et « ⋯ More » visibles', vis == [True, False, False], vis)
+    check('Santé des lignées cachée par défaut', a.js("getComputedStyle(document.getElementById('genetic-health-container')).display") == 'none')
+    check('en-tête : sous-titre caché sur téléphone', a.js("getComputedStyle(document.querySelector('.hdr .tag')).display") == 'none')
+    a.page.click('#mine-more-btn'); a.page.wait_for_timeout(150)
+    a.page.click('#mine-toggle-filters-btn'); a.page.wait_for_timeout(200)
+    st = a.js("[document.getElementById('mine-filters-panel').style.display, document.getElementById('mine-more-menu').style.display, document.getElementById('mine-more-btn').classList.contains('active')]")
+    check('⋯ More → Filters & sort : le panneau s\'ouvre, le menu se ferme, ⋯ allumé', st == ['', 'none', True], st)
+    a.page.click('#mine-more-btn'); a.page.click('#lineage-toggle-btn'); a.page.wait_for_timeout(300)
+    check('⋯ More → Lineage health : affichée', a.js("getComputedStyle(document.getElementById('genetic-health-container')).display") != 'none')
+    a.reload(); a.js("showTab('mine')"); a.page.wait_for_timeout(300)
+    check('…et le choix est retenu après rechargement', a.js("getComputedStyle(document.getElementById('genetic-health-container')).display") != 'none')
+    a.page.click('#mine-more-btn'); a.page.click('#batch-mode-toggle-btn'); a.page.wait_for_timeout(200)
+    check('⋯ More → Batch select : mode sélection activé', a.js("batchSelectMode") is True)
+    check('libellés traduits (More, Lineage health)', a.js("document.getElementById('mine-more-btn').innerText.includes('More') && document.getElementById('lineage-toggle-btn').innerText.includes('Lineage health')"))
+    check('pas d\'erreur JS (v5.68)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+
 def t_avert_sable_scaleless(browser, url):
     section('Alertes Sable et Scaleless seulement quand c\'est justifié (v5.66)')
     a = App(browser, url, logged_in=False); a.open(); a.js("showTab('calc')")
@@ -735,6 +758,7 @@ def t_proie_lot(browser, url):
     ids = [s_['id'] for s_ in snakes]
     # B) Sélection multiple : cocher 1 bébé → « Proie » → « Cocher aussi tous ceux en Souris Pinky » → Fuzzy
     a.js("showTab('mine')"); a.page.wait_for_timeout(200)
+    a.page.locator('#mine-more-btn').click(); a.page.wait_for_timeout(100)
     a.page.locator('#batch-mode-toggle-btn').click(); a.page.wait_for_timeout(200)
     a.page.locator(f'.batch-select-cb[data-batch-id="{ids[0]}"]').check(); a.page.wait_for_timeout(100)
     a.page.locator('#batch-action-bar button:has-text("Proie")').click(); a.page.wait_for_timeout(200)
@@ -749,6 +773,7 @@ def t_proie_lot(browser, url):
     check('les 4 bébés passent en Fuzzy (confirmé, pas estimé)', all(g[i] == ('mouse', 'Fuzzy', False) for i in ids[:4]), [g[i] for i in ids[:4]])
     check('les autres ne bougent pas', g[ids[4]] == ('rat', 'Small', False) and g[ids[5]][:2] == ('cricket', 'Small'), (g[ids[4]], g[ids[5]]))
     # proie pas adaptée à l'espèce : le gecko est sauté
+    a.page.locator('#mine-more-btn').click(); a.page.wait_for_timeout(100)
     a.page.locator('#batch-mode-toggle-btn').click(); a.page.wait_for_timeout(200)
     a.page.locator(f'.batch-select-cb[data-batch-id="{ids[5]}"]').check()
     a.page.locator(f'.batch-select-cb[data-batch-id="{ids[4]}"]').check(); a.page.wait_for_timeout(100)
@@ -777,6 +802,7 @@ def t_proie_lot(browser, url):
     a.close()
     b = App(browser, url, snakes=[make_snake(1)], lang='en'); b.open()
     b.js("showTab('mine')"); b.page.wait_for_timeout(200)
+    b.page.locator('#mine-more-btn').click(); b.page.wait_for_timeout(100)
     b.page.locator('#batch-mode-toggle-btn').click(); b.page.wait_for_timeout(150)
     b.page.locator('.batch-select-cb').first.check(); b.page.wait_for_timeout(100)
     b.page.locator('#batch-action-bar button:has-text("Prey")').click(); b.page.wait_for_timeout(200)
@@ -791,10 +817,12 @@ def t_decongelation_et_selection(browser, url):
     for s_ in snakes: s_.update({'preySpecies': 'mouse', 'preySize': 'Adult', 'feedingIntervalDays': 1})
     a = App(browser, url, snakes=snakes); a.open()
     a.js("showTab('mine')"); a.page.wait_for_timeout(200)
-    check('« Sélection multiple » visible sans ouvrir Filtres & tri', a.page.locator('#batch-mode-toggle-btn').is_visible())
+    a.page.locator('#mine-more-btn').click(); a.page.wait_for_timeout(100)
+    check('« Sélection multiple » dans le menu ⋯ sans ouvrir Filtres & tri (v5.68)', a.page.locator('#batch-mode-toggle-btn').is_visible())
     a.page.locator('#batch-mode-toggle-btn').click(); a.page.wait_for_timeout(150)
     a.page.locator('.batch-select-cb').first.check(); a.page.wait_for_timeout(150)
     check('barre d\'actions visible avec Filtres & tri fermé', a.page.locator('#batch-action-bar').is_visible() and not a.page.locator('#mine-filters-panel').is_visible())
+    a.page.locator('#mine-more-btn').click(); a.page.wait_for_timeout(100)
     a.page.locator('#batch-mode-toggle-btn').click()
     a.js("showTab('elevage'); showSubtab('nourriture')"); a.page.wait_for_timeout(300)
     btn = a.page.locator('#defrost-toggle-btn')
@@ -1724,7 +1752,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()
