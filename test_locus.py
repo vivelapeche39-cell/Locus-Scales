@@ -20,7 +20,7 @@ INDEX = os.path.abspath(ARGS[0]) if ARGS else os.path.join(os.path.dirname(HERE)
 VERSION_TXT = os.path.join(os.path.dirname(INDEX), 'version.txt')
 SRC = open(INDEX, encoding='utf-8').read()
 
-USER = {"id": "u-test-0001", "email": "test@exemple.invalid"}
+USER = {"id": "u-test-0001", "email": os.environ.get("LOCUS_TEST_EMAIL", "test@exemple.invalid")}
 SESSION = {"access_token": "faux", "refresh_token": "faux-refresh", "user": USER}
 # Paramètres « t » déjà présents en 5.33 (arrow functions locales, sans bug connu). Ne jamais monter ce chiffre.
 T_PARAM_BASELINE = 15
@@ -818,6 +818,58 @@ def t_import_json_580(browser, url):
     check('sauvegarde LOCUS reconnue (jamais importée comme liste)', a.js("importJsonToRows(JSON.stringify({snakes:[{id:1,name:'x'}], pairings:[]})).locusBackup") is True)
     check('texte non JSON ignoré', a.js("importJsonToRows('Name,Sex')") is None)
     check('pas d\'erreur JS (v5.80)', not [e for e in a.real_errors() if not e.startswith('dialog:') and 'fake.invalid' not in e and 'ERR_' not in e], a.real_errors()[:3])
+    a.close()
+
+def t_reimport_archives_581(browser, url):
+    section('Réimport sans recréer les supprimés, lien Archives, vente sans acheteur, en-tête (v5.81)')
+    a = App(browser, url, snakes=[], lang='en'); a.open(wait=1500)
+    a.page.on('dialog', lambda d: d.accept())
+    a.page.route('**/functions/v1/import-photo**', lambda route: route.fulfill(status=404, body='{}', headers={'Access-Control-Allow-Origin': '*'}))
+    a.page.route('https://example.com/**', lambda route: route.abort('accessdenied'))
+    path = os.path.join(tempfile.mkdtemp(), 'animals-export.csv'); open(path, 'w', encoding='utf-8').write(MM_FAKE_CSV)
+    def imp():
+        a.js("showTab('mine')")
+        a.page.set_input_files('#generic-csv-file-input', path); a.page.wait_for_timeout(1000)
+        prev = a.js("document.body.innerText")
+        return prev
+    def go():
+        a.js("""(()=>{const btns=[...document.querySelectorAll('button')].filter(b=>b.offsetParent && /import|complete/i.test(b.textContent) && !/fichier|file|choisir|choose/i.test(b.textContent)); if(btns.length) btns[btns.length-1].click();})()""")
+        a.page.wait_for_timeout(2500)
+    imp(); go()
+    n0 = a.js("savedSnakes.length")
+    victim = a.js("(savedSnakes.find(s=>s.listingUrl)||{}).id")
+    vname = a.js("savedSnakes.find(s=>s.id==='%s').name" % victim)
+    a.js("deleteSnake('%s')" % victim); a.page.wait_for_timeout(300)
+    prev = imp()
+    check('aperçu : l\'animal supprimé est annoncé comme sauté', 'deleted by you before' in prev and vname in prev, prev[:400])
+    go()
+    check('réimport : l\'animal supprimé n\'est pas recréé', a.js("savedSnakes.length") == n0-1 and not a.js("savedSnakes.some(s=>s.name===%s)" % json.dumps(vname)), a.js("savedSnakes.length"))
+    imp()
+    a.js("document.getElementById('imp-recreate-deleted').click()"); a.page.wait_for_timeout(300)
+    go()
+    check('« Create them again anyway » : recréé', a.js("savedSnakes.length") == n0)
+    # vente sans acheteur
+    sid = a.js("savedSnakes[0].id")
+    a.js("openSoldModal('%s')" % sid); a.page.wait_for_timeout(200)
+    check('nom de l\'acheteur affiché « optional »', 'optional' in a.js("document.getElementById('quick-modal-body') ? document.getElementById('quick-modal-body').innerText : document.body.innerText"))
+    a.js("confirmSold('%s')" % sid); a.page.wait_for_timeout(300)
+    check('vendu sans acheteur', a.js("savedSnakes.find(s=>s.id==='%s').status" % sid) == 'sold' and a.js("savedSnakes.find(s=>s.id==='%s').buyer" % sid) is None)
+    # lien Archives
+    a.js("setMineStatusFilter('all')"); a.page.wait_for_timeout(300)
+    lk = a.js("(document.getElementById('mine-archive-link')||{}).innerText||''")
+    check('lien « See archives (1 sold, 0 deceased) » sous la liste', '1 sold' in lk, lk)
+    a.page.click('#mine-archive-link'); a.page.wait_for_timeout(300)
+    names = a.js("[...document.querySelectorAll('#saved-grid .saved-card')].length")
+    check('le lien ouvre les archives (1 animal)', names == 1 and a.js("mineStatusFilter") == 'archive', names)
+    check('lien de retour', 'Back to my active' in a.js("document.getElementById('mine-archive-link').innerText"))
+    a.js("setLangTop('fr'); setMineStatusFilter('all')"); a.page.wait_for_timeout(300)
+    check('lien en français', 'Voir les archives' in a.js("document.getElementById('mine-archive-link').innerText"))
+    # en-tête : long nom de compte
+    a.page.set_viewport_size({'width': 360, 'height': 740}); a.page.wait_for_timeout(200)
+    a.js("document.getElementById('auth-btn').textContent='👤 ballsdeepexoticballpythons'"); a.page.wait_for_timeout(200)
+    w = a.js("[document.documentElement.scrollWidth, innerWidth, Math.round(document.querySelector('[data-tab=calc]').getBoundingClientRect().left)]")
+    check('téléphone : long nom de compte, le bouton Calculateur reste dans l\'écran', w[0] <= w[1] and w[2] >= 0, w)
+    check('pas d\'erreur JS (v5.81)', not [e for e in a.real_errors() if not e.startswith('dialog:') and 'fake.invalid' not in e and 'ERR_' not in e], a.real_errors()[:3])
     a.close()
 
 def t_rongeurs_clairs_574(browser, url):
@@ -2064,7 +2116,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_admin_tri_577, t_photos_serveur_579, t_import_json_580, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_admin_tri_577, t_photos_serveur_579, t_import_json_580, t_reimport_archives_581, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()

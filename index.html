@@ -1198,7 +1198,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <button class="lang-pill" data-lang="en" onclick="setLangTop('en')">EN</button>
       </div>
       <button class="tab-btn" data-tab="calc" data-i18n="tabCalc" onclick="showTab('calc')" style="white-space:nowrap;font-size:11px;padding:9px 14px;">🧬 Calculateur</button>
-      <button class="sc-btn accent" id="auth-btn" onclick="openAuthModal()" style="white-space:nowrap;font-size:11px;padding:9px 14px;background:var(--gold);color:#1a1409;font-weight:800 !important;border-color:var(--gold);" title="Compte éleveur">S'inscrire</button>
+      <button class="sc-btn accent" id="auth-btn" onclick="openAuthModal()" style="white-space:nowrap;max-width:38vw;overflow:hidden;text-overflow:ellipsis;font-size:11px;padding:9px 14px;background:var(--gold);color:#1a1409;font-weight:800 !important;border-color:var(--gold);" title="Compte éleveur">S'inscrire</button>
     </div>
   </div>
 
@@ -2391,7 +2391,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.80';
+const APP_VERSION = '2026.09.01.5.81';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5696,6 +5696,19 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.81', date:'2026-11-12',
+    title:{ fr:'Réimport sans revenants, archives visibles, vente plus simple', en:'Re-import without comebacks, visible archives, simpler sales' },
+    changes:{
+      fr:[ '🗑 Un animal que tu supprimes n\'est plus recréé quand tu réimportes le même fichier (MorphMarket ou autre). L\'aperçu te dit combien sont sautés, avec une case pour les recréer quand même.',
+           '🗄 Nouveau lien « Voir les archives » sous la liste de Mes reptiles : tes animaux vendus et décédés en un tap.',
+           '💰 Marquer un animal « Vendu » : le nom de l\'acheteur et le prix sont maintenant facultatifs.',
+           '🔧 Téléphone : un long nom de compte en haut de l\'écran ne pousse plus la page hors de l\'écran.',
+           '📷 Les photos ajoutées (et celles d\'un import) sont maintenant bien gardées sur le serveur LOCUS — elles étaient refusées avant.' ],
+      en:[ '🗑 An animal you delete is no longer created again when you re-import the same file (MorphMarket or other). The preview tells you how many are skipped, with a box to create them again anyway.',
+           '🗄 New « See archives » link under the My reptiles list: your sold and deceased animals in one tap.',
+           '💰 Marking an animal « Sold »: the buyer\'s name and the price are now optional.',
+           '🔧 Phone: a long account name at the top no longer pushes the page off the screen.',
+           '📷 Added photos (and photos from an import) are now properly saved on the LOCUS server — they were being refused before.' ] } },
   { version:'5.80', date:'2026-11-12',
     title:{ fr:'Import de fichiers JSON', en:'JSON file import' },
     changes:{
@@ -11236,9 +11249,24 @@ function deleteSnake(id){
       ? '⚠️ '+snakeName(s)+' is the parent of '+kidsN+' animal(s). Deleting it removes it from their family tree and lineages for good. If it was sold or died, mark it « Sold » or « Deceased » instead — the link is kept.\n\nDelete anyway?'
       : '⚠️ '+snakeName(s)+' est le parent de '+kidsN+' animal(aux). Le supprimer l\'efface pour de bon de leur arbre et de leurs lignées. S\'il a été vendu ou est décédé, marque-le plutôt « Vendu » ou « Décédé » — le lien est gardé.\n\nSupprimer quand même ?')) return;
   if(!confirm(isEn ? 'Permanently delete '+name+'? This also deletes its full logbook (weights, sheds, vet visits, photos) and cannot be undone.' : 'Supprimer définitivement '+name+' ? Ça efface aussi tout son journal de bord (poids, mues, visites vétérinaires, photos) et c\'est irréversible.')) return;
+  if(s) importRememberDeleted(s); // v5.81 — un réimport ne le recrée pas
   savedSnakes = savedSnakes.filter(s=>s.id!==id);
   if(editingId===id) cancelEdit();
   renderSavedList();
+}
+// v5.81 — choix d'Alex (12 nov) : se souvenir des animaux supprimés (lien d'annonce et ID) pour qu'un réimport du
+// même fichier ne les recrée pas ; l'aperçu les compte et offre de les recréer quand même. Gardé sur cet appareil.
+var IMPORT_DELETED_KEY = 'locus_import_deleted_v1';
+function importDeletedLoad(){
+  try{ const d = JSON.parse(localStorage.getItem(IMPORT_DELETED_KEY)||'{}'); return { urls: Array.isArray(d.urls)?d.urls:[], ids: Array.isArray(d.ids)?d.ids:[] }; }catch(e){ return { urls:[], ids:[] }; }
+}
+function importRememberDeleted(sn){
+  if(!sn || (!sn.listingUrl && !sn.animalId)) return;
+  const d = importDeletedLoad();
+  if(sn.listingUrl){ const u = importNormUrl(sn.listingUrl); if(u && !d.urls.includes(u)) d.urls.push(u); }
+  if(sn.animalId){ const k = String(sn.animalId).toUpperCase(); if(!d.ids.includes(k)) d.ids.push(k); }
+  d.urls = d.urls.slice(-3000); d.ids = d.ids.slice(-3000);
+  try{ localStorage.setItem(IMPORT_DELETED_KEY, JSON.stringify(d)); }catch(e){}
 }
 
 // Compatibilité génétique accessible partout (2 septembre) — avant, fallait charger chaque animal
@@ -12059,6 +12087,16 @@ function renderSavedList(){
     grid.appendChild(card);
   });
   if(minePg.bottom) grid.insertAdjacentHTML('beforeend', minePg.bottom);
+  // v5.81 — choix d'Alex : lien visible vers les Archives (vendus + décédés) sous la liste, au lieu de seulement dans Filtres et tri
+  (function(){
+    const nSold = savedSnakes.filter(x=>x.status==='sold').length, nDead = savedSnakes.filter(x=>x.status==='deceased').length;
+    if(!(nSold+nDead)) return;
+    const isEnA = currentLang==='en';
+    const lbl = mineStatusFilter==='archive'
+      ? '← '+(isEnA?'Back to my active animals':'Retour à mes animaux actifs')
+      : '🗄 '+(isEnA?'See archives ('+nSold+' sold, '+nDead+' deceased)':'Voir les archives ('+nSold+' vendu(s), '+nDead+' décédé(s))');
+    grid.insertAdjacentHTML('beforeend', '<button type="button" class="sc-btn" id="mine-archive-link" style="grid-column:1/-1;width:100%;margin-top:10px;font-size:15px;padding:12px;" onclick="setMineStatusFilter(\''+(mineStatusFilter==='archive'?'all':'archive')+'\')">'+lbl+'</button>');
+  })();
   grid.querySelectorAll('.sc-btn:not([disabled])').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const act = btn.dataset.act, id = btn.dataset.id;
@@ -12114,6 +12152,12 @@ document.getElementById('mine-search-input').addEventListener('input', (e)=>{
   mineSearchTerm = e.target.value.trim();
   renderSavedList();
 });
+function setMineStatusFilter(st){ // v5.81 — même effet qu'un tap sur la puce de statut
+  mineStatusFilter = st;
+  document.querySelectorAll('#mine-status-filters .filter-chip').forEach(b=>b.classList.toggle('active', b.dataset.status===st));
+  renderSavedList();
+  try{ document.getElementById('saved-grid').scrollIntoView({ behavior:'smooth', block:'start' }); }catch(e){}
+}
 document.querySelectorAll('#mine-status-filters .filter-chip').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     mineStatusFilter = btn.dataset.status;
@@ -21761,7 +21805,7 @@ function importCountsTowardLimit(r){ return !['sold','deceased'].includes(r.stat
 // Lignes qui seront importées : doublons exclus (sauf si coché), puis limite du palier — les premières par défaut, ou le choix de la personne.
 function importRowsToCreate(){
   const m = pendingGenericImportMeta || {};
-  const base = pendingGenericCsvRows.map((r,i)=>({ r, i })).filter(x=>!x.r.fileDupe && (m.importDupes || !x.r.dupe));
+  const base = pendingGenericCsvRows.map((r,i)=>({ r, i })).filter(x=>!x.r.fileDupe && (m.importDupes || !x.r.dupe) && (m.recreateDeleted || !x.r.wasDeleted)); // v5.81 — supprimés : pas recréés sauf si demandé
   const slots = importAnimalSlots();
   if(slots==null) return base;
   let used = 0;
@@ -21876,6 +21920,9 @@ function renderGenericCsvPreview(){
       if(matched) h += '<label style="display:flex;gap:8px;align-items:center;font-size:14.5px;margin:6px 0;line-height:1.4;"><input type="checkbox" id="imp-update-existing" '+(m.updateExisting && !m.importDupes?'checked':'')+' onchange="pendingGenericImportMeta.updateExisting=this.checked; if(this.checked) pendingGenericImportMeta.importDupes=false; renderGenericCsvPreview();" style="width:20px;height:20px;flex-shrink:0;"> '+(isEn?'<b>Complete the '+matched+' animal(s) already in LOCUS</b> — only missing info is added; nothing is replaced or created twice.':'<b>Compléter les '+matched+' animal(s) déjà dans LOCUS</b> — seulement les infos manquantes ; rien n\'est remplacé ni créé en double.')+'</label>';
       if(amb.length) h += p('⚠ '+(isEn?amb.length+' line(s) have the same name as several animals in LOCUS and no ID — skipped so nothing is doubled: '+escapeHtml(amb.slice(0,6).map(r=>r.name).join(', ')):amb.length+' ligne(s) ont le même nom que plusieurs animaux dans LOCUS et pas d\'ID — ignorée(s) pour ne rien doubler : '+escapeHtml(amb.slice(0,6).map(r=>r.name).join(', '))), 'var(--gold)');
       if(dupes) h += '<label style="display:flex;gap:8px;align-items:center;font-size:13.5px;margin:6px 0;color:var(--ink-dim);"><input type="checkbox" '+(m.importDupes?'checked':'')+' onchange="pendingGenericImportMeta.importDupes=this.checked; if(this.checked) pendingGenericImportMeta.updateExisting=false; renderGenericCsvPreview();" style="width:20px;height:20px;flex-shrink:0;"> '+(isEn?'Create them as new animals anyway (makes doubles)':'Les créer quand même comme nouveaux animaux (fait des doubles)')+'</label>';
+      const gone = rowsAll.filter(r=>r.wasDeleted && !r.fileDupe); // v5.81
+      if(gone.length) h += p('🗑 '+(isEn?gone.length+' animal(s) in the file were deleted by you before — they won\'t be created again: ':gone.length+' animal(s) du fichier ont été supprimé(s) par toi avant — ils ne seront pas recréés : ')+'<b>'+escapeHtml(gone.slice(0,6).map(r=>r.name||r.animalId||'?').join(', '))+(gone.length>6?' +'+(gone.length-6):'')+'</b>', 'var(--ink-dim)')+
+        '<label style="display:flex;gap:8px;align-items:center;font-size:14px;margin:4px 0 8px;color:var(--ink-dim);"><input type="checkbox" id="imp-recreate-deleted" '+(m.recreateDeleted?'checked':'')+' onchange="pendingGenericImportMeta.recreateDeleted=this.checked; renderGenericCsvPreview();" style="width:22px;height:22px;"/>'+(isEn?'Create them again anyway':'Les recréer quand même')+'</label>';
       return h;
     })()+
     (withUnknownGenes ? p('⚠ '+(isEn?withUnknownGenes+' animal(s) have words in the genetics that LOCUS doesn\'t recognize — they\'re not used as genes, but the original text is kept in the animal\'s notes; you can fix the genetics on the sheet after.':withUnknownGenes+' animal(s) ont des mots dans la génétique que LOCUS ne reconnaît pas — ils ne deviennent pas des gènes, mais le texte d\'origine est gardé dans les notes de l\'animal; tu pourras corriger la génétique sur la fiche ensuite.')+' <b>'+escapeHtml(unknownGeneRows.slice(0,8).map(r=>(r.line?(isEn?'line ':'ligne ')+r.line+' ':'')+(r.animalId||r.name)+' « '+r.unknownGenes.join(', ')+' »').join(', '))+(unknownGeneRows.length>8?' +'+(unknownGeneRows.length-8):'')+'</b>', 'var(--gold)') : '')+
@@ -21946,6 +21993,7 @@ function importResolveMatches(rows){
     const k = normalizeHeaderKey(s.name||''); if(k){ if(!byName.has(k)) byName.set(k, []); byName.get(k).push(s); }
   });
   const seen = new Set();
+  const del = importDeletedLoad(); // v5.81
   rows.forEach(r=>{
     const url = r.listingUrl ? importNormUrl(r.listingUrl) : '', id = r.animalId ? String(r.animalId).toUpperCase() : '', nk = normalizeHeaderKey(r.name||'');
     const key = url ? 'u:'+url : id ? 'i:'+id : 'n:'+nk;
@@ -21959,6 +22007,7 @@ function importResolveMatches(rows){
     }
     r.matchId = hit ? hit.id : null;
     r.dupe = !!hit || r.ambiguous;
+    r.wasDeleted = !hit && !r.ambiguous && ((url && del.urls.includes(url)) || (id && del.ids.includes(id))); // v5.81
   });
 }
 // v5.72 — compléter un animal existant avec une ligne réimportée : seulement ce qui MANQUE, rien n'est remplacé
@@ -33382,9 +33431,9 @@ function openSoldModal(id){
   if(!s) return;
   const isEn = currentLang==='en';
   showQuickModal((isEn?'Mark sold — ':'Marquer vendu — ')+s.name,
-    '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Buyer name':'Nom de l\'acheteur')+'</label>'+
+    '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Buyer name (optional)':'Nom de l\'acheteur (facultatif)')+'</label>'+
     '<input type="text" id="quick-buyer-input" class="draft-name" style="width:100%;margin:0 0 14px;" placeholder="'+(isEn?'Buyer name':'Nom de l\'acheteur')+'"/>'+
-    '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Final sale price ($)':'Prix de vente final ($)')+'</label>'+
+    '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:5px;">'+(isEn?'Final sale price ($, optional)':'Prix de vente final ($, facultatif)')+'</label>'+
     '<input type="number" id="quick-soldprice-input" class="price-input" style="width:100%;padding:9px 10px;font-size:14px;" value="'+(s.askingPrice!=null?s.askingPrice:'')+'" placeholder="0"/>'+
     '<button class="save-btn" style="margin-top:16px;width:100%;" onclick="confirmSold(\''+id+'\')">'+(isEn?'Confirm sale':'Confirmer la vente')+'</button>'
   );
@@ -33395,11 +33444,11 @@ function confirmSold(id){
   if(!s) return;
   const isEn = currentLang==='en';
   const buyer = (document.getElementById('quick-buyer-input').value||'').trim();
-  if(!buyer){ showToast(isEn?'Enter the buyer\'s name.':'Entre le nom de l\'acheteur.', 'error'); return; }
+  // v5.81 — choix d'Alex : nom de l'acheteur facultatif (il peut l'ajouter plus tard sur la fiche)
   const priceVal = document.getElementById('quick-soldprice-input').value;
   const parsedPrice = parseFloat(priceVal);
   const price = priceVal!=='' ? (isNaN(parsedPrice) ? null : parsedPrice) : s.askingPrice;
-  s.status = 'sold'; s.buyer = buyer; s.soldDate = localTodayStr(); s.soldPrice = price; s.paidViaStripe = false;
+  s.status = 'sold'; s.buyer = buyer || null; s.soldDate = localTodayStr(); s.soldPrice = price; s.paidViaStripe = false;
   // v5.01 — comme pour un décès : le bac / terrarium est libéré
   try{ ensureSnakeMeta(s); if(!snakeIsUnplaced(s)){ const oldTe = s.placement.mode==='terrarium' ? getTerrarium(s.placement.terrariumId) : null; s.placement = { mode:'terrarium', terrariumId:null }; if(oldTe) refreshTerrariumStatus(oldTe); } }catch(e){}
   storage.save(savedSnakes);
@@ -33407,7 +33456,7 @@ function confirmSold(id){
   renderSavedList();
   if(document.getElementById('view-ventes') && document.getElementById('view-ventes').style.display!=='none') renderSalesView();
   if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
-  showToast('💰 '+s.name+' — '+(isEn?'sold to ':'vendu à ')+buyer+(price?(isEn?' for ':' pour ')+price+' $':'')+' !', 'hatch');
+  showToast('💰 '+s.name+' — '+(buyer ? (isEn?'sold to ':'vendu à ')+buyer : (isEn?'sold':'vendu'))+(price?(isEn?' for ':' pour ')+price+' $':'')+' !', 'hatch');
 }
 
 // Suivi d'expédition à l'acheteur (25 août) — transporteur, n° de suivi, date d'envoi, livré ou
