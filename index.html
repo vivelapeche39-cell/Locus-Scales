@@ -2391,7 +2391,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.78';
+const APP_VERSION = '2026.09.01.5.79';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5696,6 +5696,15 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.79', date:'2026-11-12',
+    title:{ fr:'Photos MorphMarket, menu ⋯ sur la fiche, Mode Tournée', en:'MorphMarket photos, ⋯ menu on the record, Tour Mode' },
+    changes:{
+      fr:[ '📷 Les photos d\'un fichier MorphMarket arrivent maintenant dans LOCUS : MorphMarket bloquait le téléchargement depuis le téléphone, c\'est maintenant le serveur LOCUS qui va les chercher. Réimporte le même fichier CSV : les photos s\'ajoutent sans rien doubler.',
+           '⋯ Nouveau menu « ⋯ Plus » en haut de la fiche d\'un animal : Modifier, Dupliquer, Supprimer — même quand tu y arrives par la recherche.',
+           '🔧 Mode Tournée : les animaux vendus ou décédés n\'apparaissent plus dans la liste des terrariums et des animaux à classer.' ],
+      en:[ '📷 Photos from a MorphMarket file now make it into LOCUS: MorphMarket was blocking downloads from the phone, so the LOCUS server now fetches them. Re-import the same CSV file: the photos are added without duplicating anything.',
+           '⋯ New « ⋯ More » menu at the top of an animal\'s record: Edit, Duplicate, Delete — even when you get there from search.',
+           '🔧 Tour Mode: sold or deceased animals no longer show up in the terrariums and unplaced list.' ] } },
   { version:'5.75', date:'2026-11-11',
     title:{ fr:'Guide des rongeurs nourriciers', en:'Feeder rodents guide' },
     changes:{
@@ -13608,6 +13617,14 @@ function miniAnimalCardHtml(name, sublineHtml, actionHtml){
 function mrow(label, value){ return '<div class="modal-row"><span>'+label+'</span><span>'+value+'</span></div>'; }
 
 function closeLogbook(){ currentLogbookId = null; document.getElementById('logbook-overlay').style.display = 'none'; }
+// v5.79 — actions du menu ⋯ de la fiche : mêmes fonctions que le menu ⋯ des cartes de Mes reptiles.
+function logbookMoreAction(id, act){
+  if(!act) return;
+  if(act==='delete'){ deleteSnake(id); if(!savedSnakes.some(x=>x.id===id)) closeLogbook(); return; }
+  closeLogbook();
+  if(act==='edit') editSnake(id);
+  else if(act==='duplicate') duplicateSnake(id);
+}
 document.getElementById('logbook-overlay').addEventListener('click', (e)=>{ if(e.target.id==='logbook-overlay') closeLogbook(); });
 
 // Journal vétérinaire par reptile — visites, motif, observations. Vit dans health.vetVisits
@@ -14833,6 +14850,13 @@ function openLogbook(id){
     : '<div class="modal-row"><span>'+t('noMatingRecorded')+'</span></div>';
 
   document.getElementById('logbook-body').innerHTML =
+    // v5.79 — menu ⋯ Plus sur la fiche (retour de Balls Deep : arrivé par la recherche, impossible de modifier ou supprimer)
+    '<div style="display:flex;justify-content:flex-end;margin-bottom:6px;"><select class="sc-more-select" id="logbook-more-select" aria-label="'+(isEn?'More':'Plus')+'" style="font-size:15px;padding:8px 10px;" onchange="logbookMoreAction(\''+id+'\', this.value); this.value=\'\';">'+
+      '<option value="">⋯ '+(isEn?'More':'Plus')+'</option>'+
+      '<option value="edit">✏️ '+(isEn?'Edit':'Modifier')+'</option>'+
+      '<option value="duplicate">📋 '+(isEn?'Duplicate':'Dupliquer')+'</option>'+
+      '<option value="delete">🗑 '+(isEn?'Delete':'Supprimer')+'</option>'+
+    '</select></div>'+
     '<div class="modal-section"><h3>'+t('quickActionsTitle')+'</h3><div style="display:flex;gap:8px;flex-wrap:wrap;">'+
       (isPlateFeeder(s)
         ? '<button class="tour-action-btn fed" onclick="logAction(\''+id+'\',\'plate\')">🥗 '+(isEn?'Plate':'Assiette')+'</button>'
@@ -22004,10 +22028,21 @@ function confirmGenericCsvImport(){
 // même si l'annonce disparaît. Aucune copie dans le téléphone (l'espace local ~5 Mo ne suffit pas pour une collection) :
 // la photo garde publicUrl + sourceUrl (le lien d'origine, pour ne jamais la copier deux fois à un réimport).
 var importPhotosRunning = false;
+// v5.79 — MorphMarket bloque le téléchargement direct depuis le navigateur (CORS) : si l'essai direct échoue,
+// la fonction serveur import-photo va chercher l'image (compte connecté, hôtes d'annonces seulement, rien gardé côté serveur).
+async function importFetchPhotoBlob(url){
+  try{
+    const res = await fetch(url, { mode:'cors' });
+    if(res.ok){ const b = await res.blob(); if(/^image\//i.test(b.type||'')) return b; }
+  }catch(e){ /* bloqué par le site : on passe par le serveur */ }
+  const sess = sb && (await sb.auth.getSession()).data.session;
+  if(!sess) throw new Error('no session');
+  const res = await fetch(SUPABASE_URL+'/functions/v1/import-photo?url='+encodeURIComponent(url), { headers:{ Authorization:'Bearer '+sess.access_token, apikey:SUPABASE_ANON_KEY } });
+  if(!res.ok) throw new Error('proxy HTTP '+res.status);
+  return await res.blob();
+}
 async function importOnePhoto(url){
-  const res = await fetch(url, { mode:'cors' });
-  if(!res.ok) throw new Error('HTTP '+res.status);
-  const blob = await res.blob();
+  const blob = await importFetchPhotoBlob(url);
   if(!/^image\//i.test(blob.type||'image/')) throw new Error('not an image');
   const objUrl = URL.createObjectURL(blob);
   try{
@@ -28758,7 +28793,7 @@ function renderTourTerrariums(){
   const wrap = document.getElementById('tour-terrariums');
   if(!wrap) return;
   savedSnakes.forEach(ensureSnakeMeta);
-  let list = savedSnakes.filter(s=>s.placement.mode==='terrarium');
+  let list = savedSnakes.filter(s=>s.placement.mode==='terrarium' && isActiveSnake(s)); // v5.79 — vendus et décédés exclus, comme les racks (retour de Balls Deep : 153 au lieu de 150)
   if(tourRoomFilter!=='all'){
     list = list.filter(s=>{
       const te = s.placement.terrariumId ? getTerrarium(s.placement.terrariumId) : null;
