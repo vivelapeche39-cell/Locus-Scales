@@ -2269,7 +2269,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   <div class="reg-card">
     <div class="reg-card-head"><span class="reg-flag">📥</span><h3 data-i18n="genericCsvTitle">Importer (Excel, CSV, Word, texte, MorphMarket, autre app)</h3></div>
     <p data-i18n="genericCsvDesc">Un seul bouton pour tout : une feuille Excel, un CSV, un document Word (.docx ou .doc) ou un fichier texte (.txt) fait à la main, un export MorphMarket, Husbandry Pro ou une autre app, un historique de repas, mues et pesées. LOCUS reconnaît le format tout seul et te montre un aperçu avant de confirmer quoi que ce soit.</p>
-    <input type="file" id="generic-csv-file-input" accept=".xlsx,.xls,.xlsm,.ods,.csv,.tsv,.txt,.doc,.docx,text/csv,text/tab-separated-values,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none;"/>
+    <input type="file" id="generic-csv-file-input" accept=".xlsx,.xls,.xlsm,.ods,.csv,.tsv,.txt,.json,.doc,.docx,text/csv,text/tab-separated-values,text/plain,application/json,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none;"/>
     <input type="file" id="mm-csv-file-input" accept=".csv,.tsv" style="display:none;"/><!-- v4.23 : ancien bouton MorphMarket, gardé caché (écouteur existant) -->
     <div class="reg-links">
       <button class="sc-btn accent" onclick="if(requireAuthOrPrompt()) document.getElementById('generic-csv-file-input').click()">📥 <span data-i18n="genericCsvBtn">Choisir un fichier</span></button>
@@ -2391,7 +2391,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.79';
+const APP_VERSION = '2026.09.01.5.80';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5696,6 +5696,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.80', date:'2026-11-12',
+    title:{ fr:'Import de fichiers JSON', en:'JSON file import' },
+    changes:{
+      fr:[ '📥 Le bouton Importer accepte maintenant les fichiers JSON (par exemple l\'export JSON de MorphMarket) : la liste d\'animaux passe par le même aperçu que le CSV, avec les mêmes options (compléter sans doubler, photos).' ],
+      en:[ '📥 The Import button now accepts JSON files (for example MorphMarket\'s JSON export): the animal list goes through the same preview as a CSV, with the same options (fill in without duplicates, photos).' ] } },
   { version:'5.79', date:'2026-11-12',
     title:{ fr:'Photos MorphMarket, menu ⋯ sur la fiche, Mode Tournée', en:'MorphMarket photos, ⋯ menu on the record, Tour Mode' },
     changes:{
@@ -19741,6 +19746,10 @@ function readImportFileAsRows(file, done0){
       done(wb.SheetNames.map(n=>({ n, rows: XLSX.utils.sheet_to_json(wb.Sheets[n], { header:1, raw:true, defval:'' }) })), { isExcel:true });
     } else {
       const text = importDecodeText(reader.result).replace(/^\uFEFF/,'');
+      // v5.80 — JSON (ex. export MorphMarket en JSON) : la liste d'animaux devient un tableau, puis le même import que le CSV
+      const js = importJsonToRows(text);
+      if(js && js.locusBackup){ alert(isEn?'This is a LOCUS backup, not an animal list. To bring it back, use the 📤 Export tab → « Import a backup » (it replaces all your current data).':'Ce fichier est une sauvegarde LOCUS, pas une liste d\'animaux. Pour la remettre, utilise l\'onglet 📤 Export → « Importer une sauvegarde » (ça remplace toutes tes données actuelles).'); done([], null); return; }
+      if(js && js.rows){ done([{ n:file.name||'JSON', rows: js.rows }], { isExcel:false, isJson:true }); return; }
       // v5.71 — vrai CSV (guillemets, retours de ligne dans une case — ex. description MorphMarket) : lu case par case
       const csvRows = importParseDelimitedText(text, file.name);
       const rows = csvRows || importTextToRows(text);
@@ -19749,6 +19758,47 @@ function readImportFileAsRows(file, done0){
     }
   };
   reader.readAsArrayBuffer(file); // v4.33 — texte décodé nous-mêmes (Bloc-notes : UTF-8, ANSI ou « Unicode »)
+}
+// v5.80 — JSON → tableau (en-têtes + lignes) pour l'import habituel. Accepte une liste d'objets, ou un objet qui contient
+// une liste d'objets (ex. { animals:[…] }, { results:[…] }). Les sous-objets et listes deviennent du texte : un objet avec
+// un nom (parent, trait…) donne son nom ; une liste donne ses valeurs séparées par des virgules (liens de photos compris).
+// Une sauvegarde LOCUS est reconnue et renvoyée vers « Restaurer » (elle remplacerait tout, jamais par l'import).
+function importJsonToRows(text){
+  const tx = String(text||'').trim();
+  if(!/^[\[{]/.test(tx)) return null;
+  let data; try{ data = JSON.parse(tx); }catch(e){ return null; }
+  if(data && !Array.isArray(data) && typeof data==='object' && Array.isArray(data.snakes) && ('pairings' in data || 'racks' in data || 'clutches' in data)) return { locusBackup:true };
+  const isRec = x=>x && typeof x==='object' && !Array.isArray(x);
+  const recList = v=>Array.isArray(v) && v.length && v.filter(isRec).length >= Math.ceil(v.length*0.8);
+  let recs = recList(data) ? data : null;
+  if(!recs && isRec(data)){
+    const cands = [];
+    Object.keys(data).forEach(k=>{ const v = data[k]; if(recList(v)) cands.push(v); else if(isRec(v)) Object.keys(v).forEach(k2=>{ if(recList(v[k2])) cands.push(v[k2]); }); });
+    cands.sort((x,y)=>y.length-x.length); recs = cands[0] || null;
+  }
+  if(!recs) return null;
+  const label = k=>String(k).replace(/([a-z0-9])([A-Z])/g,'$1 $2').replace(/[_\-.]+/g,' ').trim();
+  const named = o=>{ for(const k of ['name','title','display_name','displayName','label','animal_id','animalId','url','id']) if(o[k]!=null && typeof o[k]!=='object') return String(o[k]); return null; };
+  const cell = v=>{
+    if(v==null) return '';
+    if(Array.isArray(v)) return v.map(x=>isRec(x) ? (named(x)||'') : (Array.isArray(x) ? '' : String(x))).filter(Boolean).join(', ');
+    if(isRec(v)) return named(v) || '';
+    return String(v);
+  };
+  const flat = rec=>{
+    const out = {};
+    Object.keys(rec).forEach(k=>{
+      const v = rec[k];
+      if(isRec(v) && !named(v)) Object.keys(v).forEach(k2=>{ out[label(k)+' '+label(k2)] = cell(v[k2]); });
+      else out[label(k)] = cell(v);
+    });
+    return out;
+  };
+  const flats = recs.filter(isRec).map(flat);
+  const headers = [];
+  flats.forEach(f=>Object.keys(f).forEach(h=>{ if(!headers.includes(h)) headers.push(h); }));
+  if(!headers.length) return null;
+  return { rows: [headers].concat(flats.map(f=>headers.map(h=>f[h]!=null ? f[h] : ''))) };
 }
 // v5.71 — CSV/TSV selon les règles (RFC 4180) : une case entre guillemets peut contenir des virgules, des "" et
 // des retours de ligne. Avant, le fichier était coupé ligne par ligne : une description MorphMarket sur 2 lignes

@@ -788,6 +788,38 @@ def t_photos_serveur_579(browser, url):
     check('pas d\'erreur JS (v5.79)', not [e for e in a.real_errors() if not e.startswith('dialog:') and 'fake.invalid' not in e and 'ERR_' not in e and 'CORS' not in e and 'Access-Control' not in e], a.real_errors()[:3])
     a.close()
 
+def t_import_json_580(browser, url):
+    section('Import d\'un fichier JSON (v5.80)')
+    a = App(browser, url, snakes=[], lang='en'); a.open(wait=1500)
+    a.page.on('dialog', lambda d: d.accept())
+    a.page.route('**/functions/v1/import-photo**', lambda route: route.fulfill(status=200, body=_jpeg_bytes(), headers={'Content-Type': 'image/jpeg', 'Access-Control-Allow-Origin': '*'}))
+    a.page.route('https://example.com/**', lambda route: route.abort('accessdenied'))
+    # données inventées, forme plausible d'un export d'animaux (liste dans un objet, listes et sous-objets)
+    data = {'count': 2, 'animals': [
+        {'title': 'Jsonia', 'animalId': 'J-01', 'sex': 'Female', 'dob': '2024-05-01', 'traits': ['Pastel', 'Clown'], 'photoUrls': ['https://example.com/j1.jpg'], 'sires': [{'name': 'Papa J', 'id': 9}], 'origin': {'name': 'Self Produced'}},
+        {'title': 'Jsonor', 'animalId': 'J-02', 'sex': 'Male', 'dob': '2023-04-02', 'traits': ['Banana'], 'photoUrls': [], 'sires': []}]}
+    import json as _json
+    path = os.path.join(tempfile.mkdtemp(), 'animals-export.json'); open(path, 'w', encoding='utf-8').write(_json.dumps(data))
+    check('le bouton Importer accepte les .json', '.json' in a.js("document.getElementById('generic-csv-file-input').accept"))
+    a.js("showTab('mine')")
+    a.page.set_input_files('#generic-csv-file-input', path); a.page.wait_for_timeout(1000)
+    prev = a.js("document.body.innerText")
+    check('aperçu ouvert avec les 2 animaux', 'Jsonia' in prev and 'Jsonor' in prev, prev[:300])
+    a.js("""(()=>{const btns=[...document.querySelectorAll('button')].filter(b=>b.offsetParent && /import|complete/i.test(b.textContent) && !/fichier|file|choisir|choose/i.test(b.textContent)); if(btns.length) btns[btns.length-1].click();})()""")
+    a.page.wait_for_timeout(3000)
+    r = a.js("savedSnakes.map(s=>({n:s.name, id:s.animalId, sex:s.sex, b:s.birthDate, g:Object.keys(s.genes||{}), ph:(s.photos||[]).length}))")
+    by = {x['n']: x for x in r}
+    check('2 animaux importés', len(r) == 2, r)
+    check('ID, sexe, naissance lus', by.get('Jsonia', {}).get('id') == 'J-01' and by['Jsonia']['sex'] == 'female' and by['Jsonia']['b'] == '2024-05-01', by.get('Jsonia'))
+    check('liste de traits → génétique (Pastel + Clown)', len(by.get('Jsonia', {}).get('g', [])) >= 2, by.get('Jsonia'))
+    check('liste de liens de photos → photo copiée', by.get('Jsonia', {}).get('ph') == 1, by.get('Jsonia'))
+    rows = a.js("""importJsonToRows(JSON.stringify([{a:1,b:{c:2,d:3}}]))""")
+    check('sous-objet sans nom → colonnes « b c », « b d »', rows and rows['rows'][0] == ['a', 'b c', 'b d'] and rows['rows'][1] == ['1', '2', '3'], rows)
+    check('sauvegarde LOCUS reconnue (jamais importée comme liste)', a.js("importJsonToRows(JSON.stringify({snakes:[{id:1,name:'x'}], pairings:[]})).locusBackup") is True)
+    check('texte non JSON ignoré', a.js("importJsonToRows('Name,Sex')") is None)
+    check('pas d\'erreur JS (v5.80)', not [e for e in a.real_errors() if not e.startswith('dialog:') and 'fake.invalid' not in e and 'ERR_' not in e], a.real_errors()[:3])
+    a.close()
+
 def t_rongeurs_clairs_574(browser, url):
     section('Rongeurs : noms de lignée en mots + « Par où commencer » (v5.74)')
     a = App(browser, url, snakes=[make_snake(800)], lang='en'); a.open(wait=1500)
@@ -2032,7 +2064,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_admin_tri_577, t_photos_serveur_579, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_admin_tri_577, t_photos_serveur_579, t_import_json_580, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()
