@@ -2391,7 +2391,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.81';
+const APP_VERSION = '2026.09.01.5.82';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5696,6 +5696,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.82', date:'2026-11-12',
+    title:{ fr:'Bouton Retour du téléphone', en:'Phone Back button' },
+    changes:{
+      fr:[ '↩ Le bouton Retour du téléphone ferme maintenant la fiche ou la fenêtre ouverte, au lieu de quitter l\'app. Plus besoin de remonter en haut pour toucher ✕.' ],
+      en:[ '↩ The phone\'s Back button now closes the open record or window instead of leaving the app. No more scrolling back up to tap ✕.' ] } },
   { version:'5.81', date:'2026-11-12',
     title:{ fr:'Réimport sans revenants, archives visibles, vente plus simple', en:'Re-import without comebacks, visible archives, simpler sales' },
     changes:{
@@ -34338,6 +34343,40 @@ function closeQuickModal(){
   if(batchWeighOpen){ batchWeighOpen = false; try{ renderBatchWeighResume(); }catch(e){} }
 }
 document.getElementById('quick-modal-overlay').addEventListener('click', (e)=>{ if(e.target.id==='quick-modal-overlay') closeQuickModal(); });
+// v5.82 — bouton Retour du téléphone (Android surtout) : avant, avec une fiche ou une fenêtre ouverte, il quittait l'app
+// (retour de Balls Deep). Une entrée d'historique « garde » est posée quand une fenêtre s'ouvre ; Retour ferme la fenêtre
+// du dessus au lieu de quitter. Fermée autrement (✕, bouton), l'entrée garde est retirée toute seule.
+var MODAL_BACK_LIST = [['menu', 'app-menu-overlay', ()=>closeAppMenu()], ['photo', 'photo-compare-overlay', ()=>closePhotoCompare()], ['quick', 'quick-modal-overlay', ()=>closeQuickModal()],
+  ['bug', 'bug-report-overlay', ()=>closeBugReportModal()], ['auth', 'auth-overlay', ()=>closeAuthModal()], ['logbook', 'logbook-overlay', ()=>closeLogbook()]]; // du dessus vers le dessous
+var modalBackGuard = false, modalBackIgnore = 0, modalBackTimer = null;
+function modalBackIsOpen(elId){
+  const el = document.getElementById(elId); if(!el) return false;
+  if(elId==='app-menu-overlay') return el.classList.contains('open');
+  return el.style.display==='flex' || el.style.display==='block';
+}
+function modalBackAnyOpen(){ return MODAL_BACK_LIST.some(x=>modalBackIsOpen(x[1])); }
+function modalBackSync(){
+  if(modalBackAnyOpen()){
+    if(modalBackTimer){ clearTimeout(modalBackTimer); modalBackTimer = null; }
+    if(!modalBackGuard){ try{ history.pushState({ locusBack:1 }, ''); modalBackGuard = true; }catch(e){} }
+  } else if(modalBackGuard && !modalBackTimer){
+    modalBackTimer = setTimeout(()=>{ modalBackTimer = null; if(!modalBackAnyOpen() && modalBackGuard){ modalBackGuard = false; modalBackIgnore++; try{ history.back(); }catch(e){ modalBackIgnore--; } } }, 250);
+  }
+}
+window.addEventListener('popstate', ()=>{
+  if(modalBackIgnore>0){ modalBackIgnore--; if(modalBackAnyOpen() && !modalBackGuard){ try{ history.pushState({ locusBack:1 }, ''); modalBackGuard = true; }catch(e){} } return; }
+  if(!modalBackGuard) return;
+  modalBackGuard = false;
+  const top = MODAL_BACK_LIST.find(x=>modalBackIsOpen(x[1]));
+  if(top){ try{ top[2](); }catch(e){ const el = document.getElementById(top[1]); if(el) el.style.display = 'none'; } }
+  setTimeout(modalBackSync, 0); // une autre fenêtre encore ouverte dessous : nouvelle garde
+});
+(function(){
+  try{
+    const mo = new MutationObserver(()=>modalBackSync());
+    MODAL_BACK_LIST.forEach(x=>{ const el = document.getElementById(x[1]); if(el) mo.observe(el, { attributes:true, attributeFilter:['style','class'] }); });
+  }catch(e){}
+})();
 
 // v3.89 — Sur iPhone, faire défiler une fenêtre (Configuration, fiche, Statistiques…) faisait aussi
 // défiler la page derrière, et on ne pouvait pas atteindre le bas de la fenêtre. On fige la page de
