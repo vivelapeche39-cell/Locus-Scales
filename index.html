@@ -2380,6 +2380,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
           <button class="sc-btn" style="flex:1;" onclick="handleAuthSignIn()" data-i18n="signInBtn">Se connecter</button>
           <button class="sc-btn" style="flex:1;" onclick="handleAuthSignUp()" data-i18n="createAccountBtn">Créer un compte</button>
         </div>
+        <div id="auth-demo-wrap"></div><!-- v5.86 — Essayer sans compte -->
         <button type="button" onclick="handleForgotPassword()" data-i18n="forgotPasswordLink" style="display:block;margin:12px auto 0;background:none;border:none;color:var(--gold);font-size:13px;text-decoration:underline;cursor:pointer;padding:4px;">Mot de passe oublié?</button>
       </div>
       <button class="sc-btn" id="auth-signout-btn" style="width:100%;margin-top:10px;display:none;" onclick="handleAuthSignOut()" data-i18n="signOutBtn">Se déconnecter</button>
@@ -2394,7 +2395,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.85';
+const APP_VERSION = '2026.09.01.5.86';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3786,7 +3787,7 @@ async function importTransferredSnake(){
     species: r.species || 'ball_python',
     status: 'kept',
     health: health,
-    photos: (Array.isArray(r.photos)?r.photos:[]).map((p,i)=>({ id: (p&&p.id) || ('ph_'+now+'_'+i), date: p&&p.date, dataUrl: p&&p.dataUrl, publicUrl: p&&p.publicUrl, sourceUrl: p&&p.sourceUrl })).filter(p=>p.dataUrl||p.publicUrl),
+    photos: (Array.isArray(r.photos)?r.photos:[]).map((p,i)=>({ id: (p&&p.id) || ('ph_'+now+'_'+i), date: p&&p.date, dataUrl: p&&p.dataUrl, publicUrl: p&&p.publicUrl, sourceUrl: p&&p.sourceUrl, thumb: p&&p.thumb })).filter(p=>p.dataUrl||p.publicUrl||p.thumb),
     careParams: (r.care_params && typeof r.care_params==='object') ? r.care_params : undefined,
     geneticsHistory: Array.isArray(r.genetics_history) ? r.genetics_history : [],
     preyType: 'frozen',
@@ -3988,6 +3989,7 @@ async function ensureLocalDataOwner(user){
 }
 if(sb){
   sb.auth.onAuthStateChange((event, session) => {
+    if(session && isDemoMode()){ endDemo(true); return; } // v5.86 — jamais de données de démo envoyées à un vrai compte : on efface la démo et on recharge
     var wasOfflineIdentity = offlineIdentity;
     currentUser = resolveUserFromSession(session, event);
     updateAuthUI();
@@ -4010,14 +4012,44 @@ if(sb){
 // de l'éleveur. Traite un animal à la fois pour ne pas surcharger Storage d'un coup au login.
 async function backfillMissingPhotoUrls(){
   if(!currentUser || !sb || offlineIdentity) return;
+  let slimmed = 0;
   for(const s of savedSnakes){
     if(!s.photos || !s.photos.length) continue;
     for(const p of s.photos){
       if(!p.publicUrl){
         await ensurePhotoPublicUrl(s, p);
+      } else if(p.dataUrl){ // v5.86 — déjà sur le serveur : on allège la copie du téléphone (et de la base)
+        if(await photoKeepThumbOnly(s, p)) slimmed++;
       }
     }
   }
+  if(slimmed) storage.save(savedSnakes);
+}
+// v5.86 — miniature (320 px, JPEG 0,65 ≈ 15 Ko) pour voir la photo hors ligne ; la grande (900 px) reste sur le serveur.
+function makePhotoThumb(src){
+  return new Promise(resolve=>{
+    try{
+      const img = new Image();
+      img.onload = ()=>{ try{
+        const scale = Math.min(1, 320/Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(img.width*scale)); c.height = Math.max(1, Math.round(img.height*scale));
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        resolve(c.toDataURL('image/jpeg', 0.65));
+      }catch(e){ resolve(null); } };
+      img.onerror = ()=>resolve(null);
+      img.src = src;
+    }catch(e){ resolve(null); }
+  });
+}
+async function photoKeepThumbOnly(snake, photo){
+  if(!photo || !photo.publicUrl || !photo.dataUrl) return false;
+  const th = await makePhotoThumb(photo.dataUrl);
+  if(!th) return false; // jamais perdre une photo : sans miniature, on garde la grande
+  photo.thumb = th;
+  delete photo.dataUrl;
+  if(snake) snake.updatedAt = Date.now();
+  return true;
 }
 function updateAuthUI(){
   const isEn = currentLang==='en';
@@ -4076,6 +4108,7 @@ function updateGuestSaveNotice(){
 }
 function requireAuthOrPrompt(){
   if(currentUser) return true;
+  if(isDemoMode()) return true; // v5.86 — en démo, on peut tout essayer (rien n'est gardé)
   const isEn = currentLang==='en';
   openAuthModal();
   const err = document.getElementById('auth-error');
@@ -4086,6 +4119,7 @@ function openAuthModal(){
   const err = document.getElementById('auth-error');
   if(err){ err.style.display='none'; err.textContent=''; }
   updateAuthUI();
+  try{ renderAuthDemoButton(); }catch(e){} // v5.86
   document.getElementById('auth-overlay').style.display = 'flex';
 }
 function togglePasswordVisibility(){
@@ -5701,6 +5735,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.86', date:'2026-11-13',
+    title:{ fr:'Essayer sans compte + photos plus légères', en:'Try without an account + lighter photos' },
+    changes:{
+      fr:[ '👀 « Essayer sans compte » : explore LOCUS avec une collection d\'exemple avant de t\'inscrire. Tu peux tout toucher ; rien n\'est gardé, et quitter la démo remet tout comme avant.',
+           '📷 Tes photos prennent environ 10 fois moins de place dans ton téléphone : une fois sur le serveur LOCUS, seule une miniature reste dans l\'appareil (pour les voir hors ligne) ; la grande photo s\'affiche avec Internet.' ],
+      en:[ '👀 « Try it without an account »: explore LOCUS with a sample collection before signing up. You can touch everything; nothing is kept, and leaving the demo puts everything back as it was.',
+           '📷 Your photos take about 10 times less space on your phone: once on the LOCUS server, only a thumbnail stays on the device (to see them offline); the full photo shows with Internet.' ] } },
   { version:'5.85', date:'2026-11-13',
     title:{ fr:'Mode simple pour les nouveaux comptes', en:'Simple mode for new accounts' },
     changes:{
@@ -11978,7 +12019,7 @@ function getMineView(){ try{ const v = localStorage.getItem('locus_mine_view_v1'
 function setMineView(v){ try{ localStorage.setItem('locus_mine_view_v1', ['photos','cards'].includes(v)?v:'compact'); }catch(e){} renderSavedList(); }
 function snakeLatestPhotoSrc(s){
   const ph = (s && s.photos && s.photos.length) ? s.photos[s.photos.length-1] : null;
-  return ph ? (ph.dataUrl || ph.publicUrl || null) : null;
+  return ph ? (ph.thumb || ph.dataUrl || ph.publicUrl || null) : null; // v5.86 — la miniature d'abord (liste plus rapide)
 }
 function minePhotoBannerHtml(s, isEn){
   const src = snakeLatestPhotoSrc(s);
@@ -14272,9 +14313,13 @@ function pickSharePhoto(i){
    actuelle ou une autre de leurs photos, ou une photo choisie sur le moment (pas enregistrée sur leur fiche).
    Parents hors collection : nom, gènes et photo enregistrés sur la fiche du bébé (s.saleParents, colonne
    snakes.sale_parents), copiables aux frères et sœurs de la même portée. Gratuit (image d'une fiche). */
-function sharePhotoSrc(ph){ return ph ? (ph.dataUrl || ph.publicUrl || null) : null; }
+function sharePhotoSrc(ph){ return ph ? (ph.dataUrl || ph.publicUrl || ph.thumb || null) : null; }
 // v5.73 — une photo peut n'exister que sur le serveur (photos importées : pas de copie dans le téléphone, l'espace local est limité à ~5 Mo)
-function photoSrc(p){ return p ? (p.dataUrl || p.publicUrl || '') : ''; }
+function photoSrc(p){ // v5.86 — hors ligne : la miniature gardée dans le téléphone ; en ligne : la grande photo du serveur
+  if(!p) return '';
+  if(typeof navigator!=='undefined' && navigator.onLine===false) return p.dataUrl || p.thumb || p.publicUrl || '';
+  return p.dataUrl || p.publicUrl || p.thumb || '';
+}
 function shareParentInfo(s, role){
   const pid = role==='sire' ? s.sireId : s.damId;
   const par = pid ? savedSnakes.find(x=>x.id===pid) : null;
@@ -18642,7 +18687,7 @@ function snakeToRow(s){
     genes: s.genes||{}, genes_verified: !!s.genesVerified,
     sire_id: s.sireId||null, dam_id: s.damId||null, birth_date: s.birthDate||null,
     provenance: s.provenance||null, acquisition_date: s.acquisitionDate||null, status: s.status||'kept',
-    health: s.health||{}, placement: s.placement||{}, photos: s.photos||[],
+    health: s.health||{}, placement: s.placement||{}, photos: (s.photos||[]).map(p=>(p && p.publicUrl && p.dataUrl) ? Object.assign({}, p, { dataUrl: undefined }) : p), // v5.86 — jamais la grande photo en double dans la base si elle est déjà sur le serveur
     feeding_interval_days: s.feedingIntervalDays||null, prey_species: s.preySpecies||null,
     prey_size: s.preySize||null, prey_size_estimated: !!(s.preySize && s.preySizeEstimated), prey_type: s.preyType||'frozen', // v4.60 asking_price: s.askingPrice||null, listed_date: s.listedDate||null,
     listing_url: s.listingUrl||null, sale_parents: s.saleParents||null, buyer: s.buyer||null, // v5.07 — colonne migrée et vérifiée le 27 oct sold_date: s.soldDate||null, sold_price: s.soldPrice||null,
@@ -33676,6 +33721,7 @@ async function ensurePhotoPublicUrl(snake, photo){
     if(error){ console.error('LOCUS: échec upload photo', error); return null; }
     const { data } = sb.storage.from('reptile-photos').getPublicUrl(path);
     photo.publicUrl = data.publicUrl;
+    await photoKeepThumbOnly(snake, photo); // v5.86 — choix d'Alex : une fois sur le serveur, seulement une miniature dans le téléphone
     storage.save(savedSnakes);
     return photo.publicUrl;
   }catch(e){ console.error('LOCUS: ensurePhotoPublicUrl error', e); return null; }
@@ -34575,8 +34621,71 @@ function renderWelcomeHero(){
       '<button class="wh-btn primary" onclick="showTab(\'mine\'); document.getElementById(\'draft-name\').focus();"><span class="wh-icon">🐍</span> '+(isEn?'Add my first reptile':'Ajouter mon premier reptile')+'</button>'+
       '<button class="wh-btn" onclick="showTab(\'calc\');"><span class="wh-icon">🧬</span> '+(isEn?'Try the calculator':'Essayer le calculateur')+'</button>'+
       '<button class="wh-btn" onclick="showTab(\'export\');"><span class="wh-icon">📂</span> '+(isEn?'Import my existing data':'Importer mes données existantes')+'</button>'+
-      '<button class="wh-btn" onclick="loadSampleData();"><span class="wh-icon">👀</span> '+(isEn?'See an example first':'Voir un exemple d\'abord')+'</button>'+
+      (currentUser ? '<button class="wh-btn" onclick="loadSampleData();"><span class="wh-icon">👀</span> '+(isEn?'See an example first':'Voir un exemple d\'abord')+'</button>'
+                   : '<button class="wh-btn" onclick="startDemo();"><span class="wh-icon">👀</span> '+(isEn?'Try it without an account':'Essayer sans compte')+'</button>')+ // v5.86
     '</div>';
+}
+// v5.86 — choix d'Alex (13 nov) : « Essayer sans compte ». Seulement déconnecté et sans données à soi sur l'appareil.
+// On photographie les clés locus_* (sessionStorage), on charge l'exemple, tout est permis ; « Quitter » (ou une connexion)
+// remet l'appareil exactement comme avant et recharge. Rien de la démo n'est jamais envoyé à un compte.
+var DEMO_FLAG_KEY = 'locus_demo_active', DEMO_SNAPSHOT_KEY = 'locus_demo_snapshot';
+function isDemoMode(){ try{ return sessionStorage.getItem(DEMO_FLAG_KEY)==='1'; }catch(e){ return false; } }
+function demoAllowed(){ return !currentUser && !savedSnakes.some(x=>!x.isSample); }
+function startDemo(){
+  const isEn = currentLang==='en';
+  if(isDemoMode()){ closeAuthModal(); return; }
+  if(!demoAllowed()){ showToast(isEn?'The demo is only available signed out, on a device without your own data.':'La démo est offerte seulement sans compte, sur un appareil sans tes propres données.', 'error'); return; }
+  try{
+    const snap = {};
+    for(let i=0;i<localStorage.length;i++){ const k = localStorage.key(i); if(k && k.indexOf('locus_')===0) snap[k] = localStorage.getItem(k); }
+    sessionStorage.setItem(DEMO_SNAPSHOT_KEY, JSON.stringify(snap));
+    sessionStorage.setItem(DEMO_FLAG_KEY, '1');
+  }catch(e){ showToast(isEn?'The demo could not start on this browser.':'La démo n\'a pas pu démarrer sur ce navigateur.', 'error'); return; }
+  try{ closeAuthModal(); }catch(e){}
+  loadSampleData();
+  renderDemoBanner();
+}
+function endDemo(reload){
+  try{
+    const snap = JSON.parse(sessionStorage.getItem(DEMO_SNAPSHOT_KEY)||'{}');
+    const keys = []; for(let i=0;i<localStorage.length;i++){ const k = localStorage.key(i); if(k && k.indexOf('locus_')===0) keys.push(k); }
+    keys.forEach(k=>localStorage.removeItem(k));
+    Object.keys(snap).forEach(k=>localStorage.setItem(k, snap[k]));
+  }catch(e){}
+  try{ sessionStorage.removeItem(DEMO_SNAPSHOT_KEY); sessionStorage.removeItem(DEMO_FLAG_KEY); }catch(e){}
+  if(reload!==false) location.reload();
+}
+function demoCreateAccount(){ // quitte la démo d'abord (appareil remis comme avant), puis ouvre la création de compte
+  try{ sessionStorage.setItem('locus_open_auth_after_reload', '1'); }catch(e){}
+  endDemo(true);
+}
+function renderDemoBanner(){
+  let el = document.getElementById('demo-banner');
+  if(!isDemoMode()){ if(el) el.remove(); return; }
+  const isEn = currentLang==='en';
+  if(!el){
+    el = document.createElement('div'); el.id = 'demo-banner';
+    el.style.cssText = 'position:sticky;top:0;z-index:95;background:#2a2014;border:1px solid var(--gold);border-radius:10px;padding:10px 12px;margin:0 0 10px;font-size:14px;line-height:1.5;color:var(--ink);';
+    const host = document.querySelector('.tabs'); if(host && host.parentNode) host.parentNode.insertBefore(el, host); else document.body.prepend(el);
+  }
+  el.innerHTML = '<b>👀 '+(isEn?'Demo mode':'Mode démo')+'</b> — '+(isEn?'try anything, nothing is kept.':'essaie tout, rien n\'est gardé.')+
+    '<div style="display:flex;gap:8px;margin-top:8px;">'+
+      '<button class="sc-btn accent" style="flex:1;font-size:14px;" onclick="demoCreateAccount()">'+(isEn?'Create my free account':'Créer mon compte gratuit')+'</button>'+
+      '<button class="sc-btn" style="flex:1;font-size:14px;" onclick="endDemo(true)">'+(isEn?'Leave the demo':'Quitter la démo')+'</button>'+
+    '</div>';
+}
+window.addEventListener('load', function(){ // v5.86
+  setTimeout(function(){
+    try{ renderDemoBanner(); }catch(e){}
+    try{ if(sessionStorage.getItem('locus_open_auth_after_reload')==='1'){ sessionStorage.removeItem('locus_open_auth_after_reload'); openAuthModal(); } }catch(e){}
+  }, 400);
+});
+function renderAuthDemoButton(){
+  const w = document.getElementById('auth-demo-wrap'); if(!w) return;
+  const isEn = currentLang==='en';
+  if(currentUser || !demoAllowed() || isDemoMode()){ w.innerHTML = ''; return; }
+  w.innerHTML = '<button type="button" class="sc-btn" style="width:100%;margin-top:10px;font-size:14px;" onclick="startDemo()">👀 '+(isEn?'Try it without an account (demo)':'Essayer sans compte (démo)')+'</button>'+
+    '<p style="font-size:12px;color:var(--ink-dim);margin:4px 0 0;text-align:center;">'+(isEn?'A sample collection to explore. Nothing is kept.':'Une collection d\'exemple à explorer. Rien n\'est gardé.')+'</p>';
 }
 // v5.85 — choix d'Alex (13 nov) : mode simple « A + B ». Nouveaux comptes : Agenda, Mes reptiles et Élevage au départ ;
 // Reproduction, Ventes, Calculateur et Rongeurs apparaissent selon ce que la personne a coché (« Qu'est-ce que tu fais ? »)

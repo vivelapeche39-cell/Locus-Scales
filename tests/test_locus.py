@@ -980,6 +980,40 @@ def t_mode_simple_585(browser, url):
     check('pas d\'erreur JS (v5.85)', not [e for e in a.real_errors() if not e.startswith('dialog:')], a.real_errors()[:3])
     a.close()
 
+def t_demo_photos_586(browser, url):
+    section('Photos : miniature seulement après l\'envoi + Essayer sans compte (v5.86)')
+    a = App(browser, url, snakes=[make_snake(860)], lang='fr'); a.open(wait=1500)
+    res = a.js("""(async()=>{
+      const c=document.createElement('canvas'); c.width=900; c.height=600; const g=c.getContext('2d');
+      for(let i=0;i<300;i++){ g.fillStyle='hsl('+(i*37%360)+',60%,50%)'; g.fillRect((i*53)%900,(i*29)%600,60,40); }
+      const big=c.toDataURL('image/jpeg',0.75);
+      const sn=savedSnakes[0]; ensureSnakeMeta(sn); const ph={id:'ph_t586', date:localTodayStr(), dataUrl:big}; sn.photos.push(ph);
+      const url=await ensurePhotoPublicUrl(sn, ph);
+      const row=snakeToRow(sn);
+      return {url:!!url, hasData:!!ph.dataUrl, thumb:(ph.thumb||'').length, big:big.length, rowHasData:JSON.stringify(row.photos).includes('data:image/jpeg;base64,/9j') && JSON.stringify(row.photos).length>big.length/2, src:photoSrc(ph)===ph.publicUrl, list:snakeLatestPhotoSrc(sn)===ph.thumb};
+    })()""")
+    check('photo envoyée : URL publique obtenue', res['url'], res)
+    check('la grande copie quitte le téléphone, une miniature reste', not res['hasData'] and 0 < res['thumb'] < res['big']/3, res)
+    check('la base ne reçoit plus la grande photo', not res['rowHasData'], res)
+    check('en ligne : grande photo du serveur ; liste : miniature', res['src'] and res['list'], res)
+    sl = a.js("""(async()=>{ const sn=savedSnakes[0]; const c=document.createElement('canvas'); c.width=400; c.height=300; c.getContext('2d').fillRect(0,0,50,50);
+      sn.photos.push({id:'ph_old', date:localTodayStr(), dataUrl:c.toDataURL('image/jpeg',0.9), publicUrl:'https://exemple.invalid/x.jpg'});
+      await backfillMissingPhotoUrls(); const p=sn.photos.find(x=>x.id==='ph_old'); return [!!p.dataUrl, !!p.thumb]; })()""")
+    check('photo déjà sur le serveur : allégée au démarrage', sl == [False, True], sl)
+    a.close()
+    b = App(browser, url, snakes=[], logged_in=False, lang='fr'); b.open(wait=1500)
+    before = b.js("Object.keys(localStorage).filter(k=>k.indexOf('locus_')===0).sort().map(k=>k+'='+localStorage.getItem(k).length)")
+    b.js("openAuthModal()"); b.page.wait_for_timeout(200)
+    check('écran de connexion : bouton « Essayer sans compte »', 'Essayer sans compte' in b.js("document.getElementById('auth-demo-wrap').innerText"))
+    b.js("startDemo()"); b.page.wait_for_timeout(600)
+    check('démo : collection d\'exemple chargée + bandeau', b.js("savedSnakes.length") >= 2 and b.js("isDemoMode()") and 'Mode démo' in b.js("(document.getElementById('demo-banner')||{}).innerText||''"))
+    check('démo : ajouter est permis sans compte', b.js("requireAuthOrPrompt()") is True)
+    b.js("endDemo(true)"); b.page.wait_for_timeout(1500); b.page.wait_for_function('typeof savedSnakes!=="undefined"')
+    after = b.js("Object.keys(localStorage).filter(k=>k.indexOf('locus_')===0).sort().map(k=>k+'='+localStorage.getItem(k).length)")
+    check('quitter : appareil remis exactement comme avant', b.js("savedSnakes.length") == 0 and not b.js("isDemoMode()") and before == after, [before, after])
+    check('pas d\'erreur JS (v5.86)', not [e for e in b.real_errors() if not e.startswith('dialog:')], b.real_errors()[:3])
+    b.close()
+
 def t_rongeurs_clairs_574(browser, url):
     section('Rongeurs : noms de lignée en mots + « Par où commencer » (v5.74)')
     a = App(browser, url, snakes=[make_snake(800)], lang='en'); a.open(wait=1500)
@@ -2224,7 +2258,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_admin_tri_577, t_photos_serveur_579, t_import_json_580, t_reimport_archives_581, t_bouton_retour_582, t_bien_demarrer_583, t_charte_proies_584, t_mode_simple_585, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_admin_tri_577, t_photos_serveur_579, t_import_json_580, t_reimport_archives_581, t_bouton_retour_582, t_bien_demarrer_583, t_charte_proies_584, t_mode_simple_585, t_demo_photos_586, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()
