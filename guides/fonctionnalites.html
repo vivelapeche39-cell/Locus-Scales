@@ -63,7 +63,7 @@
       "name": "Est-ce que LOCUS Scales peut gérer mes colonies de rongeurs nourriciers ?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Oui. Chaque bac de reproduction est une lignée avec un code (ex. 3.2b : lignée 3, génération 2, 2e remplacement du mâle). LOCUS suit les portées, les ratios, les pertes et le stock par stade, et peut importer ton fichier Excel de colonie."
+        "text": "Oui. Chaque bac de reproduction est une lignée, nommée en mots (ex. « Lignée 3 · 2e départ · 3e mâle »). LOCUS suit les portées, les ratios, les pertes et le stock par stade, et peut importer ton fichier Excel de colonie."
       }
     },
     {
@@ -157,18 +157,26 @@ li .tier{color:var(--ink-dim);font-size:11.5px;}
   </div>
   <h1>Ce que fait LOCUS Scales</h1>
   <p class="intro">Une application web de gestion d'élevage, bâtie autour du python royal et étendue à plusieurs autres espèces, avec un module complet pour les colonies de rongeurs nourriciers. Elle remplace le papier et le chiffrier, sans prétendre savoir ce que tu ne lui as pas dit.</p>
+  <h2>🚀 Pour commencer</h2>
+  <ul>
+    <li><b>Essayer sans compte</b> : une collection d'exemple à explorer avant de t'inscrire. Rien n'est gardé.</li>
+    <li>Rien à télécharger : LOCUS marche dans ton navigateur et s'installe sur l'écran d'accueil de ton téléphone. Ton compte te suit sur tous tes appareils.</li>
+    <li><b>Mode simple</b> : au départ, seulement l'essentiel (Agenda, Mes reptiles, Élevage) ; les autres sections apparaissent selon ce que tu fais (reproduction, ventes, rongeurs). Ou le <b>Mode personnalisé</b> : tu choisis toi-même chaque section affichée.</li>
+    <li>« Pour bien démarrer » : 4 étapes guidées qui se cochent toutes seules.</li>
+  </ul>
 
   <h2>🐭 Colonies de rongeurs nourriciers</h2>
   <ul>
     <li>Souris, rats et ASF : bacs de reproduction, bacs Stock / Croissance, portées, ratios mâles:femelles, pertes et stock par stade.</li>
-    <li><b>Un bac = une lignée.</b> Chaque bac de reproduction reçoit un code comme <code>3.2b</code> : <code>3</code> = la lignée, <code>.2</code> = la génération, <code>b</code> = le nombre de fois où le mâle a été remplacé dans cette génération.</li>
-    <li>Tu remplaces seulement le mâle (mêmes femelles) : la lettre avance (<code>3.1</code> → <code>3.1a</code>). Tu remplaces le mâle ET les femelles : la génération avance (<code>3.1b</code> → <code>3.2</code>). C'est toi qui le déclares, jamais LOCUS tout seul.</li>
+    <li><b>Un bac = une lignée.</b> Chaque bac de reproduction a un nom en mots, comme « Lignée 3 · 2e départ · 3e mâle », qui dit à quel point il est apparenté à tes autres bacs. Tu n'écris jamais de code : LOCUS crée la lignée quand tu crées le bac.</li>
+    <li>Tu remplaces seulement le mâle (mêmes femelles) : « 2e mâle » devient « 3e mâle ». Tu remplaces le mâle ET les femelles : nouveau départ. C'est toi qui le déclares, jamais LOCUS tout seul.</li>
     <li><b>Empreinte :</b> un bac garde la liste des lignées d'où viennent ses animaux (« Lignées apparentées »). Des femelles du bac <code>1.1</code> placées dans un nouveau bac apportent <code>1.1</code> avec elles.</li>
     <li><b>Avertissement ⚠️ de consanguinité :</b> quand le mâle choisi vient d'une lignée (même numéro et même génération) déjà présente dans l'empreinte du bac, LOCUS t'avertit — frère et sœurs, par exemple. C'est un avertissement, jamais un blocage.</li>
     <li>Import de ton fichier Excel de colonie (bacs, portées, stock), avec un aperçu avant de confirmer.</li>
     <li>Rapport de rentabilité par bac, budget et retour sur investissement.</li>
-    <li><b>Droit à l'erreur :</b> une nouvelle génération notée par erreur au lieu d'une nouvelle lettre ? « Annuler le dernier changement » remet le bac comme avant. Chaque changement de l'historique se modifie ou se supprime, et les codes qui suivent sont recalculés tout seuls.</li>
+    <li><b>Droit à l'erreur :</b> un nouveau départ noté par erreur au lieu d'un nouveau mâle ? « Annuler le dernier changement » remet le bac comme avant. Chaque changement de l'historique se modifie ou se supprime, et les noms qui suivent sont recalculés tout seuls.</li>
     <li>Congeler un lot : les rongeurs passent du bac Stock au stock de proies congelées, à la taille qui correspond à leur stade.</li>
+    <li><b>Guide complet des rongeurs nourriciers</b> dans l'app, et une carte « Par où commencer » en 3 étapes. <a href="./feeder-rodents.html">En savoir plus sur la gestion de colonie →</a></li>
     <li>Tu n'as pas de serpent ? Si aucun de tes animaux ne mange de rongeurs, l'onglet Rongeurs se cache tout seul (tu peux le réafficher).</li>
   </ul>
   <div class="note"><b>Ce que LOCUS ne prétend pas savoir.</b> Il ne connaît que ce que tu lui dis. Un rat acheté ou un mâle noté « Externe » n'a aucun lien de parenté connu : LOCUS n'invente pas son passé. Un bac d'origine supprimé est traité, par prudence, comme apparenté. Il n'y a pas de pourcentage de consanguinité pour les rongeurs (seulement pour les reptiles) et LOCUS ne lit pas la génétique de couleur des rongeurs. La valeur est dans la rigueur du suivi à partir d'aujourd'hui.</div>
@@ -181,7 +189,7 @@ li .tier{color:var(--ink-dim);font-size:11.5px;}
   </ul>
   <h2>🧬 Génétique</h2>
   <ul>
-    <li>Calculateur de croisement pour le python royal — plus de 150 gènes, Morphpedia en source principale, World of Ball Pythons en complément.</li>
+    <li>Calculateur de croisement pour le python royal — plus de 220 gènes, Morphpedia en source principale, World of Ball Pythons en complément.</li>
     <li>Complexes alléliques (Spider, BEL, Yellow Belly…), noms de super et de combos tels qu'utilisés dans le milieu, hets possibles en %.</li>
     <li>Arbre généalogique sur plusieurs générations, coefficient de consanguinité pour les reptiles.</li>
     <li><b>Boa BCI</b> : plus de 30 gènes, complexes alléliques (Sharp + BWC = Paradigm, Sharp + Prodigy = Paradise), Keltic, Smoke, Red et Sun Dragon, avec les avertissements de santé connus.</li>
@@ -192,11 +200,14 @@ li .tier{color:var(--ink-dim);font-size:11.5px;}
   <h2>🏠 Élevage au quotidien</h2>
   <ul>
     <li>Racks et terrariums, placement des animaux, entretien et nettoyage.</li>
+    <li><b>Entretien en lot</b> : changement d'eau, nettoyage, UVB remplacé — coché pour tout un rack ou une rangée.</li>
+    <li><b>Étiquettes de bacs</b> imprimables pour tout un rack d'un coup, et QR de rack.</li>
     <li>Mode Tournée : actions en lot (nourri, refus, mue, pesée en rafale) sur toute une collection, un rack, ou tout ce qui mange du décongelé ou du vivant. Un refus demande ce qui est arrivé à la proie (gaspillée, passée à un autre reptile, retournée au bac), congelée ou vivante. Pour la poudre (Repashy, Pangea) et les insectes, les choix s'adaptent.</li>
     <li>Proie du repas changeable en un toucher (taille, espèce, ❄️ / 🐭), et proie habituelle changée en lot.</li>
     <li><b>Parcours</b> : l'historique de chaque animal en ligne du temps, verticale ou horizontale (repas, mues, pesées, santé, reproduction).</li>
     <li>Unités au choix : °C ou °F, grammes ou onces/livres, cm ou pouces — l'incubateur et les terrariums peuvent garder leurs propres unités.</li>
     <li>Rappels de repas basés sur l'historique réel de chaque animal.</li>
+    <li>Photos sur chaque fiche (gardées sur le serveur LOCUS, miniature dans le téléphone pour les voir hors ligne), statistiques, trophées et mémorial.</li>
     <li>Fonctionne hors ligne, s'installe sur l'écran d'accueil.</li>
   </ul>
   <h2>🐣 Reproduction</h2>
@@ -207,7 +218,9 @@ li .tier{color:var(--ink-dim);font-size:11.5px;}
   </ul>
   <h2>📥 Imports et exports</h2>
   <ul>
-    <li>Import Excel, CSV, Word et MorphMarket, avec aperçu avant de confirmer. Tous les imports sont gratuits.</li>
+    <li>Import Excel, CSV, JSON, Word et MorphMarket (photos comprises), avec aperçu avant de confirmer. Tous les imports sont gratuits.</li>
+    <li><b>Réimport sans doublons</b> : réimporte le même fichier pour compléter ce qui manque ; les animaux que tu as supprimés ne reviennent pas.</li>
+    <li><b>Export en masse vers MorphMarket</b> : un fichier CSV prêt pour leur Bulk Import, avec les photos, pour mettre tes animaux à vendre en ligne d'un coup.</li>
     <li>Import depuis un cahier papier : le téléphone lit le texte de la photo (« Scanner le texte » sur iPhone, Google Lens sur Android), LOCUS le range avec un aperçu.</li>
     <li><b>Tout exporter en Excel</b> : un onglet par sujet (animaux, journal, longueurs, santé, accouplements, pontes, dépenses), avec le nom et la génétique de l'animal sur chaque ligne. Le fichier se réimporte dans LOCUS. Exports PDF et sauvegarde complète aussi.</li>
   </ul>
@@ -215,7 +228,15 @@ li .tier{color:var(--ink-dim);font-size:11.5px;}
   <ul>
     <li>Statuts (gardé, à vendre, réservé, vendu), acompte et solde, factures et reçus en PDF.</li>
     <li>Transfert de dossier à l'acheteur : historique et pedigree du bébé.</li>
+    <li><b>Vitrine publique</b> de tes animaux à vendre (région en texte libre seulement, jamais d'adresse), <b>QR pour les expos</b> et image à partager.</li>
+    <li>Clients (historique d'achat de chacun) et liste d'attente reliée à tes accouplements.</li>
     <li>ROI par couple, et <b>remboursement des parents</b> : les ventes conclues des bébés remboursent le prix d'achat du père et de la mère, avec le partage que tu choisis (« Remboursé : 650 $ / 1 000 $ ») <span class="tier">(palier Illimité après la bêta)</span>.</li>
+  </ul>
+  <h2>📄 Administration</h2>
+  <ul>
+    <li><b>Fiscal</b> : revenus (tes ventes) et dépenses (nourriture, vétérinaire, équipement) au même endroit <span class="tier">(résumé fiscal : palier Illimité après la bêta)</span>.</li>
+    <li><b>Valeur et assurance</b> : la valeur estimée de ta collection, utile pour ton assureur.</li>
+    <li><b>Permis</b> : des liens vérifiés vers les sources officielles par province.</li>
   </ul>
   <h2>🔒 Confidentialité et engagements</h2>
   <ul>
@@ -227,7 +248,7 @@ li .tier{color:var(--ink-dim);font-size:11.5px;}
   <h2>❓ Questions fréquentes</h2>
   <div class="faq">
     <h3>Est-ce que LOCUS Scales peut gérer mes colonies de rongeurs nourriciers ?</h3>
-    <p>Oui. Chaque bac de reproduction est une lignée avec un code (ex. 3.2b : lignée 3, génération 2, 2e remplacement du mâle). LOCUS suit les portées, les ratios, les pertes et le stock par stade, et peut importer ton fichier Excel de colonie.</p>
+    <p>Oui. Chaque bac de reproduction est une lignée, nommée en mots (ex. « Lignée 3 · 2e départ · 3e mâle »). LOCUS suit les portées, les ratios, les pertes et le stock par stade, et peut importer ton fichier Excel de colonie.</p>
     <h3>Comment LOCUS m&#x27;aide à éviter la consanguinité dans mes bacs de rongeurs ?</h3>
     <p>Chaque bac garde l&#x27;empreinte des lignées d&#x27;où viennent ses animaux. Quand tu choisis un mâle qui vient d&#x27;une lignée (même numéro et même génération) déjà présente dans cette empreinte, LOCUS affiche un avertissement ⚠️. C&#x27;est un avertissement, jamais un blocage.</p>
     <h3>Est-ce que LOCUS connaît le passé de mes rats achetés ?</h3>

@@ -63,7 +63,7 @@
       "name": "Can LOCUS Scales manage my feeder rodent colonies?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes. Each breeding bin is a lineage with a code (e.g. 3.2b: lineage 3, generation 2, 2nd male replacement). LOCUS tracks litters, ratios, losses and stock by stage, and can import your colony spreadsheet."
+        "text": "Yes. Each breeding bin is a lineage with a name in plain words (e.g. « Line 3 · restart 2 · 3rd male »). LOCUS tracks litters, ratios, losses and stock by stage, and can import your colony spreadsheet."
       }
     },
     {
@@ -157,18 +157,26 @@ li .tier{color:var(--ink-dim);font-size:11.5px;}
   </div>
   <h1>What LOCUS Scales does</h1>
   <p class="intro">A web app for breeding and husbandry records, built around the ball python and extended to several other species, with a full module for feeder rodent colonies. It replaces paper and spreadsheets, without pretending to know what you haven't told it.</p>
+  <h2>🚀 Getting started</h2>
+  <ul>
+    <li><b>Try it without an account</b>: a sample collection to explore before signing up. Nothing is kept.</li>
+    <li>Nothing to download: LOCUS works in your browser and installs on your phone's home screen. Your account follows you on every device.</li>
+    <li><b>Simple mode</b>: at first, only the essentials (Agenda, My reptiles, Husbandry); other sections show up based on what you do (breeding, sales, rodents). Or <b>Custom mode</b>: you pick every section shown yourself.</li>
+    <li>« Getting started »: 4 guided steps that check themselves off.</li>
+  </ul>
 
   <h2>🐭 Feeder rodent colonies</h2>
   <ul>
     <li>Mice, rats and ASF: breeding bins, Stock / Grow-out bins, litters, male:female ratios, losses and stock by stage.</li>
-    <li><b>One bin = one lineage.</b> Each breeding bin gets a code like <code>3.2b</code>: <code>3</code> = the lineage, <code>.2</code> = the generation, <code>b</code> = how many times the male was replaced in this generation.</li>
-    <li>Replace only the male (same females): the letter moves up (<code>3.1</code> → <code>3.1a</code>). Replace the male AND the females: the generation moves up (<code>3.1b</code> → <code>3.2</code>). You declare it — LOCUS never does it on its own.</li>
+    <li><b>One bin = one lineage.</b> Each breeding bin has a name in plain words, like « Line 3 · restart 2 · 3rd male », that tells you how related it is to your other bins. You never type a code: LOCUS creates the lineage when you create the bin.</li>
+    <li>Replace only the male (same females): « 2nd male » becomes « 3rd male ». Replace the male AND the females: a new start. You declare it — LOCUS never does it on its own.</li>
     <li><b>Footprint:</b> a bin keeps the list of lineages its animals come from (« Related lineages »). Females from bin <code>1.1</code> moved to a new bin bring <code>1.1</code> with them.</li>
     <li><b>Inbreeding warning ⚠️:</b> when the chosen male comes from a lineage (same number and same generation) already in the bin's footprint, LOCUS warns you — brother and sisters, for example. It's a warning, never a block.</li>
     <li>Import your colony spreadsheet (bins, litters, stock), with a preview before you confirm.</li>
     <li>Profitability per bin, budget and return on investment.</li>
-    <li><b>Room for mistakes:</b> logged a new generation instead of a new letter by accident? « Undo the last change » puts the bin back. Each change in the history can be edited or deleted, and the codes that follow are recalculated automatically.</li>
+    <li><b>Room for mistakes:</b> logged a new start instead of a new male by accident? « Undo the last change » puts the bin back. Each change in the history can be edited or deleted, and the names that follow are recalculated automatically.</li>
     <li>Freeze a batch: rodents move from a Stock bin to your frozen feeder stock, at the size that matches their stage.</li>
+    <li><b>Full feeder rodent guide</b> in the app, and a 3-step « Where to start » card. <a href="./feeder-rodents-en.html">More on colony management →</a></li>
     <li>No snakes? If none of your animals eats rodents, the Rodents tab hides itself (you can show it again).</li>
   </ul>
   <div class="note"><b>What LOCUS doesn't pretend to know.</b> It only knows what you tell it. A bought rat or a male marked « External » has no known family link: LOCUS doesn't invent its past. A deleted source bin is treated as related, to be safe. There is no inbreeding percentage for rodents (only for reptiles) and LOCUS doesn't read rodent color genetics. The value is in rigorous records from today on.</div>
@@ -181,7 +189,7 @@ li .tier{color:var(--ink-dim);font-size:11.5px;}
   </ul>
   <h2>🧬 Genetics</h2>
   <ul>
-    <li>Ball python pairing calculator — over 150 genes, Morphpedia as the main source, World of Ball Pythons as a complement.</li>
+    <li>Ball python pairing calculator — over 220 genes, Morphpedia as the main source, World of Ball Pythons as a complement.</li>
     <li>Allelic complexes (Spider, BEL, Yellow Belly…), super and combo names as used in the hobby, possible hets in %.</li>
     <li>Multi-generation family tree, inbreeding coefficient for reptiles.</li>
     <li><b>BCI boa</b>: over 30 genes, allelic complexes (Sharp + BWC = Paradigm, Sharp + Prodigy = Paradise), Keltic, Smoke, Red and Sun Dragon, with the known health warnings.</li>
@@ -192,11 +200,14 @@ li .tier{color:var(--ink-dim);font-size:11.5px;}
   <h2>🏠 Day-to-day husbandry</h2>
   <ul>
     <li>Racks and terrariums, animal placement, upkeep and cleaning.</li>
+    <li><b>Bulk maintenance</b>: water change, cleaning, UVB replaced — checked off for a whole rack or row.</li>
+    <li><b>Printable tub labels</b> for a whole rack at once, and rack QR codes.</li>
     <li>Tour Mode: batch actions (fed, refused, shed, quick batch weigh-in) across a whole collection, a rack, or everything on frozen-thawed or live. A refusal asks what happened to the prey (wasted, given to another reptile, back in the bin), frozen or live. For powder (Repashy, Pangea) and insects, the choices adapt.</li>
     <li>Meal prey changeable in one tap (size, species, ❄️ / 🐭), and usual prey changed in batch.</li>
     <li><b>History</b>: each animal's record as a timeline, vertical or horizontal (meals, sheds, weigh-ins, health, breeding).</li>
     <li>Units of your choice: °C or °F, grams or ounces/pounds, cm or inches — the incubator and enclosures can keep their own units.</li>
     <li>Feeding reminders based on each animal's real history.</li>
+    <li>Photos on every record (kept on the LOCUS server, with a thumbnail on your phone to see them offline), statistics, trophies and memorial.</li>
     <li>Works offline, installs on the home screen.</li>
   </ul>
   <h2>🐣 Breeding</h2>
@@ -207,7 +218,9 @@ li .tier{color:var(--ink-dim);font-size:11.5px;}
   </ul>
   <h2>📥 Import and export</h2>
   <ul>
-    <li>Excel, CSV, Word and MorphMarket import, with a preview before you confirm. All imports are free.</li>
+    <li>Excel, CSV, JSON, Word and MorphMarket import (photos included), with a preview before you confirm. All imports are free.</li>
+    <li><b>Re-import without duplicates</b>: re-import the same file to fill in what's missing; animals you deleted don't come back.</li>
+    <li><b>Bulk export to MorphMarket</b>: a CSV file ready for their Bulk Import, photos included, to list your animals for sale online in one go.</li>
     <li>Import from a paper notebook: your phone reads the text in the photo (« Scan Text » on iPhone, Google Lens on Android), LOCUS sorts it with a preview.</li>
     <li><b>Export everything to Excel</b>: one sheet per topic (animals, log, lengths, health, pairings, clutches, expenses), with the animal's name and genetics on every row. The file can be imported back into LOCUS. PDF exports and full backup too.</li>
   </ul>
@@ -215,7 +228,15 @@ li .tier{color:var(--ink-dim);font-size:11.5px;}
   <ul>
     <li>Statuses (kept, for sale, reserved, sold), deposit and balance due, PDF invoices and receipts.</li>
     <li>Record transfer to the buyer: the baby's history and pedigree.</li>
+    <li><b>Public showcase</b> of your animals for sale (region in free text only, never an address), <b>QR codes for expos</b> and a shareable image.</li>
+    <li>Clients (each buyer's purchase history) and a waitlist linked to your pairings.</li>
     <li>ROI per couple, and <b>paying back the parents</b>: completed baby sales pay back the sire's and dam's purchase price, with the split you choose (« Paid back: $650 / $1,000 ») <span class="tier">(Unlimited tier after the beta)</span>.</li>
+  </ul>
+  <h2>📄 Administration</h2>
+  <ul>
+    <li><b>Taxes</b>: income (your sales) and expenses (food, vet, equipment) in one place <span class="tier">(tax summary: Unlimited tier after the beta)</span>.</li>
+    <li><b>Value and insurance</b>: the estimated value of your collection, useful for your insurer.</li>
+    <li><b>Permits</b>: verified links to official sources by province.</li>
   </ul>
   <h2>🔒 Privacy and commitments</h2>
   <ul>
@@ -227,7 +248,7 @@ li .tier{color:var(--ink-dim);font-size:11.5px;}
   <h2>❓ Frequently asked questions</h2>
   <div class="faq">
     <h3>Can LOCUS Scales manage my feeder rodent colonies?</h3>
-    <p>Yes. Each breeding bin is a lineage with a code (e.g. 3.2b: lineage 3, generation 2, 2nd male replacement). LOCUS tracks litters, ratios, losses and stock by stage, and can import your colony spreadsheet.</p>
+    <p>Yes. Each breeding bin is a lineage with a name in plain words (e.g. « Line 3 · restart 2 · 3rd male »). LOCUS tracks litters, ratios, losses and stock by stage, and can import your colony spreadsheet.</p>
     <h3>How does LOCUS help me avoid inbreeding in my rodent bins?</h3>
     <p>Each bin keeps the footprint of the lineages its animals come from. When you pick a male from a lineage (same number and same generation) already in that footprint, LOCUS shows a ⚠️ warning. It&#x27;s a warning, never a block.</p>
     <h3>Does LOCUS know the history of the rats I bought?</h3>
