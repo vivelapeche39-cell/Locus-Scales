@@ -170,7 +170,7 @@
   </url>
   <url>
     <loc>https://app.locusscales.com/guides/index.html</loc>
-    <lastmod>2026-10-29</lastmod>
+    <lastmod>2026-11-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -225,6 +225,18 @@
   <url>
     <loc>https://app.locusscales.com/guides/nouveautes.html</loc>
     <lastmod>2026-09-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://app.locusscales.com/guides/feeder-rodents-en.html</loc>
+    <lastmod>2026-11-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://app.locusscales.com/guides/feeder-rodents.html</loc>
+    <lastmod>2026-11-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
