@@ -88,16 +88,17 @@
   "@type": "SoftwareApplication",
   "name": "LOCUS Scales",
   "applicationCategory": "BusinessApplication",
-  "operatingSystem": "Web",
+  "applicationSubCategory": "Gestion d'élevage de reptiles et de rongeurs nourriciers",
+  "operatingSystem": "Web, iOS, Android (navigateur, installable sur l'écran d'accueil)",
   "url": "https://app.locusscales.com",
-  "description": "Application web de gestion d'élevage de reptiles (python royal en priorité) et de colonies de rongeurs nourriciers. Génétique sourcée (Morphpedia), notes de santé liées aux gènes avec niveau de preuve (documenté, rapporté par la communauté, incertain), colonies de rongeurs suivies par lignée (un bac = une lignée, codes comme 3.2b) avec empreinte et avertissement de consanguinité. Bilingue français/anglais.",
+  "description": "Application web de gestion d'élevage de reptiles (python royal en priorité) et de colonies de rongeurs nourriciers. Génétique sourcée (Morphpedia), notes de santé liées aux gènes avec niveau de preuve (documenté, rapporté par la communauté, incertain), colonies de rongeurs suivies par lignée (un bac = une lignée, nommée en mots : « Lignée 3 · 2e départ ») avec avertissement de consanguinité. Bilingue français/anglais.",
   "featureList": [
-    "Colonies de rongeurs nourriciers (souris, rats, ASF) : un bac = une lignée, code lignée.génération+lettre, empreinte des lignées apparentées, avertissement de consanguinité jamais bloquant",
+    "Colonies de rongeurs nourriciers (souris, rats, ASF) : un bac = une lignée, lignées nommées en mots, avertissement de consanguinité jamais bloquant, guide complet des rongeurs nourriciers",
     "Notes de santé liées aux gènes du python royal : wobble (complexe Spider, Champagne, Woma), Super Black Pastel et Super Cinnamon, fertilité des femelles Desert — avec niveau de preuve",
-    "Calculateur génétique python royal, plus de 150 gènes, Morphpedia en source principale",
-    "Racks, terrariums et Mode Tournée (repas, refus, mues, pesées en lot)",
+    "Calculateur génétique python royal (plus de 220 gènes, Morphpedia en source principale), boa BCI et python sanguin",
+    "Racks, terrariums, étiquettes de bacs imprimables et Mode Tournée (repas, refus, mues, pesées en lot)",
     "Reproduction : Mode Verrou, refus d'accouplement, Plan de saison, pontes et incubation",
-    "Imports Excel, CSV, Word et MorphMarket gratuits ; exports Excel et PDF",
+    "Imports Excel, CSV, JSON, Word et MorphMarket gratuits (photos comprises, réimport sans doublons) ; exports Excel et PDF",
     "Ventes, factures et transfert de dossier à l'acheteur",
     "Fonctionne hors ligne, bilingue français/anglais"
   ],
@@ -2302,6 +2303,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <button class="modal-close" onclick="closeAppMenu()" aria-label="Fermer le menu">×</button>
     </div>
     <button class="app-menu-item" onclick="closeAppMenu(); openProfileModal();"><span>👤</span> <span data-i18n="menuProfile">Mon profil</span></button>
+    <div id="app-menu-simple"></div><!-- v5.85 — mode simple : sections rangées ici + réglage de l'affichage -->
     <button class="app-menu-item" onclick="closeAppMenu(); openStatsView();"><span>📊</span> <span data-i18n="menuStats">Statistiques</span></button>
     <button class="app-menu-item" onclick="closeAppMenu(); openHelpSearchModal();"><span>🔍</span> <span data-i18n="menuHelpSearch">Recherche dans l'aide</span></button>
     <button class="app-menu-item" onclick="closeAppMenu(); openAnnouncementsModal();"><span>📢</span> <span data-i18n="menuAnnouncements">Annonces</span><span id="badge-announcements" class="menu-badge" style="display:none;">●</span></button>
@@ -2392,7 +2394,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.83';
+const APP_VERSION = '2026.09.01.5.85';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3998,7 +4000,8 @@ if(sb){
       const u = currentUser;
       // v4.24 — attend que les données locales soient chargées (le script entier), puis vérifie à qui elles appartiennent
       setTimeout(()=>{ if(currentUser && currentUser.id===u.id) synchroniserAvecServeur().then(()=>backfillMissingPhotoUrls()); }, 0);
-      setTimeout(()=>{ try{ if(currentUser && currentUser.id===u.id){ maybeShowWelcomeInstallMessage(); renderFirstStepsCard(); } }catch(e){} }, 2500); // v5.83 // la vérification du propriétaire est faite dans synchroniserAvecServeur (v4.25)
+      setTimeout(()=>{ try{ if(currentUser && currentUser.id===u.id){ maybeShowWelcomeInstallMessage(); renderFirstStepsCard(); renderWelcomeHero(); } }catch(e){} }, 2500); // v5.83
+      setTimeout(()=>{ try{ applySimpleMode(); }catch(e){} }, 300); // v5.85 // la vérification du propriétaire est faite dans synchroniserAvecServeur (v4.25)
     }
   });
 }
@@ -5698,6 +5701,18 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.85', date:'2026-11-13',
+    title:{ fr:'Mode simple pour les nouveaux comptes', en:'Simple mode for new accounts' },
+    changes:{
+      fr:[ '🧭 Nouveau compte : LOCUS montre d\'abord l\'essentiel (Agenda, Mes reptiles, Élevage). Une question au départ (« Qu\'est-ce que tu fais avec tes reptiles ? ») ajoute Reproduction, Ventes, le calculateur ou les rongeurs. Ces sections apparaissent aussi toutes seules dès que tu t\'en sers.',
+           '☰ Le reste (Utilitaire, Export, Fiscal, Valeur, Permis) est dans le menu ☰. « Affichage » dans ☰ permet de tout afficher, ou de passer au mode simple si ton compte est plus ancien.' ],
+      en:[ '🧭 New account: LOCUS first shows the essentials (Agenda, My reptiles, Husbandry). A question at the start (« What do you do with your reptiles? ») adds Breeding, Sales, the calculator or rodents. These sections also show up by themselves as soon as you use them.',
+           '☰ The rest (Utility, Export, Taxes, Value, Permits) is in the ☰ menu. « Display » in ☰ lets you show everything, or switch to simple mode if your account is older.' ] } },
+  { version:'5.84', date:'2026-11-13',
+    title:{ fr:'Charte des proies corrigée', en:'Prey chart fixed' },
+    changes:{
+      fr:[ '🐀 Charte « poids du python → proie » : les noms de proies correspondent maintenant aux grammes affichés. Avant, elle proposait un rat pinky ou fuzzy pour un python de 300 à 500 g (trop petit), et une taille de rat de trop à partir de 1200 g.' ],
+      en:[ '🐀 « Python weight → prey » chart: prey names now match the grams shown. Before, it suggested a pinky or fuzzy rat for a 300–500 g python (too small), and one rat size too big from 1200 g up.' ] } },
   { version:'5.83', date:'2026-11-13',
     title:{ fr:'Pour bien démarrer', en:'Getting started' },
     changes:{
@@ -9540,6 +9555,7 @@ function dismissFirstSnakeTip(){
 }
 
 function showTab(tab){
+  try{ applySimpleMode(); }catch(e){} // v5.85 — une section qui sert maintenant apparaît
   document.querySelectorAll('.onboarding-banner').forEach(b=>b.style.display='none');
   showOnboardingTip(tab);
   const legalTabs = ['fiscal','valeur','reglement','export'];
@@ -23489,7 +23505,7 @@ function estimatePreySizeFromWeight(s){
   if(!w || w<20 || w>10000) return null;
   // 1) « Choix typique » de la charte poids du python → proie (PYTHON_WEIGHT_CHART), plus petite taille de la fourchette
   const TYPICAL = s.preySpecies==='rat'
-    ? [[300,'Pinky'],[500,'Weanling'],[800,'Small'],[1200,'Medium'],[1800,'Large'],[2500,'X-Large']]
+    ? [[300,'Weanling'],[800,'Small'],[1800,'Medium'],[2500,'Large']] // v5.84 — suit la charte corrigée (avant : Pinky à 300 g, une taille de trop dès 1200 g)
     : [[50,'Hopper'],[150,'Adult']];
   const maxCovered = s.preySpecies==='rat' ? Infinity : 500; // la charte ne propose plus de souris au-delà de 500 g
   let typical = null;
@@ -29520,13 +29536,14 @@ const RAT_SIZES = [
 const PYTHON_WEIGHT_CHART = [
   {min:50, max:150, fr:'Souris hopper à sevrée', en:'Hopper to weanling mouse'},
   {min:150, max:300, fr:'Souris adulte à jumbo', en:'Adult to jumbo mouse'},
-  {min:300, max:500, fr:'Souris jumbo ou rat pinky/fuzzy', en:'Jumbo mouse or rat pinky/fuzzy'},
-  {min:500, max:700, fr:'Rat sevré à petit', en:'Weanling to small rat'},
-  {min:700, max:800, fr:'Rat sevré à petit', en:'Weanling to small rat'},
-  {min:800, max:1200, fr:'Rat petit à moyen', en:'Small to medium rat'},
-  {min:1200, max:1800, fr:'Rat moyen à gros', en:'Medium to large rat'},
-  {min:1800, max:2500, fr:'Rat gros', en:'Large rat'},
-  {min:2500, max:null, fr:'Rat très gros / jumbo', en:'X-Large / jumbo rat'},
+  // v5.84 — choix d'Alex (option A, 13 nov) : étiquettes alignées sur les grammes que la charte calcule elle-même
+  // (pourcentages inchangés). Avant : rat pinky/fuzzy (5-25 g) pour 30-75 g, et une taille de trop à partir de 1200 g.
+  {min:300, max:500, fr:'Souris jumbo ou rat sevré', en:'Jumbo mouse or weanling rat'},
+  {min:500, max:800, fr:'Rat sevré à petit', en:'Weanling to small rat'},
+  {min:800, max:1200, fr:'Rat petit', en:'Small rat'},
+  {min:1200, max:1800, fr:'Rat petit à moyen', en:'Small to medium rat'},
+  {min:1800, max:2500, fr:'Rat moyen à gros', en:'Medium to large rat'},
+  {min:2500, max:null, fr:'Rat gros', en:'Large rat'},
 ];
 
 function formatPreyWeight(min, max, isEn){
@@ -34553,12 +34570,99 @@ function renderWelcomeHero(){
     '<p>'+(isEn
       ? 'Your complete ball python breeding management tool — genetics, racks, sales, incubation, and admin, all in one place. Here\'s how to get started:'
       : 'Ton outil complet de gestion d\'élevage de pythons royaux — génétique, racks, ventes, incubation et administration, tout au même endroit. Pour commencer :')+'</p>'+
+    (simpleModeActive() ? '<p style="margin:10px 0 2px;"><b>'+(isEn?'First, what do you do with your reptiles? (check all that apply)':'D\'abord, qu\'est-ce que tu fais avec tes reptiles ? (coche tout ce qui s\'applique)')+'</b></p>'+simpleProfileChipsHtml()+'<p style="margin:0 0 10px;font-size:13px;opacity:.85;">'+(isEn?'LOCUS only shows what you need. You can change this anytime in the ☰ menu.':'LOCUS te montre seulement ce dont tu as besoin. Tu peux changer ça en tout temps dans le menu ☰.')+'</p>' : '')+ // v5.85
     '<div class="wh-actions">'+
       '<button class="wh-btn primary" onclick="showTab(\'mine\'); document.getElementById(\'draft-name\').focus();"><span class="wh-icon">🐍</span> '+(isEn?'Add my first reptile':'Ajouter mon premier reptile')+'</button>'+
       '<button class="wh-btn" onclick="showTab(\'calc\');"><span class="wh-icon">🧬</span> '+(isEn?'Try the calculator':'Essayer le calculateur')+'</button>'+
       '<button class="wh-btn" onclick="showTab(\'export\');"><span class="wh-icon">📂</span> '+(isEn?'Import my existing data':'Importer mes données existantes')+'</button>'+
       '<button class="wh-btn" onclick="loadSampleData();"><span class="wh-icon">👀</span> '+(isEn?'See an example first':'Voir un exemple d\'abord')+'</button>'+
     '</div>';
+}
+// v5.85 — choix d'Alex (13 nov) : mode simple « A + B ». Nouveaux comptes : Agenda, Mes reptiles et Élevage au départ ;
+// Reproduction, Ventes, Calculateur et Rongeurs apparaissent selon ce que la personne a coché (« Qu'est-ce que tu fais ? »)
+// ou dès qu'elle s'en sert ; Utilitaire, Fiscal, Valeur, Permis et Export passent dans ☰. « Tout afficher » dans ☰.
+// Comptes existants : rien ne change (ils peuvent l'activer dans ☰). Réglages gardés dans la liste synchronisée des
+// bannières fermées (préfixe ui_), donc aucune nouvelle colonne.
+var SIMPLE_MODE_SINCE = Date.parse('2026-11-13T18:00:00Z');
+function setUiFlag(name, on){
+  const list = loadDismissedBanners();
+  const has = list.includes(name);
+  if(on && !has){ list.push(name); saveDismissedBanners(list); try{ mirrorSnakesRemote(); }catch(e){} }
+  else if(!on && has){ saveDismissedBanners(list.filter(x=>x!==name)); try{ mirrorSnakesRemote(); }catch(e){} }
+}
+function simpleModeActive(){
+  if(isBannerDismissed('ui_show_all')) return false;
+  if(isBannerDismissed('ui_simple_on')) return true;
+  if(!currentUser || !currentUser.created_at) return false;
+  const c = Date.parse(currentUser.created_at);
+  return !isNaN(c) && c >= SIMPLE_MODE_SINCE;
+}
+var SIMPLE_PROFILES = [
+  { k:'keep', icon:'🐍', fr:'Je les garde et les soigne', en:'I keep and care for them' },
+  { k:'repro', icon:'🐣', fr:'Je fais de la reproduction', en:'I breed them' },
+  { k:'sell', icon:'🏷️', fr:'Je vends des animaux', en:'I sell animals' },
+  { k:'rodents', icon:'🐭', fr:'J\'élève mes rongeurs nourriciers', en:'I breed my own feeder rodents' },
+];
+function simpleProfileOn(k){ return isBannerDismissed('ui_prof_'+k); }
+function simpleNeeds(){
+  const sold = savedSnakes.some(x=>x.status==='forsale' || x.status==='reserved' || x.status==='sold');
+  return {
+    repro: simpleProfileOn('repro') || (typeof pairings!=='undefined' && pairings.length>0) || (typeof clutches!=='undefined' && clutches.length>0),
+    ventes: simpleProfileOn('sell') || sold,
+    calc: simpleProfileOn('repro'),
+    rodents: simpleProfileOn('rodents') || (typeof rodentBins!=='undefined' && rodentBins.length>0),
+  };
+}
+function toggleSimpleProfile(k){ setUiFlag('ui_prof_'+k, !simpleProfileOn(k)); try{ renderWelcomeHero(); }catch(e){} applySimpleMode(); try{ if(document.getElementById('quick-modal-overlay').style.display==='flex' && document.getElementById('simple-mode-form')) openSimpleModeModal(); }catch(e){} }
+function simpleProfileChipsHtml(){
+  const isEn = currentLang==='en';
+  return '<div style="display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 4px;">'+SIMPLE_PROFILES.map(x=>{
+    const on = simpleProfileOn(x.k);
+    return '<button type="button" class="sc-btn'+(on?' accent':'')+'" data-simple-profile="'+x.k+'" aria-pressed="'+on+'" style="font-size:14px;padding:10px 12px;" onclick="toggleSimpleProfile(\''+x.k+'\')">'+(on?'✅ ':x.icon+' ')+(isEn?x.en:x.fr)+'</button>';
+  }).join('')+'</div>';
+}
+function applySimpleMode(){
+  const on = simpleModeActive();
+  const need = on ? simpleNeeds() : null;
+  try{ applyPersonalizationUI(); }catch(e){} // le Mode personnalisé (cases à cocher) garde la main ; le mode simple ne fait que cacher en plus
+  const hide = (sel, cond)=>{ if(on && cond) document.querySelectorAll(sel).forEach(el=>{ el.style.display = 'none'; }); };
+  hide('.tab-btn[data-tab="incubation"]', on && !need.repro);
+  hide('.tab-btn[data-tab="ventes"]', on && !need.ventes);
+  hide('.tab-btn[data-tab="calc"]', on && !need.calc);
+  hide('.tab-btn[data-tab="utilitaire"]', on);
+  hide('.subtab-btn[data-sub="rongeurs"]', on && !need.rodents);
+  const side = document.getElementById('legal-sidebar'); if(side) side.style.display = on ? 'none' : '';
+  const box = document.getElementById('app-menu-simple'); if(!box) return;
+  const isEn = currentLang==='en';
+  const item = (icon, fr, en, js)=>'<button class="app-menu-item" onclick="closeAppMenu(); '+js+'"><span>'+icon+'</span> <span>'+(isEn?en:fr)+'</span></button>';
+  let h = '';
+  if(on){
+    if(!need.calc) h += item('🧬','Calculateur génétique','Genetics calculator',"showTab('calc')");
+    if(!need.repro) h += item('🐣','Reproduction','Breeding',"showTab('incubation')");
+    if(!need.ventes) h += item('🏷️','Ventes','Sales',"showTab('ventes')");
+    h += item('🛠️','Utilitaire (guides, outils)','Utility (guides, tools)',"showTab('utilitaire')");
+    h += item('📤','Export et sauvegarde','Export and backup',"showTab('export')");
+    h += item('💰','Fiscal','Taxes',"showTab('fiscal')");
+    h += item('🛡️','Valeur et assurance','Value and insurance',"showTab('valeur')");
+    h += item('📜','Permis','Permits',"showTab('reglement')");
+  }
+  h += item('🧭', on?'Affichage : mode simple (changer)':'Affichage : tout (changer)', on?'Display: simple mode (change)':'Display: everything (change)', 'openSimpleModeModal()');
+  box.innerHTML = h;
+}
+function openSimpleModeModal(){
+  const isEn = currentLang==='en';
+  const on = simpleModeActive();
+  showQuickModal('🧭 '+(isEn?'What LOCUS shows you':'Ce que LOCUS t\'affiche'),
+    '<div id="simple-mode-form" style="font-size:15px;line-height:1.55;">'+
+    '<p style="margin:0 0 10px;">'+(on
+      ? (isEn?'<b>Simple mode is on.</b> You see the sections you use; the rest is in the ☰ menu. Sections appear by themselves as soon as you use them.':'<b>Le mode simple est activé.</b> Tu vois les sections dont tu te sers ; le reste est dans le menu ☰. Les sections apparaissent toutes seules dès que tu t\'en sers.')
+      : (isEn?'<b>Everything is shown.</b> Simple mode only shows the sections you use.':'<b>Tout est affiché.</b> Le mode simple montre seulement les sections dont tu te sers.'))+'</p>'+
+    (on ? '<p style="margin:0 0 4px;"><b>'+(isEn?'What do you do with your reptiles?':'Qu\'est-ce que tu fais avec tes reptiles ?')+'</b></p>'+simpleProfileChipsHtml() : '')+
+    '<div style="display:flex;gap:8px;margin-top:14px;">'+
+      (on ? '<button class="sc-btn" style="flex:1;font-size:14px;" onclick="setUiFlag(\'ui_simple_on\', false); setUiFlag(\'ui_show_all\', true); applySimpleMode(); closeQuickModal();">👁 '+(isEn?'Show everything':'Tout afficher')+'</button>'
+          : '<button class="sc-btn accent" style="flex:1;font-size:14px;" onclick="setUiFlag(\'ui_show_all\', false); setUiFlag(\'ui_simple_on\', true); applySimpleMode(); openSimpleModeModal();">🧭 '+(isEn?'Switch to simple mode':'Passer au mode simple')+'</button>')+
+      '<button class="save-btn" style="flex:1;" onclick="closeQuickModal()">'+(isEn?'Done':'OK')+'</button>'+
+    '</div></div>');
 }
 // v5.83 — choix d'Alex (13 nov) : « Pour bien démarrer » — après le 1er reptile, 4 étapes concrètes qui se cochent
 // toutes seules (données existantes, rien de nouveau à stocker sauf « installé » et la fermeture, synchronisés par
@@ -34830,6 +34934,7 @@ function renderDashboard(){
   try{ renderSeasonRecapCard(); }catch(e){} // v3.87
   renderWelcomeHero();
   try{ renderFirstStepsCard(); }catch(e){} // v5.83
+  try{ applySimpleMode(); }catch(e){} // v5.85
   renderFirstSnakeNudge();
   updateBackupReminderBanner();
   updateSampleDataBanner();

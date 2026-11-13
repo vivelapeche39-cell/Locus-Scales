@@ -932,6 +932,54 @@ def t_bien_demarrer_583(browser, url):
     check('pas d\'erreur JS (v5.83)', not [e for e in a.real_errors() if not e.startswith('dialog:')], a.real_errors()[:3])
     a.close()
 
+def t_charte_proies_584(browser, url):
+    section('Charte des proies : étiquettes alignées sur les grammes (v5.84)')
+    a = App(browser, url, snakes=[], lang='fr'); a.open(wait=1200)
+    # chaque rangée : la plus petite taille nommée doit avoir un poids qui touche la fourchette calculée
+    bad = a.js("""(()=>{ const out=[]; const sizes={souris:MOUSE_SIZES, rat:RAT_SIZES};
+      PYTHON_WEIGHT_CHART.forEach(r=>{ const pct=preyPercentRange(r.min); const lo=Math.round(r.min*pct.min), hi=r.max?Math.round(r.max*pct.max):Math.round(r.min*pct.max);
+        const lbl=r.fr.toLowerCase(); const hits=[];
+        [['pinky','pinky'],['fuzzy','fuzzy'],['sevr','pup'],['petit','small'],['moyen','medium'],['gros','large']].forEach(([w,k])=>{ if(lbl.includes('rat') && lbl.includes(w) && !(w==='gros' && lbl.includes('très'))){ const z=RAT_SIZES.find(x=>x.key===k); if(z && (z.min>hi || (z.max && z.max<lo))) hits.push(k+' '+z.min+'-'+z.max+' vs '+lo+'-'+hi); } });
+        if(hits.length) out.push(r.min+': '+hits.join(', ')); });
+      return out; })()""")
+    check('aucune taille de rat hors de la fourchette calculée', bad == [], bad)
+    check('300-500 g : plus de rat pinky/fuzzy', 'pinky' not in a.js("PYTHON_WEIGHT_CHART.find(r=>r.min===300).fr.toLowerCase()"))
+    check('pas de rangée en double (500-800 fusionnée)', a.js("PYTHON_WEIGHT_CHART.filter(r=>r.fr==='Rat sevré à petit').length") == 1)
+    est = a.js("""[350, 900, 1500, 2000, 3000].map(w=>{ const s={preySpecies:'rat', species:'ball_python', health:{weights:[{date:'2026-11-01', value:w}]}, weights:[{date:'2026-11-01', value:w}]}; try{ return estimatePreySizeFromWeight(s); }catch(e){ return 'ERR '+e.message; } })""")
+    check('tailles estimées suivent la charte (350 g → Weanling … 3000 g → Large)', est == ['Weanling', 'Small', 'Small', 'Medium', 'Large'], est)
+    check('pas d\'erreur JS (v5.84)', not a.real_errors(), a.real_errors()[:3])
+    a.close()
+
+def t_mode_simple_585(browser, url):
+    section('Mode simple A + B (v5.85)')
+    a = App(browser, url, snakes=[], lang='fr'); a.open(wait=1500)
+    vis = lambda sel: a.js("(()=>{const el=document.querySelector('%s'); return !!el && el.style.display!=='none';})()" % sel)
+    check('compte existant : tout est visible', vis('.tab-btn[data-tab="incubation"]') and vis('.tab-btn[data-tab="ventes"]') and vis('#legal-sidebar'))
+    a.js("currentUser.created_at = new Date().toISOString(); saveDismissedBanners([]); showTab('dash'); renderDashboard();")
+    check('nouveau compte : Reproduction, Ventes, Utilitaire et barre du bas cachés', not vis('.tab-btn[data-tab="incubation"]') and not vis('.tab-btn[data-tab="ventes"]') and not vis('.tab-btn[data-tab="utilitaire"]') and not vis('#legal-sidebar'))
+    check('Mes reptiles et Élevage restent', vis('.tab-btn[data-tab="mine"]') and vis('.tab-btn[data-tab="elevage"]'))
+    hero = a.js("document.getElementById('welcome-hero').innerText")
+    check('bienvenue : question « Qu\'est-ce que tu fais avec tes reptiles ? »', 'qu\'est-ce que tu fais' in hero.lower() and 'reproduction' in hero, hero[:300])
+    a.js("document.querySelector('[data-simple-profile=\"repro\"]').click()"); a.page.wait_for_timeout(200)
+    check('« Je fais de la reproduction » : Reproduction et Calculateur apparaissent', vis('.tab-btn[data-tab="incubation"]') and vis('.tab-btn[data-tab="calc"]'))
+    check('Ventes encore cachée', not vis('.tab-btn[data-tab="ventes"]'))
+    a.js("savedSnakes.push(Object.assign(%s, {status:'forsale'})); storage.save(savedSnakes); showTab('mine');" % json.dumps(make_snake(850)))
+    check('un animal « À vendre » : Ventes apparaît toute seule', vis('.tab-btn[data-tab="ventes"]'))
+    check('Rongeurs caché sans bac ni choix', not vis('.subtab-btn[data-sub="rongeurs"]'))
+    a.js("openAppMenu()"); a.page.wait_for_timeout(200)
+    menu = a.js("document.getElementById('app-menu-simple').innerText")
+    check('☰ : Export, Fiscal, Utilitaire et réglage d\'affichage', 'Export' in menu and 'Fiscal' in menu and 'Utilitaire' in menu and 'mode simple' in menu, menu)
+    a.js("closeAppMenu(); openSimpleModeModal()"); a.page.wait_for_timeout(200)
+    a.js("[...document.querySelectorAll('#quick-modal-body button')].find(b=>/tout afficher/i.test(b.innerText)).click()"); a.page.wait_for_timeout(200)
+    check('« Tout afficher » : tout revient', vis('.tab-btn[data-tab="utilitaire"]') and vis('#legal-sidebar') and vis('.subtab-btn[data-sub="rongeurs"]'))
+    a.js("currentUser.created_at = '2026-01-01T00:00:00Z'; saveDismissedBanners([]); openSimpleModeModal();"); a.page.wait_for_timeout(200)
+    a.js("[...document.querySelectorAll('#quick-modal-body button')].find(b=>/mode simple/i.test(b.innerText)).click()"); a.page.wait_for_timeout(200)
+    check('compte existant : peut passer au mode simple', not vis('#legal-sidebar') and not vis('.tab-btn[data-tab="utilitaire"]'))
+    a.js("closeQuickModal(); setLangTop('en'); applySimpleMode();")
+    check('menu en anglais', 'Export and backup' in a.js("document.getElementById('app-menu-simple').innerText"))
+    check('pas d\'erreur JS (v5.85)', not [e for e in a.real_errors() if not e.startswith('dialog:')], a.real_errors()[:3])
+    a.close()
+
 def t_rongeurs_clairs_574(browser, url):
     section('Rongeurs : noms de lignée en mots + « Par où commencer » (v5.74)')
     a = App(browser, url, snakes=[make_snake(800)], lang='en'); a.open(wait=1500)
@@ -2176,7 +2224,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_admin_tri_577, t_photos_serveur_579, t_import_json_580, t_reimport_archives_581, t_bouton_retour_582, t_bien_demarrer_583, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_admin_tri_577, t_photos_serveur_579, t_import_json_580, t_reimport_archives_581, t_bouton_retour_582, t_bien_demarrer_583, t_charte_proies_584, t_mode_simple_585, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()
