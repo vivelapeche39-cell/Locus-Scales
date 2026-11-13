@@ -1221,6 +1221,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 
   <div id="view-dash">
     <div id="welcome-hero" class="welcome-hero" style="display:none;"></div>
+    <div id="first-steps-card" class="welcome-hero" style="display:none;"></div><!-- v5.83 — Pour bien démarrer -->
     <div id="beta-banner" class="onboarding-banner" style="display:none;"></div>
     <div class="dash-greeting" id="dash-greeting"></div>
     <button type="button" class="onboarding-banner commit-card" onclick="window.open(currentLang==='en'?'guides/trust.html':'guides/engagements.html','_blank','noopener');">
@@ -2391,7 +2392,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.82';
+const APP_VERSION = '2026.09.01.5.83';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -3996,7 +3997,8 @@ if(sb){
     if((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && currentUser){
       const u = currentUser;
       // v4.24 — attend que les données locales soient chargées (le script entier), puis vérifie à qui elles appartiennent
-      setTimeout(()=>{ if(currentUser && currentUser.id===u.id) synchroniserAvecServeur().then(()=>backfillMissingPhotoUrls()); }, 0); // la vérification du propriétaire est faite dans synchroniserAvecServeur (v4.25)
+      setTimeout(()=>{ if(currentUser && currentUser.id===u.id) synchroniserAvecServeur().then(()=>backfillMissingPhotoUrls()); }, 0);
+      setTimeout(()=>{ try{ if(currentUser && currentUser.id===u.id){ maybeShowWelcomeInstallMessage(); renderFirstStepsCard(); } }catch(e){} }, 2500); // v5.83 // la vérification du propriétaire est faite dans synchroniserAvecServeur (v4.25)
     }
   });
 }
@@ -5696,6 +5698,15 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.83', date:'2026-11-13',
+    title:{ fr:'Pour bien démarrer', en:'Getting started' },
+    changes:{
+      fr:[ '🚀 Nouveau compte : une carte « Pour bien démarrer » dans l\'Agenda — ajouter tes animaux, noter un repas, les placer dans un rack, mettre LOCUS sur ton écran d\'accueil. Les étapes se cochent toutes seules.',
+           '👋 Juste après l\'inscription, un court message explique que LOCUS marche dans ton navigateur (rien à télécharger), que ton compte te suit sur tous tes appareils, et comment l\'installer sur ton téléphone.',
+           '✏️ Textes d\'aide corrigés (Export : tes données sont sauvegardées sur ton compte).' ],
+      en:[ '🚀 New account: a « Getting started » card in the Agenda — add your animals, log a meal, put them in a rack, put LOCUS on your home screen. The steps check themselves off.',
+           '👋 Right after sign-up, a short message explains that LOCUS works in your browser (nothing to download), that your account follows you on every device, and how to install it on your phone.',
+           '✏️ Help texts fixed (Export: your data is saved to your account).' ] } },
   { version:'5.82', date:'2026-11-12',
     title:{ fr:'Bouton Retour du téléphone', en:'Phone Back button' },
     changes:{
@@ -9414,7 +9425,7 @@ const TAB_INTRO_BY_LANG = {
     fiscal: { title:'💰 Fiscal', body:'Revenus (tes ventes) et dépenses (nourriture, vétérinaire, équipement...) au même endroit, avec répartition par catégorie. LOCUS n\'est pas un logiciel comptable — vérifie toujours avec ton comptable.' },
     valeur: { title:'🛡️ Valeur & assurance', body:'Renseigne un « Prix demandé » sur chaque fiche (même pour ce que tu gardes) pour estimer la valeur totale de ton cheptel — utile en cas de réclamation d\'assurance.' },
     reglement: { title:'📜 Permis', body:'Des liens vérifiés vers les sources officielles par province, pour faire tes démarches toi-même. Ce n\'est pas un avis juridique — vérifie toujours directement à la source.' },
-    export: { title:'📤 Export', body:'Exporte ta sauvegarde régulièrement — c\'est ta seule protection contre une perte de données, puisque tout reste local à cet appareil.' },
+    export: { title:'📤 Export', body:'Tes données sont sauvegardées sur ton compte LOCUS. Exporte quand même une copie de temps en temps : elle est à toi, lisible sans LOCUS, et sert de filet de sécurité.' }, // v5.83 — l\'ancien texte disait « tout reste local », faux depuis la synchro
   },
   en: {
     dash: { title:'📋 Your command center', body:'Everything urgent today lives here: meals due, next hatching, listings that are stalling. Click a card to jump straight to fixing it.' },
@@ -9426,7 +9437,7 @@ const TAB_INTRO_BY_LANG = {
     fiscal: { title:'💰 Taxes', body:'Income (your sales) and expenses (food, vet, equipment...) in one place, broken down by category. LOCUS is not accounting software — always check with your accountant.' },
     valeur: { title:'🛡️ Value & insurance', body:'Enter an "Asking price" on every record (even for ones you\'re keeping) to estimate the total value of your collection — useful for an insurance claim.' },
     reglement: { title:'📜 Permits', body:'Verified links to official sources by province, so you can do your own research. This is not legal advice — always verify directly at the source.' },
-    export: { title:'📤 Export', body:'Export your backup regularly — it\'s your only protection against data loss, since everything stays local to this device.' },
+    export: { title:'📤 Export', body:'Your data is saved to your LOCUS account. Still export a copy now and then: it\'s yours, readable without LOCUS, and a safety net.' },
   },
 };
 
@@ -34508,7 +34519,8 @@ function updateBackupReminderBanner(){
   try{ snoozeUntil = localStorage.getItem('locus_backup_reminder_snooze'); }catch(e){ snoozeUntil = null; }
   if(snoozeUntil && snoozeUntil > localTodayStr()){ el.style.display = 'none'; return; }
   const days = daysSinceLastExport();
-  const shouldShow = savedSnakes.length>0 && (days===null || days>=30);
+  let firstSteps = false; try{ firstSteps = firstStepsEligible(); }catch(e){} // v5.83 — pas pendant « Pour bien démarrer » (nouveau compte, les données sont déjà sur le serveur)
+  const shouldShow = savedSnakes.length>0 && (days===null || days>=30) && !firstSteps;
   if(!shouldShow){ el.style.display = 'none'; return; }
   el.style.display = 'flex';
   el.innerHTML = '<span class="ob-icon">💾</span>'+
@@ -34539,14 +34551,98 @@ function renderWelcomeHero(){
   hero.innerHTML =
     '<h2>'+(isEn?'Welcome to LOCUS Scales 🐍':'Bienvenue dans LOCUS Scales 🐍')+'</h2>'+
     '<p>'+(isEn
-      ? 'Your complete ball python breeding management tool — genetics, racks, sales, incubation, and admin, all in one place. Here are three ways to get started:'
-      : 'Ton outil complet de gestion d\'élevage de pythons royaux — génétique, racks, ventes, incubation et administration, tout au même endroit. Voici trois façons de commencer :')+'</p>'+
+      ? 'Your complete ball python breeding management tool — genetics, racks, sales, incubation, and admin, all in one place. Here\'s how to get started:'
+      : 'Ton outil complet de gestion d\'élevage de pythons royaux — génétique, racks, ventes, incubation et administration, tout au même endroit. Pour commencer :')+'</p>'+
     '<div class="wh-actions">'+
       '<button class="wh-btn primary" onclick="showTab(\'mine\'); document.getElementById(\'draft-name\').focus();"><span class="wh-icon">🐍</span> '+(isEn?'Add my first reptile':'Ajouter mon premier reptile')+'</button>'+
       '<button class="wh-btn" onclick="showTab(\'calc\');"><span class="wh-icon">🧬</span> '+(isEn?'Try the calculator':'Essayer le calculateur')+'</button>'+
       '<button class="wh-btn" onclick="showTab(\'export\');"><span class="wh-icon">📂</span> '+(isEn?'Import my existing data':'Importer mes données existantes')+'</button>'+
       '<button class="wh-btn" onclick="loadSampleData();"><span class="wh-icon">👀</span> '+(isEn?'See an example first':'Voir un exemple d\'abord')+'</button>'+
     '</div>';
+}
+// v5.83 — choix d'Alex (13 nov) : « Pour bien démarrer » — après le 1er reptile, 4 étapes concrètes qui se cochent
+// toutes seules (données existantes, rien de nouveau à stocker sauf « installé » et la fermeture, synchronisés par
+// dismissBanner). Seulement pour un compte de moins de 30 jours ; disparaît quand tout est fait ou avec ✕.
+function firstStepsList(){
+  const real = savedSnakes.filter(x=>!x.isSample);
+  return [
+    { k:'animals', done: real.length>0, icon:'🐍', fr:'Ajouter ou importer tes animaux', en:'Add or import your animals', go:"showTab('mine')" },
+    { k:'meal', done: real.some(x=>((x.health&&x.health.events)||[]).some(e=>e.type==='fed')), icon:'🍽', fr:'Noter un premier repas', en:'Log a first meal', go:"showTab('elevage'); showSubtab('tour')" },
+    { k:'place', done: real.some(x=>{ try{ return !snakeIsUnplaced(x); }catch(e){ return false; } }), icon:'🗄', fr:'Placer un animal dans un rack ou un terrarium', en:'Put an animal in a rack or terrarium', go:"showTab('elevage'); showSubtab('racks')" },
+    { k:'install', done: isStandaloneMode() || isBannerDismissed('install_done'), icon:'📲', fr:'Mettre LOCUS sur ton écran d\'accueil', en:'Put LOCUS on your home screen', go:'openInstallHelp()' },
+  ];
+}
+function firstStepsEligible(){
+  if(!currentUser || isBannerDismissed('first_steps_card')) return false;
+  if(!savedSnakes.some(x=>!x.isSample)) return false; // avant le 1er reptile : la bannière de bienvenue s'en occupe
+  const c = currentUser.created_at ? Date.parse(currentUser.created_at) : NaN;
+  if(isNaN(c) || (Date.now()-c) > 30*24*3600*1000) return false; // comptes existants : rien de nouveau devant eux
+  return !firstStepsList().every(x=>x.done);
+}
+function renderFirstStepsCard(){
+  const el = document.getElementById('first-steps-card'); if(!el) return;
+  if(!firstStepsEligible()){ el.style.display = 'none'; el.innerHTML = ''; return; }
+  const isEn = currentLang==='en';
+  const steps = firstStepsList(), n = steps.filter(x=>x.done).length;
+  el.style.display = 'block';
+  el.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">'+
+      '<h2 style="margin:0 0 4px;">'+(isEn?'Getting started':'Pour bien démarrer')+' <span style="font-size:15px;color:var(--ink-dim);">('+n+'/'+steps.length+')</span></h2>'+
+      '<button type="button" class="ob-close" aria-label="'+(isEn?'Hide':'Masquer')+'" onclick="hideFirstStepsCard()" style="font-size:22px;">×</button>'+
+    '</div>'+
+    '<p style="margin:0 0 10px;">'+(isEn?'Four steps and LOCUS is ready for your daily routine.':'Quatre étapes et LOCUS est prêt pour ton quotidien.')+'</p>'+
+    '<div class="wh-actions">'+steps.map(x=>
+      '<button type="button" class="wh-btn'+(x.done?'':' primary')+'" data-first-step="'+x.k+'" '+(x.done?'disabled style="opacity:.6;"':'onclick="'+x.go+'"')+'><span class="wh-icon">'+(x.done?'✅':x.icon)+'</span> '+(isEn?x.en:x.fr)+'</button>'
+    ).join('')+'</div>';
+}
+function hideFirstStepsCard(){ dismissBanner('first_steps_card'); renderFirstStepsCard(); }
+// v5.83 — étapes d'installation selon le téléphone (réutilisées par la carte et par le message de bienvenue)
+function installStepsHtml(){
+  const isEn = currentLang==='en';
+  let steps;
+  if(isStandaloneMode()) steps = [isEn?'✅ LOCUS is already installed on this device.':'✅ LOCUS est déjà installé sur cet appareil.'];
+  else if(isInAppBrowser() || isIosWebview()) steps = isEn
+    ? ['You\'re inside another app\'s browser (Facebook, Messenger…). Open this page in '+(isAndroidDevice()?'Chrome':'Safari')+' first: menu ⋯ → « Open in browser ».', 'Then come back to these steps.']
+    : ['Tu es dans le navigateur d\'une autre app (Facebook, Messenger…). Ouvre d\'abord cette page dans '+(isAndroidDevice()?'Chrome':'Safari')+' : menu ⋯ → « Ouvrir dans le navigateur ».', 'Puis reviens à ces étapes.'];
+  else if(isIosDevice()) steps = isEn
+    ? ['In Safari, tap the Share button ⬆︎ (square with an arrow, at the bottom).', 'Scroll down and tap « Add to Home Screen ».', 'Tap « Add ». LOCUS now opens full screen, like an app.']
+    : ['Dans Safari, touche le bouton Partager ⬆︎ (le carré avec une flèche, en bas).', 'Descends et touche « Sur l\'écran d\'accueil ».', 'Touche « Ajouter ». LOCUS s\'ouvre maintenant en plein écran, comme une app.'];
+  else if(isAndroidDevice()) steps = isEn
+    ? ['In Chrome, tap the menu ⋮ (top right).', 'Tap « Install app » or « Add to Home screen ».', 'Confirm. LOCUS now opens full screen, like an app.']
+    : ['Dans Chrome, touche le menu ⋮ (en haut à droite).', 'Touche « Installer l\'application » ou « Ajouter à l\'écran d\'accueil ».', 'Confirme. LOCUS s\'ouvre maintenant en plein écran, comme une app.'];
+  else steps = isEn
+    ? ['On a computer, you can simply bookmark this page. On your phone, open app.locusscales.com and come back to this step.']
+    : ['Sur un ordinateur, tu peux simplement mettre cette page en favori. Sur ton téléphone, ouvre app.locusscales.com et reviens à cette étape.'];
+  return '<ol style="margin:6px 0 0;padding-left:22px;font-size:15px;line-height:1.6;">'+steps.map(x=>'<li>'+x+'</li>').join('')+'</ol>';
+}
+function openInstallHelp(){
+  const isEn = currentLang==='en';
+  const canPrompt = !!deferredInstallPrompt;
+  showQuickModal('📲 '+(isEn?'Put LOCUS on your home screen':'Mettre LOCUS sur ton écran d\'accueil'),
+    '<p style="font-size:15px;margin:0 0 6px;">'+(isEn?'Nothing to download from an app store: LOCUS works in your browser. Adding it to your home screen gives it its own icon and full screen.':'Rien à télécharger dans un magasin d\'apps : LOCUS marche dans ton navigateur. L\'ajouter à ton écran d\'accueil lui donne sa propre icône et le plein écran.')+'</p>'+
+    (canPrompt ? '<button class="sc-btn accent" style="width:100%;margin:8px 0;font-size:15px;" onclick="triggerInstallPrompt()">📲 '+(isEn?'Install now':'Installer maintenant')+'</button>' : installStepsHtml())+
+    '<div style="display:flex;gap:8px;margin-top:14px;">'+
+      '<button class="save-btn" style="flex:1;" onclick="dismissBanner(\'install_done\'); closeQuickModal(); renderFirstStepsCard();">✅ '+(isEn?'Done':'C\'est fait')+'</button>'+
+      '<button class="sc-btn" onclick="closeQuickModal()">'+(isEn?'Later':'Plus tard')+'</button>'+
+    '</div>');
+}
+// v5.83 — choix d'Alex : message clair juste après l'inscription (une furnfangmom croyait n'avoir « jamais reçu » l'app).
+// Une seule fois par compte (dismissBanner synchronisé), seulement dans les 2 premières heures du compte.
+function maybeShowWelcomeInstallMessage(){
+  if(!currentUser || isBannerDismissed('welcome_install_msg')) return;
+  const c = currentUser.created_at ? Date.parse(currentUser.created_at) : NaN;
+  if(isNaN(c) || (Date.now()-c) > 2*3600*1000) return;
+  if(document.getElementById('quick-modal-overlay').style.display==='flex' || document.getElementById('auth-overlay').style.display==='flex') return;
+  const isEn = currentLang==='en';
+  dismissBanner('welcome_install_msg');
+  showQuickModal('👋 '+(isEn?'Welcome to LOCUS':'Bienvenue dans LOCUS'),
+    '<div style="font-size:15px;line-height:1.55;">'+
+    '<p style="margin:0 0 10px;"><b>1. '+(isEn?'Nothing to download.':'Rien à télécharger.')+'</b> '+(isEn?'LOCUS works right in your browser — there\'s no App Store or Play Store app to wait for.':'LOCUS marche directement dans ton navigateur — pas d\'app à attendre dans l\'App Store ou le Play Store.')+'</p>'+
+    '<p style="margin:0 0 10px;"><b>2. '+(isEn?'Your account follows you.':'Ton compte te suit.')+'</b> '+(isEn?'Sign in with the same email on another phone or computer and you\'ll find everything.':'Connecte-toi avec le même courriel sur un autre téléphone ou ordinateur et tu retrouves tout.')+'</p>'+
+    '<p style="margin:0 0 4px;"><b>3. '+(isEn?'Make it an app on your phone:':'Fais-en une app sur ton téléphone :')+'</b></p>'+
+    (deferredInstallPrompt ? '<button class="sc-btn accent" style="width:100%;margin:6px 0;font-size:15px;" onclick="triggerInstallPrompt()">📲 '+(isEn?'Install now':'Installer maintenant')+'</button>' : installStepsHtml())+
+    '</div>'+
+    '<button class="save-btn" style="width:100%;margin-top:14px;" onclick="closeQuickModal()">'+(isEn?'Got it, let\'s start':'Compris, on commence')+'</button>');
 }
 // Nudge persistant (10 sept) — indépendant de isWelcomeDismissed() : reste actif même si la
 // bannière de bienvenue a été fermée sans qu'on clique son bouton. Retiré automatiquement dès
@@ -34733,6 +34829,7 @@ function renderDashboard(){
   savedSnakes.forEach(ensureSnakeMeta);
   try{ renderSeasonRecapCard(); }catch(e){} // v3.87
   renderWelcomeHero();
+  try{ renderFirstStepsCard(); }catch(e){} // v5.83
   renderFirstSnakeNudge();
   updateBackupReminderBanner();
   updateSampleDataBanner();
