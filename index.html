@@ -2398,7 +2398,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.92';
+const APP_VERSION = '2026.09.01.5.93';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5738,6 +5738,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.93', date:'2026-11-16',
+    title:{ fr:'Poids de la proie + observations d\'accouplement', en:'Prey weight + pairing observations' },
+    changes:{
+      fr:[ '⚖️ Fenêtre « A mangé » : nouveau champ facultatif « Poids de la proie ». LOCUS calcule tout seul le pourcentage du poids de ton serpent (selon sa dernière pesée) et l\'affiche dans l\'historique, ex. « ⚖️ 112 g (6 %) ». La fourchette suggérée est rappelée juste à côté.',
+           '📝 Mode Verrou : nouveau bouton 📝 sur chaque accouplement pour noter ce que le couple a fait (ou pas fait) ce jour-là, ex. « mâle pas intéressé », « queues enroulées 2 h ». Les observations s\'affichent par date quand tu ouvres le couple. Réservé au palier Première ponte et Illimité après la bêta, comme le reste du Mode Verrou.' ],
+      en:[ '⚖️ « Ate » window: new optional « Prey weight » field. LOCUS works out the percentage of your snake\'s weight by itself (from its last weigh-in) and shows it in the history, e.g. « ⚖️ 112 g (6 %) ». The suggested range is shown right next to it.',
+           '📝 Lock Mode: new 📝 button on each pairing to note what the pair did (or didn\'t do) that day, e.g. « male not interested », « tail-wrapping 2 h ». Observations show by date when you open the pair. Reserved for the First Clutch and Unlimited tiers after the beta, like the rest of Lock Mode.' ] } },
   { version:'5.92', date:'2026-11-16',
     title:{ fr:'Intervalle de nourrissage pour toute la collection', en:'Feeding interval for the whole collection' },
     changes:{
@@ -15837,6 +15844,31 @@ function fedPickSpecies(sp){
   box.dataset.sz = (sp && PREY_TYPES[sp].sizes.includes(sz)) ? sz : '';
   fedPreyRefresh();
 }
+// v5.93 (gratuit) — retour d'Aimee (16 nov) : « je note le poids de la proie de chaque serpent selon son poids ».
+// Facultatif : poids total des proies (unité de l'app) → event.preyWeight (g) + event.preyPct (% du poids du serpent
+// à la pesée la plus récente avant ou le jour du repas). Aucune colonne : vit dans le journal de santé.
+function snakeWeightOn(s, date){
+  const w = ((s && s.health && s.health.weights)||[]).filter(x=>x && x.date && x.date<=date && Number(x.value)>0).sort((a,b)=>a.date.localeCompare(b.date));
+  return w.length ? Number(w[w.length-1].value) : null;
+}
+function fedPreyWeightRowHtml(s){
+  const isEn = currentLang==='en';
+  const bw = snakeWeightOn(s, localTodayStr());
+  let hint = '';
+  if(bw && (s.species||'ball_python')==='ball_python'){
+    try{ const pct = preyPercentRange(bw); hint = (isEn?'Suggested: ':'Suggéré : ')+fmtWeightRange(Math.round(bw*pct.min), Math.round(bw*pct.max))+' ('+Math.round(pct.min*100)+'-'+Math.round(pct.max*100)+' %)'; }catch(e){}
+  }
+  return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">'+
+      '<span style="font-size:12px;color:var(--ink-dim);">⚖️ '+(isEn?'Prey weight (optional):':'Poids de la proie (facultatif) :')+'</span>'+
+      '<input type="number" id="fed-prey-weight" min="0" step="0.1" inputmode="decimal" style="width:80px;font-size:16px;padding:6px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);text-align:center;"/>'+
+      '<span style="font-size:12px;color:var(--ink-dim);">'+weightInputUnitLabel(true)+'</span>'+
+    '</div>'+
+    '<div style="font-size:11.5px;color:var(--ink-dim);margin:0 0 12px;">'+(hint ? hint+' · ' : '')+(isEn?'total for all prey items':'total de toutes les proies')+'</div>';
+}
+function preyWeightTag(e){
+  if(!e || !(Number(e.preyWeight)>0)) return '';
+  return ' · ⚖️ '+fmtWeight(e.preyWeight)+(Number(e.preyPct)>0 ? ' ('+unitNum(Number(e.preyPct),1)+' %)' : '');
+}
 function openFedModal(id){
   const isEn = currentLang==='en';
   const s = savedSnakes.find(x=>x.id===id);
@@ -15852,6 +15884,7 @@ function openFedModal(id){
       '<span style="font-size:12px;color:var(--ink-dim);">'+(isEn?'Number of prey items:':'Nombre de proies :')+'</span>'+
       '<input type="number" id="fed-prey-count" min="1" value="1" style="width:64px;font-size:16px;padding:6px 8px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);text-align:center;"/>'+
     '</div>'+
+    fedPreyWeightRowHtml(s)+ // v5.93 — poids de la proie (facultatif)
     fedPreyBoxHtml(s)+ // v5.40 — proie donnée (déjà choisie : aucun toucher de plus)
     '<div style="display:flex;flex-direction:column;gap:8px;">'+
       '<button class="save-btn" onclick="confirmFed(\''+id+'\', \'complete\')">'+(isEn?'✅ Ate completely':'✅ Mangé au complet')+'</button>'+
@@ -15982,6 +16015,8 @@ function confirmFed(id, quantity){
   const event = {date:today, type:'fed', quantity, preyType: gType, preyCount};
   if(gSp && gSz){ event.preySpecies = gSp; event.preySize = gSz; }
   if(today===localTodayStr()) event.at = new Date().toISOString(); // v3.77 — heure du repas (délai de manipulation)
+  { const pwEl = document.getElementById('fed-prey-weight'); const pw = pwEl && pwEl.value!=='' ? weightFromInput(pwEl.value) : NaN; // v5.93
+    if(pw>0 && pw<100000){ event.preyWeight = Math.round(pw*10)/10; const bw = snakeWeightOn(s, today); if(bw) event.preyPct = Math.round(pw/bw*1000)/10; } }
   let stockMsg = '';
   if(gSp && gSz){
     const preySrc = (gSp===s.preySpecies && gSz===s.preySize) ? s : Object.assign({}, s, { preySpecies:gSp, preySize:gSz }); // « juste cette fois » : la fiche ne change pas
@@ -18568,7 +18603,7 @@ function healthEventKey(e){
   if(!e) return '';
   if(e.id) return 'id|'+e.id;
   const o = {};
-  ['type','date','value','preyType','preyCount','preySpecies','preySize','quantity','quality','partner','pairingId','lockId','note','reason','kind'].forEach(k=>{ if(e[k]!=null && e[k]!=='') o[k] = e[k]; });
+  ['type','date','value','preyType','preyCount','preySpecies','preySize','preyWeight','quantity','quality','partner','pairingId','lockId','note','reason','kind'].forEach(k=>{ if(e[k]!=null && e[k]!=='') o[k] = e[k]; });
   return 'e|'+JSON.stringify(o);
 }
 function measureKey(kind, m){ return (m && m.id) ? kind+'|id|'+m.id : kind+'|'+(m&&m.date)+'|'+Number(m&&m.value); } // v5.48 — id si présent
@@ -36742,6 +36777,7 @@ function renderLockModeGrid(){
         '<button class="sc-btn'+(lockedToday?' accent':'')+'" style="min-width:64px;" onclick="quickAddLockToday(\''+p.id+'\')">🔒 '+locks.length+(lockedToday?' ✓':' +')+'</button>'+
         '<button class="sc-btn'+(refusedToday?' accent':'')+'" title="'+(isEn?'Refusal':'Refus')+'" onclick="openPairRefusal(\''+p.id+'\')">🙅 '+refusals.length+'</button>'+ // v5.04
         '<button class="sc-btn" onclick="togglePairSession(\''+p.id+'\')">'+(together?'⏸':'🤝')+'</button>'+
+        '<button class="sc-btn" title="'+(isEn?'Observation':'Observation')+'" onclick="openPairObservation(\''+p.id+'\')">📝 '+((p.observations||[]).length||'+')+'</button>'+ // v5.93
         '<button class="sc-btn" onclick="lockModeOpen[\''+p.id+'\']=!lockModeOpen[\''+p.id+'\'];renderLockModeGrid();">'+(open?'▴':'▾')+'</button>'+
       '</div>'+
       (open ? '<div style="margin-top:8px;border-top:1px dashed var(--line);padding-top:8px;font-size:12px;">'+
@@ -36750,6 +36786,7 @@ function renderLockModeGrid(){
           '<button class="sc-btn accent" onclick="addLockOnDate(\''+p.id+'\', document.getElementById(\'lm-date-'+p.id+'\').value)">+ 🔒</button></div>'+
         (locks.length ? locks.slice().reverse().map(l=>'<div class="modal-row"><span>🔒 '+spFmt(l.date)+'</span><button class="sc-btn danger" onclick="deleteLockDate(\''+p.id+'\',\''+l.id+'\')">×</button></div>').join('') : '<div style="color:var(--ink-dim);">'+(isEn?'No lock yet.':'Aucun lock pour l\'instant.')+'</div>')+
         (refusals.length ? refusals.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(r=>'<div class="modal-row"><span>🙅 '+spFmt(r.date)+' — '+pairRefusalByLabel(r.by)+'</span><button class="sc-btn danger" onclick="deletePairRefusal(\''+p.id+'\',\''+r.id+'\')">×</button></div>').join('') : '')+ // v5.04
+        ((p.observations||[]).length ? '<div style="margin-top:6px;">'+(p.observations||[]).slice().sort((a,b)=>b.date.localeCompare(a.date)).map(o=>'<div class="modal-row" style="align-items:flex-start;"><span style="white-space:pre-wrap;">📝 '+spFmt(o.date)+' — '+escapeHtml(o.text)+'</span><button class="sc-btn danger" onclick="deletePairObservation(\''+p.id+'\',\''+o.id+'\')">×</button></div>').join('')+'</div>' : '')+ // v5.93
         (lastLock ? '<div style="color:var(--ink-dim);margin-top:6px;">👀 '+(isEn?'Watch for ovulation roughly ':'Ovulation à surveiller environ ')+spFmt(spAddDays(lastLock,20))+' → '+spFmt(spAddDays(lastLock,35))+'</div>' : '')+
       '</div>' : '')+
     '</div>';
@@ -36794,6 +36831,50 @@ function openPairRefusal(pairingId){
     '<button class="sc-btn" style="'+big+'" onclick="addPairRefusal(\''+p.id+'\',\'female\')">♀ '+(isEn?'The female (pushed him away)':'La femelle (l\'a repoussé)')+'</button>'+
     '<button class="sc-btn" style="'+big+'" onclick="addPairRefusal(\''+p.id+'\',\'unknown\')">? '+(isEn?'Not sure':'Je ne sais pas')+'</button>'
   );
+}
+// v5.93 — retour d'Aimee : « ce qu'ils faisaient / ne faisaient pas ». Observation libre datée par accouplement,
+// gardée dans p.observations (data jsonb des pairings : aucune migration). Palier du Mode Verrou (comme les refus).
+function openPairObservation(pairingId){
+  const isEn = currentLang==='en';
+  if(!hasAccess('lockMode')) return;
+  const p = pairings.find(x=>x.id===pairingId);
+  if(!p) return;
+  const today = spToday();
+  showQuickModal('📝 '+(isEn?'Observation — ':'Observation — ')+'♀ '+escapeHtml(spSnakeName(p.femaleId))+' × ♂ '+escapeHtml(spSnakeName(p.maleId)),
+    '<label style="display:block;font-size:12px;color:var(--ink-dim);margin-bottom:6px;">'+(isEn?'Date':'Date')+'</label>'+
+    '<input type="date" id="pair-obs-date" value="'+today+'" max="'+today+'" style="font-size:16px;padding:6px 8px;margin-bottom:12px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);"/>'+
+    '<textarea id="pair-obs-text" rows="4" maxlength="1000" style="width:100%;font-size:16px;padding:10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);line-height:1.45;" placeholder="'+(isEn?'What did they do? e.g. male not interested, tail-wrapping, coiled together 2 h…':'Qu\'est-ce qu\'ils ont fait ? ex. mâle pas intéressé, queues enroulées, ensemble 2 h…')+'"></textarea>'+
+    '<button class="save-btn" style="width:100%;margin-top:10px;" onclick="savePairObservation(\''+p.id+'\')">'+(isEn?'Save':'Enregistrer')+'</button>');
+  setTimeout(()=>{ const t2 = document.getElementById('pair-obs-text'); if(t2) t2.focus(); }, 100);
+}
+function savePairObservation(pairingId){
+  const isEn = currentLang==='en';
+  const p = pairings.find(x=>x.id===pairingId);
+  if(!p) return;
+  const txt = ((document.getElementById('pair-obs-text')||{}).value||'').trim().slice(0,1000);
+  if(!txt){ showToast(isEn?'Write what you observed first.':'Écris d\'abord ce que tu as observé.', 'error'); return; }
+  const dEl = document.getElementById('pair-obs-date');
+  const today = spToday();
+  const date = (dEl && /^\d{4}-\d{2}-\d{2}$/.test(dEl.value) && dEl.value<=today) ? dEl.value : today;
+  p.observations = p.observations || [];
+  p.observations.push({ id:'po_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), date, text:txt });
+  p.observations.sort((a,b)=>a.date.localeCompare(b.date));
+  p.updatedAt = Date.now();
+  saveElevage();
+  closeQuickModal();
+  lockModeOpen[p.id] = true;
+  showToast('📝 '+(isEn?'Observation saved.':'Observation enregistrée.'), 'success');
+  refreshBreedingViews();
+}
+function deletePairObservation(pairingId, obsId){
+  const isEn = currentLang==='en';
+  if(!confirm(isEn?'Delete this observation?':'Supprimer cette observation ?')) return;
+  const p = pairings.find(x=>x.id===pairingId);
+  if(!p) return;
+  p.observations = (p.observations||[]).filter(o=>o.id!==obsId);
+  p.updatedAt = Date.now();
+  saveElevage();
+  refreshBreedingViews();
 }
 function addPairRefusal(pairingId, by){
   const isEn = currentLang==='en';
@@ -37410,7 +37491,7 @@ function feedPreyTag(e){
   if(e.type!=='fed' || !e.preyType) return '';
   const countTag = (e.preyCount && e.preyCount>1) ? ' ×'+e.preyCount : '';
   const sizeTag = (e.preySpecies && e.preySize) ? ' '+escapeHtml(preyLabelShort(e.preySpecies, e.preySize)) : ''; // v5.40 — proie vraiment donnée
-  return ' '+(e.preyType==='live'?'🐭':'❄️')+sizeTag+countTag;
+  return ' '+(e.preyType==='live'?'🐭':'❄️')+sizeTag+countTag+preyWeightTag(e); // v5.93
 }
 /* ==================== Vue tableau du journal (2 septembre) — colonnes activables/désactivables
    et triables, alternative "spreadsheet" au flux de cartes déjà existant. Préférences persistées
@@ -37471,6 +37552,7 @@ function healthLogEventDetail(e){
     let d = (e.quantity==='partial') ? (isEn?'partial':'partiel') : (isEn?'complete':'complet');
     if(e.plate) d = '🥗 '+d; // v3.52
     if(e.preyCount && e.preyCount>1) d += ' ×'+e.preyCount;
+    d += preyWeightTag(e); // v5.93
     return d;
   }
   if(e.type==='refused') return refusalReasonLabel(e.reason);

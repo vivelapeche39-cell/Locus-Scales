@@ -980,6 +980,35 @@ def t_mode_simple_585(browser, url):
     check('pas d\'erreur JS (v5.85)', not [e for e in a.real_errors() if not e.startswith('dialog:')], a.real_errors()[:3])
     a.close()
 
+def t_proie_obs_593(browser, url):
+    section('Poids de la proie + observations d\'accouplement (v5.93)')
+    m = make_snake(930); m['sex'] = 'male'; f = make_snake(931); f['sex'] = 'female'
+    a = App(browser, url, snakes=[m, f], lang='fr'); a.open(wait=1500)
+    a.js("""(()=>{ const s=savedSnakes[0]; ensureSnakeMeta(s); s.health.weights=[{date:addDays(localTodayStr(),-3), value:1500}]; })()""")
+    a.js("try{closeQuickModal()}catch(e){}; openFedModal(savedSnakes[0].id)"); a.page.wait_for_timeout(300)
+    body = a.js("document.getElementById('quick-modal-overlay').innerText")
+    check('fenêtre A mangé : champ « Poids de la proie » + suggestion', 'Poids de la proie' in body and 'Suggéré' in body, body[:300])
+    a.page.fill('#fed-prey-weight', '90'); a.js("confirmFed(savedSnakes[0].id,'complete')"); a.page.wait_for_timeout(300)
+    ev = a.js("savedSnakes[0].health.events.filter(e=>e.type==='fed').slice(-1)[0]")
+    check('repas : poids et % enregistrés (90 g / 1500 g = 6 %)', ev.get('preyWeight') == 90 and ev.get('preyPct') == 6, ev)
+    check('historique : « ⚖️ 90 g (6 %) »', '⚖️ 90 g (6 %)' in a.js("feedPreyTag(savedSnakes[0].health.events.filter(e=>e.type==='fed').slice(-1)[0])"))
+    a.js("try{closeQuickModal()}catch(e){}; openFedModal(savedSnakes[0].id)"); a.page.wait_for_timeout(200)
+    a.js("confirmFed(savedSnakes[0].id,'complete')"); a.page.wait_for_timeout(200)
+    ev2 = a.js("savedSnakes[0].health.events.filter(e=>e.type==='fed').slice(-1)[0]")
+    check('champ laissé vide : rien d\'inventé', 'preyWeight' not in ev2, ev2)
+    a.js("""(()=>{ pairings.push({ id:'pr_t593', maleId:savedSnakes[0].id, femaleId:savedSnakes[1].id, pairedDate:localTodayStr(), lockDates:[], follicleSizes:[], ovulationConfirmed:false }); saveElevage(); })()""")
+    a.js("try{closeQuickModal()}catch(e){}; openPairObservation('pr_t593')"); a.page.wait_for_timeout(200)
+    a.page.fill('#pair-obs-text', 'Mâle <b>pas</b> intéressé'); a.js("savePairObservation('pr_t593')"); a.page.wait_for_timeout(200)
+    obs = a.js("pairings.find(p=>p.id==='pr_t593').observations")
+    check('observation enregistrée sur l\'accouplement', len(obs) == 1 and 'intéressé' in obs[0]['text'], obs)
+    a.js("lockModeOpen['pr_t593']=true; renderLockModeGrid()"); a.page.wait_for_timeout(200)
+    grid = a.js("(document.getElementById('lockmode-grid')||{}).innerHTML||''")
+    check('Mode Verrou : bouton 📝 1 + observation affichée, échappée', '📝 1' in grid and '&lt;b&gt;pas&lt;/b&gt;' in grid, grid[:200])
+    a.js("window.confirm=()=>true; deletePairObservation('pr_t593', pairings.find(p=>p.id==='pr_t593').observations[0].id)")
+    check('observation supprimée', a.js("pairings.find(p=>p.id==='pr_t593').observations.length") == 0)
+    check('pas d\'erreur JS (v5.93)', not [e for e in a.real_errors() if not e.startswith('dialog:')], a.real_errors()[:3])
+    a.close()
+
 def t_intervalle_collection_592(browser, url):
     section('Intervalle de nourrissage : défaut de collection, en lot, respecté par les alertes (v5.92)')
     a = App(browser, url, snakes=[make_snake(920), make_snake(921), make_snake(922)], lang='fr'); a.open(wait=1500)
@@ -2385,7 +2414,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_admin_tri_577, t_photos_serveur_579, t_import_json_580, t_reimport_archives_581, t_bouton_retour_582, t_bien_demarrer_583, t_charte_proies_584, t_mode_simple_585, t_demo_photos_586, t_prochaine_mue_588, t_partager_589, t_nouveaux_notes_590, t_gene_introuvable_591, t_intervalle_collection_592, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_admin_tri_577, t_photos_serveur_579, t_import_json_580, t_reimport_archives_581, t_bouton_retour_582, t_bien_demarrer_583, t_charte_proies_584, t_mode_simple_585, t_demo_photos_586, t_prochaine_mue_588, t_partager_589, t_nouveaux_notes_590, t_gene_introuvable_591, t_intervalle_collection_592, t_proie_obs_593, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()
