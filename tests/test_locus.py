@@ -980,6 +980,33 @@ def t_mode_simple_585(browser, url):
     check('pas d\'erreur JS (v5.85)', not [e for e in a.real_errors() if not e.startswith('dialog:')], a.real_errors()[:3])
     a.close()
 
+def t_intervalle_collection_592(browser, url):
+    section('Intervalle de nourrissage : défaut de collection, en lot, respecté par les alertes (v5.92)')
+    a = App(browser, url, snakes=[make_snake(920), make_snake(921), make_snake(922)], lang='fr'); a.open(wait=1500)
+    a.js("""(()=>{ savedSnakes.forEach(s=>{ ensureSnakeMeta(s); s.feedingIntervalDays=null; s.health.events=[{date:addDays(localTodayStr(),-12), type:'fed'}]; s.createdAt=1700000000000; }); saveDismissedBanners([]); })()""")
+    st = lambda i: a.js("feedingStatus(savedSnakes[%d])" % i)
+    check('automatique : python royal nourri il y a 12 j = en retard', st(0) == 'red', st(0))
+    a.js("savedSnakes[0].feedingIntervalDays = 14")
+    check('intervalle de 14 j sur la fiche : respecté (avant : ignoré)', st(0) == 'green', st(0))
+    a.js("try{closeQuickModal()}catch(e){}; openConfigModal()"); a.page.wait_for_timeout(200)
+    check('Configuration : champ « Intervalle de nourrissage par défaut »', 'Intervalle de nourrissage par défaut' in a.js("document.getElementById('quick-modal-overlay').innerText"))
+    a.page.fill('#cfg-feed-days', '14'); a.js("document.getElementById('cfg-feed-days').dispatchEvent(new Event('change'))"); a.page.wait_for_timeout(200)
+    check('défaut de collection 14 j : enregistré et synchronisable', a.js("collectionFeedDays()") == 14 and a.js("loadDismissedBanners().includes('ui_feeddays_14')"))
+    check('défaut de collection : les autres animaux suivent', st(1) == 'green' and st(2) == 'green', [st(1), st(2)])
+    a.js("savedSnakes[2].feedingIntervalDays = 7")
+    check('un animal avec son propre intervalle garde le sien', st(2) == 'red' and a.js("feedingIntervalOf(savedSnakes[2])") == 7, st(2))
+    a.js("closeQuickModal(); showTab('mine'); toggleBatchMode()"); a.page.wait_for_timeout(300)
+    check('Sélection multiple : bouton « Intervalle »', 'Intervalle' in a.js("document.getElementById('batch-action-bar').innerText"))
+    a.js("batchSelectedIds.clear(); batchSelectedIds.add(savedSnakes[1].id); batchSelectedIds.add(savedSnakes[2].id); openBatchIntervalModal()"); a.page.wait_for_timeout(200)
+    a.page.fill('#batch-interval-input', '21'); a.js("batchSetFeedingInterval(document.getElementById('batch-interval-input').value)"); a.page.wait_for_timeout(200)
+    check('en lot : 21 j pour 2 animaux', a.js("[savedSnakes[1].feedingIntervalDays, savedSnakes[2].feedingIntervalDays]") == [21, 21])
+    a.js("batchSelectedIds.clear(); batchSelectedIds.add(savedSnakes[2].id); batchSetFeedingInterval('')"); a.page.wait_for_timeout(200)
+    check('en lot : « Revenir au défaut » efface l\'intervalle propre', a.js("savedSnakes[2].feedingIntervalDays") is None and a.js("feedingIntervalOf(savedSnakes[2])") == 14)
+    a.js("setCollectionFeedDays('')")
+    check('vider le défaut : retour à l\'automatique', a.js("collectionFeedDays()") is None and not a.js("loadDismissedBanners().some(x=>x.startsWith('ui_feeddays_'))"))
+    check('pas d\'erreur JS (v5.92)', not [e for e in a.real_errors() if not e.startswith('dialog:')], a.real_errors()[:3])
+    a.close()
+
 def t_gene_introuvable_591(browser, url):
     section('Gène introuvable : explication + demande par courriel (v5.91)')
     a = App(browser, url, snakes=[make_snake(910)], lang='fr'); a.open(wait=1500)
@@ -2358,7 +2385,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_admin_tri_577, t_photos_serveur_579, t_import_json_580, t_reimport_archives_581, t_bouton_retour_582, t_bien_demarrer_583, t_charte_proies_584, t_mode_simple_585, t_demo_photos_586, t_prochaine_mue_588, t_partager_589, t_nouveaux_notes_590, t_gene_introuvable_591, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_admin_tri_577, t_photos_serveur_579, t_import_json_580, t_reimport_archives_581, t_bouton_retour_582, t_bien_demarrer_583, t_charte_proies_584, t_mode_simple_585, t_demo_photos_586, t_prochaine_mue_588, t_partager_589, t_nouveaux_notes_590, t_gene_introuvable_591, t_intervalle_collection_592, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()

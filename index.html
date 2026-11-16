@@ -1450,6 +1450,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <span id="batch-count-label" style="font-family:'Courier New',monospace;font-size:11px;color:var(--gold);font-weight:600;"></span>
         <button class="sc-btn accent" onclick="batchMarkFed()">🍽 <span data-i18n="batchFeedBtn">Nourrir</span></button>
         <button class="sc-btn" onclick="openBatchPreyModal()">🐭 <span data-i18n="batchPreyBtn">Proie</span></button>
+        <button class="sc-btn" onclick="openBatchIntervalModal()">⏱ <span data-i18n="batchIntervalBtn">Intervalle</span></button><!-- v5.92 -->
         <button class="sc-btn" onclick="batchToggleTerrarium()">🏠 <span data-i18n="batchMoveBtn">Rack ↔ Terrarium</span></button>
         <input type="number" id="batch-price-input" class="price-input" style="width:80px;" placeholder="Prix $" min="0"/>
         <button class="sc-btn" onclick="batchSetPrice()">💰 <span data-i18n="batchPriceBtn">Prix en masse</span></button>
@@ -2397,7 +2398,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.91';
+const APP_VERSION = '2026.09.01.5.92';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5737,6 +5738,15 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.92', date:'2026-11-16',
+    title:{ fr:'Intervalle de nourrissage pour toute la collection', en:'Feeding interval for the whole collection' },
+    changes:{
+      fr:[ '⏱ ⚙️ Configuration : « Intervalle de nourrissage par défaut ». Tu nourris aux 14 jours ? Entre 14 une seule fois, et toute ta collection suit, sauf les animaux qui ont leur propre intervalle sur leur fiche. Laisse vide pour garder le rythme automatique selon l\'espèce et l\'âge.',
+           '⏱ Mes reptiles › Sélection multiple : nouveau bouton « Intervalle » pour donner le même intervalle à plusieurs animaux d\'un coup.',
+           '🐛 L\'intervalle inscrit sur la fiche d\'un python royal est maintenant respecté par les alertes de repas, même s\'il a moins de 3 repas notés (avant : « en retard » après 9 jours peu importe l\'intervalle).' ],
+      en:[ '⏱ ⚙️ Settings: « Default feeding interval ». Feeding every 14 days? Enter 14 once and your whole collection follows, except animals that have their own interval on their sheet. Leave empty to keep the automatic rhythm by species and age.',
+           '⏱ My reptiles › Multiple selection: new « Interval » button to give the same interval to several animals at once.',
+           '🐛 The interval set on a ball python\'s sheet is now respected by meal alerts, even with fewer than 3 meals logged (before: « overdue » after 9 days whatever the interval).' ] } },
   { version:'5.91', date:'2026-11-16',
     title:{ fr:'Un gène introuvable ? Demande-le', en:'Can\'t find a gene? Ask for it' },
     changes:{
@@ -7620,6 +7630,7 @@ const I18N = {
     menuCommitments: 'Nos engagements', // v5.10
     menuCommunity: 'Communauté (Reddit)', // v5.21
     menuShareLocus: 'Partager LOCUS', // v5.89
+    batchIntervalBtn: 'Intervalle', // v5.92
     commitCardTitle: 'Nos engagements', // v5.12
     commitCardText: 'Données hébergées au Canada, aucun pistage, aucune police Google, et liste complète des services externes — chaque point est vérifiable.',
     commitCardLink: 'Lire nos engagements →',
@@ -8217,6 +8228,7 @@ const I18N = {
     menuCommitments: 'Our commitments', // v5.10
     menuCommunity: 'Community (Reddit)', // v5.21
     menuShareLocus: 'Share LOCUS', // v5.89
+    batchIntervalBtn: 'Interval', // v5.92
     commitCardTitle: 'Our commitments', // v5.12
     commitCardText: 'Data hosted in Canada, no tracking, no Google fonts, and the full list of external services — every point can be checked.',
     commitCardLink: 'Read our commitments →',
@@ -9032,6 +9044,10 @@ function openConfigModal(){
       [24,48,72,0].map(h=>'<button class="sc-btn'+(handlingWaitHours()===h?' accent':'')+'" style="flex:1;min-width:70px;" onclick="setHandlingWaitHours('+h+')">'+(h? h+' h' : (isEn?'Off':'Désactivé'))+'</button>').join('')+
     '</div>'+
     '<p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 18px;">'+(isEn?'Shows a countdown on the record and in Tour Mode after each meal. 48 h is the usual advice; your vet may recommend otherwise.':'Affiche un compte à rebours sur la fiche et dans le Mode Tournée après chaque repas. 48 h est le conseil habituel ; ton vétérinaire peut recommander autre chose.')+'</p>'+
+    // v5.92 — intervalle de nourrissage par défaut de la collection (synchronisé)
+    '<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:8px;">⏱ '+(isEn?'Default feeding interval':'Intervalle de nourrissage par défaut')+'</label>'+
+    '<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;"><input type="number" id="cfg-feed-days" class="price-input" style="width:80px;font-size:16px;" min="1" max="120" value="'+(collectionFeedDays()||'')+'" placeholder="auto" onchange="setCollectionFeedDays(this.value)"/> <span>'+(isEn?'days':'jours')+'</span></div>'+
+    '<p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 18px;">'+(isEn?'For every animal without its own interval (on its sheet). Leave empty for automatic: by species and age. Daily-plate eaters keep their rhythm.':'Pour tous les animaux qui n\'ont pas leur propre intervalle (sur leur fiche). Laisse vide pour automatique : selon l\'espèce et l\'âge. Les animaux nourris à l\'assiette gardent leur rythme.')+'</p>'+
     '<div style="border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:8px;">'+
       '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); openNotifSettings();">🔔 '+(isEn?'Notifications':'Notifications')+'</button>'+
       '<button class="sc-btn" style="width:100%;" onclick="closeQuickModal(); openStorageDetails();">💾 '+(isEn?'Storage space':'Espace de stockage')+'</button>'+
@@ -11895,6 +11911,30 @@ function batchMarkFed(){
   showToast('🍽 '+count+' '+(isEn?'reptile(s) marked fed.':'reptile(s) marqué(s) nourri(s).'), 'success');
   toggleBatchMode();
   renderRackGrid(); renderTerrariumList(); renderTourGrid();
+}
+// v5.92 — intervalle de nourrissage pour la sélection (vide = revenir au défaut de la collection)
+function openBatchIntervalModal(){
+  const isEn = currentLang==='en';
+  if(batchSelectedIds.size===0){ showToast(isEn?'Select animals first.':'Choisis d\'abord des animaux.', 'error'); return; }
+  showQuickModal('⏱ '+(isEn?'Feeding interval':'Intervalle de nourrissage'),
+    '<p style="font-size:15px;line-height:1.5;margin:0 0 10px;">'+(isEn?'For the '+batchSelectedIds.size+' selected animal(s): feed every':'Pour les '+batchSelectedIds.size+' animal(s) sélectionné(s) : nourrir aux')+'</p>'+
+    '<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;"><input type="number" id="batch-interval-input" class="price-input" style="width:90px;font-size:18px;" min="1" max="120" placeholder="'+(collectionFeedDays()||'')+'"/> <span style="font-size:15px;">'+(isEn?'days':'jours')+'</span></div>'+
+    '<button class="save-btn" style="width:100%;" onclick="batchSetFeedingInterval(document.getElementById(\'batch-interval-input\').value)">'+(isEn?'Apply':'Appliquer')+'</button>'+
+    '<button class="sc-btn" style="width:100%;margin-top:8px;" onclick="batchSetFeedingInterval(\'\')">'+(isEn?'Back to the collection default':'Revenir au défaut de la collection')+'</button>');
+  setTimeout(()=>{ const i = document.getElementById('batch-interval-input'); if(i) i.focus(); }, 100);
+}
+function batchSetFeedingInterval(value){
+  const isEn = currentLang==='en';
+  const n = parseInt(value, 10);
+  const val = (!isNaN(n) && n>0 && n<=120) ? n : null;
+  if(String(value||'').trim()!=='' && val===null){ showToast(isEn?'Enter a number of days (1 to 120).':'Entre un nombre de jours (1 à 120).', 'error'); return; }
+  let count = 0;
+  batchSelectedIds.forEach(id=>{ const s = savedSnakes.find(x=>x.id===id); if(!s) return; ensureSnakeMeta(s); s.feedingIntervalDays = val; count++; });
+  storage.save(savedSnakes);
+  try{ closeQuickModal(); }catch(e){}
+  showToast('⏱ '+(val ? (isEn?'Every '+val+' days for '+count+' reptile(s).':'Aux '+val+' jours pour '+count+' reptile(s).') : (isEn?'Collection default for '+count+' reptile(s).':'Défaut de la collection pour '+count+' reptile(s).')), 'success');
+  toggleBatchMode();
+  try{ renderDashboard(); renderTourGrid(); }catch(e){}
 }
 function batchToggleTerrarium(){
   const isEn = currentLang==='en';
@@ -15055,7 +15095,7 @@ function openLogbook(id){
     }).join('') : '')+
     (isNewArrival(s) ? '<div style="margin-top:10px;font-size:14px;color:var(--ink-dim);">🆕 '+(isEn?'New — no meal logged yet. No overdue alert before '+newArrivalUntil(s)+'.':'Nouveau — aucun repas noté pour l\'instant. Pas d\'alerte de retard avant le '+newArrivalUntil(s)+'.')+'</div>' : '')+ // v5.90
     '<div class="modal-row" style="margin-top:10px;"><span>'+t('nextMealLabel')+'</span><span>'+nextFeedingDate(s)+'</span></div>'+
-    '<div class="modal-row"><span>'+t('feedingIntervalLabel')+'</span><span><input type="number" class="price-input" style="width:60px;" min="1" value="'+(s.feedingIntervalDays||'')+'" placeholder="'+(speciesDefaultFeedDays(s)||DEFAULT_FEEDING_INTERVAL)+'" onchange="setFeedingInterval(\''+id+'\', this.value)"/> '+t('daysWord')+'</span></div>'+
+    '<div class="modal-row"><span>'+t('feedingIntervalLabel')+'</span><span><input type="number" class="price-input" style="width:60px;" min="1" value="'+(s.feedingIntervalDays||'')+'" placeholder="'+defaultFeedDaysFor(s)+'" onchange="setFeedingInterval(\''+id+'\', this.value)"/> '+t('daysWord')+'</span></div>'+
     nextShedRowHtml(s)+ // v5.88 — prochaine mue prévue, bien visible
     (needsSupplements(s) ? (function(){ // v3.53 — rappel de supplément (optionnel)
       const lastSup = lastSupplementEvent(s);
@@ -23376,6 +23416,16 @@ function feedingStatus(s){
     }
     etape = 'days';
     const days = Math.floor((Date.now() - new Date(last.date+'T00:00:00').getTime()) / 86400000);
+    // v5.92 — un intervalle choisi par l'éleveur (fiche ou défaut de la collection) a maintenant priorité. Avant, un python
+    // royal avec moins de 3 repas ignorait l'intervalle de la fiche (seuils fixes : rouge après 9 jours) — retour d'Aimee.
+    etape = 'explicit-interval';
+    const iX = explicitFeedDays(s);
+    if(iX){
+      if(days <= iX) return 'green';
+      if(days <= Math.max(iX*1.25, iX+2)) return 'yellow';
+      if(days <= Math.max(iX*1.6, iX+4)) return 'orange';
+      return 'red';
+    }
     etape = 'personal-interval';
     const interval = personalFeedingInterval(s);
     if(interval){
@@ -23894,7 +23944,32 @@ function speciesDefaultFeedDays(s){
   const adultAt = SPECIES_ADULT_AT_12M.includes(s.species) ? 12 : 18;
   return m<adultAt ? d[1] : d[2];
 }
-function feedingIntervalOf(s){ return s.feedingIntervalDays || speciesDefaultFeedDays(s) || DEFAULT_FEEDING_INTERVAL; }
+// v5.92 (gratuit) — choix d'Alex (16 nov), retour d'Aimee (30+ pythons au vivant aux 2 semaines, alertes impossibles à régler en bloc) :
+// intervalle par défaut de la collection, gardé dans la liste synchronisée des bannières (drapeau ui_feeddays_N, aucune colonne).
+// Ordre : intervalle propre à l'animal > défaut de la collection (sauf assiette quotidienne) > rythme espèce/âge > 7 jours.
+function collectionFeedDays(){
+  try{ const f = loadDismissedBanners().find(x=>/^ui_feeddays_\d+$/.test(x)); const n = f ? parseInt(f.slice(12),10) : NaN; return n>0 ? n : null; }catch(e){ return null; }
+}
+function setCollectionFeedDays(value){
+  const n = parseInt(value, 10);
+  const list = loadDismissedBanners().filter(x=>!/^ui_feeddays_\d+$/.test(x));
+  if(!isNaN(n) && n>0 && n<=120) list.push('ui_feeddays_'+n);
+  saveDismissedBanners(list); try{ mirrorSnakesRemote(); }catch(e){}
+  const isEn = currentLang==='en';
+  showToast('⏱ '+((!isNaN(n) && n>0) ? (isEn?'Default feeding interval: every '+n+' days.':'Intervalle par défaut : aux '+n+' jours.') : (isEn?'Default feeding interval: automatic (by species and age).':'Intervalle par défaut : automatique (selon l\'espèce et l\'âge).')), 'success');
+  try{ renderDashboard(); renderTourGrid(); renderSavedList(); }catch(e){}
+}
+function defaultFeedDaysFor(s){
+  const c = collectionFeedDays();
+  let plate = false; try{ plate = isPlateFeeder(s); }catch(e){}
+  return (c && !plate) ? c : (speciesDefaultFeedDays(s) || DEFAULT_FEEDING_INTERVAL);
+}
+function feedingIntervalOf(s){ return s.feedingIntervalDays || defaultFeedDaysFor(s); }
+function explicitFeedDays(s){ // intervalle choisi par l'éleveur, sinon null (automatique)
+  if(s && s.feedingIntervalDays) return s.feedingIntervalDays;
+  let plate = false; try{ plate = isPlateFeeder(s); }catch(e){}
+  return plate ? null : collectionFeedDays();
+}
 // Espèces nourries à l'assiette chaque jour (verdures) : uromastyx, tortues terrestres, dragon barbu.
 const PLATE_SPECIES = ['uro_nigriventris','uro_maliensis','uro_ornata','uro_aegyptia','star_tortoise','sulcata_tortoise','leopard_tortoise','bearded_dragon'];
 function isPlateFeeder(s){ return !!(s && PLATE_SPECIES.includes(s.species)); }
