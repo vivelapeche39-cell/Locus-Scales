@@ -2397,7 +2397,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.90';
+const APP_VERSION = '2026.09.01.5.91';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5737,6 +5737,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.91', date:'2026-11-16',
+    title:{ fr:'Un gène introuvable ? Demande-le', en:'Can\'t find a gene? Ask for it' },
+    changes:{
+      fr:[ '🧬 Quand tu cherches un gène qui n\'est pas dans LOCUS (calculateur ou nouvel animal), l\'app explique maintenant pourquoi : seulement des gènes confirmés par des sources fiables, jamais par approximation. Un lien te permet de demander qu\'on le vérifie par courriel.' ],
+      en:[ '🧬 When you search for a gene that isn\'t in LOCUS (calculator or new animal), the app now explains why: only genes confirmed by reliable sources, never guesswork. A link lets you ask us to check it by email.' ] } },
   { version:'5.90', date:'2026-11-16',
     title:{ fr:'Nouveaux animaux sans alerte + notes faciles à trouver', en:'New animals without alerts + notes easy to find' },
     changes:{
@@ -9409,6 +9414,20 @@ function renderCalcSpeciesBar(){
   // Simulateur de rêverie et Chemin optimal : python royal seulement pour l'instant.
   document.querySelectorAll('.calc-bar .calc-btn[onclick*="openDreamSimModal"], .calc-bar .calc-btn[onclick*="openGoalPathModal"]').forEach(b=>{ b.style.display = notBP ? 'none' : ''; });
 }
+// v5.91 (gratuit) — choix d'Alex (16 nov, idée venue de Gemini) : quand un gène cherché n'existe pas, expliquer
+// pourquoi (seulement des gènes confirmés par des sources) et offrir de le demander par courriel (sujet prérempli).
+function geneMissingHintHtml(query, sp){
+  const isEn = currentLang==='en';
+  const q = String(query||'').trim().slice(0,60);
+  let html = '<div style="margin-top:8px;font-size:13px;line-height:1.45;color:var(--ink-dim);text-align:left;">'+(isEn
+    ? 'LOCUS only adds genes confirmed by reliable sources (Morphpedia first), never by guesswork. Some are left out until they are confirmed.'
+    : 'LOCUS ajoute seulement les gènes confirmés par des sources fiables (Morphpedia d\'abord), jamais par approximation. Certains attendent d\'être confirmés.')+'</div>';
+  if(q.length>=3){
+    const subject = encodeURIComponent((isEn?'Gene request: ':'Demande de gène : ')+q+(sp && sp!=='ball_python' ? ' ('+sp+')' : ''));
+    html += '<a href="mailto:support@locusscales.com?subject='+subject+'" onmousedown="event.preventDefault()" style="display:inline-block;margin-top:8px;color:var(--gold);font-size:14px;font-weight:600;">✉️ '+(isEn?'Ask us to check this gene':'Demander qu\'on vérifie ce gène')+'</a>';
+  }
+  return html;
+}
 function buildCombobox(sex){
   const isEn = currentLang==='en';
   const input = document.getElementById('input-'+sex);
@@ -9428,7 +9447,7 @@ function buildCombobox(sex){
     const matches = q ? pool.filter(it=>it.name.toLowerCase().includes(q) || (!it.isSuper && (it.gene.aliases||[]).some(a=>a.toLowerCase().includes(q)))) : pool; // v5.64 — alias Morphpedia
     const catCount = (cat)=>GENES.filter(g=>geneSpecies(g)===sp && g.cat===cat).length;
     if(matches.length===0){
-      list.innerHTML = '<div class="combo-empty">'+(isEn?'No results for “':'Aucun résultat pour « ')+escapeHtml(query)+(isEn?'”.':' ».')+'</div>';
+      list.innerHTML = '<div class="combo-empty">'+(isEn?'No results for “':'Aucun résultat pour « ')+escapeHtml(query)+(isEn?'”.':' ».')+geneMissingHintHtml(query, sp)+'</div>'; // v5.91
       list.classList.add('open');
       return;
     }
