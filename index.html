@@ -2398,7 +2398,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.93';
+const APP_VERSION = '2026.09.01.5.94';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5738,6 +5738,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.94', date:'2026-11-16',
+    title:{ fr:'Mange-t-il pendant la mue ?', en:'Does it eat during a shed?' },
+    changes:{
+      fr:[ '🔵 Fiche d\'un animal : nouvelle ligne « Pendant la mue », sous la prochaine mue prévue. LOCUS regarde les repas et les refus notés pendant ses périodes « En mue » et te dit s\'il mange d\'habitude, parfois, ou s\'il refuse d\'habitude (ex. « mange d\'habitude, 3 fois sur 4 »). Plus besoin de relire tes notes. Apparaît dès 2 offres notées pendant une mue.' ],
+      en:[ '🔵 Animal sheet: new « During a shed » line, under the next expected shed. LOCUS looks at the meals and refusals logged during its « In shed » periods and tells you if it usually eats, sometimes eats, or usually refuses (e.g. « usually eats, 3 of 4 offers »). No need to read back through your notes. Shows up after 2 offers logged during a shed.' ] } },
   { version:'5.93', date:'2026-11-16',
     title:{ fr:'Poids de la proie + observations d\'accouplement', en:'Prey weight + pairing observations' },
     changes:{
@@ -15104,6 +15109,7 @@ function openLogbook(id){
     '<div class="modal-row" style="margin-top:10px;"><span>'+t('nextMealLabel')+'</span><span>'+nextFeedingDate(s)+'</span></div>'+
     '<div class="modal-row"><span>'+t('feedingIntervalLabel')+'</span><span><input type="number" class="price-input" style="width:60px;" min="1" value="'+(s.feedingIntervalDays||'')+'" placeholder="'+defaultFeedDaysFor(s)+'" onchange="setFeedingInterval(\''+id+'\', this.value)"/> '+t('daysWord')+'</span></div>'+
     nextShedRowHtml(s)+ // v5.88 — prochaine mue prévue, bien visible
+    shedEatingRowHtml(s)+ // v5.94 — mange ou refuse pendant la mue
     (needsSupplements(s) ? (function(){ // v3.53 — rappel de supplément (optionnel)
       const lastSup = lastSupplementEvent(s);
       return '<div class="modal-row"><span>💊 '+(isEn?'Supplement reminder every':'Rappel supplément aux')+'</span><span><input type="number" class="price-input" style="width:60px;" min="1" value="'+((s.careParams&&s.careParams.supplementDays)||'')+'" placeholder="—" onchange="setCareParam(\''+id+'\', \'supplementDays\', this.value); renderDashboard();"/> '+t('daysWord')+'</span></div>'+
@@ -16363,6 +16369,30 @@ function inShedWindows(s){
     out.push({ start:e.date, end, closed: !!(nextShed && nextShed.date <= limit) });
   });
   return out;
+}
+// v5.94 (gratuit) — retour d'Aimee : « je relis mes notes pour savoir s'ils mangent pendant la mue ou non ».
+// Calculé à partir des périodes « En mue » notées (inShedWindows) : repas et refus tombés dedans. 2 offres minimum.
+// Seulement ce qui est noté : sans « En mue », aucune période n'est devinée.
+function shedEatingHabit(s){
+  const wins = inShedWindows(s);
+  if(!wins.length) return null;
+  let fed = 0, refused = 0;
+  ((s.health && s.health.events)||[]).forEach(e=>{
+    if(!e || !e.date || e.plate || (e.type!=='fed' && e.type!=='refused')) return;
+    if(wins.some(w=>e.date>=w.start && (w.closed ? e.date<w.end : e.date<=w.end))) { if(e.type==='fed') fed++; else refused++; }
+  });
+  const total = fed + refused;
+  if(total<2) return null;
+  const r = fed/total;
+  return { fed, refused, total, habit: r>=0.6 ? 'eats' : (r<=0.4 ? 'refuses' : 'mixed') };
+}
+function shedEatingRowHtml(s){
+  const h = shedEatingHabit(s); if(!h) return '';
+  const isEn = currentLang==='en';
+  const txt = h.habit==='eats' ? (isEn?'usually eats ('+h.fed+' of '+h.total+' offers)':'mange d\'habitude ('+h.fed+' fois sur '+h.total+')')
+    : h.habit==='refuses' ? (isEn?'usually refuses ('+h.refused+' of '+h.total+' offers)':'refuse d\'habitude ('+h.refused+' fois sur '+h.total+')')
+    : (isEn?'sometimes eats ('+h.fed+' of '+h.total+' offers)':'mange parfois ('+h.fed+' fois sur '+h.total+')');
+  return '<div class="modal-row" id="shed-eating-row"><span>🔵 '+(isEn?'During a shed':'Pendant la mue')+'</span><span>'+txt+'</span></div>';
 }
 function isInShed(s){
   if(!s || !s.health) return false;
