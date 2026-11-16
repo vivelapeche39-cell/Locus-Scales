@@ -980,6 +980,37 @@ def t_mode_simple_585(browser, url):
     check('pas d\'erreur JS (v5.85)', not [e for e in a.real_errors() if not e.startswith('dialog:')], a.real_errors()[:3])
     a.close()
 
+def t_partager_589(browser, url):
+    section('Partager LOCUS : menu, carte unique, lien vers la démo (v5.89)')
+    a = App(browser, url, snakes=[make_snake(890)], lang='fr'); a.open(wait=1500)
+    check('menu ☰ : « Partager LOCUS »', 'Partager LOCUS' in a.js("document.getElementById('app-menu-share').innerText"))
+    card = lambda: a.js("(()=>{ const e=document.getElementById('share-nudge-card'); return e && e.style.display!=='none' ? e.innerText : ''; })()")
+    a.js("currentUser.created_at = new Date().toISOString(); saveDismissedBanners([]); showTab('dash'); renderDashboard();"); a.page.wait_for_timeout(200)
+    check('compte récent : pas de carte', card() == '', card())
+    a.js("currentUser.created_at = '2026-01-01T00:00:00Z'; saveDismissedBanners([]); renderDashboard();"); a.page.wait_for_timeout(200)
+    check('compte de 14 j et plus : carte « Tu aimes LOCUS ? »', 'Tu aimes LOCUS' in card(), card())
+    a.js("window.__shared=null; navigator.share = (d)=>{ window.__shared=d; return Promise.resolve(); };")
+    a.js("document.querySelector('#share-nudge-card .wh-btn').click()"); a.page.wait_for_timeout(200)
+    sh = a.js("window.__shared")
+    check('partage : lien vers la démo + texte', bool(sh) and sh['url'].endswith('/?demo=1') and 'sans compte' in sh['text'], sh)
+    check('après un partage : la carte ne revient plus', card() == '' and a.js("isBannerDismissed('share_nudge')"))
+    a.js("saveDismissedBanners([]); renderDashboard();"); a.page.wait_for_timeout(100)
+    a.js("hideShareNudgeCard()"); a.js("renderDashboard()"); a.page.wait_for_timeout(100)
+    check('× : fermée pour de bon', card() == '')
+    a.js("currentLang='en'; saveDismissedBanners([]); renderDashboard();"); a.page.wait_for_timeout(100)
+    check('anglais : « Do you like LOCUS? »', 'Do you like LOCUS' in card(), card())
+    check('pas d\'erreur JS (v5.89, connecté)', not [e for e in a.real_errors() if not e.startswith('dialog:')], a.real_errors()[:3])
+    a.close()
+    b = App(browser, url, snakes=[], logged_in=False, lang='fr'); b.url = url + '?demo=1'; b.open(wait=1800)
+    check('lien ?demo=1 sans compte : la démo démarre', b.js("isDemoMode()") and b.js("savedSnakes.length") >= 2)
+    check('le ?demo=1 disparaît de l\'adresse', 'demo=1' not in b.js("location.href"), b.js("location.href"))
+    b.js("endDemo(true)"); b.page.wait_for_timeout(1200)
+    b.close()
+    c = App(browser, url, snakes=[make_snake(891)], lang='fr'); c.url = url + '?demo=1'; c.open(wait=1800)
+    check('lien ?demo=1 avec un compte : rien ne change', not c.js("isDemoMode()") and c.js("savedSnakes.length") == 1)
+    check('pas d\'erreur JS (v5.89, lien)', not [e for e in c.real_errors() if not e.startswith('dialog:')], c.real_errors()[:3])
+    c.close()
+
 def t_prochaine_mue_588(browser, url):
     section('Fiche : ligne « Prochaine mue prévue » (v5.88)')
     a = App(browser, url, snakes=[make_snake(880)], lang='fr'); a.open(wait=1500)
@@ -2285,7 +2316,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_admin_tri_577, t_photos_serveur_579, t_import_json_580, t_reimport_archives_581, t_bouton_retour_582, t_bien_demarrer_583, t_charte_proies_584, t_mode_simple_585, t_demo_photos_586, t_prochaine_mue_588, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_admin_tri_577, t_photos_serveur_579, t_import_json_580, t_reimport_archives_581, t_bouton_retour_582, t_bien_demarrer_583, t_charte_proies_584, t_mode_simple_585, t_demo_photos_586, t_prochaine_mue_588, t_partager_589, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()

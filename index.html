@@ -1223,6 +1223,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   <div id="view-dash">
     <div id="welcome-hero" class="welcome-hero" style="display:none;"></div>
     <div id="first-steps-card" class="welcome-hero" style="display:none;"></div><!-- v5.83 — Pour bien démarrer -->
+    <div id="share-nudge-card" class="welcome-hero" style="display:none;"></div><!-- v5.89 — Partager LOCUS (une fois) -->
     <div id="beta-banner" class="onboarding-banner" style="display:none;"></div>
     <div class="dash-greeting" id="dash-greeting"></div>
     <button type="button" class="onboarding-banner commit-card" onclick="window.open(currentLang==='en'?'guides/trust.html':'guides/engagements.html','_blank','noopener');">
@@ -2315,6 +2316,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
     <button class="app-menu-item" onclick="closeAppMenu(); openLegalChooser();"><span>📄</span> <span data-i18n="menuLegal">Conditions et confidentialité</span></button>
     <button class="app-menu-item" onclick="closeAppMenu(); window.open(currentLang==='en'?'guides/trust.html':'guides/engagements.html','_blank','noopener');"><span>🛡</span> <span data-i18n="menuCommitments">Nos engagements</span></button>
     <button class="app-menu-item" onclick="closeAppMenu(); window.open('https://www.reddit.com/r/LocusScales/','_blank','noopener');"><span>💬</span> <span data-i18n="menuCommunity">Communauté (Reddit)</span></button>
+    <button class="app-menu-item" id="app-menu-share" onclick="closeAppMenu(); shareLocus();"><span>📣</span> <span data-i18n="menuShareLocus">Partager LOCUS</span></button>
     <button class="app-menu-item" onclick="closeAppMenu(); openBugReportModal();"><span>🐛</span> <span data-i18n="menuBugReport">Signaler un bug</span></button>
     <button class="app-menu-item" id="app-menu-admin" style="display:none;" onclick="closeAppMenu(); openAdminOverview();"><span>📊</span> <span data-i18n="menuAdmin">Admin</span></button>
     <div class="app-menu-foot">LOCUS Scales — Gestion d'élevage Python royal</div>
@@ -2395,7 +2397,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.88';
+const APP_VERSION = '2026.09.01.5.89';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4002,7 +4004,7 @@ if(sb){
       const u = currentUser;
       // v4.24 — attend que les données locales soient chargées (le script entier), puis vérifie à qui elles appartiennent
       setTimeout(()=>{ if(currentUser && currentUser.id===u.id) synchroniserAvecServeur().then(()=>backfillMissingPhotoUrls()); }, 0);
-      setTimeout(()=>{ try{ if(currentUser && currentUser.id===u.id){ maybeShowWelcomeInstallMessage(); renderFirstStepsCard(); renderWelcomeHero(); } }catch(e){} }, 2500); // v5.83
+      setTimeout(()=>{ try{ if(currentUser && currentUser.id===u.id){ maybeShowWelcomeInstallMessage(); renderFirstStepsCard(); renderShareNudgeCard(); renderWelcomeHero(); } }catch(e){} }, 2500); // v5.83
       setTimeout(()=>{ try{ applySimpleMode(); }catch(e){} }, 300); // v5.85 // la vérification du propriétaire est faite dans synchroniserAvecServeur (v4.25)
     }
   });
@@ -5735,6 +5737,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.89', date:'2026-11-16',
+    title:{ fr:'Partager LOCUS', en:'Share LOCUS' },
+    changes:{
+      fr:[ '📣 Nouveau dans le menu ☰ : « Partager LOCUS ». Envoie un lien à quelqu\'un qui garde des reptiles (Messenger, texto…) : le lien ouvre directement la démo, sans compte à créer.' ],
+      en:[ '📣 New in the ☰ menu: « Share LOCUS ». Send a link to someone who keeps reptiles (Messenger, text…): the link opens the demo right away, no account needed.' ] } },
   { version:'5.88', date:'2026-11-16',
     title:{ fr:'Prochaine mue bien visible', en:'Next shed easy to see' },
     changes:{
@@ -7600,6 +7607,7 @@ const I18N = {
     menuPrivacy: 'Confidentialité',
     menuCommitments: 'Nos engagements', // v5.10
     menuCommunity: 'Communauté (Reddit)', // v5.21
+    menuShareLocus: 'Partager LOCUS', // v5.89
     commitCardTitle: 'Nos engagements', // v5.12
     commitCardText: 'Données hébergées au Canada, aucun pistage, aucune police Google, et liste complète des services externes — chaque point est vérifiable.',
     commitCardLink: 'Lire nos engagements →',
@@ -8196,6 +8204,7 @@ const I18N = {
     menuPrivacy: 'Privacy',
     menuCommitments: 'Our commitments', // v5.10
     menuCommunity: 'Community (Reddit)', // v5.21
+    menuShareLocus: 'Share LOCUS', // v5.89
     commitCardTitle: 'Our commitments', // v5.12
     commitCardText: 'Data hosted in Canada, no tracking, no Google fonts, and the full list of external services — every point can be checked.',
     commitCardLink: 'Read our commitments →',
@@ -34843,6 +34852,59 @@ function renderFirstStepsCard(){
     ).join('')+'</div>';
 }
 function hideFirstStepsCard(){ dismissBanner('first_steps_card'); renderFirstStepsCard(); }
+// v5.89 (gratuit) — choix d'Alex (16 nov) : bouton « Partager LOCUS » dans ☰ ; le lien ouvre la démo directement
+// chez l'autre (?demo=1, seulement sans compte ni données sur l'appareil). Petite carte unique dans l'Agenda,
+// compte de 14 jours ou plus : fermée pour de bon au × ou après un partage. Aucune récompense, aucun suivi.
+var LOCUS_SHARE_URL = 'https://app.locusscales.com/?demo=1';
+function shareLocus(){
+  const isEn = currentLang==='en';
+  const url = LOCUS_SHARE_URL;
+  const text = isEn
+    ? 'I keep track of my reptiles with LOCUS Scales (meals, weights, sheds, breeding, feeder rodents). You can try it without an account:'
+    : 'Je suis mes reptiles avec LOCUS Scales (repas, poids, mues, reproduction, rongeurs). Tu peux l\'essayer sans compte :';
+  const fallback = ()=>{
+    const done = ()=>showToast('🔗 '+(isEn?'Link copied — paste it in your message.':'Lien copié — colle-le dans ton message.'), 'success');
+    const all = text+' '+url;
+    try{ if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(all).then(done, ()=>prompt(isEn?'Copy this text:':'Copie ce texte :', all)); return; } }catch(e){}
+    prompt(isEn?'Copy this text:':'Copie ce texte :', all);
+  };
+  if(navigator.share){ navigator.share({ title:'LOCUS Scales', text, url }).catch(err=>{ if(err && err.name!=='AbortError') fallback(); }); }
+  else fallback();
+  if(currentUser && !isBannerDismissed('share_nudge')){ dismissBanner('share_nudge'); try{ renderShareNudgeCard(); }catch(e){} }
+}
+function shareNudgeEligible(){
+  if(!currentUser || isDemoMode() || isBannerDismissed('share_nudge')) return false;
+  if(!savedSnakes.some(x=>!x.isSample)) return false;
+  try{ if(firstStepsEligible()) return false; }catch(e){} // jamais deux cartes en même temps
+  const c = currentUser.created_at ? Date.parse(currentUser.created_at) : NaN;
+  return !isNaN(c) && (Date.now()-c) >= 14*24*3600*1000;
+}
+function renderShareNudgeCard(){
+  const el = document.getElementById('share-nudge-card'); if(!el) return;
+  if(!shareNudgeEligible()){ el.style.display = 'none'; el.innerHTML = ''; return; }
+  const isEn = currentLang==='en';
+  el.style.display = 'block';
+  el.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">'+
+      '<h2 style="margin:0 0 4px;">'+(isEn?'Do you like LOCUS?':'Tu aimes LOCUS ?')+'</h2>'+
+      '<button type="button" class="ob-close" aria-label="'+(isEn?'Hide':'Masquer')+'" onclick="hideShareNudgeCard()" style="font-size:22px;">×</button>'+
+    '</div>'+
+    '<p style="margin:0 0 10px;">'+(isEn?'If you know someone who keeps reptiles, you can send them a link to try it without an account. This card won\'t come back.':'Si tu connais quelqu\'un qui garde des reptiles, tu peux lui envoyer un lien pour l\'essayer sans compte. Cette carte ne reviendra pas.')+'</p>'+
+    '<div class="wh-actions"><button type="button" class="wh-btn primary" onclick="shareLocus()"><span class="wh-icon">📣</span> '+(isEn?'Share LOCUS':'Partager LOCUS')+'</button></div>';
+}
+function hideShareNudgeCard(){ dismissBanner('share_nudge'); renderShareNudgeCard(); }
+// Lien partagé (?demo=1) : démarre la démo seulement sans session Supabase gardée et sans données à soi ; sinon on ignore.
+function maybeStartDemoFromLink(){
+  let p; try{ p = new URLSearchParams(location.search); }catch(e){ return; }
+  if(p.get('demo')!=='1') return;
+  try{ p.delete('demo'); const q = p.toString(); history.replaceState(history.state, '', location.pathname+(q?'?'+q:'')+location.hash); }catch(e){}
+  if(isDemoMode()) return;
+  let hasSession = false;
+  try{ for(let i=0;i<localStorage.length;i++){ const k = localStorage.key(i); if(k && /^sb-.+-auth-token$/.test(k) && localStorage.getItem(k)){ hasSession = true; break; } } }catch(e){}
+  if(hasSession || !demoAllowed()) return;
+  startDemo();
+}
+window.addEventListener('load', function(){ setTimeout(function(){ try{ maybeStartDemoFromLink(); }catch(e){} }, 600); }); // v5.89
 // v5.83 — étapes d'installation selon le téléphone (réutilisées par la carte et par le message de bienvenue)
 function installStepsHtml(){
   const isEn = currentLang==='en';
@@ -35077,6 +35139,7 @@ function renderDashboard(){
   try{ renderSeasonRecapCard(); }catch(e){} // v3.87
   renderWelcomeHero();
   try{ renderFirstStepsCard(); }catch(e){} // v5.83
+  try{ renderShareNudgeCard(); }catch(e){} // v5.89
   try{ applySimpleMode(); }catch(e){} // v5.85
   renderFirstSnakeNudge();
   updateBackupReminderBanner();
