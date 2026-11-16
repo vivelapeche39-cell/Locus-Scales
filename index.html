@@ -2395,7 +2395,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.87';
+const APP_VERSION = '2026.09.01.5.88';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5735,6 +5735,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.88', date:'2026-11-16',
+    title:{ fr:'Prochaine mue bien visible', en:'Next shed easy to see' },
+    changes:{
+      fr:[ '🐍 Fiche d\'un animal : nouvelle ligne « Prochaine mue prévue » sous l\'intervalle de nourrissage — la date estimée et dans combien de jours, calculée à partir des mues déjà notées (2 mues minimum). En orange si la date est dépassée.' ],
+      en:[ '🐍 Animal sheet: new « Next shed expected » line under the feeding interval — the estimated date and in how many days, based on the sheds already logged (2 sheds minimum). In orange if the date has passed.' ] } },
   { version:'5.86', date:'2026-11-13',
     title:{ fr:'Essayer sans compte + photos plus légères', en:'Try without an account + lighter photos' },
     changes:{
@@ -15014,6 +15019,7 @@ function openLogbook(id){
     }).join('') : '')+
     '<div class="modal-row" style="margin-top:10px;"><span>'+t('nextMealLabel')+'</span><span>'+nextFeedingDate(s)+'</span></div>'+
     '<div class="modal-row"><span>'+t('feedingIntervalLabel')+'</span><span><input type="number" class="price-input" style="width:60px;" min="1" value="'+(s.feedingIntervalDays||'')+'" placeholder="'+(speciesDefaultFeedDays(s)||DEFAULT_FEEDING_INTERVAL)+'" onchange="setFeedingInterval(\''+id+'\', this.value)"/> '+t('daysWord')+'</span></div>'+
+    nextShedRowHtml(s)+ // v5.88 — prochaine mue prévue, bien visible
     (needsSupplements(s) ? (function(){ // v3.53 — rappel de supplément (optionnel)
       const lastSup = lastSupplementEvent(s);
       return '<div class="modal-row"><span>💊 '+(isEn?'Supplement reminder every':'Rappel supplément aux')+'</span><span><input type="number" class="price-input" style="width:60px;" min="1" value="'+((s.careParams&&s.careParams.supplementDays)||'')+'" placeholder="—" onchange="setCareParam(\''+id+'\', \'supplementDays\', this.value); renderDashboard();"/> '+t('daysWord')+'</span></div>'+
@@ -23148,6 +23154,34 @@ function shedPredictionHint(s){
   return isEn ? 'Next shed expected around '+est+' (in '+days+'d).' : 'Prochaine mue prévue vers le '+est+' (dans '+days+' j).';
 }
 
+// v5.88 (gratuit) — ligne « Prochaine mue prévue » dans la fiche, sous l'intervalle de nourrissage.
+// 0 mue → comment l'obtenir ; 1 mue → encore 1 à noter ; en mue → depuis quand ; sinon date + dans N j,
+// ou « dépassée de N j » en orange quand la date estimée est passée.
+function nextShedRowHtml(s){
+  const isEn = currentLang==='en';
+  const label = '🐍 '+(isEn?'Next shed expected':'Prochaine mue prévue');
+  const sheds = (s.health.events||[]).filter(e=>e.type==='shed');
+  let val;
+  if(isInShed(s)){
+    val = '<span style="color:#8fb8ef;">🔵 '+(isEn?'In shed now (since '+escapeHtml(inShedSince(s))+')':'En mue en ce moment (depuis le '+escapeHtml(inShedSince(s))+')')+'</span>';
+  } else if(sheds.length===0){
+    val = '<span style="color:var(--ink-dim);font-size:13px;">'+(isEn?'Log 2 sheds to predict it':'Note 2 mues pour la prédire')+'</span>';
+  } else if(sheds.length===1){
+    val = '<span style="color:var(--ink-dim);font-size:13px;">'+(isEn?'1 more shed to log':'Encore 1 mue à noter')+'</span>';
+  } else {
+    const est = nextShedEstimate(s);
+    const lastShed = sheds.map(e=>e.date).sort().pop();
+    if(!est || est<=lastShed){
+      val = '<span style="color:var(--ink-dim);font-size:13px;">—</span>';
+    } else {
+      const days = Math.round((new Date(est+'T00:00:00').getTime() - new Date(localTodayStr()+'T00:00:00').getTime()) / 86400000);
+      if(days>0) val = '<b>'+est+'</b> · '+(isEn?'in '+days+' d':'dans '+days+' j');
+      else if(days===0) val = '<b>'+est+'</b> · '+(isEn?'today':'aujourd\'hui');
+      else val = '<span style="color:var(--rust);"><b>'+est+'</b> · '+(isEn?'overdue by '+(-days)+' d':'dépassée de '+(-days)+' j')+'</span>';
+    }
+  }
+  return '<div class="modal-row" id="next-shed-row"><span>'+label+'</span><span>'+val+'</span></div>';
+}
 // Nombre de jours depuis la dernière pesée — null si jamais pesé.
 const WEIGH_REMINDER_DAYS = 30;
 function daysSinceLastWeigh(s){

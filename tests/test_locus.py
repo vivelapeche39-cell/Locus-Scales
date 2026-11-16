@@ -980,6 +980,33 @@ def t_mode_simple_585(browser, url):
     check('pas d\'erreur JS (v5.85)', not [e for e in a.real_errors() if not e.startswith('dialog:')], a.real_errors()[:3])
     a.close()
 
+def t_prochaine_mue_588(browser, url):
+    section('Fiche : ligne « Prochaine mue prévue » (v5.88)')
+    a = App(browser, url, snakes=[make_snake(880)], lang='fr'); a.open(wait=1500)
+    sid = a.js("savedSnakes[0].id")
+    row = lambda: a.js("(document.getElementById('next-shed-row')||{}).innerText||''")
+    def setup(js):
+        a.js("(()=>{ const s=savedSnakes[0]; s.health.events=(s.health.events||[]).filter(e=>e.type!=='shed'&&e.type!=='inshed'); %s })()" % js)
+        a.js("openLogbook('%s')" % sid); a.page.wait_for_timeout(250)
+    setup("")
+    check('0 mue : « Note 2 mues pour la prédire »', 'Prochaine mue prévue' in row() and 'Note 2 mues' in row(), row())
+    check('la ligne suit « Intervalle de nourrissage »', a.js("(()=>{ const r=document.getElementById('next-shed-row'); const p=r&&r.previousElementSibling; return !!p && p.innerText.includes('Intervalle de nourrissage'); })()"))
+    setup("s.health.events.push({type:'shed', date:addDays(localTodayStr(),-10)});")
+    check('1 mue : « Encore 1 mue à noter »', 'Encore 1 mue' in row(), row())
+    setup("s.health.events.push({type:'shed', date:addDays(localTodayStr(),-40)},{type:'shed', date:addDays(localTodayStr(),-10)});")
+    exp = a.js("addDays(localTodayStr(),20)")
+    check('2 mues (30 j) : date + « dans 20 j »', exp in row() and 'dans 20 j' in row(), row())
+    setup("s.health.events.push({type:'shed', date:addDays(localTodayStr(),-70)},{type:'shed', date:addDays(localTodayStr(),-40)});")
+    check('date passée : « dépassée de 10 j »', 'dépassée de 10 j' in row(), row())
+    setup("s.health.events.push({type:'shed', date:addDays(localTodayStr(),-70)},{type:'shed', date:addDays(localTodayStr(),-40)}); logInShed(s.id);")
+    a.js("openLogbook('%s')" % sid); a.page.wait_for_timeout(250)
+    check('en mue : « En mue en ce moment »', 'En mue en ce moment' in row(), row())
+    a.js("currentLang='en'")
+    setup("s.health.events.push({type:'shed', date:addDays(localTodayStr(),-40)},{type:'shed', date:addDays(localTodayStr(),-10)});")
+    check('anglais : « Next shed expected » + « in 20 d »', 'Next shed expected' in row() and 'in 20 d' in row(), row())
+    check('pas d\'erreur JS (v5.88)', not [e for e in a.real_errors() if not e.startswith('dialog:')], a.real_errors()[:3])
+    a.close()
+
 def t_demo_photos_586(browser, url):
     section('Photos : miniature seulement après l\'envoi + Essayer sans compte (v5.86)')
     a = App(browser, url, snakes=[make_snake(860)], lang='fr'); a.open(wait=1500)
@@ -2258,7 +2285,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_admin_tri_577, t_photos_serveur_579, t_import_json_580, t_reimport_archives_581, t_bouton_retour_582, t_bien_demarrer_583, t_charte_proies_584, t_mode_simple_585, t_demo_photos_586, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_admin_tri_577, t_photos_serveur_579, t_import_json_580, t_reimport_archives_581, t_bouton_retour_582, t_bien_demarrer_583, t_charte_proies_584, t_mode_simple_585, t_demo_photos_586, t_prochaine_mue_588, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()
