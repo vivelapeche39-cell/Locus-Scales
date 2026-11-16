@@ -980,6 +980,32 @@ def t_mode_simple_585(browser, url):
     check('pas d\'erreur JS (v5.85)', not [e for e in a.real_errors() if not e.startswith('dialog:')], a.real_errors()[:3])
     a.close()
 
+def t_nouveaux_notes_590(browser, url):
+    section('Nouveaux animaux sans alerte + bouton Note (v5.90)')
+    sn = make_snake(900); sn['health'] = {'events': [], 'weights': []}; sn['createdAt'] = int(time.time()*1000)
+    old = make_snake(901); old['name'] = 'Vieux'; old['health'] = {'events': [], 'weights': []}; old['createdAt'] = 1700000000000
+    a = App(browser, url, snakes=[sn, old], lang='fr'); a.open(wait=1500)
+    st = a.js("[feedingStatus(savedSnakes[0]), isNewArrival(savedSnakes[0]), feedingStatus(savedSnakes[1]), isNewArrival(savedSnakes[1])]")
+    check('ajouté aujourd\'hui sans repas : pas en retard, « nouveau »', st[0] == 'green' and st[1] is True, st)
+    check('ajouté il y a longtemps sans repas : toujours à surveiller', st[2] == 'red' and st[3] is False, st)
+    a.js("try{closeQuickModal()}catch(e){}; showTab('dash'); renderDashboard()"); a.page.wait_for_timeout(300)
+    check('tableau de bord : 1 seul repas en retard (pas le nouveau)', a.js("savedSnakes.filter(s=>feedingStatus(s)==='red').length") == 1)
+    a.js("showTab('mine')"); a.page.wait_for_timeout(300)
+    check('carte de Mes reptiles : pastille « 🆕 Nouveau »', '🆕 NOUVEAU' in a.js("document.getElementById('saved-grid').innerText").upper())
+    a.js("openLogbook(savedSnakes[0].id)"); a.page.wait_for_timeout(300)
+    body = a.js("document.getElementById('logbook-body').innerText")
+    check('fiche : « Nouveau — aucun repas noté » + date', 'Nouveau — aucun repas noté' in body and 'Pas d\'alerte de retard avant le' in body, body[:400])
+    order = a.js("(()=>{ const h=[...document.querySelectorAll('#logbook-body h3')].map(x=>x.innerText); return [h.findIndex(x=>x.toUpperCase().includes('NOTES')), h.findIndex(x=>x.toUpperCase().includes('PROIE'))]; })()")
+    check('section Notes juste avant la Proie (haut de la fiche)', order[0] >= 0 and order[0] < order[1] and order[0] <= 2, order)
+    a.js("[...document.querySelectorAll('#logbook-body .tour-action-btn')].find(b=>b.innerText.includes('Note')).click()"); a.page.wait_for_timeout(600)
+    check('bouton « 📝 Note » : le curseur va dans les notes', a.js("document.activeElement && document.activeElement.id==='logbook-notes-input'"))
+    a.page.keyboard.type('Calme, mange bien'); a.page.wait_for_timeout(1500)
+    check('la note s\'enregistre', 'Calme' in (a.js("savedSnakes[0].notes") or ''))
+    a.js("pushHealthEvent(savedSnakes[0], {date:localTodayStr(), type:'fed'})"); a.page.wait_for_timeout(200)
+    check('après un 1er repas : plus « nouveau »', a.js("isNewArrival(savedSnakes[0])") is False)
+    check('pas d\'erreur JS (v5.90)', not [e for e in a.real_errors() if not e.startswith('dialog:')], a.real_errors()[:3])
+    a.close()
+
 def t_partager_589(browser, url):
     section('Partager LOCUS : menu, carte unique, lien vers la démo (v5.89)')
     a = App(browser, url, snakes=[make_snake(890)], lang='fr'); a.open(wait=1500)
@@ -2316,7 +2342,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_admin_tri_577, t_photos_serveur_579, t_import_json_580, t_reimport_archives_581, t_bouton_retour_582, t_bien_demarrer_583, t_charte_proies_584, t_mode_simple_585, t_demo_photos_586, t_prochaine_mue_588, t_partager_589, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_admin_tri_577, t_photos_serveur_579, t_import_json_580, t_reimport_archives_581, t_bouton_retour_582, t_bien_demarrer_583, t_charte_proies_584, t_mode_simple_585, t_demo_photos_586, t_prochaine_mue_588, t_partager_589, t_nouveaux_notes_590, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()

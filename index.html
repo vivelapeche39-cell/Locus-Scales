@@ -2397,7 +2397,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.89';
+const APP_VERSION = '2026.09.01.5.90';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5737,6 +5737,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.90', date:'2026-11-16',
+    title:{ fr:'Nouveaux animaux sans alerte + notes faciles à trouver', en:'New animals without alerts + notes easy to find' },
+    changes:{
+      fr:[ '🆕 Un animal que tu viens d\'ajouter n\'est plus marqué « repas en retard » tout de suite. Tant qu\'aucun repas n\'est noté, il a une période d\'arrivée (son intervalle de repas + 7 jours) avec une pastille « 🆕 Nouveau » à la place. Ça laisse le temps de l\'acclimater, ou d\'entrer ses repas.',
+           '📝 Notes : nouveau bouton « 📝 Note » dans les actions rapides de la fiche, et la section Notes est maintenant juste en dessous, au lieu d\'être loin en bas.' ],
+      en:[ '🆕 An animal you just added is no longer marked « meal overdue » right away. Until a meal is logged, it gets an arrival period (its feeding interval + 7 days) with a « 🆕 New » badge instead. That leaves time to let it settle in, or to enter its meals.',
+           '📝 Notes: new « 📝 Note » button in the sheet\'s quick actions, and the Notes section is now right below, instead of far down the page.' ] } },
   { version:'5.89', date:'2026-11-16',
     title:{ fr:'Partager LOCUS', en:'Share LOCUS' },
     changes:{
@@ -12152,7 +12159,7 @@ function renderSavedList(){
     const batchCheckbox = batchSelectMode ? '<input type="checkbox" class="batch-select-cb" data-batch-id="'+s.id+'" '+(batchSelectedIds.has(s.id)?'checked':'')+' style="width:20px;height:20px;margin-right:8px;accent-color:var(--gold);flex-shrink:0;"/>' : '';
     if(batchSelectMode) card.classList.toggle('batch-selected', batchSelectedIds.has(s.id));
     card.innerHTML = (mineView==='cards' ? minePhotoBannerHtml(s, isEn) : '')+
-      '<div class="sc-head"><span class="sc-name" style="display:flex;align-items:center;">'+batchCheckbox+thumb+escapeHtml(snakeName(s))+'</span><span>'+sexBadge+provenBadgeHtml(s, isEn)+(isInShed(s)?'<span class="sc-status" style="background:rgba(57,135,229,.16);border:1px solid rgba(57,135,229,.45);color:#8fb8ef;">🔵 '+(isEn?'In shed':'En mue')+'</span>':'')+statusBadge+unverifiedBadge+quarantineBadge+speciesBadge+tagsBadges+'</span></div>'+
+      '<div class="sc-head"><span class="sc-name" style="display:flex;align-items:center;">'+batchCheckbox+thumb+escapeHtml(snakeName(s))+'</span><span>'+sexBadge+provenBadgeHtml(s, isEn)+(isInShed(s)?'<span class="sc-status" style="background:rgba(57,135,229,.16);border:1px solid rgba(57,135,229,.45);color:#8fb8ef;">🔵 '+(isEn?'In shed':'En mue')+'</span>':'')+(isNewArrival(s)?'<span class="sc-status" style="background:var(--bg-panel-2);border:1px solid var(--line);color:var(--ink-dim);">🆕 '+(isEn?'New':'Nouveau')+'</span>':'')+statusBadge+unverifiedBadge+quarantineBadge+speciesBadge+tagsBadges+'</span></div>'+
       (function(){ const ct = speciesComboTitle(s.genes, s.species); return ct ? '<div class="sc-genes" style="color:var(--gold);font-weight:600;">'+escapeHtml(ct)+'</div>' : ''; })()+ // v5.42
       '<div class="sc-genes">'+summarizeGenes(s.genes)+'</div>'+
       '<div class="sc-genes" style="color:var(--sage);">📍 '+placeLabel+'</div>'+
@@ -15010,6 +15017,7 @@ function openLogbook(id){
       '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'weigh\')">'+t('eventWeigh')+'</button>'+
       '<button class="tour-action-btn" onclick="logAction(\''+id+'\',\'length\')">'+t('eventLength')+'</button>'+
       '<button class="tour-action-btn" onclick="quickLogDefecation(\''+id+'\')">💩 '+(isEn?'Poop':'Selles')+'</button>'+ // v3.77
+      '<button class="tour-action-btn" onclick="focusSnakeNotes()">📝 '+(isEn?'Note':'Note')+'</button>'+ // v5.90
     '</div>'+
     // v3.77 — délai de manipulation + dernière défécation, juste sous les actions rapides.
     (function(){
@@ -15026,6 +15034,7 @@ function openLogbook(id){
       return '<div class="modal-row" style="margin-top:8px;"><span style="font-size:12.5px;">🐍 '+(isEn?'Pairing with ':'Accouplement avec ')+'<b>'+escapeHtml(spSnakeName(pp.maleId===id?pp.femaleId:pp.maleId))+'</b> · 🔒 '+(pp.lockDates||[]).length+'</span>'+
         '<span style="display:flex;gap:4px;"><button class="sc-btn accent" onclick="quickAddLockToday(\''+pp.id+'\')">🔒 +</button><button class="sc-btn" onclick="togglePairSession(\''+pp.id+'\')">'+(tog?'⏸ '+(isEn?'Separate':'Séparer'):'🤝 '+(isEn?'Together':'Ensemble'))+'</button></span></div>';
     }).join('') : '')+
+    (isNewArrival(s) ? '<div style="margin-top:10px;font-size:14px;color:var(--ink-dim);">🆕 '+(isEn?'New — no meal logged yet. No overdue alert before '+newArrivalUntil(s)+'.':'Nouveau — aucun repas noté pour l\'instant. Pas d\'alerte de retard avant le '+newArrivalUntil(s)+'.')+'</div>' : '')+ // v5.90
     '<div class="modal-row" style="margin-top:10px;"><span>'+t('nextMealLabel')+'</span><span>'+nextFeedingDate(s)+'</span></div>'+
     '<div class="modal-row"><span>'+t('feedingIntervalLabel')+'</span><span><input type="number" class="price-input" style="width:60px;" min="1" value="'+(s.feedingIntervalDays||'')+'" placeholder="'+(speciesDefaultFeedDays(s)||DEFAULT_FEEDING_INTERVAL)+'" onchange="setFeedingInterval(\''+id+'\', this.value)"/> '+t('daysWord')+'</span></div>'+
     nextShedRowHtml(s)+ // v5.88 — prochaine mue prévue, bien visible
@@ -15039,6 +15048,10 @@ function openLogbook(id){
         ? '<span style="color:#6fa8c9;">'+(isEn?'Active since ':'Actif depuis ')+s.brumation.startDate+'</span> <button class="sc-btn" style="padding:2px 10px;margin-left:6px;" onclick="toggleBrumation(\''+id+'\')">'+(isEn?'End':'Terminer')+'</button>'
         : '<button class="sc-btn" style="padding:2px 10px;" onclick="toggleBrumation(\''+id+'\')">'+(isEn?'Start':'Débuter')+'</button>')+
     '</span></div>'+
+    '<div class="modal-section" id="logbook-notes-section"><h3>📝 '+(isEn?'Notes':'Notes')+' <span id="notes-saved-'+id+'" style="font-size:12px;font-weight:400;"></span></h3>'+
+      '<textarea id="logbook-notes-input" rows="4" maxlength="5000" style="width:100%;font-size:16px;padding:10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Verdana,sans-serif;resize:vertical;line-height:1.45;" placeholder="'+(isEn?'Anything about this animal: temperament, history, things to remember…':'Tout ce qui concerne cet animal : tempérament, historique, choses à retenir…')+'" oninput="setSnakeNotesSoon(\''+id+'\',this.value)" onchange="setSnakeNotes(\''+id+'\',this.value)">'+escapeHtml(s.notes||'')+'</textarea>'+
+      '<div style="font-size:12.5px;color:var(--ink-dim);margin-top:4px;">🔒 '+(isEn?'Private — never shown on public pages, the showcase or shared links.':'Privé — jamais affiché sur les pages publiques, la vitrine ou les liens partagés.')+'</div>'+
+    '</div>'+ // v4.21 — v5.90 : montée juste sous les actions rapides (retour d'une nouvelle utilisatrice : notes introuvables)
     '<div class="modal-section" style="background:rgba(201,151,62,.08);border:1px solid var(--gold);border-radius:10px;padding:12px;margin-top:14px;'+((!s.preySpecies||!s.preySize)?'box-shadow:0 0 0 1px rgba(201,151,62,.35);':'')+'">'+
       '<h3 style="margin-top:0;">🍽 '+t('preyLabel')+(!s.preySpecies||!s.preySize ? ' <span style="color:var(--gold);font-size:11px;">⚠ '+(isEn?'not set':'non renseignée')+'</span>' : '')+'</h3>'+
       '<p style="font-size:10.5px;color:var(--ink-dim);margin:0 0 10px;">'+(isEn?'Species and size drive the Thaw List and Feeder Stock decrement.':'Espèce et taille alimentent la Liste de décongélation et le décompte du Stock de proies.')+'</p>'+
@@ -15133,10 +15146,6 @@ function openLogbook(id){
       })()+
     '</div>'+
     '<div class="modal-section"><h3>🥚 Proven</h3>'+provenSectionHtml(s, id)+'</div>'+
-    '<div class="modal-section"><h3>📝 '+(isEn?'Notes':'Notes')+' <span id="notes-saved-'+id+'" style="font-size:12px;font-weight:400;"></span></h3>'+
-      '<textarea rows="4" maxlength="5000" style="width:100%;font-size:16px;padding:10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Verdana,sans-serif;resize:vertical;line-height:1.45;" placeholder="'+(isEn?'Anything about this animal: temperament, history, things to remember…':'Tout ce qui concerne cet animal : tempérament, historique, choses à retenir…')+'" oninput="setSnakeNotesSoon(\''+id+'\',this.value)" onchange="setSnakeNotes(\''+id+'\',this.value)">'+escapeHtml(s.notes||'')+'</textarea>'+
-      '<div style="font-size:12.5px;color:var(--ink-dim);margin-top:4px;">🔒 '+(isEn?'Private — never shown on public pages, the showcase or shared links.':'Privé — jamais affiché sur les pages publiques, la vitrine ou les liens partagés.')+'</div>'+
-    '</div>'+ // v4.21
     '<div class="modal-section"><h3>📤 '+(isEn?'Share: sale link and show QR':'Partager : lien de vente et QR de show')+'</h3>'+showQrSectionHtml(s, id)+'</div>'+ // v3.85
     '<div class="modal-section"><h3>'+t('customTagsTitle')+'</h3>'+
       '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">'+
@@ -23299,6 +23308,19 @@ function feedingStatusExplanation(s){
   return null;
 }
 
+// v5.90 (gratuit) — choix d'Alex (16 nov), après le retour d'une nouvelle utilisatrice : un animal ajouté sans aucun repas,
+// refus ni repas sauté au journal n'est pas « en retard » pendant son intervalle de repas + 7 jours après l'ajout dans LOCUS.
+// Pastille neutre « 🆕 Nouveau » à la place. Après cette période, sans repas noté, il redevient « à surveiller » comme avant.
+var NEW_ARRIVAL_EXTRA_DAYS = 7;
+function newArrivalUntil(s){
+  if(!s || s.status==='deceased' || !s.health) return null;
+  if((s.health.events||[]).some(e=>e.type==='fed'||e.type==='refused'||e.type==='skipped')) return null;
+  const c = Number(s.createdAt); if(!c || isNaN(c)) return null;
+  let iv = 7; try{ iv = feedingIntervalOf(s) || 7; }catch(e){}
+  const until = addDays(ymdLocal(new Date(c)), iv + NEW_ARRIVAL_EXTRA_DAYS);
+  return localTodayStr() < until ? until : null;
+}
+function isNewArrival(s){ return !!newArrivalUntil(s); }
 function feedingStatus(s){
   if(s && s.status==='deceased') return 'green'; // v3.84 — aucune alerte pour un animal décédé
   if(s && isInShed(s)) return 'green'; // v3.90 — en mue : ne mange souvent pas, refus normal, aucune alerte
@@ -23306,6 +23328,7 @@ function feedingStatus(s){
   try{
     etape = 'brumation';
     if(s.brumation && s.brumation.active) return 'brumation'; // hivernage volontaire — pas un vrai retard, aucune alerte tant que c'est actif
+    if(isNewArrival(s)) return 'green'; // v5.90 — nouvel arrivant sans repas noté : pas en retard
     etape = 'filter/sort';
     // v3.92 — un « repas sauté (volontaire) » remet le compte à zéro comme un repas, sans être un refus
     const relevant = s.health.events.filter(e=>e.type==='fed'||e.type==='refused'||e.type==='skipped').sort((a,b)=>a.date.localeCompare(b.date));
@@ -26486,6 +26509,11 @@ function setCareParam(id, field, value){
 var _careParamTimers = {};
 // v4.21 — notes libres de la fiche : enregistrées pendant qu'on écrit (même principe que les paramètres d'élevage, piège iPhone v3.81)
 var _snakeNotesTimers = {};
+function focusSnakeNotes(){ // v5.90 — bouton « 📝 Note » des actions rapides
+  const sec = document.getElementById('logbook-notes-section'), inp = document.getElementById('logbook-notes-input');
+  if(sec) try{ sec.scrollIntoView({behavior:'smooth', block:'center'}); }catch(e){ sec.scrollIntoView(); }
+  if(inp) setTimeout(()=>{ try{ inp.focus({preventScroll:true}); const n = inp.value.length; inp.setSelectionRange(n, n); }catch(e){} }, 350);
+}
 function setSnakeNotesSoon(id, value){
   clearTimeout(_snakeNotesTimers[id]);
   _snakeNotesTimers[id] = setTimeout(function(){ delete _snakeNotesTimers[id]; setSnakeNotes(id, value); }, 500);
