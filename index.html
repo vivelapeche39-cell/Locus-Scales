@@ -538,6 +538,12 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
   .legal-wrap{padding-right:16px;padding-bottom:90px;}
 }
 
+.quicklog-fab{position:fixed;right:14px;bottom:calc(72px + env(safe-area-inset-bottom));z-index:64;background:var(--gold);color:#1a140c;border:none;border-radius:999px;padding:12px 18px;font-size:16px;font-weight:700;box-shadow:var(--shadow);cursor:pointer;}
+@media (min-width: 761px){ .quicklog-fab{bottom:24px;right:24px;} }
+.ql-chip{font-size:15px;padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:var(--bg-panel-2);color:var(--ink);cursor:pointer;}
+.ql-chip.on{background:var(--gold);color:#1a140c;border-color:var(--gold);font-weight:700;}
+.ql-ev{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px;border:1px solid var(--line);border-radius:10px;background:var(--bg-panel-2);color:var(--ink);font-size:13px;cursor:pointer;}
+.ql-ev b{font-size:22px;font-weight:400;}
 .toast-stack{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:100%;padding:0 16px;}
 .toast{background:#211B15;border:1px solid var(--gold);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Verdana,sans-serif;font-size:13px;padding:12px 20px;border-radius:26px;box-shadow:var(--shadow);opacity:0;transform:translateY(12px);transition:opacity .25s ease, transform .25s ease;max-width:440px;text-align:center;}
 .toast-undo-btn{background:transparent;border:1px solid var(--gold);color:var(--gold);font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:14px;margin-left:8px;cursor:pointer;white-space:nowrap;}
@@ -2341,6 +2347,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
 <div id="stats-overlay" role="dialog" aria-modal="true" aria-label="Statistiques" style="display:none;position:fixed;inset:0;z-index:120;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>
 
 <div id="toast-stack" class="toast-stack"></div>
+<button type="button" id="quicklog-fab" class="quicklog-fab" style="display:none;" onclick="openQuickLog()"><span aria-hidden="true">＋</span> <span data-i18n="quickLogFab">Noter</span></button><!-- v5.95 -->
 
 <div class="modal-overlay" id="quick-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="quick-modal-title">
   <div class="modal-panel" style="max-width:380px;">
@@ -2398,7 +2405,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.94';
+const APP_VERSION = '2026.09.01.5.95';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4005,7 +4012,7 @@ if(sb){
       const u = currentUser;
       // v4.24 — attend que les données locales soient chargées (le script entier), puis vérifie à qui elles appartiennent
       setTimeout(()=>{ if(currentUser && currentUser.id===u.id) synchroniserAvecServeur().then(()=>backfillMissingPhotoUrls()); }, 0);
-      setTimeout(()=>{ try{ if(currentUser && currentUser.id===u.id){ maybeShowWelcomeInstallMessage(); renderFirstStepsCard(); renderShareNudgeCard(); renderWelcomeHero(); } }catch(e){} }, 2500); // v5.83
+      setTimeout(()=>{ try{ if(currentUser && currentUser.id===u.id){ maybeShowWelcomeInstallMessage(); renderFirstStepsCard(); renderShareNudgeCard(); renderWelcomeHero(); try{ updateQuickLogFab(); }catch(e){} } }catch(e){} }, 2500); // v5.83
       setTimeout(()=>{ try{ applySimpleMode(); }catch(e){} }, 300); // v5.85 // la vérification du propriétaire est faite dans synchroniserAvecServeur (v4.25)
     }
   });
@@ -5738,6 +5745,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.95', date:'2026-11-17',
+    title:{ fr:'Bouton « ＋ Noter » partout', en:'« ＋ Log » button everywhere' },
+    changes:{
+      fr:[ '＋ Nouveau bouton « Noter », toujours visible en bas à droite, peu importe l\'onglet. Choisis un ou plusieurs animaux, puis ce qui s\'est passé : repas, refus, en mue, selles, mue, poids ou note. Plus besoin de savoir dans quelle section aller.',
+           '👥 Plusieurs animaux d\'un coup : repas, refus, « en mue » et selles se notent pour toute ta sélection en un seul toucher (avec Annuler). Mue, poids et note se font un animal à la fois, avec leur fenêtre détaillée.' ],
+      en:[ '＋ New « Log » button, always visible at the bottom right, whatever tab you\'re on. Pick one or more animals, then what happened: meal, refusal, in shed, poop, shed, weight or note. No need to know which section to go to.',
+           '👥 Several animals at once: meals, refusals, « in shed » and poop are logged for your whole selection in one tap (with Undo). Shed, weight and note are done one animal at a time, with their detailed window.' ] } },
   { version:'5.94', date:'2026-11-16',
     title:{ fr:'Mange-t-il pendant la mue ?', en:'Does it eat during a shed?' },
     changes:{
@@ -7642,6 +7656,7 @@ const I18N = {
     menuCommitments: 'Nos engagements', // v5.10
     menuCommunity: 'Communauté (Reddit)', // v5.21
     menuShareLocus: 'Partager LOCUS', // v5.89
+    quickLogFab: 'Noter', // v5.95
     batchIntervalBtn: 'Intervalle', // v5.92
     commitCardTitle: 'Nos engagements', // v5.12
     commitCardText: 'Données hébergées au Canada, aucun pistage, aucune police Google, et liste complète des services externes — chaque point est vérifiable.',
@@ -8240,6 +8255,7 @@ const I18N = {
     menuCommitments: 'Our commitments', // v5.10
     menuCommunity: 'Community (Reddit)', // v5.21
     menuShareLocus: 'Share LOCUS', // v5.89
+    quickLogFab: 'Log', // v5.95
     batchIntervalBtn: 'Interval', // v5.92
     commitCardTitle: 'Our commitments', // v5.12
     commitCardText: 'Data hosted in Canada, no tracking, no Google fonts, and the full list of external services — every point can be checked.',
@@ -9664,6 +9680,7 @@ function dismissFirstSnakeTip(){
 }
 
 function showTab(tab){
+  setTimeout(()=>{ try{ updateQuickLogFab(); }catch(e){} }, 0); // v5.95
   try{ applySimpleMode(); }catch(e){} // v5.85 — une section qui sert maintenant apparaît
   document.querySelectorAll('.onboarding-banner').forEach(b=>b.style.display='none');
   showOnboardingTip(tab);
@@ -11869,8 +11886,115 @@ function renderGeneticHealthReport(){
 // Actions en lot sur "Mes reptiles" — sélectionner plusieurs reptiles à la fois pour
 // les nourrir ou les déplacer d'un coup, plutôt qu'un par un. batchSelectedIds ne
 // garde que des IDs (pas d'objets) pour rester léger et éviter les références périmées.
+// ==================== v5.95 — « ＋ Noter » partout (option A, choix d'Alex 17 nov ; gratuit) ====================
+// Retours d'Aimee + remarque d'Alex : tout est rangé en sections, il faut savoir où aller pour noter.
+// Bouton flottant toujours visible → choisir un ou plusieurs animaux → l'événement. Réutilise les fonctions existantes :
+// 1 animal = mêmes fenêtres que la fiche (logAction, logInShed, quickLogDefecation, notes) ; plusieurs = repas, refus,
+// en mue et selles notés d'un coup (avec Annuler). Mue, poids et note : un animal à la fois (fenêtres détaillées).
+var quickLogSel = new Set();
+function quickLogVisible(){
+  if(isDemoMode()) return savedSnakes.some(isActiveSnake);
+  return !!currentUser && savedSnakes.some(x=>isActiveSnake(x) && !x.isSample);
+}
+function updateQuickLogFab(){
+  const b = document.getElementById('quicklog-fab'); if(!b) return;
+  b.style.display = (quickLogVisible() && !batchSelectMode) ? '' : 'none';
+}
+function openQuickLog(preId){
+  const isEn = currentLang==='en';
+  quickLogSel = new Set(preId ? [preId] : []);
+  showQuickModal('＋ '+(isEn?'Log':'Noter'),
+    '<div style="font-size:15px;font-weight:600;margin-bottom:8px;">'+(isEn?'For which animal(s)?':'Pour quel(s) animal(aux) ?')+'</div>'+
+    '<input type="search" id="ql-search" autocomplete="off" placeholder="'+(isEn?'Name or ID…':'Nom ou ID…')+'" oninput="renderQuickLogChips()" style="width:100%;font-size:16px;padding:10px;margin-bottom:10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:10px;color:var(--ink);"/>'+
+    '<div id="ql-chips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;"></div>'+
+    '<div id="ql-actions"></div>');
+  renderQuickLogChips();
+}
+function quickLogCandidates(){
+  const q = ((document.getElementById('ql-search')||{}).value||'').trim().toLowerCase();
+  let list = savedSnakes.filter(isActiveSnake);
+  if(q) list = list.filter(x=>String(snakeName(x)||'').toLowerCase().includes(q) || String(x.id||'').toLowerCase().includes(q) || String(x.morph||'').toLowerCase().includes(q));
+  list.sort((a,b)=>String(snakeName(a)).localeCompare(String(snakeName(b))));
+  return list;
+}
+function renderQuickLogChips(){
+  const isEn = currentLang==='en';
+  const box = document.getElementById('ql-chips'); if(!box) return;
+  const all = quickLogCandidates();
+  const sel = savedSnakes.filter(x=>quickLogSel.has(x.id));
+  const shown = sel.concat(all.filter(x=>!quickLogSel.has(x.id)).slice(0, 40));
+  box.innerHTML = shown.map(x=>'<button type="button" class="ql-chip'+(quickLogSel.has(x.id)?' on':'')+'" onclick="toggleQuickLogSnake(\''+x.id+'\')">'+(quickLogSel.has(x.id)?'✓ ':'')+escapeHtml(snakeName(x))+'</button>').join('')+
+    (all.length - all.filter(x=>quickLogSel.has(x.id)).length > 40 ? '<div style="width:100%;font-size:13px;color:var(--ink-dim);">'+(isEn?'Type a name to find the others.':'Tape un nom pour trouver les autres.')+'</div>' : '')+
+    (!shown.length ? '<div style="font-size:14px;color:var(--ink-dim);">'+(isEn?'No animal found.':'Aucun animal trouvé.')+'</div>' : '');
+  renderQuickLogActions();
+}
+function toggleQuickLogSnake(id){
+  if(quickLogSel.has(id)) quickLogSel.delete(id); else quickLogSel.add(id);
+  renderQuickLogChips();
+}
+function renderQuickLogActions(){
+  const isEn = currentLang==='en';
+  const box = document.getElementById('ql-actions'); if(!box) return;
+  const n = quickLogSel.size;
+  if(!n){ box.innerHTML = '<div style="font-size:14px;color:var(--ink-dim);text-align:center;padding:6px;">'+(isEn?'Tap one or more animals above.':'Touche un ou plusieurs animaux ci-dessus.')+'</div>'; return; }
+  const one = n===1;
+  const ev = (k, icon, fr, en, multi)=>'<button type="button" class="ql-ev" onclick="quickLogDo(\''+k+'\')"'+((!one && !multi)?' style="opacity:.45;"':'')+'><b>'+icon+'</b>'+(isEn?en:fr)+((!one && !multi)?'<span style="font-size:11px;color:var(--ink-dim);">'+(isEn?'1 at a time':'1 à la fois')+'</span>':'')+'</button>';
+  box.innerHTML = '<div style="font-size:15px;font-weight:600;margin-bottom:8px;">'+(isEn?'What happened?':'Qu\'est-ce qui s\'est passé ?')+(n>1?' <span style="font-weight:400;color:var(--ink-dim);">('+n+(isEn?' animals':' animaux')+')</span>':'')+'</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;">'+
+      ev('fed','🍽','Repas','Meal',true)+ev('refused','✋','Refus','Refused',true)+ev('inshed','🔵','En mue','In shed',true)+ev('poop','💩','Selles','Poop',true)+
+      ev('shed','🐍','Mue','Shed',false)+ev('weigh','⚖️','Poids','Weight',false)+ev('note','📝','Note','Note',false)+ev('sheet','📖','Fiche','Sheet',false)+
+    '</div>';
+}
+function quickLogDo(kind){
+  const isEn = currentLang==='en';
+  const ids = Array.from(quickLogSel).filter(id=>savedSnakes.some(x=>x.id===id));
+  if(!ids.length) return;
+  if(ids.length===1){
+    const id = ids[0];
+    closeQuickModal();
+    if(kind==='fed' || kind==='refused' || kind==='shed' || kind==='weigh') return logAction(id, kind);
+    if(kind==='inshed') return logInShed(id);
+    if(kind==='poop') return quickLogDefecation(id);
+    if(kind==='note'){ openLogbook(id); return setTimeout(focusSnakeNotes, 300); }
+    if(kind==='sheet') return openLogbook(id);
+    return;
+  }
+  if(kind==='shed' || kind==='weigh' || kind==='note' || kind==='sheet'){
+    showToast(isEn?'Choose a single animal for this one.':'Choisis un seul animal pour celui-là.', 'error'); return;
+  }
+  const today = localTodayStr();
+  const undo = []; let stockTouched = false, count = 0;
+  ids.forEach(id=>{
+    const s = savedSnakes.find(x=>x.id===id); if(!s) return;
+    ensureSnakeMeta(s);
+    if(kind==='fed'){
+      s.health.consecutiveRefusals = 0;
+      const e = { date:today, type:'fed', preyType: s.preyType||'frozen', at:new Date().toISOString() };
+      if(s.preySpecies && s.preySize){ e.preySpecies = s.preySpecies; e.preySize = s.preySize; const rec = consumePreyForEvent(s, s.preyType||'frozen', 1); if(rec){ e.stockDraw = rec; stockTouched = true; } }
+      pushHealthEvent(s, e); undo.push({snakeId:id, event:e});
+    } else if(kind==='refused'){
+      s.health.consecutiveRefusals = (s.health.consecutiveRefusals||0)+1;
+      const e = { date:today, type:'refused' }; pushHealthEvent(s, e); undo.push({snakeId:id, event:e});
+    } else if(kind==='inshed'){
+      if(isInShed(s)) return;
+      const e = { date:today, type:'inshed' }; pushHealthEvent(s, e); undo.push({snakeId:id, event:e});
+    } else if(kind==='poop'){
+      s.health.defecations = s.health.defecations||[];
+      s.health.defecations.push({ id:'def_'+Date.now()+'_'+count, date:today, note:'' });
+    }
+    count++;
+  });
+  storage.save(savedSnakes);
+  if(stockTouched){ saveElevage(); try{ renderDefrostList(); renderFeederStockList(); }catch(e){} }
+  if(undo.length) registerEventUndo(undo);
+  closeQuickModal();
+  const label = { fed:(isEn?'meal':'repas'), refused:(isEn?'refusal':'refus'), inshed:(isEn?'in shed':'en mue'), poop:(isEn?'poop':'selles') }[kind];
+  showToast('✓ '+(isEn?label+' logged for '+count+' animal(s).':label.charAt(0).toUpperCase()+label.slice(1)+' noté pour '+count+' animal(aux).'), 'success', undo.length ? 'undoLastLoggedEvent()' : undefined);
+  try{ renderDashboard(); renderTourGrid(); renderSavedList(); renderRackGrid(); renderTerrariumList(); }catch(e){}
+}
 function toggleBatchMode(){
   batchSelectMode = !batchSelectMode;
+  setTimeout(updateQuickLogFab, 0); // v5.95
   batchSelectedIds.clear();
   const btn = document.getElementById('batch-mode-toggle-btn');
   if(btn) btn.classList.toggle('active', batchSelectMode);
@@ -35327,6 +35451,7 @@ function renderDashboard(){
   renderWelcomeHero();
   try{ renderFirstStepsCard(); }catch(e){} // v5.83
   try{ renderShareNudgeCard(); }catch(e){} // v5.89
+  try{ updateQuickLogFab(); }catch(e){} // v5.95
   try{ applySimpleMode(); }catch(e){} // v5.85
   renderFirstSnakeNudge();
   updateBackupReminderBanner();
