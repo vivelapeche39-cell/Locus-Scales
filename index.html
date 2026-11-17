@@ -1277,15 +1277,21 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
       <div class="dash-sortable-body"><div id="dash-hatch-list" class="sale-list"></div></div>
     </div>
     </div>
-    <a href="https://www.facebook.com/share/1PukXjXpVP/?mibextid=wwXIfr" target="_blank" rel="noopener" id="dash-facebook-banner" style="text-decoration:none;">
-      <div style="margin-top:26px;background:linear-gradient(135deg, rgba(24,119,242,.16), rgba(201,151,62,.08));border:1px solid #1877f2;border-radius:16px;padding:16px 20px;display:flex;align-items:center;gap:14px;">
-        <span style="font-size:26px;flex-shrink:0;">📘</span>
+    <div id="dash-facebook-banner" style="margin-top:26px;background:linear-gradient(135deg, rgba(201,151,62,.14), rgba(24,119,242,.08));border:1px solid var(--gold);border-radius:16px;padding:16px 20px;">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <span style="font-size:26px;flex-shrink:0;">🐍</span>
         <div>
-          <div style="font-family:Georgia,'Times New Roman',serif;font-size:15px;font-weight:700;color:#4a9eff;" data-i18n="facebookBannerTitle">Rejoins-nous sur Facebook</div>
-          <div style="font-size:12px;color:var(--ink-dim);margin-top:2px;" data-i18n="facebookBannerSubtitle">Annonces, nouveautés et communauté d'éleveurs — LOCUS Scales</div>
+          <div style="font-family:Georgia,'Times New Roman',serif;font-size:15px;font-weight:700;color:var(--gold);" data-i18n="facebookBannerTitle">Suis LOCUS Scales</div>
+          <div style="font-size:12px;color:var(--ink-dim);margin-top:2px;" data-i18n="facebookBannerSubtitle">Vidéos, astuces d'entretien et nouveautés</div>
         </div>
       </div>
-    </a>
+      <div id="dash-social-links" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;">
+        <a class="sc-btn" href="https://www.facebook.com/share/1PukXjXpVP/?mibextid=wwXIfr" target="_blank" rel="noopener" style="text-decoration:none;">📘 Facebook</a>
+        <a class="sc-btn" href="https://www.instagram.com/locusscales/" target="_blank" rel="noopener" style="text-decoration:none;">📸 Instagram</a>
+        <a class="sc-btn" href="https://www.tiktok.com/@locusscales" target="_blank" rel="noopener" style="text-decoration:none;">🎵 TikTok</a>
+        <a class="sc-btn" href="https://www.reddit.com/r/LocusScales/" target="_blank" rel="noopener" style="text-decoration:none;">💬 Reddit</a>
+      </div>
+    </div>
   </div>
 
   <div id="view-calc" style="display:none;">
@@ -2405,7 +2411,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.95';
+const APP_VERSION = '2026.09.01.5.96';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5709,6 +5715,9 @@ function openContactModal(){
     // v5.23 — demande d'Alex : Reddit et Facebook dans « Nous contacter »
     '<div class="modal-row"><span>Reddit</span><span><a href="https://www.reddit.com/r/LocusScales/" target="_blank" rel="noopener" style="color:var(--gold);">r/LocusScales</a></span></div>'+
     '<div class="modal-row"><span>Facebook</span><span><a href="https://www.facebook.com/share/1PukXjXpVP/?mibextid=wwXIfr" target="_blank" rel="noopener" style="color:var(--gold);">Locus Scales</a></span></div>'+
+    // v5.96 — demande d'Alex : Instagram et TikTok
+    '<div class="modal-row"><span>Instagram</span><span><a href="https://www.instagram.com/locusscales/" target="_blank" rel="noopener" style="color:var(--gold);">@locusscales</a></span></div>'+
+    '<div class="modal-row"><span>TikTok</span><span><a href="https://www.tiktok.com/@locusscales" target="_blank" rel="noopener" style="color:var(--gold);">@locusscales</a></span></div>'+
     '<p style="font-size:12px;color:var(--ink-dim);line-height:1.6;margin:12px 0 0;">'+(isEn?'On Reddit, your question and its answer stay visible for other users — handy for questions, ideas and bugs.':'Sur Reddit, ta question et sa réponse restent visibles pour les autres utilisateurs — pratique pour les questions, les idées et les bogues.')+'</p>'
   );
 }
@@ -5745,6 +5754,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.96', date:'2026-11-17',
+    title:{ fr:'LOCUS sur Instagram et TikTok', en:'LOCUS on Instagram and TikTok' },
+    changes:{
+      fr:[ '📸 LOCUS Scales est maintenant sur Instagram et TikTok (@locusscales) : vidéos, astuces d\'entretien et génétique expliquée par notre mascotte. Les liens sont dans « Nous contacter » et dans le bandeau « Suis LOCUS Scales » du tableau de bord, avec Facebook et Reddit.' ],
+      en:[ '📸 LOCUS Scales is now on Instagram and TikTok (@locusscales): videos, husbandry tips and genetics explained by our mascot. The links are in « Contact Us » and in the « Follow LOCUS Scales » banner on the dashboard, along with Facebook and Reddit.' ] } },
   { version:'5.95', date:'2026-11-17',
     title:{ fr:'Bouton « ＋ Noter » partout', en:'« ＋ Log » button everywhere' },
     changes:{
@@ -7589,8 +7603,8 @@ const I18N = {
     lastMealLabel: 'Dernier : ',
     nextMealPrefix: 'Prochain : ', // v5.01 — clé en double renommée (la 2e écrasait celle-ci)
     nextHatchesTitle: '🥚 Prochaines éclosions',
-    facebookBannerTitle: 'Rejoins-nous sur Facebook',
-    facebookBannerSubtitle: 'Annonces, nouveautés et communauté d\'éleveurs — LOCUS Scales',
+    facebookBannerTitle: 'Suis LOCUS Scales',
+    facebookBannerSubtitle: 'Vidéos, astuces d\'entretien et nouveautés',
     tabCalc: '🧬 Calculateur',
     tabMine: '🐍 Mes reptiles',
     tabElevage: '🏠 Élevage',
@@ -8188,8 +8202,8 @@ const I18N = {
     lastMealLabel: 'Last: ',
     nextMealPrefix: 'Next: ',
     nextHatchesTitle: '🥚 Upcoming hatches',
-    facebookBannerTitle: 'Join us on Facebook',
-    facebookBannerSubtitle: 'Announcements, updates, and a breeder community — LOCUS Scales',
+    facebookBannerTitle: 'Follow LOCUS Scales',
+    facebookBannerSubtitle: 'Videos, husbandry tips and updates',
     tabCalc: '🧬 Calculator',
     tabMine: '🐍 My Reptiles',
     tabElevage: '🏠 Husbandry',
