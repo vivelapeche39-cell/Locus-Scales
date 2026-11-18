@@ -2411,7 +2411,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.96';
+const APP_VERSION = '2026.09.01.5.97';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5754,6 +5754,15 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.97', date:'2026-11-17',
+    title:{ fr:'Suivi du jeûne', en:'Fast tracking' },
+    changes:{
+      fr:[ '🍽 Fiche d\'un animal : quand il n\'a pas mangé depuis 2 semaines ou plus, une ligne « Jeûne » affiche le nombre de jours et la perte de poids depuis le dernier repas (ex. « 63 jours · −4 % depuis le dernier repas »). Le poids est le vrai test pendant un jeûne.',
+           '📉 L\'alerte de perte de poids sonne maintenant aussi à 10 % depuis le dernier repas, même si le jeûne dure des mois (avant : seulement une baisse de 10 % sur 60 jours, qui pouvait rater un long jeûne qui maigrit lentement).',
+           '🍼 Jeune python royal (moins de 500 g) : un repère discret apparaît après 1 semaine sans repas par 100 g de poids, minimum 2 semaines. C\'est un repère LOCUS, pas une règle vétérinaire. Pas de repère pendant une mue notée ni pour un nouvel arrivant. Gratuit, comme le reste.' ],
+      en:[ '🍽 Animal sheet: when it hasn\'t eaten for 2 weeks or more, a « Fasting » line shows the number of days and the weight loss since the last meal (e.g. « 63 days · −4% since the last meal »). Weight is the real test during a fast.',
+           '📉 The weight loss alert now also triggers at 10% since the last meal, even when the fast lasts months (before: only a 10% drop over 60 days, which could miss a long fast with slow weight loss).',
+           '🍼 Young ball python (under 500 g): a discreet guideline appears after 1 week without a meal per 100 g of weight, minimum 2 weeks. It\'s a LOCUS guideline, not a veterinary rule. No guideline during a logged shed or for a new arrival. Free, like the rest.' ] } },
   { version:'5.96', date:'2026-11-17',
     title:{ fr:'LOCUS sur Instagram et TikTok', en:'LOCUS on Instagram and TikTok' },
     changes:{
@@ -15248,6 +15257,7 @@ function openLogbook(id){
     '<div class="modal-row"><span>'+t('feedingIntervalLabel')+'</span><span><input type="number" class="price-input" style="width:60px;" min="1" value="'+(s.feedingIntervalDays||'')+'" placeholder="'+defaultFeedDaysFor(s)+'" onchange="setFeedingInterval(\''+id+'\', this.value)"/> '+t('daysWord')+'</span></div>'+
     nextShedRowHtml(s)+ // v5.88 — prochaine mue prévue, bien visible
     shedEatingRowHtml(s)+ // v5.94 — mange ou refuse pendant la mue
+    fastRowHtml(s)+ // v5.97 — jeûne : jours, % depuis le dernier repas, repère discret pour les jeunes
     (needsSupplements(s) ? (function(){ // v3.53 — rappel de supplément (optionnel)
       const lastSup = lastSupplementEvent(s);
       return '<div class="modal-row"><span>💊 '+(isEn?'Supplement reminder every':'Rappel supplément aux')+'</span><span><input type="number" class="price-input" style="width:60px;" min="1" value="'+((s.careParams&&s.careParams.supplementDays)||'')+'" placeholder="—" onchange="setCareParam(\''+id+'\', \'supplementDays\', this.value); renderDashboard();"/> '+t('daysWord')+'</span></div>'+
@@ -23392,12 +23402,78 @@ function weightDropInfo(s){
 }
 function weightDropping(s){
   const d = weightDropInfo(s);
-  return !!(d && !d.postLay);
+  return !!(d && !d.postLay) || fastDropping(s); // v5.97 — aussi 10 % depuis le dernier repas
 }
+// v5.97 — suivi du jeûne (gratuit, choix d'Alex le 17 nov) : depuis le DERNIER REPAS, sans fenêtre de 60 jours,
+// pour attraper un long jeûne qui perd lentement. Poids de départ = dernière pesée le jour du repas ou avant.
+var FAST_DROP_PCT = 10, FAST_ROW_MIN_DAYS = 14, JUV_MAX_WEIGHT_G = 500;
+function fastWeightsSorted(s){
+  return ((s.health && s.health.weights)||[]).filter(w=>w && w.date && Number(w.value)>0).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+}
+function fastInfo(s){
+  if(!s || !s.health || s.status==='deceased') return null;
+  const lf = lastFedInfo(s); if(!lf || !lf.date) return null;
+  const days = Math.floor((new Date(localTodayStr()+'T00:00:00').getTime() - new Date(lf.date+'T00:00:00').getTime()) / 86400000);
+  const ws = fastWeightsSorted(s);
+  const before = ws.filter(w=>w.date<=lf.date); const after = ws.filter(w=>w.date>lf.date);
+  let pct = null, base = null, last = null;
+  if(before.length && after.length){
+    base = before[before.length-1]; last = after[after.length-1];
+    pct = Math.round((Number(base.value)-Number(last.value))/Number(base.value)*1000)/10;
+  }
+  const postLay = s.sex==='female' && (clutches||[]).some(c=>c && c.damId===s.id && c.layDate && c.layDate>lf.date);
+  return { days, since: lf.date, base, last, pct, postLay };
+}
+function fastDropping(s){
+  const f = fastInfo(s);
+  return !!(f && f.pct!==null && f.pct>=FAST_DROP_PCT && !f.postLay);
+}
+// Repère discret pour un jeune python royal (< 500 g) : 1 semaine par 100 g, minimum 2 semaines.
+// Repère LOCUS, pas une règle vétérinaire (aucune source sérieuse ne donne de chiffre précis).
+function juvenileFastInfo(s){
+  if(!s || !s.health || s.status==='deceased' || s.species!=='ball_python') return null;
+  if((s.brumation && s.brumation.active) || isInShed(s) || isNewArrival(s)) return null;
+  const ws = fastWeightsSorted(s); if(!ws.length) return null;
+  const w = Number(ws[ws.length-1].value); if(!(w>0) || w>=JUV_MAX_WEIGHT_G) return null;
+  const limit = Math.max(14, Math.round(w/100*7));
+  const lf = lastFedInfo(s);
+  let fromDate = lf && lf.date ? lf.date : (s.birthDate || (Number(s.createdAt) ? ymdLocal(new Date(Number(s.createdAt))) : null));
+  if(!fromDate) return null;
+  const days = Math.floor((new Date(localTodayStr()+'T00:00:00').getTime() - new Date(fromDate+'T00:00:00').getTime()) / 86400000);
+  if(days < limit) return null;
+  return { days, limit, weight: w, neverFed: !lf };
+}
+function fastRowHtml(s){
+  const isEn = currentLang==='en';
+  let out = '';
+  const f = fastInfo(s);
+  if(f && f.days>=FAST_ROW_MIN_DAYS){
+    const pctTxt = f.pct===null ? '' : (f.pct>0 ? ' · −'+(isEn?String(f.pct):String(f.pct).replace('.',','))+(isEn?'% since the last meal':' % depuis le dernier repas') : (isEn?' · no weight loss since the last meal':' · aucune perte depuis le dernier repas'));
+    out += '<div class="modal-row" id="fast-row"><span>🍽 '+(isEn?'Fasting':'Jeûne')+'</span><span>'+f.days+(isEn?' days':' jours')+pctTxt+'</span></div>';
+    if(f.pct===null) out += '<div style="font-size:12px;color:var(--ink-dim);margin:-2px 0 6px;">'+(isEn?'Weigh it now and then: weight is the real test during a fast.':'Pèse-le de temps en temps : le poids est le vrai test pendant un jeûne.')+'</div>';
+  }
+  const j = juvenileFastInfo(s);
+  if(j){
+    out += '<div id="juvenile-fast-note" style="margin-top:8px;padding:8px 12px;border:1px solid rgba(201,151,62,.55);border-radius:10px;font-size:13.5px;line-height:1.45;color:var(--ink);background:rgba(201,151,62,.08);">🍼 '+(isEn
+      ? 'Young snake: '+j.days+' days without a meal'+(j.neverFed?' logged':'')+'. LOCUS guideline: worth watching, especially if it loses weight.'
+      : 'Jeune serpent : '+j.days+' jours sans repas'+(j.neverFed?' noté':'')+'. Repère LOCUS : à surveiller, surtout s\'il perd du poids.')+
+      '<div style="font-size:12px;color:var(--ink-dim);margin-top:3px;">'+(isEn
+      ? 'Guideline: 1 week per 100 g, minimum 2 weeks, under 500 g. Not a veterinary rule — when in doubt, ask a reptile vet.'
+      : 'Repère : 1 semaine par 100 g, minimum 2 semaines, sous 500 g. Ce n\'est pas une règle vétérinaire : en cas de doute, consulte un vétérinaire pour reptiles.')+'</div></div>';
+  }
+  return out;
+}
+
 function weightDropNoteHtml(s){
   const d = weightDropInfo(s);
-  if(!d) return '';
   const isEn = currentLang==='en';
+  if(!d){ // v5.97 — long jeûne : 10 % ou plus depuis le dernier repas
+    if(!fastDropping(s)) return '';
+    const f = fastInfo(s); const pT = isEn ? String(f.pct) : String(f.pct).replace('.',',');
+    return '<div id="fast-drop-note" style="margin-top:8px;padding:10px 12px;border:1px solid var(--rust);border-radius:10px;background:linear-gradient(rgba(200,70,50,.14),rgba(200,70,50,.14)),var(--bg-panel);font-size:14.5px;line-height:1.45;color:var(--ink);">📉 <b>'+(isEn?'Weight loss during the fast: −'+pT+'%':'Perte de poids pendant le jeûne : −'+pT+' %')+'</b><br>'+(isEn
+      ? fmtWeight(Number(f.base.value))+' on '+escapeHtml(f.base.date)+' → '+fmtWeight(Number(f.last.value))+' on '+escapeHtml(f.last.date)+', no meal since '+escapeHtml(f.since)+'. Keepers often use about 10% as the point to pay closer attention; talk to a reptile vet (see Utility › Health).'
+      : fmtWeight(Number(f.base.value))+' le '+escapeHtml(f.base.date)+' → '+fmtWeight(Number(f.last.value))+' le '+escapeHtml(f.last.date)+', aucun repas depuis le '+escapeHtml(f.since)+'. Les keepers prennent souvent environ 10 % comme seuil pour y regarder de plus près; parles-en à un vétérinaire pour reptiles (voir Utilitaire › Santé).')+'</div>';
+  }
   const pctTxt = isEn ? String(d.pct) : String(d.pct).replace('.',',');
   if(d.postLay) return '<p class="husbandry-health-note" style="margin-top:8px;font-size:14px;">🥚 '+(isEn
     ? 'Down '+pctTxt+'% since '+escapeHtml(d.peakDate)+' ('+fmtWeight(d.peak)+' → '+fmtWeight(d.last)+') — normal weight loss after laying, no alert.'
