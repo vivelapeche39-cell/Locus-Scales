@@ -2411,7 +2411,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.97';
+const APP_VERSION = '2026.09.01.5.98';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5605,6 +5605,10 @@ const AIDE_ITEMS = [
   {qFr:'Comment mes données sont-elles sauvegardées ?', qEn:'How is my data backed up?',
    aFr:'Tes données se synchronisent automatiquement sur le cloud tant que tu es connecté, ce qui te protège en cas d\'appareil perdu ou effacé. Tu peux quand même exporter une copie JSON en tout temps (Menu ☰ → Configuration, ou onglet Export) pour tes propres archives.',
    aEn:'Your data syncs automatically to the cloud while you\'re logged in, protecting you against a lost or wiped device. You can still export a JSON copy anytime (Menu ☰ → Settings, or the Export tab) for your own records.'},
+  // v5.98 — explication du suivi du jeûne et du repère 🍼 des jeunes (5.97)
+  {qFr:'Comment fonctionne le suivi du jeûne (🍽, 📉, 🍼) ?', qEn:'How does fast tracking work (🍽, 📉, 🍼)?',
+   aFr:'Dès 2 semaines sans repas, la fiche de l\'animal affiche une ligne « 🍽 Jeûne » : le nombre de jours et le poids perdu depuis le dernier repas (il faut une pesée le jour du repas ou avant, puis une autre après). À 10 % de perte ou plus, l\'icône 📉 apparaît sur son bac, sauf après une ponte. Pour un python royal de moins de 500 g, un repère 🍼 apparaît après 1 semaine sans repas par 100 g de poids, minimum 2 semaines. Pas de repère pendant une mue notée, l\'hivernage ou la période d\'arrivée d\'un nouvel animal. C\'est un repère LOCUS, pas une règle vétérinaire : en cas de doute, consulte un vétérinaire pour reptiles.',
+   aEn:'After 2 weeks without a meal, the animal\'s sheet shows a « 🍽 Fasting » line: the number of days and the weight lost since the last meal (it needs a weigh-in on or before the meal day, then another one after). At 10% loss or more, the 📉 icon appears on its tub, except after a clutch. For a ball python under 500 g, a 🍼 guideline appears after 1 week without a meal per 100 g of weight, minimum 2 weeks. No guideline during a logged shed, brumation or a new animal\'s arrival period. It\'s a LOCUS guideline, not a veterinary rule: when in doubt, ask a reptile vet.'},
 ];
 const FAQ_APP_ITEMS = [
   {qFr:'C\'est quoi le badge orange « Possible » ou « ? » sur un gène ?', qEn:'What\'s the orange "Possible" or "?" badge on a gene?',
@@ -5684,12 +5688,14 @@ function openHelpModal(){
       '<p><b style="color:var(--gold);">Getting started</b><br/>Calculator → pick genes for both parents → "Calculate Clutch". Save your breeders in "My Reptiles" to reload them in one click next time.</p>'+
       '<p><b style="color:var(--gold);">Daily tracking</b><br/>The Dashboard groups what\'s urgent: meals due, upcoming hatchings, pending listings. Tour Mode (in Husbandry) is for quick batch actions during your physical rounds.</p>'+
       '<p><b style="color:var(--gold);">Hatching</b><br/>Marking a clutch "hatched" automatically creates one record per baby with the exact genetics from the draw. They stay marked "to verify" until visually confirmed.</p>'+
-      '<p><b style="color:var(--gold);">Backup</b><br/>Your data syncs automatically to the cloud while you\'re logged in, protecting you against a lost or wiped device. You can still export a JSON copy anytime (Menu ☰ → Settings, or the Export tab) for your own records.</p>'
+      '<p><b style="color:var(--gold);">Backup</b><br/>Your data syncs automatically to the cloud while you\'re logged in, protecting you against a lost or wiped device. You can still export a JSON copy anytime (Menu ☰ → Settings, or the Export tab) for your own records.</p>'+
+      '<p><b style="color:var(--gold);">Fasting (🍽 📉 🍼)</b><br/>After 2 weeks without a meal, the animal\'s sheet shows a « 🍽 Fasting » line: the number of days and the weight lost since the last meal (it needs a weigh-in on or before the meal day, then another one after). At 10% loss or more, the 📉 icon appears on its tub, except after a clutch. For a ball python under 500 g, a 🍼 guideline appears after 1 week without a meal per 100 g of weight, minimum 2 weeks. No guideline during a logged shed, brumation or a new animal\'s arrival period. It\'s a LOCUS guideline, not a veterinary rule: when in doubt, ask a reptile vet.</p>'
     :
       '<p><b style="color:var(--gold);">Démarrer</b><br/>Calculateur → sélectionne les gènes des deux parents → « Calculer la portée ». Enregistre tes reproducteurs dans « Mes reptiles » pour les recharger en un clic la prochaine fois.</p>'+
       '<p><b style="color:var(--gold);">Suivi quotidien</b><br/>Le Tableau de bord regroupe ce qui presse : repas dus, éclosions à venir, annonces en attente. Mode Tournée (dans Élevage) sert aux actions rapides en lot pendant ta tournée physique.</p>'+
       '<p><b style="color:var(--gold);">Éclosion</b><br/>Marquer une portée « éclos » crée automatiquement une fiche par bébé avec la génétique exacte du tirage. Elles restent marquées « à vérifier » jusqu\'à confirmation visuelle.</p>'+
-      '<p><b style="color:var(--gold);">Sauvegarde</b><br/>Tes données se synchronisent automatiquement sur le cloud tant que tu es connecté, ce qui te protège en cas d\'appareil perdu ou effacé. Tu peux quand même exporter une copie JSON en tout temps (Menu ☰ → Configuration, ou onglet Export) pour tes propres archives.</p>'
+      '<p><b style="color:var(--gold);">Sauvegarde</b><br/>Tes données se synchronisent automatiquement sur le cloud tant que tu es connecté, ce qui te protège en cas d\'appareil perdu ou effacé. Tu peux quand même exporter une copie JSON en tout temps (Menu ☰ → Configuration, ou onglet Export) pour tes propres archives.</p>'+
+      '<p><b style="color:var(--gold);">Jeûne (🍽 📉 🍼)</b><br/>Dès 2 semaines sans repas, la fiche de l\'animal affiche une ligne « 🍽 Jeûne » : le nombre de jours et le poids perdu depuis le dernier repas (il faut une pesée le jour du repas ou avant, puis une autre après). À 10 % de perte ou plus, l\'icône 📉 apparaît sur son bac, sauf après une ponte. Pour un python royal de moins de 500 g, un repère 🍼 apparaît après 1 semaine sans repas par 100 g de poids, minimum 2 semaines. Pas de repère pendant une mue notée, l\'hivernage ou la période d\'arrivée d\'un nouvel animal. C\'est un repère LOCUS, pas une règle vétérinaire : en cas de doute, consulte un vétérinaire pour reptiles.</p>'
     )+
     '<hr style="border:none;border-top:1px dashed var(--line);margin:16px 0;"/>'+
     '<p style="margin-bottom:8px;"><b style="color:var(--sage);font-size:13px;">'+(isEn?'📚 Full tutorial — one tab at a time':'📚 Tutoriel complet — un onglet à la fois')+'</b></p>'+
@@ -5754,6 +5760,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.98', date:'2026-11-18',
+    title:{ fr:'Le suivi du jeûne expliqué dans l\'aide', en:'Fast tracking explained in Help' },
+    changes:{
+      fr:[ '❓ Menu ☰ › Aide : nouvelle section « Jeûne » qui explique la ligne 🍽 Jeûne, l\'alerte 📉 à 10 % depuis le dernier repas et le repère 🍼 des jeunes pythons royaux. Aussi trouvable avec la recherche dans l\'aide (ex. « jeûne »).' ],
+      en:[ '❓ Menu ☰ › Help: new « Fasting » section that explains the 🍽 Fasting line, the 📉 alert at 10% since the last meal and the 🍼 guideline for young ball pythons. Also findable with the help search (e.g. « fasting »).' ] } },
   { version:'5.97', date:'2026-11-17',
     title:{ fr:'Suivi du jeûne', en:'Fast tracking' },
     changes:{

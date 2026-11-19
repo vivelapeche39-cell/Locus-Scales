@@ -980,6 +980,25 @@ def t_mode_simple_585(browser, url):
     check('pas d\'erreur JS (v5.85)', not [e for e in a.real_errors() if not e.startswith('dialog:')], a.real_errors()[:3])
     a.close()
 
+def t_aide_jeune_598(browser, url):
+    section('Aide : suivi du jeûne et repère 🍼 (v5.98)')
+    a = App(browser, url, snakes=[make_snake(980)], lang='fr'); a.open(wait=1500)
+    a.js("try{closeQuickModal()}catch(e){}; openHelpModal()"); a.page.wait_for_timeout(200)
+    body = a.js("document.getElementById('quick-modal-overlay').innerText")
+    check('Aide FR : section Jeûne', 'Jeûne (🍽 📉 🍼)' in body and '1 semaine sans repas par 100 g' in body and 'pas une règle vétérinaire' in body, body[:300])
+    a.js("try{closeQuickModal()}catch(e){}; openHelpSearchModal()"); a.page.wait_for_timeout(200)
+    a.page.fill('#help-search-input', 'jeûne'); a.page.wait_for_timeout(150)
+    res = a.js("document.getElementById('help-search-results').innerText")
+    check('recherche « jeûne » trouve l\'explication', 'suivi du jeûne' in res, res[:200])
+    a.js("try{closeQuickModal()}catch(e){}; currentLang='en'; applyTranslations(); openHelpModal()"); a.page.wait_for_timeout(200)
+    body = a.js("document.getElementById('quick-modal-overlay').innerText")
+    check('Help EN : Fasting section', 'Fasting (🍽 📉 🍼)' in body and 'per 100 g' in body and 'not a veterinary rule' in body and 'Jeûne' not in body, body[:300])
+    a.js("try{closeQuickModal()}catch(e){}; openHelpSearchModal()"); a.page.wait_for_timeout(200)
+    a.page.fill('#help-search-input', 'fasting'); a.page.wait_for_timeout(150)
+    check('search « fasting » finds it', 'fast tracking' in a.js("document.getElementById('help-search-results').innerText"))
+    check('pas d\'erreur JS (v5.98)', not [e for e in a.real_errors() if not e.startswith('dialog:')], a.real_errors()[:3])
+    a.close()
+
 def t_reseaux_596(browser, url):
     section('Liens Instagram et TikTok (v5.96)')
     a = App(browser, url, snakes=[make_snake(960)], lang='fr'); a.open(wait=1500)
@@ -2486,7 +2505,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_admin_tri_577, t_photos_serveur_579, t_import_json_580, t_reimport_archives_581, t_bouton_retour_582, t_bien_demarrer_583, t_charte_proies_584, t_mode_simple_585, t_demo_photos_586, t_prochaine_mue_588, t_partager_589, t_nouveaux_notes_590, t_gene_introuvable_591, t_intervalle_collection_592, t_proie_obs_593, t_mue_repas_594, t_noter_partout_595, t_reseaux_596, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_admin_tri_577, t_photos_serveur_579, t_import_json_580, t_reimport_archives_581, t_bouton_retour_582, t_bien_demarrer_583, t_charte_proies_584, t_mode_simple_585, t_demo_photos_586, t_prochaine_mue_588, t_partager_589, t_nouveaux_notes_590, t_gene_introuvable_591, t_intervalle_collection_592, t_proie_obs_593, t_mue_repas_594, t_noter_partout_595, t_reseaux_596, t_aide_jeune_598, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()
