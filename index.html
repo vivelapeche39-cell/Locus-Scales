@@ -1289,6 +1289,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
         <a class="sc-btn" href="https://www.facebook.com/share/1PukXjXpVP/?mibextid=wwXIfr" target="_blank" rel="noopener" style="text-decoration:none;">📘 Facebook</a>
         <a class="sc-btn" href="https://www.instagram.com/locusscales/" target="_blank" rel="noopener" style="text-decoration:none;">📸 Instagram</a>
         <a class="sc-btn" href="https://www.tiktok.com/@locusscales" target="_blank" rel="noopener" style="text-decoration:none;">🎵 TikTok</a>
+        <a class="sc-btn" href="https://www.youtube.com/@LocusScales" target="_blank" rel="noopener" style="text-decoration:none;">▶️ YouTube</a>
         <a class="sc-btn" href="https://www.reddit.com/r/LocusScales/" target="_blank" rel="noopener" style="text-decoration:none;">💬 Reddit</a>
       </div>
     </div>
@@ -2411,7 +2412,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.5.98';
+const APP_VERSION = '2026.09.01.5.99';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5724,6 +5725,8 @@ function openContactModal(){
     // v5.96 — demande d'Alex : Instagram et TikTok
     '<div class="modal-row"><span>Instagram</span><span><a href="https://www.instagram.com/locusscales/" target="_blank" rel="noopener" style="color:var(--gold);">@locusscales</a></span></div>'+
     '<div class="modal-row"><span>TikTok</span><span><a href="https://www.tiktok.com/@locusscales" target="_blank" rel="noopener" style="color:var(--gold);">@locusscales</a></span></div>'+
+    // v5.99 — demande d'Alex : chaîne YouTube
+    '<div class="modal-row"><span>YouTube</span><span><a href="https://www.youtube.com/@LocusScales" target="_blank" rel="noopener" style="color:var(--gold);">@LocusScales</a></span></div>'+
     '<p style="font-size:12px;color:var(--ink-dim);line-height:1.6;margin:12px 0 0;">'+(isEn?'On Reddit, your question and its answer stay visible for other users — handy for questions, ideas and bugs.':'Sur Reddit, ta question et sa réponse restent visibles pour les autres utilisateurs — pratique pour les questions, les idées et les bogues.')+'</p>'
   );
 }
@@ -5760,6 +5763,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'5.99', date:'2026-11-19',
+    title:{ fr:'LOCUS sur YouTube', en:'LOCUS on YouTube' },
+    changes:{
+      fr:[ '▶️ LOCUS Scales a maintenant sa chaîne YouTube (@LocusScales) : les vidéos de la mascotte en format court. Le lien est dans « Nous contacter » et dans le bandeau « Suis LOCUS Scales » du tableau de bord.' ],
+      en:[ '▶️ LOCUS Scales now has a YouTube channel (@LocusScales): the mascot\'s short videos. The link is in « Contact Us » and in the « Follow LOCUS Scales » banner on the dashboard.' ] } },
   { version:'5.98', date:'2026-11-18',
     title:{ fr:'Le suivi du jeûne expliqué dans l\'aide', en:'Fast tracking explained in Help' },
     changes:{
