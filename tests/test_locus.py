@@ -999,6 +999,38 @@ def t_aide_jeune_598(browser, url):
     check('pas d\'erreur JS (v5.98)', not [e for e in a.real_errors() if not e.startswith('dialog:')], a.real_errors()[:3])
     a.close()
 
+def t_laitiers_603(browser, url):
+    section('Laitiers, serpent des maisons, gecko des cavernes (v6.03)')
+    a = App(browser, url, snakes=[make_snake(6030, species='honduran_milk_snake')], lang='fr'); a.open(wait=1500)
+    a.js("try{closeQuickModal()}catch(e){}")
+    cases = {
+      'eastern_milk_snake': ['Eastern milk snake', 'Eastern milksnake', 'couleuvre tachetée', 'Lampropeltis triangulum'],
+      'honduran_milk_snake': ['Honduran', 'Honduran milk snake', 'L. t. hondurensis', 'Lampropeltis abnorma', 'Tangerine Honduran'],
+      'african_house_snake': ['African house snake', 'House snake', 'Boaedon fuliginosus', 'Lamprophis fuliginosus'],
+      'chinese_cave_gecko': ['Chinese cave gecko', 'Cave gecko', 'Goniurosaurus hainanensis', 'gecko des cavernes'],
+    }
+    for sid, raws in cases.items():
+        check(sid + ' : dans SPECIES_REFERENCE', a.js("!!SPECIES_REFERENCE.find(sp=>sp.id==='" + sid + "')"))
+        for raw in raws:
+            r = a.js("matchImportSpecies(" + json.dumps(raw) + ")")
+            check('import « ' + raw + ' » = ' + sid, r.get('id') == sid and r.get('known'), r)
+        en = a.js("(()=>{ const r=SPECIES_REFERENCE.find(sp=>sp.id==='" + sid + "'); return [r.faqEn.length, r.faqFr.length, Object.keys(r).filter(k=>/Fr$/.test(k)).every(k=>r[k.replace(/Fr$/,'En')])]; })()")
+        check(sid + ' : textes EN complets', en[0] == en[1] == 4 and en[2], en)
+        g = a.js("buildSpeciesGuideHtml('" + sid + "')")
+        check(sid + ' : fiche d\'entretien générée', len(g) > 500, len(g))
+    check('« Mexican black kingsnake » reste le serpent-roi', a.js("matchImportSpecies('Mexican black kingsnake').id") == 'king_mexican')
+    check('« Leopard gecko » reste le gecko léopard', a.js("matchImportSpecies('Leopard gecko').id") == 'leopard_gecko')
+    check('rythmes adultes : Est 10 j, Honduras 10 j, maisons 10 j', [a.js("speciesDefaultFeedDays({species:'" + x + "', birthDate:'2015-01-01'})") for x in ('eastern_milk_snake','honduran_milk_snake','african_house_snake')] == [10, 10, 10])
+    check('proies : rongeurs pour les serpents, insectes pour le gecko', 'mouse' in a.js("preyTypesForSpecies('honduran_milk_snake')") and 'mouse' in a.js("preyTypesForSpecies('african_house_snake')") and 'cricket' in a.js("preyTypesForSpecies('chinese_cave_gecko')") and 'mouse' not in a.js("preyTypesForSpecies('chinese_cave_gecko')"))
+    g = a.js("buildSpeciesGuideHtml('eastern_milk_snake')")
+    check('couleuvre tachetée : avertissement espèce indigène du Québec', 'vulnérable' in g and 'nature' in g, g[:200])
+    check('Honduras : nom abnorma expliqué', 'abnorma' in a.js("buildSpeciesGuideHtml('honduran_milk_snake')"))
+    check('gecko : sensible à la chaleur (28 °C)', '28 °C' in a.js("buildSpeciesGuideHtml('chinese_cave_gecko')"))
+    check('note de mise à jour 6.03 FR/EN en tête', a.js("CHANGELOG[0].version==='6.03' && CHANGELOG[0].changes.fr.length===CHANGELOG[0].changes.en.length"))
+    check('version 6.03', a.js("APP_VERSION") == '2026.09.01.6.03')
+    check('pas d\'erreur JS (v6.03)', not [e for e in a.real_errors() if not e.startswith('dialog:')], a.real_errors()[:3])
+    a.close()
+
 def t_python_vert_602(browser, url):
     section('Python vert arboricole + boa émeraude (v6.02)')
     a = App(browser, url, snakes=[make_snake(5100, species='green_tree_python')], lang='fr'); a.open(wait=1500)
@@ -1015,7 +1047,7 @@ def t_python_vert_602(browser, url):
     check('fiche d\'entretien FR : quarantaine et localités', 'quarantaine' in g and 'Aru' in g and '29,5' in g, g[:200])
     en = a.js("(()=>{ const r=SPECIES_REFERENCE.find(sp=>sp.id==='green_tree_python'); return [r.noteEn, r.faqEn.length, r.faqFr.length, Object.keys(r).filter(k=>/Fr$/.test(k)).every(k=>r[k.replace(/Fr$/,'En')])]; })()")
     check('textes EN complets (même nombre de questions FR/EN)', 'quarantine' in en[0] and 'serpentovirus' in en[0] and en[1] == en[2] == 4 and en[3], en[1:])
-    check('note de mise à jour 6.02 FR/EN', a.js("CHANGELOG[0].version==='6.02' && CHANGELOG[0].changes.fr.length===CHANGELOG[0].changes.en.length"))
+    check('note de mise à jour 6.02 FR/EN', a.js("(()=>{ const c=CHANGELOG.find(x=>x.version==='6.02'); return !!c && c.changes.fr.length===c.changes.en.length; })()"))
     for raw in ['ETB', 'Emerald Tree Boa', 'Corallus caninus', 'Corallus batesii', 'boa émeraude', 'Emerald tree boas']:
         r = a.js("matchImportSpecies(" + json.dumps(raw) + ")")
         check('import « ' + raw + ' » = boa émeraude', r.get('id') == 'emerald_tree_boa' and r.get('known'), r)
@@ -2534,7 +2566,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_admin_tri_577, t_photos_serveur_579, t_import_json_580, t_reimport_archives_581, t_bouton_retour_582, t_bien_demarrer_583, t_charte_proies_584, t_mode_simple_585, t_demo_photos_586, t_prochaine_mue_588, t_partager_589, t_nouveaux_notes_590, t_gene_introuvable_591, t_intervalle_collection_592, t_proie_obs_593, t_mue_repas_594, t_noter_partout_595, t_reseaux_596, t_aide_jeune_598, t_python_vert_602, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_admin_tri_577, t_photos_serveur_579, t_import_json_580, t_reimport_archives_581, t_bouton_retour_582, t_bien_demarrer_583, t_charte_proies_584, t_mode_simple_585, t_demo_photos_586, t_prochaine_mue_588, t_partager_589, t_nouveaux_notes_590, t_gene_introuvable_591, t_intervalle_collection_592, t_proie_obs_593, t_mue_repas_594, t_noter_partout_595, t_reseaux_596, t_aide_jeune_598, t_python_vert_602, t_laitiers_603, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()
