@@ -2412,7 +2412,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.6.03';
+const APP_VERSION = '2026.09.01.6.04';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -4345,7 +4345,7 @@ const GENES = [
   // COMPOUND_NAMES) partagent le même risque santé accru — texte d'avertissement volontairement identique.
   {id:'champagne', name:'Champagne', type:'incdom', locus:'spiderComplex', cat:'Codominant / Incomplet dominant', warning:"Wobble (trouble neurologique de la tête/du regard) présent chez la quasi-totalité des porteurs, même à l'état simple — souvent plus léger que celui du Spider (de type Woma, selon les témoignages d'éleveurs). Forme homozygote (Super Champagne) létale in ovo — jamais viable. Combinaison avec Spider (même locus) également létale.", warningEn:"Wobble (neurological head/eye-tracking disorder) present in nearly all carriers, even in single (het) form — often milder than Spider's (Woma-like, according to breeder reports). Homozygous form (Super Champagne) is lethal in ovo — never viable. Combination with Spider (same locus) is also lethal."},
   {id:'cinnamon', name:'Cinnamon', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant', superLabel:'Super Cinnamon', aliases:['Cinny','Cinnamon Pastel'], superOnlyWarning:true, warning:"Forme homozygote (Super Cinnamon — même allure que le combo 8 Ball Cinnamon × Black Pastel) associée à un risque accru de kinking (déformations vertébrales), microphtalmie (« bug eyes »), malformation de la mâchoire (duckbill) et retard de croissance. Tous les individus supers ne sont pas affectés, mais l'incidence est jugée significative par de nombreux éleveurs expérimentés.", warningEn:"Homozygous form (Super Cinnamon — looks like the 8 Ball combo, Cinnamon × Black Pastel) is associated with an increased risk of kinking (spinal deformities), microphthalmia (\"bug eyes\"), jaw malformation (duckbill), and stunted growth. Not every super individual is affected, but the incidence is considered significant by many experienced breeders."},
-  {id:'blackpastel', name:'Black Pastel', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant', superLabel:'Super Black Pastel', superOnlyWarning:true, warning:"Forme homozygote (Super Black Pastel — même allure que le combo 8 Ball) associée au même risque accru que Super Cinnamon : kinking, microphtalmie, malformation de la mâchoire, retard de croissance.", warningEn:"Homozygous form (Super Black Pastel — looks like the 8 Ball combo) carries the same increased risk as Super Cinnamon: kinking, microphthalmia, jaw malformation, stunted growth."},
+  {id:'blackpastel', name:'Black Pastel', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant', superLabel:'Super Black Pastel', aliases:['Blk Pastel','Barnhart'], /* v6.04 — Morphpedia : Barnhart = lignée de Black Pastel (Tom Barnhart), pas un gène à part */ superOnlyWarning:true, warning:"Forme homozygote (Super Black Pastel — même allure que le combo 8 Ball) associée au même risque accru que Super Cinnamon : kinking, microphtalmie, malformation de la mâchoire, retard de croissance.", warningEn:"Homozygous form (Super Black Pastel — looks like the 8 Ball combo) carries the same increased risk as Super Cinnamon: kinking, microphthalmia, jaw malformation, stunted growth."},
   {id:'huffman', name:'Huffman', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant'},
   {id:'jolt', name:'Jolt', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant'},
   {id:'razor', name:'Razor', type:'incdom', locus:'cinnamonComplex', cat:'Codominant / Incomplet dominant'},
@@ -5763,6 +5763,11 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'6.04', date:'2026-11-25',
+    title:{ fr:'« Barnhart » est reconnu comme Black Pastel', en:'"Barnhart" is recognized as Black Pastel' },
+    changes:{
+      fr:[ '🧬 Barnhart n\'est pas un gène à part : c\'est une lignée de Black Pastel (Morphpedia). Chercher « Barnhart » ou « Blk Pastel » dans la liste des gènes trouve maintenant Black Pastel, et l\'import transforme « Barnhart » en Black Pastel. Les calculs restent justes (Super Black Pastel, 8 Ball avec Cinnamon). Gratuit.' ],
+      en:[ '🧬 Barnhart is not a separate gene: it is a Black Pastel line (Morphpedia). Searching "Barnhart" or "Blk Pastel" in the gene list now finds Black Pastel, and import turns "Barnhart" into Black Pastel. Calculations stay correct (Super Black Pastel, 8 Ball with Cinnamon). Free.' ] } },
   { version:'6.03', date:'2026-11-21',
     title:{ fr:'4 nouvelles espèces : deux serpents laitiers, le serpent des maisons africain et le gecko chinois des cavernes', en:'4 new species: two milk snakes, the African house snake and the Chinese cave gecko' },
     changes:{
@@ -20194,7 +20199,7 @@ function matchImportSpecies(raw){
 // python royal avec le bon statut. Plus long nom d'abord (Black Pastel avant Pastel). Les mots non
 // reconnus sont rendus pour l'aperçu. Toujours marqué « à vérifier » (genesVerified:false).
 // Raccourcis du milieu, seulement quand ils ne sont pas ambigus (« Axanthic » seul = 5 lignées différentes → pas d'alias).
-var IMPORT_GENE_ALIASES = { hypo:['hypo','hypomelanistic','hypomelanistique','ghost'], yellowbelly:['yb','yellow belly'], orangedream:['od'], piebald:['pied'], mojave:['mojo'], desertghost:['dg'], highintensityod:['hi od','high intensity orange dream'], lavenderalbino:['lavender','lav albino'], ultramel:['ultramelanistic','crider','burgundy albino','burgundy'], // v5.26
+var IMPORT_GENE_ALIASES = { hypo:['hypo','hypomelanistic','hypomelanistique','ghost'], yellowbelly:['yb','yellow belly'], orangedream:['od'], piebald:['pied'], mojave:['mojo'], blackpastel:['barnhart','blk pastel'], desertghost:['dg'], highintensityod:['hi od','high intensity orange dream'], lavenderalbino:['lavender','lav albino'], ultramel:['ultramelanistic','crider','burgundy albino','burgundy'], // v5.26
  bci_kahl:['kahl albino','kahl','lipstick albino'], bci_sharp:['sharp albino','sharp'], bci_bwc:['bwc','caramel albino','boa woman caramel','bw caramel'], bci_prodigy:['prodigy albino','prodigy'], bci_vpi:['vpi albino','vpi t+','vpi'], bci_anery1:['anery type 1','type 1 anery','anery 1','t1 anery'], bci_anery2:['anery type 2','type 2 anery','anery 2','t2 anery','t2'], bci_rdrbea:['rdr bea','rdr black eye','black eye anery','bea','rdr'], bci_carbon:['carbon'], bci_motley:['motley','colombian motley'], bci_motleyca:['central american motley','ca motley'], bci_jaguar:['jaguar','jag'], bci_keywest:['kwb','key west'], bci_roswell:['rlt','roswell','roswell laddertail'], bci_img:['increased melanism','azabache','img'], bci_pkstripe:['pk stripe','kahl stripe'], // v5.32 — boa BCI
   spotnose:['spot nose'], lg_tremper:['tremper','tremper albino'], lg_bell:['bell','bell albino'], lg_rainwater:['rainwater','rainwater albino','las vegas albino','las vegas'], lg_murphy:['murphy'], lg_wy:['w y','white and yellow'] }; // v4.15 — gecko léopard : noms courts du milieu
 function importGeneNorm(str){ return String(str||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[|,;\/+&()\[\]_]/g,' ').replace(/(^|\s)-+|-+(?=\s|$)|(?<=[a-z])-(?=[a-z])/g,' ').replace(/\s+/g,' ').trim(); }
