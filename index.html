@@ -2412,7 +2412,7 @@ body{margin:0;background:#000000 !important;color:var(--ink);font-family:system-
    no-store, donc jamais depuis le cache) ; si ça ne correspond pas, rechargement forcé une seule
    fois (garde anti-boucle via sessionStorage). IMPORTANT : incrémenter APP_VERSION ET le contenu
    de version.txt à chaque déploiement significatif, sinon ce mécanisme ne détecte jamais rien. */
-const APP_VERSION = '2026.09.01.6.04';
+const APP_VERSION = '2026.09.01.6.05';
 (function checkForNewVersion(){
   try{
     // Note (29 août) : l'ancien drapeau était un simple booléen qui, une fois posé après un premier
@@ -5763,6 +5763,13 @@ const ANNOUNCEMENTS = [
 ];
 
 const CHANGELOG = [
+  { version:'6.05', date:'2026-11-26',
+    title:{ fr:'Alerte « sans repas » plus compréhensive', en:'A more understanding « without a meal » alert' },
+    changes:{
+      fr:[ '🍽 La raison d\'un refus se voit maintenant dans le journal de l\'animal (ex. « Refus — Saison de reproduction »), dans la ligne « Jeûne » de sa fiche et dans l\'alerte « Reptiles à surveiller » (ex. « 26 j sans repas · dernier refus : saison de reproduction »).',
+           '⏰ Nouveau bouton « Rappelle-moi plus tard » sur l\'alerte « sans repas » : elle se met en pause 7, 14 ou 30 jours. S\'il mange avant, le rappel s\'annule. L\'alerte de perte de poids 📉 reste toujours active : le poids est le vrai test pendant un jeûne. Gratuit.' ],
+      en:[ '🍽 The reason for a refusal now shows in the animal\'s log (e.g. « Refused — Breeding season »), in the « Fasting » line of its sheet and in the « Reptiles to watch » alert (e.g. « 26d without a meal · last refusal: breeding season »).',
+           '⏰ New « Remind me later » button on the « without a meal » alert: it pauses for 7, 14 or 30 days. If it eats before then, the reminder is cancelled. The 📉 weight loss alert always stays on: weight is the real test during a fast. Free.' ] } },
   { version:'6.04', date:'2026-11-25',
     title:{ fr:'« Barnhart » est reconnu comme Black Pastel', en:'"Barnhart" is recognized as Black Pastel' },
     changes:{
@@ -23659,6 +23666,11 @@ function fastRowHtml(s){
   if(f && f.days>=FAST_ROW_MIN_DAYS){
     const pctTxt = f.pct===null ? '' : (f.pct>0 ? ' · −'+(isEn?String(f.pct):String(f.pct).replace('.',','))+(isEn?'% since the last meal':' % depuis le dernier repas') : (isEn?' · no weight loss since the last meal':' · aucune perte depuis le dernier repas'));
     out += '<div class="modal-row" id="fast-row"><span>🍽 '+(isEn?'Fasting':'Jeûne')+'</span><span>'+f.days+(isEn?' days':' jours')+pctTxt+'</span></div>';
+    const lr = lastRefusalSinceFed(s); // v6.05
+    if(lr && lr.reason && lr.reason!=='unknown' && REFUSAL_REASONS.includes(lr.reason)) out += '<div style="font-size:12.5px;color:var(--ink-dim);margin:-2px 0 6px;">'+(isEn?'Last refusal ('+escapeHtml(lr.date)+'): ':'Dernier refus ('+escapeHtml(lr.date)+') : ')+refusalReasonLabel(lr.reason)+'</div>';
+    const zu = feedAlertSnoozeUntil(s);
+    if(zu) out += '<div id="feed-snooze-row" style="font-size:13px;margin:0 0 6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">⏰ '+(isEn?'« Without a meal » alert paused until ':'Alerte « sans repas » en pause jusqu\'au ')+escapeHtml(zu)+' <button class="sc-btn" style="padding:2px 8px;font-size:12px;" onclick="clearFeedSnooze(\''+s.id+'\')">'+(isEn?'Resume now':'Réactiver')+'</button></div>';
+    else if(isFeedingFlagged(s)) out += '<div style="margin:0 0 6px;"><button class="sc-btn" id="feed-snooze-btn" onclick="openFeedSnoozeModal(\''+s.id+'\')">⏰ '+(isEn?'Remind me later':'Rappelle-moi plus tard')+'</button></div>';
     if(f.pct===null) out += '<div style="font-size:12px;color:var(--ink-dim);margin:-2px 0 6px;">'+(isEn?'Weigh it now and then: weight is the real test during a fast.':'Pèse-le de temps en temps : le poids est le vrai test pendant un jeûne.')+'</div>';
   }
   const j = juvenileFastInfo(s);
@@ -23771,8 +23783,71 @@ function lastFedInfo(s){
   return fedEvents.length ? fedEvents[0] : null;
 }
 const HEALTH_FLAG_DAYS_SINCE_FED = 21; // jours sans repas réussi avant de signaler "à surveiller" — ajustable ici seulement
+/* v6.05 — Alerte « sans repas » plus compréhensive (Alex, 26 nov). On montre la raison du dernier refus
+   (ex. saison de reproduction) et on peut mettre CETTE alerte en pause X jours (« rappelle-moi dans… »).
+   La pause ne touche jamais l'alerte de perte de poids (📉), qui reste le vrai test pendant un jeûne.
+   Donnée : s.health.feedAlertSnooze = { from:'AAAA-MM-JJ', until:'AAAA-MM-JJ' } (dans le jsonb health,
+   aucune colonne). Un repas noté après « from » annule la pause. Gratuit. */
+function lastRefusalSinceFed(s){
+  const ev = ((s && s.health && s.health.events)||[]).filter(e=>e && e.date);
+  const lastFed = ev.filter(e=>e.type==='fed').map(e=>e.date).sort().pop() || '';
+  const refs = ev.filter(e=>e.type==='refused' && e.date>=lastFed && !e.plate).sort((a,b)=>a.date.localeCompare(b.date));
+  return refs.length ? refs[refs.length-1] : null;
+}
+function feedAlertSnoozeUntil(s){
+  const z = s && s.health && s.health.feedAlertSnooze;
+  if(!z || !z.until) return null;
+  if(localTodayStr() >= z.until) return null;
+  const fedAfter = ((s.health.events)||[]).some(e=>e && e.type==='fed' && e.date && e.date>=(z.from||''));
+  return fedAfter ? null : z.until;
+}
+function feedingSignalLabel(s){
+  const isEn = currentLang==='en';
+  const fd = daysSinceLastFed(s);
+  let lbl = fd==null ? (isEn?'never fed':'jamais nourri') : (isEn?fd+'d without a meal':fd+'j sans repas');
+  const r = lastRefusalSinceFed(s);
+  if(r && r.reason && r.reason!=='unknown' && REFUSAL_REASONS.includes(r.reason)) lbl += ' · '+(isEn?'last refusal: ':'dernier refus : ')+refusalReasonLabel(r.reason).toLowerCase();
+  return lbl;
+}
+function openFeedSnoozeModal(id){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id); if(!s) return;
+  ensureSnakeMeta(s);
+  const btn = (d)=>'<button class="sc-btn accent" style="flex:1;min-width:80px;" onclick="setFeedSnooze(\''+id+'\','+d+')">'+d+(isEn?' days':' jours')+'</button>';
+  showQuickModal('⏰ '+(isEn?'Remind me later — ':'Rappelle-moi plus tard — ')+escapeHtml(snakeName(s)),
+    '<div style="font-size:14px;line-height:1.45;margin-bottom:10px;">'+escapeHtml(feedingSignalLabel(s))+'</div>'+
+    '<div style="font-size:14px;margin-bottom:10px;">'+(isEn?'Bring back the « without a meal » alert in:':'Remettre l\'alerte « sans repas » dans :')+'</div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">'+btn(7)+btn(14)+btn(30)+'</div>'+
+    '<div style="font-size:12.5px;color:var(--ink-dim);line-height:1.4;">'+(isEn
+      ?'If it eats before then, the reminder is cancelled. The 📉 weight loss alert stays on the whole time: weight is the real test during a fast.'
+      :'S\'il mange avant, le rappel s\'annule. L\'alerte de perte de poids 📉 reste active tout le temps : le poids est le vrai test pendant un jeûne.')+'</div>');
+}
+function setFeedSnooze(id, days){
+  const isEn = currentLang==='en';
+  const s = savedSnakes.find(x=>x.id===id); if(!s) return;
+  ensureSnakeMeta(s);
+  const today = localTodayStr();
+  s.health.feedAlertSnooze = { from: today, until: addDays(today, Number(days)||7) };
+  s.updatedAt = Date.now();
+  storage.save(savedSnakes);
+  closeQuickModal();
+  showToast('⏰ '+(isEn?'Reminder on ':'Rappel le ')+escapeHtml(s.health.feedAlertSnooze.until)+' — '+escapeHtml(snakeName(s)), 'success');
+  try{ renderHealthAlerts(); }catch(e){}
+  try{ renderRackGrid(); renderTerrariumList(); renderTourGrid(); }catch(e){}
+  if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
+}
+function clearFeedSnooze(id){
+  const s = savedSnakes.find(x=>x.id===id); if(!s) return;
+  ensureSnakeMeta(s);
+  delete s.health.feedAlertSnooze; s.updatedAt = Date.now();
+  storage.save(savedSnakes);
+  try{ renderHealthAlerts(); }catch(e){}
+  try{ renderRackGrid(); renderTerrariumList(); renderTourGrid(); }catch(e){}
+  if(document.getElementById('logbook-overlay').style.display==='flex') openLogbook(id);
+}
 function isFeedingFlagged(s){
   if(s.brumation && s.brumation.active) return false; // hivernage volontaire — pas une vraie alerte
+  if(feedAlertSnoozeUntil(s)) return false; // v6.05 — « rappelle-moi dans X jours » (la perte de poids reste surveillée ailleurs)
   let d = daysSinceLastFed(s);
   // v3.92 — un repas sauté volontairement repart le compte (pas « à surveiller » pour un saut voulu)
   const skips = (s.health.events||[]).filter(e=>e.type==='skipped').map(e=>e.date).sort();
@@ -29922,7 +29997,7 @@ function healthRiskAssessment(s){
   const rgRecent = ((s.health.events)||[]).filter(e=>e && e.type==='regurg' && e.date && e.date>=addDays(localTodayStr(), -30));
   if(rgRecent.length){ const last = rgRecent.map(e=>e.date).sort().pop();
     signals.push({ type:'regurg', label: rgRecent.length>1 ? (isEn ? rgRecent.length+' regurgitations in 30 days' : rgRecent.length+' régurgitations en 30 jours') : (isEn ? 'regurgitation on '+last+(rgRest?' — rest until '+rgRest.from+' to '+rgRest.to:'') : 'régurgitation le '+last+(rgRest?' — repos jusqu\'au '+rgRest.from+' à '+rgRest.to:'')) }); }
-  if(isFeedingFlagged(s) && !(rgRest && localTodayStr() < rgRest.to)) { const fd = daysSinceLastFed(s); signals.push({ type:'feeding', label: fd==null ? (isEn?'never fed':'jamais nourri') : (isEn?fd+'d without a meal':fd+'j sans repas') }); } // v4.51 — plus de « nullj »
+  if(isFeedingFlagged(s) && !(rgRest && localTodayStr() < rgRest.to)) { signals.push({ type:'feeding', label: feedingSignalLabel(s) }); } // v4.51 — plus de « nullj » · v6.05 — raison du dernier refus
   if(weightDropping(s)){ const wd = weightDropInfo(s); signals.push({ type:'weight', label:isEn?'weight loss −'+wd.pct+'%':'perte de poids −'+String(wd.pct).replace('.',',')+' %' }); } // v4.12
   const shedQ = lastShedQuality(s);
   // v3.52 — chez les lézards (et tortues), muer en morceaux est normal : seule « incomplète »
@@ -29970,7 +30045,9 @@ function renderHealthAlerts(){
   if(!wrap) return;
   // v4.51 — une ligne courte par type d'alerte (« 5 à surveiller en priorité — Afficher les 5 »),
   // la liste détaillée s'ouvre au besoin, un animal par ligne, en pages.
-  const row = (x, txt)=>'<div class="sale-row"><div class="sale-name">'+escapeHtml(snakeName(x.s))+'<small>'+escapeHtml(txt)+'</small></div><button class="sc-btn accent" onclick="openLogbook(\''+x.s.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button></div>';
+  const row = (x, txt)=>'<div class="sale-row"><div class="sale-name">'+escapeHtml(snakeName(x.s))+'<small>'+escapeHtml(txt)+'</small></div><span style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">'+
+    ((x.risk && x.risk.signals.some(sig=>sig.type==='feeding')) ? '<button class="sc-btn" onclick="openFeedSnoozeModal(\''+x.s.id+'\')" title="'+(isEn?'Remind me later':'Rappelle-moi plus tard')+'">⏰ '+(isEn?'Later':'Plus tard')+'</button>' : '')+ // v6.05
+    '<button class="sc-btn accent" onclick="openLogbook(\''+x.s.id+'\')">📋 '+(isEn?'Sheet':'Fiche')+'</button></span></div>';
   const weighList = savedSnakes.map(s=>({ s, why:weighReminderReason(s) })).filter(x=>x.why);
   const box = (tone, inner)=>'<div style="border:1px solid '+tone+';border-radius:10px;padding:4px 10px;margin-bottom:8px;">'+inner+'</div>';
   const o = { rerender: renderHealthAlerts, collapsedByDefault: true };
@@ -37914,6 +37991,7 @@ function renderTimeline(){
 // (journal, historique, exports), pour ne pas le confondre avec un vrai refus.
 function eventLabelFor(e){
   if(e && e.type==='refused' && e.reason==='in_shed') return '🔵 '+(currentLang==='en'?'Refused (shed)':'Refus (mue)');
+  if(e && e.type==='refused' && e.reason && e.reason!=='unknown' && e.reason!=='plate' && REFUSAL_REASONS.includes(e.reason)) return eventLabel('refused')+' — '+refusalReasonLabel(e.reason); // v6.05 — la raison se voit dans le journal
   return eventLabel(e ? e.type : '');
 }
 function eventLabel(type){

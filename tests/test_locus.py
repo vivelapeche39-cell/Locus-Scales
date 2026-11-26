@@ -999,6 +999,47 @@ def t_aide_jeune_598(browser, url):
     check('pas d\'erreur JS (v5.98)', not [e for e in a.real_errors() if not e.startswith('dialog:')], a.real_errors()[:3])
     a.close()
 
+def t_feed_snooze_605(browser, url):
+    section('Alerte « sans repas » compréhensive (v6.05)')
+    sn = make_snake(6050)
+    sn['health']['events'] = [
+        {"date": iso(TODAY - datetime.timedelta(days=26)), "type": "fed", "preyType": "frozen"},
+        {"date": iso(TODAY - datetime.timedelta(days=7)), "type": "refused", "reason": "breeding_season", "lostPrey": True}]
+    sn['health']['weights'] = [{"date": iso(TODAY - datetime.timedelta(days=27)), "value": 1150}]
+    a = App(browser, url, snakes=[sn], lang='fr'); a.open(wait=1500)
+    a.js("try{closeQuickModal()}catch(e){}")
+    sid = sn['id']
+    check('alerte « sans repas » active à 26 j', a.js("isFeedingFlagged(savedSnakes[0])") is True)
+    lbl = a.js("feedingSignalLabel(savedSnakes[0])")
+    check('alerte montre la raison du dernier refus', '26j sans repas' in lbl and 'saison de reproduction' in lbl, lbl)
+    jl = a.js("eventLabelFor(savedSnakes[0].health.events.find(e=>e.type==='refused'))")
+    check('journal : « Refus — Saison de reproduction »', 'Saison de reproduction' in jl, jl)
+    check('refus « pas sûr » reste « Refus » tout court', 'Pas sûr' not in a.js("eventLabelFor({type:'refused',reason:'unknown'})"))
+    a.js("renderHealthAlerts(); toggleAgendaGroup('health_watch'); renderHealthAlerts()")
+    check('bouton ⏰ Plus tard dans « À surveiller »', a.js("(document.getElementById('health-alerts').innerHTML||'').includes('openFeedSnoozeModal')"))
+    a.js("openLogbook('" + sid + "')")
+    check('fiche : bouton « Rappelle-moi plus tard »', a.js("!!document.getElementById('feed-snooze-btn')"))
+    a.js("openFeedSnoozeModal('" + sid + "')")
+    check('fenêtre de rappel : 7 / 14 / 30 jours', a.js("(document.body.innerHTML.match(/setFeedSnooze\\(/g)||[]).length") >= 3)
+    a.js("setFeedSnooze('" + sid + "', 14)")
+    check('pause enregistrée (14 j)', a.js("savedSnakes[0].health.feedAlertSnooze.until") == iso(TODAY + datetime.timedelta(days=14)))
+    check('alerte « sans repas » en pause', a.js("isFeedingFlagged(savedSnakes[0])") is False)
+    check('fiche : « en pause jusqu\'au » + Réactiver', a.js("!!document.getElementById('feed-snooze-row')"))
+    # la perte de poids reste surveillée
+    a.js("savedSnakes[0].health.weights.push({date: localTodayStr(), value: 950}); savedSnakes[0].health.events.push({date: localTodayStr(), type:'weigh', value:950})")
+    check('perte de poids toujours signalée pendant la pause', a.js("healthRiskAssessment(savedSnakes[0]).signals.some(x=>x.type==='weight') || weightDropping(savedSnakes[0])") is True)
+    a.js("clearFeedSnooze('" + sid + "')")
+    check('Réactiver remet l\'alerte', a.js("isFeedingFlagged(savedSnakes[0])") is True)
+    a.js("setFeedSnooze('" + sid + "', 7); savedSnakes[0].health.events.push({date: localTodayStr(), type:'fed', preyType:'frozen'})")
+    check('un repas annule la pause', a.js("feedAlertSnoozeUntil(savedSnakes[0])") is None)
+    a.js("currentLang='en'")
+    check('EN : label anglais', 'without a meal' in a.js("(()=>{const x=savedSnakes[0]; x.health.events=x.health.events.filter(e=>!(e.type==='fed'&&e.date===localTodayStr())); return feedingSignalLabel(x);})()"))
+    check('EN : journal « Breeding season »', 'Breeding season' in a.js("eventLabelFor({type:'refused',reason:'breeding_season'})"))
+    a.js("currentLang='fr'")
+    check('note de mise à jour 6.05 FR/EN en tête', a.js("CHANGELOG[0].version==='6.05' && CHANGELOG[0].changes.fr.length===CHANGELOG[0].changes.en.length"))
+    check('version 6.05', a.js("APP_VERSION") == '2026.09.01.6.05')
+    check('pas d\'erreur JS (v6.05)', not [e for e in a.real_errors() if not e.startswith('dialog:')], a.real_errors()[:3])
+
 def t_barnhart_604(browser, url):
     section('Barnhart = lignée de Black Pastel (v6.04)')
     a = App(browser, url, snakes=[make_snake(6040)], lang='fr'); a.open(wait=1500)
@@ -1011,9 +1052,6 @@ def t_barnhart_604(browser, url):
     g = a.js("parseImportGenes('Barnhart enchi', 'ball_python').genes")
     check('« Barnhart enchi » garde Enchi', g.get('enchi') == 'single', g)
     check('« Super Barnhart » → Super Black Pastel', a.js("parseImportGenes('Super Barnhart', 'ball_python').genes").get('blackpastel') == 'homo')
-    check('note de mise à jour 6.04 FR/EN en tête', a.js("CHANGELOG[0].version==='6.04' && CHANGELOG[0].changes.fr.length===CHANGELOG[0].changes.en.length"))
-    check('version 6.04', a.js("APP_VERSION") == '2026.09.01.6.04')
-    check('pas d\'erreur JS (v6.04)', not [e for e in a.real_errors() if not e.startswith('dialog:')], a.real_errors()[:3])
 
 def t_laitiers_603(browser, url):
     section('Laitiers, serpent des maisons, gecko des cavernes (v6.03)')
@@ -2580,7 +2618,7 @@ def main():
     print(f'LOCUS — tests sur {INDEX}')
     static_checks()
     srv, url = start_server()
-    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_admin_tri_577, t_photos_serveur_579, t_import_json_580, t_reimport_archives_581, t_bouton_retour_582, t_bien_demarrer_583, t_charte_proies_584, t_mode_simple_585, t_demo_photos_586, t_prochaine_mue_588, t_partager_589, t_nouveaux_notes_590, t_gene_introuvable_591, t_intervalle_collection_592, t_proie_obs_593, t_mue_repas_594, t_noter_partout_595, t_reseaux_596, t_aide_jeune_598, t_python_vert_602, t_laitiers_603, t_barnhart_604, t_import, t_calculateur, t_langue, t_parite_traductions]
+    tests = [t_ouverture, t_repas, t_synchro, t_deux_appareils_ouverts, t_suppression_ne_revient_pas, t_grille_elevage_a_jour, t_parcours, t_proie_lot, t_decongelation_et_selection, t_unites, t_unites_etape2, t_proie_repas, t_tournee_deselection, t_combos_bci, t_combos_bp, t_export_complet, t_keltic_dragons, t_refus_type_proie, t_renote_apres_suppression, t_prix_combos, t_remboursement_parents, t_sante_accouplement, t_congeler_taille, t_lignee_annuler, t_gecko_poudre, t_scenario_sous_sol, t_sante_tournee, t_slugs_commande, t_icones_origines, t_traits_synchro, t_mue_copro, t_rappels_repetes, t_menu_bac, t_complexes_genes, t_avert_cinnamon, t_avert_sable_scaleless, t_correctifs_567, t_menu_plus_568, t_etiquettes_rack_569, t_grille_mobile_570, t_import_morphmarket_571, t_import_maj_572, t_tournee_barres_572, t_import_photos_573, t_rongeurs_clairs_574, t_guide_rongeurs_575, t_admin_tri_577, t_photos_serveur_579, t_import_json_580, t_reimport_archives_581, t_bouton_retour_582, t_bien_demarrer_583, t_charte_proies_584, t_mode_simple_585, t_demo_photos_586, t_prochaine_mue_588, t_partager_589, t_nouveaux_notes_590, t_gene_introuvable_591, t_intervalle_collection_592, t_proie_obs_593, t_mue_repas_594, t_noter_partout_595, t_reseaux_596, t_aide_jeune_598, t_python_vert_602, t_laitiers_603, t_barnhart_604, t_feed_snooze_605, t_import, t_calculateur, t_langue, t_parite_traductions]
     if PERF: tests.append(t_perf)
     with sync_playwright() as p:
         browser = p.chromium.launch()
