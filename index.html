@@ -5767,9 +5767,9 @@ const CHANGELOG = [
     title:{ fr:'Alerte « sans repas » plus compréhensive', en:'A more understanding « without a meal » alert' },
     changes:{
       fr:[ '🍽 La raison d\'un refus se voit maintenant dans le journal de l\'animal (ex. « Refus — Saison de reproduction »), dans la ligne « Jeûne » de sa fiche et dans l\'alerte « Reptiles à surveiller » (ex. « 26 j sans repas · dernier refus : saison de reproduction »).',
-           '⏰ Nouveau bouton « Rappelle-moi plus tard » sur l\'alerte « sans repas » : elle se met en pause 7, 14 ou 30 jours. S\'il mange avant, le rappel s\'annule. L\'alerte de perte de poids 📉 reste toujours active : le poids est le vrai test pendant un jeûne. Gratuit.' ],
+           '⏰ Nouveau bouton « Rappelle-moi plus tard » sur l\'alerte « sans repas » : elle se met en pause 7, 14 ou 30 jours. Tu peux choisir pourquoi ce n\'est pas inquiétant (saison de reproduction, mue, déménagement, panne de courant, saison plus fraîche, stress ou autre) et ajouter des détails ; c\'est noté dans le journal de l\'animal. LOCUS devine la raison à partir du dernier refus. S\'il mange avant, le rappel s\'annule. L\'alerte de perte de poids 📉 reste toujours active : le poids est le vrai test pendant un jeûne. Gratuit.' ],
       en:[ '🍽 The reason for a refusal now shows in the animal\'s log (e.g. « Refused — Breeding season »), in the « Fasting » line of its sheet and in the « Reptiles to watch » alert (e.g. « 26d without a meal · last refusal: breeding season »).',
-           '⏰ New « Remind me later » button on the « without a meal » alert: it pauses for 7, 14 or 30 days. If it eats before then, the reminder is cancelled. The 📉 weight loss alert always stays on: weight is the real test during a fast. Free.' ] } },
+           '⏰ New « Remind me later » button on the « without a meal » alert: it pauses for 7, 14 or 30 days. You can pick why it\'s not worrying (breeding season, shed, move, power outage, cooler season, stress or other) and add details; it\'s noted in the animal\'s log. LOCUS guesses the reason from the last refusal. If it eats before then, the reminder is cancelled. The 📉 weight loss alert always stays on: weight is the real test during a fast. Free.' ] } },
   { version:'6.04', date:'2026-11-25',
     title:{ fr:'« Barnhart » est reconnu comme Black Pastel', en:'"Barnhart" is recognized as Black Pastel' },
     changes:{
@@ -23669,7 +23669,8 @@ function fastRowHtml(s){
     const lr = lastRefusalSinceFed(s); // v6.05
     if(lr && lr.reason && lr.reason!=='unknown' && REFUSAL_REASONS.includes(lr.reason)) out += '<div style="font-size:12.5px;color:var(--ink-dim);margin:-2px 0 6px;">'+(isEn?'Last refusal ('+escapeHtml(lr.date)+'): ':'Dernier refus ('+escapeHtml(lr.date)+') : ')+refusalReasonLabel(lr.reason)+'</div>';
     const zu = feedAlertSnoozeUntil(s);
-    if(zu) out += '<div id="feed-snooze-row" style="font-size:13px;margin:0 0 6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">⏰ '+(isEn?'« Without a meal » alert paused until ':'Alerte « sans repas » en pause jusqu\'au ')+escapeHtml(zu)+' <button class="sc-btn" style="padding:2px 8px;font-size:12px;" onclick="clearFeedSnooze(\''+s.id+'\')">'+(isEn?'Resume now':'Réactiver')+'</button></div>';
+    const zz = s.health.feedAlertSnooze || {};
+    if(zu) out += '<div id="feed-snooze-row" style="font-size:13px;margin:0 0 6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">⏰ '+(isEn?'« Without a meal » alert paused until ':'Alerte « sans repas » en pause jusqu\'au ')+escapeHtml(zu)+(zz.reason?' — '+feedSnoozeReasonLabel(zz.reason):'')+(zz.note?' — '+escapeHtml(zz.note):'')+' <button class="sc-btn" style="padding:2px 8px;font-size:12px;" onclick="clearFeedSnooze(\''+s.id+'\')">'+(isEn?'Resume now':'Réactiver')+'</button></div>';
     else if(isFeedingFlagged(s)) out += '<div style="margin:0 0 6px;"><button class="sc-btn" id="feed-snooze-btn" onclick="openFeedSnoozeModal(\''+s.id+'\')">⏰ '+(isEn?'Remind me later':'Rappelle-moi plus tard')+'</button></div>';
     if(f.pct===null) out += '<div style="font-size:12px;color:var(--ink-dim);margin:-2px 0 6px;">'+(isEn?'Weigh it now and then: weight is the real test during a fast.':'Pèse-le de temps en temps : le poids est le vrai test pendant un jeûne.')+'</div>';
   }
@@ -23788,6 +23789,20 @@ const HEALTH_FLAG_DAYS_SINCE_FED = 21; // jours sans repas réussi avant de sign
    La pause ne touche jamais l'alerte de perte de poids (📉), qui reste le vrai test pendant un jeûne.
    Donnée : s.health.feedAlertSnooze = { from:'AAAA-MM-JJ', until:'AAAA-MM-JJ' } (dans le jsonb health,
    aucune colonne). Un repas noté après « from » annule la pause. Gratuit. */
+var FEED_SNOOZE_REASONS = ['breeding_season','shed','recent_move','power_outage','cold_season','stress','other']; // v6.05 — raisons normales de ne pas s'inquiéter
+function feedSnoozeReasonLabel(r){
+  const isEn = currentLang==='en';
+  const L = {
+    breeding_season: isEn?'Breeding season':'Saison de reproduction',
+    shed: isEn?'Shed (in blue or coming)':'Mue (en cours ou à venir)',
+    recent_move: isEn?'Recent move / new enclosure':'Déménagement / nouveau terrarium',
+    power_outage: isEn?'Power outage / temperature problem':'Panne de courant / problème de température',
+    cold_season: isEn?'Cooler season (winter)':'Saison plus fraîche (hiver)',
+    stress: isEn?'Stress / disturbance':'Stress / dérangement',
+    other: isEn?'Other (see details)':'Autre (voir détails)'
+  };
+  return L[r] || L.other;
+}
 function lastRefusalSinceFed(s){
   const ev = ((s && s.health && s.health.events)||[]).filter(e=>e && e.date);
   const lastFed = ev.filter(e=>e.type==='fed').map(e=>e.date).sort().pop() || '';
@@ -23814,8 +23829,18 @@ function openFeedSnoozeModal(id){
   const s = savedSnakes.find(x=>x.id===id); if(!s) return;
   ensureSnakeMeta(s);
   const btn = (d)=>'<button class="sc-btn accent" style="flex:1;min-width:80px;" onclick="setFeedSnooze(\''+id+'\','+d+')">'+d+(isEn?' days':' jours')+'</button>';
+  const lr = lastRefusalSinceFed(s);
+  const guess = lr && lr.reason ? ({ breeding_season:'breeding_season', in_shed:'shed', shed_upcoming:'shed', recent_move:'recent_move', stress:'stress' }[lr.reason] || '') : ''; // l'app devine à partir du dernier refus
+  const lab = (txt)=>'<label style="display:block;font-family:\'Courier New\',monospace;font-size:10.5px;color:var(--ink-dim);margin-bottom:6px;">'+txt+'</label>';
   showQuickModal('⏰ '+(isEn?'Remind me later — ':'Rappelle-moi plus tard — ')+escapeHtml(snakeName(s)),
     '<div style="font-size:14px;line-height:1.45;margin-bottom:10px;">'+escapeHtml(feedingSignalLabel(s))+'</div>'+
+    lab(isEn?'Why it\'s OK (optional)':'Pourquoi ce n\'est pas inquiétant (optionnel)')+
+    '<select id="feed-snooze-reason" style="width:100%;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-size:14px;padding:9px 10px;margin-bottom:10px;">'+
+      '<option value="">'+(isEn?'— No reason —':'— Aucune raison —')+'</option>'+
+      FEED_SNOOZE_REASONS.map(r=>'<option value="'+r+'"'+(r===guess?' selected':'')+'>'+feedSnoozeReasonLabel(r)+'</option>').join('')+
+    '</select>'+
+    lab(isEn?'Details (optional)':'Détails (optionnel)')+
+    '<textarea id="feed-snooze-note" rows="2" maxlength="300" placeholder="'+(isEn?'e.g. moved to a new room on the 20th':'ex. déménagé dans une autre pièce le 20')+'" style="width:100%;box-sizing:border-box;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-size:14px;padding:8px 10px;margin-bottom:12px;"></textarea>'+
     '<div style="font-size:14px;margin-bottom:10px;">'+(isEn?'Bring back the « without a meal » alert in:':'Remettre l\'alerte « sans repas » dans :')+'</div>'+
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">'+btn(7)+btn(14)+btn(30)+'</div>'+
     '<div style="font-size:12.5px;color:var(--ink-dim);line-height:1.4;">'+(isEn
@@ -23827,7 +23852,14 @@ function setFeedSnooze(id, days){
   const s = savedSnakes.find(x=>x.id===id); if(!s) return;
   ensureSnakeMeta(s);
   const today = localTodayStr();
+  const rEl = document.getElementById('feed-snooze-reason'), nEl = document.getElementById('feed-snooze-note');
+  const reason = rEl && FEED_SNOOZE_REASONS.includes(rEl.value) ? rEl.value : '';
+  const note = nEl ? String(nEl.value||'').trim().slice(0,300) : '';
   s.health.feedAlertSnooze = { from: today, until: addDays(today, Number(days)||7) };
+  if(reason) s.health.feedAlertSnooze.reason = reason;
+  if(note) s.health.feedAlertSnooze.note = note;
+  // Trace dans le journal de l'animal (note de santé) — la raison et les détails restent dans l'historique
+  pushHealthEvent(s, { date: today, type:'health_note', note: (isEn?'« Without a meal » alert paused '+(Number(days)||7)+' days':'Alerte « sans repas » en pause '+(Number(days)||7)+' jours')+(reason?' — '+feedSnoozeReasonLabel(reason):'')+(note?' — '+note:''), snooze:true });
   s.updatedAt = Date.now();
   storage.save(savedSnakes);
   closeQuickModal();
